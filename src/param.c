@@ -22,7 +22,7 @@ param_t * param_from_id(uint16_t id)
 void param_print(param_t * param)
 {
 	/* Param id */
-	printf(" %u:",  param - (param_t *) &__start_param);
+	printf(" %u",  param - (param_t *) &__start_param);
 
 	/* Vmem */
 #if 0
@@ -39,12 +39,14 @@ void param_print(param_t * param)
 	printf(" %s = %s", param->name, value_str);
 
 	/* Unit */
-	printf(" %s\r\n", param->unit);
+	printf(" %s", param->unit);
 
 	/* Type */
 	char type_str[20] = "";
 	param_type_str(param, type_str, 20);
 	printf(" %s", type_str);
+
+	printf("\n");
 
 }
 
