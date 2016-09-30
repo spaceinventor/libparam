@@ -5,9 +5,7 @@
  *      Author: johan
  */
 #include <asf.h>
-#include <ltc4281.h>
 #include "vmem.h"
-#include "fm25w256.h"
 
 void vmem_dump(vmem_t * vmem)
 {
