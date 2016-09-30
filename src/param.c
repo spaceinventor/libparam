@@ -40,6 +40,12 @@ void param_print(param_t * param)
 
 	/* Unit */
 	printf(" %s\r\n", param->unit);
+
+	/* Type */
+	char type_str[20] = "";
+	param_type_str(param, type_str, 20);
+	printf(" %s", type_str);
+
 }
 
 void param_list(struct vmem_s * vmem)
