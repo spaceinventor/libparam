@@ -23,7 +23,7 @@ typedef struct {
 		.write = vmem_ltc_write, \
 		.big_endian = 1, \
 		.driver = &vmem_##name_in##_driver, \
-		.vaddr = _vaddr, \
+		.vaddr = (void *) _vaddr, \
 	}; \
 	vmem_t * vmem_##name_in = &vmem_##name_in##_instance;
 
