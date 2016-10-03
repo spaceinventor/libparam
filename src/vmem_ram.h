@@ -25,6 +25,7 @@ typedef struct {
 		.size = size_in, \
 		.read = vmem_ram_read, \
 		.write = vmem_ram_write, \
+		.vaddr = vmem_##name_in##_heap, \
 	}; \
 	vmem_t * vmem_##name_in = &vmem_##name_in##_instance;
 

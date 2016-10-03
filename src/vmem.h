@@ -13,6 +13,7 @@
 typedef struct vmem_s {
 	void (*read)(struct vmem_s * vmem, uint16_t addr, void * dataout, int len);
 	void (*write)(struct vmem_s * vmem, uint16_t addr, void * datain, int len);
+	void * vaddr;
 	int size;
 	const char *name;
 	int big_endian;
@@ -21,5 +22,6 @@ typedef struct vmem_s {
 
 void vmem_dump(vmem_t * vmem);
 void vmem_list(void);
+void * vmem_memcpy(void * to, void * from, size_t size);
 
 #endif /* SRC_PARAM_VMEM_H_ */

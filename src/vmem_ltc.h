@@ -12,7 +12,7 @@ typedef struct {
 	int device_id;
 } vmem_ltc_driver_t;
 
-#define VMEM_DEFINE_LTC(name_in, strname, device_id_in) \
+#define VMEM_DEFINE_LTC(name_in, strname, device_id_in, _vaddr) \
 	static vmem_ltc_driver_t vmem_##name_in##_driver = { \
 		.device_id = device_id_in, \
 	}; \
@@ -23,6 +23,7 @@ typedef struct {
 		.write = vmem_ltc_write, \
 		.big_endian = 1, \
 		.driver = &vmem_##name_in##_driver, \
+		.vaddr = _vaddr, \
 	}; \
 	vmem_t * vmem_##name_in = &vmem_##name_in##_instance;
 

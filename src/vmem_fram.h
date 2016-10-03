@@ -12,7 +12,7 @@ typedef struct {
 	uint8_t *fram_addr;
 } vmem_fram_driver_t;
 
-#define VMEM_DEFINE_FRAM(name_in, strname, fram_addr_in, size_in) \
+#define VMEM_DEFINE_FRAM(name_in, strname, fram_addr_in, size_in, _vaddr) \
 	static vmem_fram_driver_t vmem_##name_in##_driver = { \
 		.fram_addr = fram_addr_in, \
 	}; \
@@ -21,7 +21,8 @@ typedef struct {
 		.size = size_in, \
 		.read = vmem_fram_read, \
 		.write = vmem_fram_write, \
-		.driver = &vmem_##name_in##_driver \
+		.driver = &vmem_##name_in##_driver, \
+		.vaddr = _vaddr, \
 	}; \
 	vmem_t * vmem_##name_in = &vmem_##name_in##_instance;
 
