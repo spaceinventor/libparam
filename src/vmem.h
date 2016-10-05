@@ -8,6 +8,7 @@
 #ifndef SRC_PARAM_VMEM_H_
 #define SRC_PARAM_VMEM_H_
 
+#include <stddef.h>
 #include <param.h>
 
 typedef struct vmem_s {

@@ -52,6 +52,20 @@ typedef struct param_s {
 	void (*callback)(struct param_s * param);
 } param_t;
 
+#define PARAM_DEFINE_STATIC_RAM(name_in, type_in, size_in, min_in, max_in, readonly_in, callback_in, unit_in, physaddr_in) \
+	__attribute__ ((section("param"), used)) \
+	param_t name_in = { \
+		.type = type_in, \
+		.name = #name_in, \
+		.size = size_in, \
+		.min = min_in, \
+		.max = max_in, \
+		.readonly = readonly_in, \
+		.unit = unit_in, \
+		.callback = callback_in, \
+		.physaddr = physaddr_in, \
+	}
+
 #define PARAM_DEFINE_STRUCT_RAM(fieldname, name_in, type_in, size_in, min_in, max_in, readonly_in, callback_in, unit_in, physaddr_in) \
 	.fieldname = { \
 		.type = type_in, \
