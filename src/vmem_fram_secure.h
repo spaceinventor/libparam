@@ -31,7 +31,7 @@ typedef struct {
 		.fram_backup_addr = fram_backup_addr_in, \
 		.fallback_fct = _fallback_fct, \
 	}; \
-	static vmem_t vmem_##name_in##_instance __attribute__ ((section("vmem"), used)) = { \
+	vmem_t vmem_##name_in##_instance __attribute__ ((section("vmem"), used)) = { \
 		.name = strname, \
 		.size = size_in, \
 		.read = vmem_fram_secure_read, \
