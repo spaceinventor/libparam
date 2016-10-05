@@ -101,4 +101,11 @@ static int slash_param_list(struct slash *slash)
 	param_list(NULL);
 	return SLASH_SUCCESS;
 }
-slash_command(param_list, slash_param_list, NULL, "List local parameters");
+slash_command(param_list, slash_param_list, NULL, "List parameters");
+
+static int slash_vmem_list(struct slash *slash)
+{
+	vmem_list();
+	return SLASH_SUCCESS;
+}
+slash_command(vmem_list, slash_vmem_list, NULL, "List vmems");

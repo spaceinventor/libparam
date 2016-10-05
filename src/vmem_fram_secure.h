@@ -19,15 +19,17 @@ typedef struct {
 	uint8_t *data;
 	int fram_primary_addr;
 	int fram_backup_addr;
+	void (*fallback_fct)(void);
 	uint32_t crc;
 } vmem_fram_secure_driver_t;
 
-#define VMEM_DEFINE_FRAM_SECURE(name_in, strname, fram_primary_addr_in, fram_backup_addr_in, size_in, _vaddr) \
+#define VMEM_DEFINE_FRAM_SECURE(name_in, strname, fram_primary_addr_in, fram_backup_addr_in, _fallback_fct, size_in, _vaddr) \
 	uint8_t vmem_##name_in##_heap[size_in] = {}; \
 	static vmem_fram_secure_driver_t vmem_##name_in##_driver = { \
 		.data = vmem_##name_in##_heap, \
 		.fram_primary_addr = fram_primary_addr_in, \
 		.fram_backup_addr = fram_backup_addr_in, \
+		.fallback_fct = _fallback_fct, \
 	}; \
 	static vmem_t vmem_##name_in##_instance __attribute__ ((section("vmem"), used)) = { \
 		.name = strname, \
