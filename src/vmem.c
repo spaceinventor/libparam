@@ -47,3 +47,12 @@ void * vmem_memcpy(void * to, void * from, size_t size) {
 	return memcpy(to, from, size);
 
 }
+
+vmem_t * vmem_index_to_ptr(int idx) {
+	return ((vmem_t *) &__start_vmem) + idx;
+}
+
+int vmem_ptr_to_index(vmem_t * vmem) {
+	return vmem - (vmem_t *) &__start_vmem;
+}
+

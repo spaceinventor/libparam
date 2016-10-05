@@ -23,5 +23,7 @@ typedef struct vmem_s {
 void vmem_dump(vmem_t * vmem);
 void vmem_list(void);
 void * vmem_memcpy(void * to, void * from, size_t size);
+vmem_t * vmem_index_to_ptr(int idx);
+int vmem_ptr_to_index(vmem_t * vmem);
 
 #endif /* SRC_PARAM_VMEM_H_ */
