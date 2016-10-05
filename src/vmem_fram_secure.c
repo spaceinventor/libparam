@@ -10,7 +10,6 @@
 #include <stdint.h>
 
 #include <csp/csp_crc32.h>
-#include <slash/slash.h>
 
 #include <vmem.h>
 
@@ -94,16 +93,3 @@ void vmem_fram_secure_write(vmem_t * vmem, uint16_t addr, void * datain, int len
 	uint32_t crc = csp_crc32_memory(driver->data, vmem->size - sizeof(uint32_t));
 	fm25w256_write_data(driver->fram_primary_addr + vmem->size - sizeof(uint32_t), &crc, sizeof(uint32_t));
 }
-
-static int slash_vmem_backup(struct slash *slash)
-{
-	if (slash->argc != 2)
-		return SLASH_EUSAGE;
-
-	int idx = atoi(slash->argv[1]);
-	vmem_t * vmem = vmem_index_to_ptr(idx);
-	vmem_fram_secure_backup(vmem);
-
-	return SLASH_SUCCESS;
-}
-slash_command(vmem_backup, slash_vmem_backup, "<vmem idx>", "Backup FRAM vmem");
