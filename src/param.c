@@ -105,8 +105,8 @@ void param_get_data(param_t * param, void * outbuf, int len)
 	param->vmem->read(param->vmem, param->addr, outbuf, len);
 }
 
-#define PARAM_SET(type, name_in, _swapfct) \
-	void param_set_##name_in(param_t * param, type value) \
+#define PARAM_SET(_type, name_in, _swapfct) \
+	void param_set_##name_in(param_t * param, _type value) \
 	{ \
 	\
 	/* Check readonly */ \
@@ -116,19 +116,21 @@ void param_get_data(param_t * param, void * outbuf, int len)
 	} \
 	\
 	/* Check limits */ \
-	if (value > (type) param->max) { \
-		printf("Param value exceeds max\r\n"); \
-		return; \
-	} \
-	\
-	if (value < (type) param->min) { \
-		printf("Param value below min\r\n"); \
-		return; \
+	if ((param->type != PARAM_TYPE_FLOAT) && (param->type != PARAM_TYPE_DOUBLE)) { \
+		if (value > (_type) param->max) { \
+			printf("Param value exceeds max\r\n"); \
+			return; \
+		} \
+		\
+		if (value < (_type) param->min) { \
+			printf("Param value below min\r\n"); \
+			return; \
+		} \
 	} \
 	\
 	/* Aligned access directly to RAM */ \
 	if (param->physaddr) { \
-		*(type*)(param->physaddr) = value; \
+		*(_type*)(param->physaddr) = value; \
 	\
 	/* Otherwise call to vmem */ \
 	} else { \

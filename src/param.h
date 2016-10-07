@@ -79,6 +79,22 @@ typedef struct param_s {
 		.physaddr = physaddr_in, \
 	}
 
+
+#define PARAM_DEFINE_STATIC_VMEM(_name, type_in, size_in, min_in, max_in, readonly_in, callback_in, unit_in, vmem_name, addr_in) \
+	__attribute__ ((section("param"), used)) \
+	param_t _name = { \
+		.type = type_in, \
+		.name = #_name, \
+		.size = size_in, \
+		.min = min_in, \
+		.max = max_in, \
+		.readonly = readonly_in, \
+		.callback = callback_in, \
+		.unit = unit_in, \
+		.addr = addr_in, \
+		.vmem = &vmem_##vmem_name##_instance, \
+	}
+
 #define PARAM_DEFINE_STRUCT_VMEM(fieldname, type_in, size_in, min_in, max_in, readonly_in, callback_in, unit_in, vmem_name, addr_in) \
 	.fieldname = { \
 		.type = type_in, \
