@@ -5,7 +5,6 @@
  *      Author: johan
  */
 
-#include <asf.h>
 #include <stdio.h>
 #include <stdint.h>
 

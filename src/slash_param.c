@@ -5,8 +5,7 @@
  *      Author: johan
  */
 
-
-#include <asf.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
 #include <slash/slash.h>
@@ -56,7 +55,7 @@ static int slash_rparam_get(struct slash *slash)
 		return SLASH_EINVAL;
 	}
 
-	hex_dump("Response", packet->data, packet->length);
+	//hex_dump("Response", packet->data, packet->length);
 	csp_buffer_free(packet);
 	csp_close(conn);
 
@@ -103,9 +102,3 @@ static int slash_param_list(struct slash *slash)
 }
 slash_command(param_list, slash_param_list, NULL, "List parameters");
 
-static int slash_vmem_list(struct slash *slash)
-{
-	vmem_list();
-	return SLASH_SUCCESS;
-}
-slash_command(vmem_list, slash_vmem_list, NULL, "List vmems");

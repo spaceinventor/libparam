@@ -11,8 +11,6 @@
 #include <param_serializer.h>
 #include "param_server.h"
 
-#include <hex_dump.h>
-
 static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 	param_request_t * request = (param_request_t *) packet->data;
 

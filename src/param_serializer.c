@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include <hex_dump.h>
 
 #include <param.h>
 #include "param_serializer.h"

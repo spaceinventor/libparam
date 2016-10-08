@@ -53,7 +53,8 @@ typedef struct param_s {
 } param_t;
 
 #define PARAM_DEFINE_STATIC_RAM(name_in, type_in, size_in, min_in, max_in, readonly_in, callback_in, unit_in, physaddr_in) \
-	__attribute__ ((section("param"), used)) \
+	__attribute__((section("param"))) \
+	__attribute__((used)) \
 	param_t name_in = { \
 		.type = type_in, \
 		.name = #name_in, \

@@ -1,4 +1,5 @@
-#include <asf.h>
+#include <stdio.h>
+#include <string.h>
 #include "param.h"
 #include "param_string.h"
 
@@ -22,7 +23,7 @@ param_t * param_from_id(uint16_t id)
 void param_print(param_t * param)
 {
 	/* Param id */
-	printf(" %u",  param - (param_t *) &__start_param);
+	printf(" %lu",  param - (param_t *) &__start_param);
 
 	/* Vmem */
 #if 0
