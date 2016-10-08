@@ -16,30 +16,39 @@ def options(ctx):
 def configure(ctx):
 
     if ctx.options.vmem:
-    	ctx.env.append_unique('FILES_VMEM', 'src/vmem.c')
-    	ctx.env.append_unique('FILES_VMEM', 'src/vmem_ram.c')
-    	ctx.env.append_unique('FILES_VMEM', 'src/vmem_slash.c')
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem.c')
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem_ram.c')
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem_slash.c')
     	
     if ctx.options.vmem_fram:
         ctx.env.append_unique('FILES_VMEM', 'src/vmem_fram.c')
         ctx.env.append_unique('FILES_VMEM', 'src/vmem_fram_secure.c')
-        ctx.env.append_unique('FILES_VMEM', 'src/vmem_fram_secure_slash.c')
+        if ctx.env.SLASH_ENABLED:
+            ctx.env.append_unique('FILES_VMEM', 'src/vmem_fram_secure_slash.c')
         ctx.env.append_unique('USE_VMEM', 'driver-fram')
         
     if ctx.options.vmem_ltc:
         ctx.env.append_unique('FILES_VMEM', 'src/vmem_ltc.c')
         ctx.env.append_unique('USE_VMEM', 'driver-ltc')
+    
+    ctx.env.append_unique('FILES_PARAM', 'src/param/param.c')
+    ctx.env.append_unique('FILES_PARAM', 'src/param/param_string.c')
+    ctx.env.append_unique('FILES_PARAM', 'src/param/param_server.c')
+    ctx.env.append_unique('FILES_PARAM', 'src/param/param_serializer.c')
+    if not ctx.env.SLASH_ENABLED:
+        ctx.env.append_unique('EXCL_PARAM', 'src/param/param_slash.c')
 
 def build(ctx):
     ctx.objects(
         source = ctx.env.FILES_VMEM,
+        includes = 'include',
         export_includes = 'include',
         target = 'vmem',
-        use = ctx.env.USE_VMEM + ['slash'])
-        
+        use = ctx.env.USE_VMEM + ['slash', 'param'])
+    
     ctx.objects(
-        source = ctx.path.ant_glob('src/param/*.c'),
-        includes = 'include',
+        source = ctx.env.FILES_PARAM,
+        includes = 'include', 
         export_includes = 'include',
         target = 'param',
         use = 'csp slash')
