@@ -65,7 +65,7 @@ static int set(struct slash *slash)
 		return SLASH_EINVAL;
 	}
 
-	char valuebuf[100] __attribute__((aligned(16))) = {};
+	char valuebuf[128] __attribute__((aligned(16))) = {};
 	param_str_to_value(param->type, slash->argv[2], valuebuf);
 
 	param_set(param, valuebuf);

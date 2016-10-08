@@ -6,6 +6,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <param/param.h>
 #include "param_string.h"
 
@@ -83,6 +84,10 @@ void param_str_to_value(param_type_e type, char * in, void * out)
 	PARAM_SCANF(PARAM_TYPE_XINT64, "0x%lX", unsigned long, uint64, uint64_t)
 	PARAM_SCANF(PARAM_TYPE_FLOAT, "%f", float, float, float)
 	PARAM_SCANF(PARAM_TYPE_DOUBLE, "%lf", double, double, double)
+
+	case PARAM_TYPE_STRING:
+		strcpy(out, in);
+		break;
 
 	default:
 		printf("Unsupported type\r\n");

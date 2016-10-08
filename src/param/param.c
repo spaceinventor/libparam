@@ -198,6 +198,9 @@ void param_set(param_t * param, void * value) {
 	PARAM_SET(PARAM_TYPE_XINT64, uint64, uint64_t)
 	PARAM_SET(PARAM_TYPE_FLOAT, float, float)
 	PARAM_SET(PARAM_TYPE_DOUBLE, double, double)
+	case PARAM_TYPE_STRING:
+		param_set_data(param, value, strlen(value) + 1);
+		break;
 	default:
 		printf("Unsupported type\n");
 		break;
