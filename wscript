@@ -41,6 +41,8 @@ def configure(ctx):
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_slash.c')
     if ctx.options.rparam and ctx.env.SLASH_ENABLED:
         ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_slash.c')
+        
+    ctx.env.append_unique('DEFINES', 'PARAM_STORAGE_SIZE=96')
 
 def build(ctx):
     ctx.objects(

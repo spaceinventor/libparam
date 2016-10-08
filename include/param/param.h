@@ -146,12 +146,14 @@ PARAM_SET(float, float)
 PARAM_SET(double, double)
 #undef PARAM_SET
 
+void param_set(param_t * param, void * value);
 void param_set_data(param_t * param, void * inbuf, int len);
 void param_get_data(param_t * param, void * outbuf, int len);
 #define param_set_string param_set_data
 #define param_get_string param_get_data
 
 param_t * param_index_to_ptr(int idx);
+param_t * param_name_to_ptr(char * name);
 int param_ptr_to_index(param_t * param);
 
 #endif /* SRC_PARAM_PARAM_H_ */

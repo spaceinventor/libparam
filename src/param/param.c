@@ -7,6 +7,15 @@
 
 extern param_t __start_param, __stop_param;
 
+#ifndef PARAM_STORAGE_SIZE
+#define PARAM_STORAGE_SIZE sizeof(param_t)
+#endif
+
+#define for_each_param(_c) \
+	for (_c = &__start_param; \
+	     _c < &__stop_param; \
+	     _c = (param_t *)(intptr_t)((char *)_c + PARAM_STORAGE_SIZE))
+
 /* Callbacks on/off */
 static bool param_callbacks_enabled = true;
 
@@ -22,8 +31,15 @@ param_t * param_from_id(uint16_t id)
 
 void param_print(param_t * param)
 {
+	if (param == NULL)
+		return;
+	if (param >= &__stop_param)
+		return;
+	if (param < &__start_param)
+		return;
+
 	/* Param id */
-	printf(" %lu",  param - (param_t *) &__start_param);
+	printf(" %u",  param_ptr_to_index(param));
 
 	/* Vmem */
 #if 0
@@ -53,7 +69,8 @@ void param_print(param_t * param)
 
 void param_list(struct vmem_s * vmem)
 {
-	for(param_t * param = (param_t *) &__start_param; param < (param_t *) &__stop_param; param++) {
+	param_t * param;
+	for_each_param(param) {
 
 		/* Filter on vmem */
 		if ((vmem != NULL) && (param->vmem != vmem))
@@ -159,6 +176,35 @@ PARAM_SET(double, double, )
 
 #undef PARAM_SET
 
+void param_set(param_t * param, void * value) {
+	switch(param->type) {
+
+#define PARAM_SET(casename, name, type) \
+	case casename: \
+		param_set_##name(param, *(type *) value); \
+		break; \
+
+	PARAM_SET(PARAM_TYPE_UINT8, uint8, uint8_t)
+	PARAM_SET(PARAM_TYPE_UINT16, uint16, uint16_t)
+	PARAM_SET(PARAM_TYPE_UINT32, uint32, uint32_t)
+	PARAM_SET(PARAM_TYPE_UINT64, uint64, uint64_t)
+	PARAM_SET(PARAM_TYPE_INT8, int8, int8_t)
+	PARAM_SET(PARAM_TYPE_INT16, int16, int16_t)
+	PARAM_SET(PARAM_TYPE_INT32, int32, int32_t)
+	PARAM_SET(PARAM_TYPE_INT64, int64, int64_t)
+	PARAM_SET(PARAM_TYPE_XINT8, uint8, uint8_t)
+	PARAM_SET(PARAM_TYPE_XINT16, uint16, uint16_t)
+	PARAM_SET(PARAM_TYPE_XINT32, uint32, uint32_t)
+	PARAM_SET(PARAM_TYPE_XINT64, uint64, uint64_t)
+	PARAM_SET(PARAM_TYPE_FLOAT, float, float)
+	PARAM_SET(PARAM_TYPE_DOUBLE, double, double)
+	default:
+		printf("Unsupported type\n");
+		break;
+
+	}
+}
+
 void param_set_data(param_t * param, void * inbuf, int len) {
 	if (param->physaddr) {
 		memcpy(param->physaddr, inbuf, len);
@@ -167,11 +213,24 @@ void param_set_data(param_t * param, void * inbuf, int len) {
 	param->vmem->write(param->vmem, param->addr, inbuf, len);
 }
 
-param_t * param_index_to_ptr(int idx) {
-	return ((param_t *) &__start_param) + idx;
+param_t * param_name_to_ptr(char * name)
+{
+	param_t * param;
+	for_each_param(param) {
+		if (strcmp(param->name, name) == 0) {
+			return param;
+		}
+	}
+	return NULL;
 }
 
-int param_ptr_to_index(param_t * param) {
-	return param - (param_t *) &__start_param;
+param_t * param_index_to_ptr(int idx)
+{
+	return (param_t *) (((char *) &__start_param) + idx * PARAM_STORAGE_SIZE);
+}
+
+int param_ptr_to_index(param_t * param)
+{
+	return ((intptr_t) param - (intptr_t) &__start_param) / PARAM_STORAGE_SIZE;
 }
 
