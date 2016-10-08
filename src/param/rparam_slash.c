@@ -14,11 +14,13 @@
 #include <csp/csp_endian.h>
 
 #include <param/param.h>
-#include "param_server.h"
+#include <param/rparam.h>
 #include "param_serializer.h"
 #include "param_string.h"
 
-static int rparam_slash_get(struct slash *slash)
+slash_command_group(rparam, "Remote parameters");
+
+static int rparam_get(struct slash *slash)
 {
 	if (slash->argc != 3)
 		return SLASH_EUSAGE;
@@ -36,7 +38,7 @@ static int rparam_slash_get(struct slash *slash)
 
 	packet->length = sizeof(param_request_t);
 
-	//hex_dump("request", packet->data, packet->length);
+	csp_hex_dump("request", packet->data, packet->length);
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_GET, 0, CSP_SO_NONE);
 	if (conn == NULL) {
@@ -57,15 +59,15 @@ static int rparam_slash_get(struct slash *slash)
 		return SLASH_EINVAL;
 	}
 
-	//hex_dump("Response", packet->data, packet->length);
+	csp_hex_dump("Response", packet->data, packet->length);
 	csp_buffer_free(packet);
 	csp_close(conn);
 
 	return SLASH_SUCCESS;
 }
-slash_command(rparam_get, rparam_slash_get, "<node> <param>", "Get remote parameter");
+slash_command_sub(rparam, get, rparam_get, "<node> <param>", "Get remote parameter");
 
-static int rparam_slash_set(struct slash *slash)
+static int rparam_set(struct slash *slash)
 {
 	if (slash->argc != 5)
 		return SLASH_EUSAGE;
@@ -88,14 +90,14 @@ static int rparam_slash_set(struct slash *slash)
 	packet->length = 0;
 	packet->length += param_serialize_single_fromstr(idx, type, slash->argv[4], (char *) packet->data, 256 - packet->length);
 
-	//hex_dump("packet", packet->data, packet->length);
+	csp_hex_dump("packet", packet->data, packet->length);
 
 	if (csp_sendto(CSP_PRIO_HIGH, node, PARAM_PORT_SET, 0, CSP_SO_NONE, packet, 0) != CSP_ERR_NONE)
 		csp_buffer_free(packet);
 
 	return SLASH_SUCCESS;
 }
-slash_command(rparam_set, rparam_slash_set, "<node> <param> <type> <value>", "Set remote parameter");
+slash_command_sub(rparam, set, rparam_set, "<node> <param> <type> <value>", "Set remote parameter");
 
 
 

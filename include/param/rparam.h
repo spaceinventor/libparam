@@ -1,12 +1,14 @@
 /*
- * param_server.h
+ * rparam.h
  *
- *  Created on: Sep 29, 2016
+ *  Created on: Oct 8, 2016
  *      Author: johan
  */
 
-#ifndef SRC_PARAM_PARAM_SERVER_H_
-#define SRC_PARAM_PARAM_SERVER_H_
+#ifndef LIB_PARAM_INCLUDE_PARAM_RPARAM_H_
+#define LIB_PARAM_INCLUDE_PARAM_RPARAM_H_
+
+#include <csp/arch/csp_thread.h>
 
 #define PARAM_SERVER_MTU 200
 #define PARAM_PORT_GET	10
@@ -26,6 +28,7 @@ typedef struct {
 	uint64_t value;
 } __attribute__((packed)) param_set_t;
 
-void param_server_task(void *pvParameters);
+csp_thread_return_t param_server_task(void *pvParameters);
 
-#endif /* SRC_PARAM_PARAM_SERVER_H_ */
+
+#endif /* LIB_PARAM_INCLUDE_PARAM_RPARAM_H_ */

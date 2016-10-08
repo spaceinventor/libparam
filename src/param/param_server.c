@@ -6,10 +6,11 @@
  */
 
 #include <csp/csp.h>
+#include <csp/arch/csp_thread.h>
 #include <csp/csp_endian.h>
 #include <param/param.h>
+#include <param/rparam.h>
 #include "param_serializer.h"
-#include "param_server.h"
 
 static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 	param_request_t * request = (param_request_t *) packet->data;
@@ -29,7 +30,7 @@ static void param_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 	csp_buffer_free(packet);
 }
 
-void param_server_task(void *pvParameters)
+csp_thread_return_t param_server_task(void *pvParameters)
 {
 
 	/* Create socket without any socket options */
@@ -75,6 +76,8 @@ void param_server_task(void *pvParameters)
 		csp_close(conn);
 
 	}
+
+	return CSP_TASK_RETURN;
 
 }
 
