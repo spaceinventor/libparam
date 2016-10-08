@@ -12,6 +12,8 @@ def options(ctx):
     gr.add_option('--vmem', action='store_true')
     gr.add_option('--vmem-fram', action='store_true')
     gr.add_option('--vmem-ltc', action='store_true')
+    
+    gr.add_option('--rparam', action='store_true')
 
 def configure(ctx):
 
@@ -35,8 +37,10 @@ def configure(ctx):
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_string.c')
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_server.c')
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_serializer.c')
-    if not ctx.env.SLASH_ENABLED:
-        ctx.env.append_unique('EXCL_PARAM', 'src/param/param_slash.c')
+    if ctx.env.SLASH_ENABLED:
+        ctx.env.append_unique('FILES_PARAM', 'src/param/param_slash.c')
+    if ctx.options.rparam and ctx.env.SLASH_ENABLED:
+        ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_slash.c')
 
 def build(ctx):
     ctx.objects(
