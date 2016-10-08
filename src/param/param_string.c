@@ -58,7 +58,7 @@ void param_value_str(param_t *param, char * out, int len)
 	}
 }
 
-void param_str_to_value(param_type_e type, char * in, void * out)
+int param_str_to_value(param_type_e type, char * in, void * out)
 {
 	switch(type) {
 
@@ -67,7 +67,7 @@ void param_str_to_value(param_type_e type, char * in, void * out)
 		strcast obj; \
 		sscanf(in, strtype, &obj); \
 		*(outcast *) out = (outcast) obj; \
-		break; \
+		return sizeof(outcast); \
 	}
 
 	PARAM_SCANF(PARAM_TYPE_UINT8, "%u", unsigned int, uint8, uint8_t)
@@ -87,13 +87,15 @@ void param_str_to_value(param_type_e type, char * in, void * out)
 
 	case PARAM_TYPE_STRING:
 		strcpy(out, in);
-		break;
+		return strlen(in);
 
 	default:
 		printf("Unsupported type\r\n");
 		break;
 #undef PARAM_SCANF
 	}
+
+	return 0;
 }
 
 void param_type_str(param_t *param, char * out, int len)
