@@ -8,9 +8,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <vmem.h>
-
-#include "vmem_ram.h"
+#include <vmem/vmem_ram.h>
 
 void vmem_ram_read(vmem_t * vmem, uint16_t addr, void * dataout, int len) {
 	memcpy(dataout, ((vmem_ram_driver_t *) vmem->driver)->physaddr + addr, len);

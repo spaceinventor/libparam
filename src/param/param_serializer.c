@@ -9,7 +9,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#include <param.h>
+#include <param/param.h>
 #include "param_serializer.h"
 #include "param_string.h"
 

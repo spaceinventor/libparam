@@ -8,6 +8,8 @@
 #ifndef SRC_PARAM_VMEM_FRAM_H_
 #define SRC_PARAM_VMEM_FRAM_H_
 
+#include <vmem/vmem.h>
+
 typedef struct {
 	uint8_t *fram_addr;
 } vmem_fram_driver_t;

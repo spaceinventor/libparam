@@ -9,7 +9,7 @@
 #define SRC_PARAM_VMEM_H_
 
 #include <stddef.h>
-#include <param.h>
+#include <param/param.h>
 
 typedef struct vmem_s {
 	void (*read)(struct vmem_s * vmem, uint16_t addr, void * dataout, int len);

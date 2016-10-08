@@ -1,5 +1,5 @@
 /*
- * slash_param.c
+ * param_slash.c
  *
  *  Created on: Sep 29, 2016
  *      Author: johan
@@ -11,12 +11,14 @@
 #include <slash/slash.h>
 #include <csp/csp.h>
 #include <csp/csp_endian.h>
-#include <param.h>
-#include <param_server.h>
-#include <param_string.h>
-#include <param_serializer.h>
 
-static int slash_rparam_get(struct slash *slash)
+#include <param/param.h>
+
+#include "param_server.h"
+#include "param_string.h"
+#include "param_serializer.h"
+
+static int rparam_slash_get(struct slash *slash)
 {
 	if (slash->argc != 3)
 		return SLASH_EUSAGE;
@@ -61,9 +63,9 @@ static int slash_rparam_get(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command(rparam_get, slash_rparam_get, "<node> <param>", "Get remote parameter");
+slash_command(rparam_get, rparam_slash_get, "<node> <param>", "Get remote parameter");
 
-static int slash_rparam_set(struct slash *slash)
+static int rparam_slash_set(struct slash *slash)
 {
 	if (slash->argc != 5)
 		return SLASH_EUSAGE;
@@ -93,12 +95,12 @@ static int slash_rparam_set(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command(rparam_set, slash_rparam_set, "<node> <param> <type> <value>", "Set remote parameter");
+slash_command(rparam_set, rparam_slash_set, "<node> <param> <type> <value>", "Set remote parameter");
 
-static int slash_param_list(struct slash *slash)
+static int param_slash_list(struct slash *slash)
 {
 	param_list(NULL);
 	return SLASH_SUCCESS;
 }
-slash_command(param_list, slash_param_list, NULL, "List parameters");
+slash_command(param_list, param_slash_list, NULL, "List parameters");
 

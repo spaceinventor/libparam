@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "param.h"
+#include <param/param.h>
 #include "param_string.h"
 
 #include <csp/csp_endian.h>

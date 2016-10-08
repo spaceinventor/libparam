@@ -6,7 +6,7 @@
  */
 
 #include <stdio.h>
-#include <param.h>
+#include <param/param.h>
 #include "param_string.h"
 
 void param_value_str(param_t *param, char * out, int len)

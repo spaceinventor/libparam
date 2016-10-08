@@ -6,7 +6,9 @@
  */
 
 #include <stdlib.h>
-#include <vmem_fram_secure.h>
+
+#include <vmem/vmem_fram_secure.h>
+
 #include <slash/slash.h>
 
 static int slash_vmem_backup(struct slash *slash)

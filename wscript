@@ -15,28 +15,34 @@ def options(ctx):
 
 def configure(ctx):
 
-    if not ctx.options.vmem:
-    	ctx.env.append_unique('EXCL_PARAM', 'src/vmem.c')
-    	ctx.env.append_unique('EXCL_PARAM', 'src/vmem_slash.c')
+    if ctx.options.vmem:
+    	ctx.env.append_unique('FILES_VMEM', 'src/vmem.c')
+    	ctx.env.append_unique('FILES_VMEM', 'src/vmem_ram.c')
+    	ctx.env.append_unique('FILES_VMEM', 'src/vmem_slash.c')
     	
-    if not ctx.options.vmem_fram:
-        ctx.env.append_unique('EXCL_PARAM', 'src/vmem_fram.c')
-        ctx.env.append_unique('EXCL_PARAM', 'src/vmem_fram_secure.c')
-        ctx.env.append_unique('EXCL_PARAM', 'src/vmem_fram_secure_slash.c')
+    if ctx.options.vmem_fram:
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem_fram.c')
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem_fram_secure.c')
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem_fram_secure_slash.c')
+        ctx.env.append_unique('USE_VMEM', 'driver-fram')
         
-    if not ctx.options.vmem_ltc:
-        ctx.env.append_unique('EXCL_PARAM', 'src/vmem_ltc.c')
-        
-
-    	
+    if ctx.options.vmem_ltc:
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem_ltc.c')
+        ctx.env.append_unique('USE_VMEM', 'driver-ltc')
 
 def build(ctx):
     ctx.objects(
-        source   = ctx.path.ant_glob(['src/*.c'], excl = ctx.env.EXCL_PARAM),
-        includes = ['src', 'include'],
-        export_includes = ['src', 'include'],
-        target   = APPNAME,
-        use      = ['csp', 'slash', 'driver-include'])
+        source = ctx.env.FILES_VMEM,
+        export_includes = 'include',
+        target = 'vmem',
+        use = ctx.env.USE_VMEM + ['slash'])
+        
+    ctx.objects(
+        source = ctx.path.ant_glob('src/param/*.c'),
+        includes = 'include',
+        export_includes = 'include',
+        target = 'param',
+        use = 'csp slash')
 
 def dist(ctx):
     ctx.base_name = 'lib' + APPNAME + '-' + VERSION

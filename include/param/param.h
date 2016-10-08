@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <vmem.h>
+#include <vmem/vmem.h>
 
 typedef enum {
 	PARAM_TYPE_UINT8,

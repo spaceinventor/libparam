@@ -8,7 +8,7 @@
 #ifndef SRC_PARAM_VMEM_FRAM_SECURE_H_
 #define SRC_PARAM_VMEM_FRAM_SECURE_H_
 
-#include "vmem.h"
+#include <vmem/vmem.h>
 
 void vmem_fram_secure_init(vmem_t * vmem);
 void vmem_fram_secure_backup(vmem_t * vmem);

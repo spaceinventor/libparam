@@ -8,6 +8,8 @@
 #ifndef SRC_PARAM_VMEM_LTC_H_
 #define SRC_PARAM_VMEM_LTC_H_
 
+#include <vmem/vmem.h>
+
 typedef struct {
 	int device_id;
 } vmem_ltc_driver_t;

@@ -7,7 +7,8 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "vmem.h"
+
+#include <vmem/vmem.h>
 
 extern int __start_vmem, __stop_vmem;
 

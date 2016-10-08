@@ -9,9 +9,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <vmem.h>
-
-#include "vmem_ltc.h"
+#include <vmem/vmem_ltc.h>
 
 #include <ltc4281.h>
 

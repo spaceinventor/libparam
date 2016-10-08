@@ -10,9 +10,7 @@
 
 #include <csp/csp_crc32.h>
 
-#include <vmem.h>
-
-#include "vmem_fram_secure.h"
+#include <vmem/vmem_fram_secure.h>
 
 #include <fm25w256.h>
 

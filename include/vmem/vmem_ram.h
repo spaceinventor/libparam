@@ -8,6 +8,8 @@
 #ifndef SRC_PARAM_VMEM_RAM_H_
 #define SRC_PARAM_VMEM_RAM_H_
 
+#include <vmem/vmem.h>
+
 void vmem_ram_read(vmem_t * vmem, uint16_t addr, void * dataout, int len);
 void vmem_ram_write(vmem_t * vmem, uint16_t addr, void * datain, int len);
 

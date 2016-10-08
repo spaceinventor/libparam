@@ -7,8 +7,8 @@
 
 #include <csp/csp.h>
 #include <csp/csp_endian.h>
-#include <param.h>
-#include <param_serializer.h>
+#include <param/param.h>
+#include "param_serializer.h"
 #include "param_server.h"
 
 static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {

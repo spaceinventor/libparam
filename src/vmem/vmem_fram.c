@@ -8,9 +8,8 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <vmem.h>
+#include <vmem/vmem_fram.h>
 
-#include "vmem_fram.h"
 #include <fm25w256.h>
 
 

@@ -1,9 +1,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include <param.h>
-#include <vmem_fram.h>
-#include <vmem_fram_secure.h>
+#include <param/param.h>
+#include <vmem/vmem_fram.h>
+#include <vmem/vmem_fram_secure.h>
 
 #include <param/basis.h>
 
