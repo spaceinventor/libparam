@@ -46,6 +46,9 @@ def configure(ctx):
     if ctx.options.rparam_server:	
         ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_server.c')
         
+    if ctx.options.rparam_client:
+        ctx.env.append_unique('FILES_PARAM', 'src/param/rparam.c')
+        
     ctx.env.append_unique('DEFINES', 'PARAM_STORAGE_SIZE=96')
 
 def build(ctx):

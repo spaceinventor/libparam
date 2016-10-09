@@ -15,26 +15,19 @@
 
 #include <csp/csp_endian.h>
 
-int param_deserialize_single(char * inbuf) {
+int param_deserialize_to_var(param_type_e type, void * in, void * out)
+{
 
 	int count = 0;
 
-	uint16_t idx;
-	memcpy(&idx, inbuf, sizeof(idx));
-	count += sizeof(idx);
-	idx = csp_ntoh16(idx);
+	switch(type) {
 
-	param_t * param = param_index_to_ptr(idx);
-
-	switch(param->type) {
-
-#define PARAM_DESERIALIZE(casename, type, name, swapfct) \
-		case casename: { \
-			type obj; \
-			memcpy(&obj, inbuf + count, sizeof(obj)); \
-			count += sizeof(obj); \
-			obj = swapfct(obj); \
-			param_set_##name(param, obj); \
+#define PARAM_DESERIALIZE(_case, _type, name, swapfct) \
+		case _case: { \
+			_type * objptr = (_type *) out; \
+			memcpy(objptr, in, sizeof(_type)); \
+			count += sizeof(_type); \
+			*objptr = swapfct(*objptr); \
 			break; \
 		}
 
@@ -52,10 +45,70 @@ int param_deserialize_single(char * inbuf) {
 		PARAM_DESERIALIZE(PARAM_TYPE_XINT64, uint64_t, uint64, csp_ntoh64)
 		PARAM_DESERIALIZE(PARAM_TYPE_FLOAT, float, float, )
 		PARAM_DESERIALIZE(PARAM_TYPE_DOUBLE, double, double, )
+
+#undef PARAM_DESERIALIZE
+
 		default:
 			printf("Unuspported type\r\n");
 			break;
 	}
+
+	return count;
+
+}
+
+int param_deserialize_to_param(void * in, param_t * param) {
+
+	int count = 0;
+
+	switch(param->type) {
+
+#define PARAM_DESERIALIZE(_case, _type, _name) \
+		case _case: { \
+			_type obj; \
+			count += param_deserialize_to_var(param->type, in, &obj); \
+			param_set_##_name(param, obj); \
+			break; \
+		}
+
+		PARAM_DESERIALIZE(PARAM_TYPE_UINT8, uint8_t, uint8)
+		PARAM_DESERIALIZE(PARAM_TYPE_UINT16, uint16_t, uint16)
+		PARAM_DESERIALIZE(PARAM_TYPE_UINT32, uint32_t, uint32)
+		PARAM_DESERIALIZE(PARAM_TYPE_UINT64, uint64_t, uint64)
+		PARAM_DESERIALIZE(PARAM_TYPE_INT8, int8_t, uint8)
+		PARAM_DESERIALIZE(PARAM_TYPE_INT16, int16_t, uint16)
+		PARAM_DESERIALIZE(PARAM_TYPE_INT32, int32_t, uint32)
+		PARAM_DESERIALIZE(PARAM_TYPE_INT64, int64_t, uint64)
+		PARAM_DESERIALIZE(PARAM_TYPE_XINT8, uint8_t, uint8)
+		PARAM_DESERIALIZE(PARAM_TYPE_XINT16, uint16_t, uint16)
+		PARAM_DESERIALIZE(PARAM_TYPE_XINT32, uint32_t, uint32)
+		PARAM_DESERIALIZE(PARAM_TYPE_XINT64, uint64_t, uint64)
+		PARAM_DESERIALIZE(PARAM_TYPE_FLOAT, float, float)
+		PARAM_DESERIALIZE(PARAM_TYPE_DOUBLE, double, double)
+
+#undef PARAM_DESERIALIZE
+
+		default:
+			printf("Unuspported type\r\n");
+			break;
+	}
+
+	return count;
+
+}
+
+int param_deserialize_single(char * inbuf) {
+
+	int count = 0;
+
+	uint16_t idx;
+	memcpy(&idx, inbuf, sizeof(idx));
+	count += sizeof(idx);
+	idx = csp_ntoh16(idx);
+
+	param_t * param = param_index_to_ptr(idx);
+
+	param_deserialize_to_param(inbuf + count, param);
 
 	return count;
 
@@ -115,7 +168,7 @@ int param_serialize_single(param_t * param, char * outbuf, int len)
 
 	/* Parameter id */
 	uint16_t idx = param_ptr_to_index(param);
-	printf("paramter %s type %u idx %u\r\n", param->name, param->type, (unsigned int) idx);
+	//printf("paramter %s type %u idx %u\r\n", param->name, param->type, (unsigned int) idx);
 	idx = csp_hton16(idx);
 	memcpy(outbuf, &idx, sizeof(uint16_t));
 	size += sizeof(uint16_t);
@@ -152,7 +205,6 @@ int param_serialize_single(param_t * param, char * outbuf, int len)
 #undef PARAM_SWITCH_MEMCPY
 	}
 
-	printf("Param %s\r\n", param->name);
 	return size;
 }
 

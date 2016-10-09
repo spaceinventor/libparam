@@ -14,5 +14,7 @@ void param_serialize(param_t * param[], int count, char * outbuf, int len);
 void param_serialize_idx(uint16_t param_idx[], int count, char * outbuf, int len);
 
 int param_deserialize_single(char * inbuf);
+int param_deserialize_to_var(param_type_e type, void * in, void * out);
+int param_deserialize_to_param(void * in, param_t * param);
 
 #endif /* SRC_PARAM_PARAM_SERIALIZER_H_ */
