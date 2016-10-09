@@ -97,6 +97,129 @@ int param_deserialize_to_param(void * in, param_t * param) {
 
 }
 
+int param_serialize_from_str(param_type_e type, char * str, void * out)
+{
+
+	int count = 0;
+
+	switch(type) {
+
+#define PARAM_SERIALIZE(casename, objtype, name, swapfct) \
+		case casename: { \
+			objtype obj; \
+			param_str_to_value(type, str, &obj); \
+			obj = swapfct(obj); \
+			memcpy(out, &obj, sizeof(objtype)); \
+			count += sizeof(objtype); \
+			break; \
+		}
+
+		PARAM_SERIALIZE(PARAM_TYPE_UINT8, uint8_t, uint8, )
+		PARAM_SERIALIZE(PARAM_TYPE_UINT16, uint16_t, uint16, csp_hton16)
+		PARAM_SERIALIZE(PARAM_TYPE_UINT32, uint32_t, uint32, csp_hton32)
+		PARAM_SERIALIZE(PARAM_TYPE_UINT64, uint64_t, uint64, csp_hton64)
+		PARAM_SERIALIZE(PARAM_TYPE_INT8, int8_t, uint8, )
+		PARAM_SERIALIZE(PARAM_TYPE_INT16, int16_t, uint16, csp_hton16)
+		PARAM_SERIALIZE(PARAM_TYPE_INT32, int32_t, uint32, csp_hton32)
+		PARAM_SERIALIZE(PARAM_TYPE_INT64, int64_t, uint64, csp_hton64)
+		PARAM_SERIALIZE(PARAM_TYPE_XINT8, uint8_t, uint8, )
+		PARAM_SERIALIZE(PARAM_TYPE_XINT16, uint16_t, uint16, csp_hton16)
+		PARAM_SERIALIZE(PARAM_TYPE_XINT32, uint32_t, uint32, csp_hton32)
+		PARAM_SERIALIZE(PARAM_TYPE_XINT64, uint64_t, uint64, csp_hton64)
+		PARAM_SERIALIZE(PARAM_TYPE_FLOAT, float, float, )
+		PARAM_SERIALIZE(PARAM_TYPE_DOUBLE, double, double, )
+		default:
+			printf("parameter type not supported\r\n");
+			break;
+
+#undef PARAM_SERIALIZE
+	}
+
+	return count;
+
+}
+
+int param_serialize_from_param(param_t * param, char * out)
+{
+
+	int count = 0;
+
+	switch(param->type) {
+
+#define PARAM_SERIALIZE(casename, type, name, swapfct) \
+		case casename: { \
+			type obj = param_get_##name(param); \
+			obj = swapfct(obj); \
+			memcpy(out, &obj, sizeof(type)); \
+			count += sizeof(type); \
+			break; \
+		}
+
+		PARAM_SERIALIZE(PARAM_TYPE_UINT8, uint8_t, uint8, )
+		PARAM_SERIALIZE(PARAM_TYPE_UINT16, uint16_t, uint16, csp_hton16)
+		PARAM_SERIALIZE(PARAM_TYPE_UINT32, uint32_t, uint32, csp_hton32)
+		PARAM_SERIALIZE(PARAM_TYPE_UINT64, uint64_t, uint64, csp_hton64)
+		PARAM_SERIALIZE(PARAM_TYPE_INT8, int8_t, uint8, )
+		PARAM_SERIALIZE(PARAM_TYPE_INT16, int16_t, uint16, csp_hton16)
+		PARAM_SERIALIZE(PARAM_TYPE_INT32, int32_t, uint32, csp_hton32)
+		PARAM_SERIALIZE(PARAM_TYPE_INT64, int64_t, uint64, csp_hton64)
+		PARAM_SERIALIZE(PARAM_TYPE_XINT8, uint8_t, uint8, )
+		PARAM_SERIALIZE(PARAM_TYPE_XINT16, uint16_t, uint16, csp_hton16)
+		PARAM_SERIALIZE(PARAM_TYPE_XINT32, uint32_t, uint32, csp_hton32)
+		PARAM_SERIALIZE(PARAM_TYPE_XINT64, uint64_t, uint64, csp_hton64)
+		PARAM_SERIALIZE(PARAM_TYPE_FLOAT, float, float, )
+		PARAM_SERIALIZE(PARAM_TYPE_DOUBLE, double, double, )
+		default:
+			printf("parameter type not supported\r\n");
+			break;
+#undef PARAM_SERIALIZE
+	}
+
+	return count;
+
+}
+
+int param_serialize_from_var(param_type_e type, void * in, char * out)
+{
+
+	int count = 0;
+
+	switch(type) {
+
+#define PARAM_SERIALIZE(_case, _type, name, _swapfct) \
+		case _case: { \
+			_type obj = *(_type *) in; \
+			obj = _swapfct(obj); \
+			printf("obj %f\n", obj); \
+			memcpy(out, &obj, sizeof(_type)); \
+			count += sizeof(_type); \
+			break; \
+		}
+
+		PARAM_SERIALIZE(PARAM_TYPE_UINT8, uint8_t, uint8, )
+		PARAM_SERIALIZE(PARAM_TYPE_UINT16, uint16_t, uint16, csp_hton16)
+		PARAM_SERIALIZE(PARAM_TYPE_UINT32, uint32_t, uint32, csp_hton32)
+		PARAM_SERIALIZE(PARAM_TYPE_UINT64, uint64_t, uint64, csp_hton64)
+		PARAM_SERIALIZE(PARAM_TYPE_INT8, int8_t, uint8, )
+		PARAM_SERIALIZE(PARAM_TYPE_INT16, int16_t, uint16, csp_hton16)
+		PARAM_SERIALIZE(PARAM_TYPE_INT32, int32_t, uint32, csp_hton32)
+		PARAM_SERIALIZE(PARAM_TYPE_INT64, int64_t, uint64, csp_hton64)
+		PARAM_SERIALIZE(PARAM_TYPE_XINT8, uint8_t, uint8, )
+		PARAM_SERIALIZE(PARAM_TYPE_XINT16, uint16_t, uint16, csp_hton16)
+		PARAM_SERIALIZE(PARAM_TYPE_XINT32, uint32_t, uint32, csp_hton32)
+		PARAM_SERIALIZE(PARAM_TYPE_XINT64, uint64_t, uint64, csp_hton64)
+		PARAM_SERIALIZE(PARAM_TYPE_FLOAT, float, float, )
+		PARAM_SERIALIZE(PARAM_TYPE_DOUBLE, double, double, )
+		default:
+			printf("parameter type not supported\r\n");
+			break;
+#undef PARAM_SERIALIZE
+	}
+
+	return count;
+
+}
+
 int param_deserialize_single(char * inbuf) {
 
 	int count = 0;
@@ -123,39 +246,7 @@ int param_serialize_single_fromstr(uint16_t idx, param_type_e type, char * in, c
 	memcpy(outbuf, &idx, sizeof(uint16_t));
 	size += sizeof(uint16_t);
 
-	/* Value */
-	switch(type) {
-
-#define PARAM_SWITCH_MEMCPY(casename, objtype, name, swapfct) \
-		case casename: { \
-			objtype obj; \
-			param_str_to_value(type, in, &obj); \
-			obj = swapfct(obj); \
-			memcpy(outbuf + size, &obj, sizeof(objtype)); \
-			size += sizeof(objtype); \
-			break; \
-		}
-
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_UINT8, uint8_t, uint8, )
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_UINT16, uint16_t, uint16, csp_hton16)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_UINT32, uint32_t, uint32, csp_hton32)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_UINT64, uint64_t, uint64, csp_hton64)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_INT8, int8_t, uint8, )
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_INT16, int16_t, uint16, csp_hton16)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_INT32, int32_t, uint32, csp_hton32)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_INT64, int64_t, uint64, csp_hton64)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_XINT8, uint8_t, uint8, )
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_XINT16, uint16_t, uint16, csp_hton16)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_XINT32, uint32_t, uint32, csp_hton32)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_XINT64, uint64_t, uint64, csp_hton64)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_FLOAT, float, float, )
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_DOUBLE, double, double, )
-		default:
-			printf("parameter type not supported\r\n");
-			break;
-
-#undef PARAM_SWITCH_MEMCPY
-	}
+	size += param_serialize_from_str(type, in, outbuf + size);
 
 	return size;
 
@@ -173,37 +264,7 @@ int param_serialize_single(param_t * param, char * outbuf, int len)
 	memcpy(outbuf, &idx, sizeof(uint16_t));
 	size += sizeof(uint16_t);
 
-	/* Value */
-	switch(param->type) {
-
-#define PARAM_SWITCH_MEMCPY(casename, type, name, swapfct) \
-		case casename: { \
-			type obj = param_get_##name(param); \
-			obj = swapfct(obj); \
-			memcpy(outbuf + size, &obj, sizeof(type)); \
-			size += sizeof(type); \
-			break; \
-		}
-
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_UINT8, uint8_t, uint8, )
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_UINT16, uint16_t, uint16, csp_hton16)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_UINT32, uint32_t, uint32, csp_hton32)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_UINT64, uint64_t, uint64, csp_hton64)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_INT8, int8_t, uint8, )
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_INT16, int16_t, uint16, csp_hton16)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_INT32, int32_t, uint32, csp_hton32)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_INT64, int64_t, uint64, csp_hton64)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_XINT8, uint8_t, uint8, )
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_XINT16, uint16_t, uint16, csp_hton16)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_XINT32, uint32_t, uint32, csp_hton32)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_XINT64, uint64_t, uint64, csp_hton64)
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_FLOAT, float, float, )
-		PARAM_SWITCH_MEMCPY(PARAM_TYPE_DOUBLE, double, double, )
-		default:
-			printf("parameter type not supported\r\n");
-			break;
-#undef PARAM_SWITCH_MEMCPY
-	}
+	size += param_serialize_from_param(param, outbuf + size);
 
 	return size;
 }

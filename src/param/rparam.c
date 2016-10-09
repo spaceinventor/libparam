@@ -80,24 +80,26 @@ int rparam_set(rparam_t * rparam, void * in)
 	if (packet == NULL)
 		return -1;
 
-#if 0
 	packet->length = 0;
-	packet->length += param_serialize_single_fromstr(idx, type, slash->argv[4], (char *) packet->data, 256 - packet->length);
+
+	/* Parameter id */
+	uint16_t idx = csp_hton16(rparam->idx);
+	memcpy(packet->data, &idx, sizeof(uint16_t));
+	packet->length += sizeof(uint16_t);
+
+	packet->length += param_serialize_from_var(rparam->type, in, (char *) packet->data + packet->length);
 
 	csp_hex_dump("packet", packet->data, packet->length);
 
-	if (csp_sendto(CSP_PRIO_HIGH, node, PARAM_PORT_SET, 0, CSP_SO_NONE, packet, 0) != CSP_ERR_NONE)
+	if (csp_sendto(CSP_PRIO_HIGH, rparam->node, PARAM_PORT_SET, 0, CSP_SO_NONE, packet, 0) != CSP_ERR_NONE)
 		csp_buffer_free(packet);
-#endif
 
 	return 0;
 }
 
 #define RPARAM_SET(_type, _name) \
-	_type rparam_set_##_name(rparam_t * rparam, void * value) { \
-		_type obj; \
-		rparam_get(rparam, &obj); \
-		return obj; \
+	_type rparam_set_##_name(rparam_t * rparam, _type value) { \
+		rparam_set(rparam, &value); \
 	} \
 
 RPARAM_SET(uint8_t, uint8)
@@ -120,7 +122,10 @@ static int rparam_test(struct slash *slash)
 	rparam.type = PARAM_TYPE_FLOAT;
 	rparam.timeout = 1000;
 
-	float flt = rparam_get_float(&rparam);
+	float flt = 2.34;
+	rparam_set_float(&rparam, flt);
+
+	flt = rparam_get_float(&rparam);
 
 	printf("Got %f\n", flt);
 
