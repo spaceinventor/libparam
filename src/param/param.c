@@ -5,17 +5,6 @@
 
 #include <csp/csp_endian.h>
 
-extern param_t __start_param, __stop_param;
-
-#ifndef PARAM_STORAGE_SIZE
-#define PARAM_STORAGE_SIZE sizeof(param_t)
-#endif
-
-#define for_each_param(_c) \
-	for (_c = &__start_param; \
-	     _c < &__stop_param; \
-	     _c = (param_t *)(intptr_t)((char *)_c + PARAM_STORAGE_SIZE))
-
 /* Callbacks on/off */
 static bool param_callbacks_enabled = true;
 
@@ -70,7 +59,7 @@ void param_print(param_t * param)
 void param_list(struct vmem_s * vmem)
 {
 	param_t * param;
-	for_each_param(param) {
+	param_foreach(param) {
 
 		/* Filter on vmem */
 		if ((vmem != NULL) && (param->vmem != vmem))
@@ -219,7 +208,7 @@ void param_set_data(param_t * param, void * inbuf, int len) {
 param_t * param_name_to_ptr(char * name)
 {
 	param_t * param;
-	for_each_param(param) {
+	param_foreach(param) {
 		if (strcmp(param->name, name) == 0) {
 			return param;
 		}

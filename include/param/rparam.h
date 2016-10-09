@@ -17,7 +17,7 @@
 #define PARAM_PORT_LIST	12
 csp_thread_return_t rparam_server_task(void *pvParameters);
 
-typedef struct rparam_s {
+typedef struct {
 	int node;
 	int timeout;
 	int idx;
@@ -29,6 +29,12 @@ typedef struct rparam_s {
 	uint64_t max;
 	param_readonly_type_e readonly;
 } rparam_t;
+
+typedef struct {
+	uint16_t idx;
+	uint8_t type;
+	char name[12];
+} __attribute__((packed)) rparam_transfer_t;
 
 #define RPARAM_GET(_type, _name) _type rparam_get_##_name(rparam_t * rparam);
 RPARAM_GET(uint8_t, uint8)

@@ -5,6 +5,7 @@
  *      Author: johan
  */
 
+#include <stdio.h>
 #include <csp/csp.h>
 #include <csp/arch/csp_thread.h>
 #include <csp/csp_endian.h>
@@ -38,11 +39,67 @@ static void rparam_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 
 static void rparam_list_handler(csp_conn_t * conn, csp_packet_t * packet)
 {
-	int count = 0;
-	while(count < packet->length) {
-		count += param_deserialize_single((char *) packet->data + count);
-	}
 	csp_buffer_free(packet);
+	packet = NULL;
+
+	/* calculate total size */
+	param_t * param;
+	int paramcount = 0;
+	param_foreach(param) {
+		paramcount++;
+	}
+
+	int totalsize = paramcount * sizeof(rparam_transfer_t);
+
+	printf("Paramcount %u totalsize %u\n", paramcount, totalsize);
+
+	int count = 0;
+	while(1) {
+
+		/* Check if we must send */
+		if ((packet != NULL) &&
+				((packet->length + sizeof(rparam_transfer_t) > PARAM_SERVER_MTU) ||
+				(count == paramcount))) {
+
+			/* Send data */
+			if (!csp_send(conn, packet, 0)) {
+				csp_buffer_free(packet);
+				break;
+			}
+
+			packet = NULL;
+		}
+
+		if (count == paramcount)
+			break;
+
+		param = param_index_to_ptr(count);
+
+		printf("Param %s\n", param->name);
+
+		/* Build transfer type */
+		rparam_transfer_t rparam_transfer = {
+			.idx = param_ptr_to_index(param),
+			.type = param->type,
+		};
+		strncpy(rparam_transfer.name, param->name, 12);
+
+		/* Get new packet */
+		if (packet == NULL) {
+			packet = csp_buffer_get(PARAM_SERVER_MTU);
+			if (packet == NULL)
+				return;
+			packet->length = 0;
+		}
+
+		/* Copy to packet */
+		memcpy(packet->data + packet->length, &rparam_transfer, sizeof(rparam_transfer));
+		packet->length += sizeof(rparam_transfer);
+
+		count++;
+
+	}
+
 }
 
 csp_thread_return_t rparam_server_task(void *pvParameters)

@@ -52,6 +52,17 @@ typedef struct param_s {
 	void (*callback)(struct param_s * param);
 } param_t;
 
+extern param_t __start_param, __stop_param;
+
+#ifndef PARAM_STORAGE_SIZE
+#define PARAM_STORAGE_SIZE sizeof(param_t)
+#endif
+
+#define param_foreach(_c) \
+	for (_c = &__start_param; \
+	     _c < &__stop_param; \
+	     _c = (param_t *)(intptr_t)((char *)_c + PARAM_STORAGE_SIZE))
+
 #define PARAM_DEFINE_STATIC_RAM(name_in, type_in, size_in, min_in, max_in, readonly_in, callback_in, unit_in, physaddr_in) \
 	__attribute__((section("param"))) \
 	__attribute__((used)) \
