@@ -74,6 +74,42 @@ RPARAM_GET(int64_t, int64)
 RPARAM_GET(float, float)
 RPARAM_GET(double, double)
 
+int rparam_set(rparam_t * rparam, void * in)
+{
+	csp_packet_t * packet = csp_buffer_get(256);
+	if (packet == NULL)
+		return -1;
+
+#if 0
+	packet->length = 0;
+	packet->length += param_serialize_single_fromstr(idx, type, slash->argv[4], (char *) packet->data, 256 - packet->length);
+
+	csp_hex_dump("packet", packet->data, packet->length);
+
+	if (csp_sendto(CSP_PRIO_HIGH, node, PARAM_PORT_SET, 0, CSP_SO_NONE, packet, 0) != CSP_ERR_NONE)
+		csp_buffer_free(packet);
+#endif
+
+	return 0;
+}
+
+#define RPARAM_SET(_type, _name) \
+	_type rparam_set_##_name(rparam_t * rparam, void * value) { \
+		_type obj; \
+		rparam_get(rparam, &obj); \
+		return obj; \
+	} \
+
+RPARAM_SET(uint8_t, uint8)
+RPARAM_SET(uint16_t, uint16)
+RPARAM_SET(uint32_t, uint32)
+RPARAM_SET(uint64_t, uint64)
+RPARAM_SET(int8_t, int8)
+RPARAM_SET(int16_t, int16)
+RPARAM_SET(int32_t, int32)
+RPARAM_SET(int64_t, int64)
+RPARAM_SET(float, float)
+RPARAM_SET(double, double)
 
 static int rparam_test(struct slash *slash)
 {
