@@ -21,13 +21,22 @@ static void rparam_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 
 	packet->length = param_serialize_idx(idx, packet->length / 2, (void *) packet->data, PARAM_SERVER_MTU);
 
-	csp_hex_dump("get handler", packet->data, packet->length);
+	//csp_hex_dump("get handler", packet->data, packet->length);
 
 	if (!csp_send(conn, packet, 0))
 		csp_buffer_free(packet);
 }
 
 static void rparam_set_handler(csp_conn_t * conn, csp_packet_t * packet)
+{
+	int count = 0;
+	while(count < packet->length) {
+		count += param_deserialize_single((char *) packet->data + count);
+	}
+	csp_buffer_free(packet);
+}
+
+static void rparam_list_handler(csp_conn_t * conn, csp_packet_t * packet)
 {
 	int count = 0;
 	while(count < packet->length) {
@@ -69,6 +78,10 @@ csp_thread_return_t rparam_server_task(void *pvParameters)
 
 			case PARAM_PORT_SET:
 				rparam_set_handler(conn, packet);
+				break;
+
+			case PARAM_PORT_LIST:
+				rparam_list_handler(conn, packet);
 				break;
 
 			default:

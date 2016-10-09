@@ -172,6 +172,7 @@ int param_serialize_from_param(param_t * param, char * out)
 		default:
 			printf("parameter type not supported\r\n");
 			break;
+
 #undef PARAM_SERIALIZE
 	}
 
@@ -190,7 +191,6 @@ int param_serialize_from_var(param_type_e type, void * in, char * out)
 		case _case: { \
 			_type obj = *(_type *) in; \
 			obj = _swapfct(obj); \
-			printf("obj %f\n", obj); \
 			memcpy(out, &obj, sizeof(_type)); \
 			count += sizeof(_type); \
 			break; \

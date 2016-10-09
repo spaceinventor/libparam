@@ -89,7 +89,7 @@ int rparam_set(rparam_t * rparam, void * in)
 
 	packet->length += param_serialize_from_var(rparam->type, in, (char *) packet->data + packet->length);
 
-	csp_hex_dump("packet", packet->data, packet->length);
+	//csp_hex_dump("packet", packet->data, packet->length);
 
 	if (csp_sendto(CSP_PRIO_HIGH, rparam->node, PARAM_PORT_SET, 0, CSP_SO_NONE, packet, 0) != CSP_ERR_NONE)
 		csp_buffer_free(packet);
@@ -98,7 +98,7 @@ int rparam_set(rparam_t * rparam, void * in)
 }
 
 #define RPARAM_SET(_type, _name) \
-	_type rparam_set_##_name(rparam_t * rparam, _type value) { \
+	void rparam_set_##_name(rparam_t * rparam, _type value) { \
 		rparam_set(rparam, &value); \
 	} \
 
