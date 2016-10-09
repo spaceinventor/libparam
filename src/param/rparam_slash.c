@@ -18,6 +18,7 @@
 #include <param/rparam.h>
 #include "param_serializer.h"
 #include "param_string.h"
+#include "rparam_list.h"
 
 slash_command_group(rparam, "Remote parameters");
 
@@ -98,7 +99,7 @@ static int rparam_set(struct slash *slash)
 }
 slash_command_sub(rparam, set, rparam_set, "<node> <param> <type> <value>", "Set remote parameter");
 
-static int rparam_list(struct slash *slash)
+static int rparam_download(struct slash *slash)
 {
 	if (slash->argc != 3)
 		return SLASH_EUSAGE;
@@ -106,30 +107,10 @@ static int rparam_list(struct slash *slash)
 	unsigned int node = atoi(slash->argv[1]);
 	unsigned int timeout = atoi(slash->argv[2]);
 
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_LIST, 0, CSP_O_NONE);
-
-	csp_packet_t * packet = csp_buffer_get(1);
-	packet->length = 0;
-	if (!csp_send(conn, packet, 0)) {
-		csp_buffer_free(packet);
-		csp_close(conn);
-	}
-
-	void * data = NULL;
-	int datasize;
-	csp_sfp_recv(conn, &data, &datasize, timeout);
-
-	printf("Received %u bytes\n", datasize);
-
-	if (data != NULL) {
-		csp_hex_dump("rparam list", data, datasize);
-		csp_free(data);
-	}
-
-	csp_close(conn);
+	rparam_list_download(node, timeout);
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(rparam, list, rparam_list, "<node> <timeout>", "list remote parameters");
+slash_command_sub(rparam, download, rparam_download, "<node> <timeout>", "download remote parameters");
 
 
