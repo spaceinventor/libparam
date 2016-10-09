@@ -17,17 +17,18 @@
 #define PARAM_PORT_LIST	12
 csp_thread_return_t rparam_server_task(void *pvParameters);
 
-typedef struct {
+typedef struct rparam_t {
 	int node;
 	int timeout;
 	int idx;
 	param_type_e type;
-	char *name;
+	char name[13];
 	int size;
-	char *unit;
+	char unit[5];
 	uint64_t min;
 	uint64_t max;
 	param_readonly_type_e readonly;
+	struct rparam_t * next;
 } rparam_t;
 
 typedef struct {

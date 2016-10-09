@@ -113,4 +113,12 @@ static int rparam_download(struct slash *slash)
 }
 slash_command_sub(rparam, download, rparam_download, "<node> <timeout>", "download remote parameters");
 
+static int rparam_list(struct slash *slash)
+{
+	rparam_list_foreach();
+	return SLASH_SUCCESS;
+}
+slash_command_sub(rparam, list, rparam_list, "", "list remote parameters");
+
+
 

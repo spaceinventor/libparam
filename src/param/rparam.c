@@ -117,7 +117,7 @@ static int rparam_test(struct slash *slash)
 {
 	rparam_t rparam;
 	rparam.idx = 1;
-	rparam.name = "flt";
+	strcpy(rparam.name, "flt");
 	rparam.node = 1;
 	rparam.type = PARAM_TYPE_FLOAT;
 	rparam.timeout = 1000;
