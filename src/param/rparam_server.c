@@ -40,7 +40,8 @@ static void rparam_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 static void rparam_list_handler(csp_conn_t * conn, csp_packet_t * packet)
 {
 	csp_buffer_free(packet);
-	packet = NULL;
+
+	// TODO: Write SFP fragment sender
 
 	/* calculate total size */
 	param_t * param;
@@ -49,56 +50,16 @@ static void rparam_list_handler(csp_conn_t * conn, csp_packet_t * packet)
 		paramcount++;
 	}
 
-	int totalsize = paramcount * sizeof(rparam_transfer_t);
-
-	printf("Paramcount %u totalsize %u\n", paramcount, totalsize);
-
-	int count = 0;
-	while(1) {
-
-		/* Check if we must send */
-		if ((packet != NULL) &&
-				((packet->length + sizeof(rparam_transfer_t) > PARAM_SERVER_MTU) ||
-				(count == paramcount))) {
-
-			/* Send data */
-			if (!csp_send(conn, packet, 0)) {
-				csp_buffer_free(packet);
-				break;
-			}
-
-			packet = NULL;
-		}
-
-		if (count == paramcount)
-			break;
-
-		param = param_index_to_ptr(count);
-
-		printf("Param %s\n", param->name);
-
-		/* Build transfer type */
-		rparam_transfer_t rparam_transfer = {
-			.idx = param_ptr_to_index(param),
-			.type = param->type,
-		};
-		strncpy(rparam_transfer.name, param->name, 12);
-
-		/* Get new packet */
-		if (packet == NULL) {
-			packet = csp_buffer_get(PARAM_SERVER_MTU);
-			if (packet == NULL)
-				return;
-			packet->length = 0;
-		}
-
-		/* Copy to packet */
-		memcpy(packet->data + packet->length, &rparam_transfer, sizeof(rparam_transfer));
-		packet->length += sizeof(rparam_transfer);
-
-		count++;
-
+	rparam_transfer_t rparams[paramcount];
+	int i = 0;
+	param_foreach(param) {
+		rparams[i].idx = param_ptr_to_index(param);
+		rparams[i].type = param->type;
+		strncpy(rparams[i].name, param->name, 12);
+		i++;
 	}
+
+	csp_sfp_send(conn, rparams, i * sizeof(rparam_transfer_t), PARAM_SERVER_MTU, 1000);
 
 }
 
