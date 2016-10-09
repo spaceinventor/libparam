@@ -19,19 +19,20 @@ def options(ctx):
 def configure(ctx):
 
     if ctx.options.vmem:
-        ctx.env.append_unique('FILES_VMEM', 'src/vmem.c')
-        ctx.env.append_unique('FILES_VMEM', 'src/vmem_ram.c')
-        ctx.env.append_unique('FILES_VMEM', 'src/vmem_slash.c')
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem.c')
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_ram.c')
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_slash.c')
     	
     if ctx.options.vmem_fram:
-        ctx.env.append_unique('FILES_VMEM', 'src/vmem_fram.c')
-        ctx.env.append_unique('FILES_VMEM', 'src/vmem_fram_secure.c')
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_fram.c')
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_fram_secure.c')
+        ctx.env.append_unique('FILES_PARAM', 'sets/basis.c')
         if ctx.env.SLASH_ENABLED:
-            ctx.env.append_unique('FILES_VMEM', 'src/vmem_fram_secure_slash.c')
+            ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_fram_secure_slash.c')
         ctx.env.append_unique('USE_VMEM', 'driver-fram')
         
     if ctx.options.vmem_ltc:
-        ctx.env.append_unique('FILES_VMEM', 'src/vmem_ltc.c')
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_ltc.c')
         ctx.env.append_unique('USE_VMEM', 'driver-ltc')
     
     ctx.env.append_unique('FILES_PARAM', 'src/param/param.c')

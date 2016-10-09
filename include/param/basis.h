@@ -8,6 +8,10 @@
 #ifndef LIBPARAM_SETS_BASIS_H_
 #define LIBPARAM_SETS_BASIS_H_
 
+#include <vmem/vmem.h>
+
+extern vmem_t * vmem_basis;
+
 typedef struct {
 	param_t csp_node;
 	param_t csp_can_speed;
