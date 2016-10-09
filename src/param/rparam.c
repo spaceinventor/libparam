@@ -22,9 +22,9 @@ int rparam_get(rparam_t * rparam, void * out)
 	if (packet == NULL)
 		return -1;
 
-	param_request_t * request = (param_request_t *) packet->data;
-	request->id = csp_hton16(rparam->idx);
-	packet->length = sizeof(param_request_t);
+	uint16_t * request = (uint16_t *) packet->data;
+	request[0] = csp_hton16(rparam->idx);
+	packet->length = sizeof(request[0]);
 
 	//csp_hex_dump("request", packet->data, packet->length);
 

@@ -108,7 +108,7 @@ int param_deserialize_single(char * inbuf) {
 
 	param_t * param = param_index_to_ptr(idx);
 
-	param_deserialize_to_param(inbuf + count, param);
+	count += param_deserialize_to_param(inbuf + count, param);
 
 	return count;
 
@@ -208,21 +208,22 @@ int param_serialize_single(param_t * param, char * outbuf, int len)
 	return size;
 }
 
-void param_serialize(param_t * param[], int count, char * outbuf, int len)
+int param_serialize(param_t * param[], int count, char * outbuf, int len)
 {
 	int output = 0;
 	for (int i = 0; i < count; i++) {
 		output += param_serialize_single(param[i], outbuf + output, len - output);
 		if (output >= len)
-			return;
+			return output;
 	}
+	return output;
 }
 
-void param_serialize_idx(uint16_t param_idx[], int count, char * outbuf, int len)
+int param_serialize_idx(uint16_t param_idx[], int count, char * outbuf, int len)
 {
 	param_t * param[count];
 	for (int i = 0; i < count; i++) {
 		param[i] = param_index_to_ptr(param_idx[i]);
 	}
-	param_serialize(param, count, outbuf, len);
+	return param_serialize(param, count, outbuf, len);
 }

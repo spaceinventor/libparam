@@ -32,11 +32,9 @@ static int rparam_get(struct slash *slash)
 	if (packet == NULL)
 		return SLASH_EINVAL;
 
-	param_request_t * request = (param_request_t *) packet->data;
-
-	request->id = csp_hton16(id);
-
-	packet->length = sizeof(param_request_t);
+	uint16_t * request = (uint16_t *) packet->data;
+	request[0] = csp_hton16(id);
+	packet->length = sizeof(request[0]);
 
 	csp_hex_dump("request", packet->data, packet->length);
 

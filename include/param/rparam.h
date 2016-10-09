@@ -16,10 +16,6 @@
 #define PARAM_PORT_SET	11
 
 typedef struct {
-	uint16_t id;
-} __attribute__((packed)) param_request_t;
-
-typedef struct {
 	uint8_t len;
 	uint8_t data[];
 } __attribute__((packed)) param_response_t;

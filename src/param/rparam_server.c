@@ -13,12 +13,13 @@
 #include "param_serializer.h"
 
 static void rparam_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
-	param_request_t * request = (param_request_t *) packet->data;
 
-	uint16_t idx[1];
-	idx[0] = csp_ntoh16(request->id);
-	param_serialize_idx(idx, 1, (void *) packet->data, PARAM_SERVER_MTU);
-	packet->length = 20;
+	uint16_t idx[packet->length / 2];
+	for (int i = 0; i < packet->length / 2; i++) {
+		idx[i] = csp_ntoh16(packet->data16[i]);
+	}
+
+	packet->length = param_serialize_idx(idx, packet->length / 2, (void *) packet->data, PARAM_SERVER_MTU);
 
 	if (!csp_send(conn, packet, 0))
 		csp_buffer_free(packet);
@@ -26,7 +27,10 @@ static void rparam_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 
 static void rparam_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 {
-	param_deserialize_single((char *) packet->data);
+	int count = 0;
+	while(count < packet->length) {
+		count += param_deserialize_single((char *) packet->data + count);
+	}
 	csp_buffer_free(packet);
 }
 
