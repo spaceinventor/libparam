@@ -28,7 +28,7 @@ typedef struct {
 	uint64_t value;
 } __attribute__((packed)) param_set_t;
 
-csp_thread_return_t param_server_task(void *pvParameters);
+csp_thread_return_t rparam_server_task(void *pvParameters);
 
 
 #endif /* LIB_PARAM_INCLUDE_PARAM_RPARAM_H_ */

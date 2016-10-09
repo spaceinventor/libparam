@@ -12,7 +12,7 @@
 #include <param/rparam.h>
 #include "param_serializer.h"
 
-static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
+static void rparam_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 	param_request_t * request = (param_request_t *) packet->data;
 
 	uint16_t idx[1];
@@ -24,13 +24,13 @@ static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 		csp_buffer_free(packet);
 }
 
-static void param_set_handler(csp_conn_t * conn, csp_packet_t * packet)
+static void rparam_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 {
 	param_deserialize_single((char *) packet->data);
 	csp_buffer_free(packet);
 }
 
-csp_thread_return_t param_server_task(void *pvParameters)
+csp_thread_return_t rparam_server_task(void *pvParameters)
 {
 
 	/* Create socket without any socket options */
@@ -58,11 +58,11 @@ csp_thread_return_t param_server_task(void *pvParameters)
 			switch (csp_conn_dport(conn)) {
 
 			case PARAM_PORT_GET:
-				param_get_handler(conn, packet);
+				rparam_get_handler(conn, packet);
 				break;
 
 			case PARAM_PORT_SET:
-				param_set_handler(conn, packet);
+				rparam_set_handler(conn, packet);
 				break;
 
 			default:
