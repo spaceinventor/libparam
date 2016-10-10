@@ -9,6 +9,7 @@
 #include <csp/arch/csp_malloc.h>
 #include <param/param.h>
 #include <param/rparam.h>
+#include "rparam_list.h"
 
 rparam_t * list_begin = NULL;
 rparam_t * list_end = NULL;

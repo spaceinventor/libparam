@@ -22,7 +22,7 @@
 
 slash_command_group(rparam, "Remote parameters");
 
-static int rparam_get(struct slash *slash)
+static int rparam_slash_get(struct slash *slash)
 {
 	if (slash->argc != 3)
 		return SLASH_EUSAGE;
@@ -34,7 +34,7 @@ static int rparam_get(struct slash *slash)
 	if (packet == NULL)
 		return SLASH_EINVAL;
 
-	uint16_t * request = (uint16_t *) packet->data;
+	uint16_t * request = packet->data16;
 	request[0] = csp_hton16(id);
 	packet->length = sizeof(request[0]);
 
@@ -65,9 +65,9 @@ static int rparam_get(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(rparam, get, rparam_get, "<node> <param>", "Get remote parameter");
+slash_command_sub(rparam, get, rparam_slash_get, "<node> <param>", "Get remote parameter");
 
-static int rparam_set(struct slash *slash)
+static int rparam_slash_set(struct slash *slash)
 {
 	if (slash->argc != 5)
 		return SLASH_EUSAGE;
@@ -97,9 +97,9 @@ static int rparam_set(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(rparam, set, rparam_set, "<node> <param> <type> <value>", "Set remote parameter");
+slash_command_sub(rparam, set, rparam_slash_set, "<node> <param> <type> <value>", "Set remote parameter");
 
-static int rparam_download(struct slash *slash)
+static int rparam_slash_download(struct slash *slash)
 {
 	if (slash->argc != 3)
 		return SLASH_EUSAGE;
@@ -111,14 +111,14 @@ static int rparam_download(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(rparam, download, rparam_download, "<node> <timeout>", "download remote parameters");
+slash_command_sub(rparam, download, rparam_slash_download, "<node> <timeout>", "download remote parameters");
 
-static int rparam_list(struct slash *slash)
+static int rparam_slash_list(struct slash *slash)
 {
 	rparam_list_foreach();
 	return SLASH_SUCCESS;
 }
-slash_command_sub(rparam, list, rparam_list, "", "list remote parameters");
+slash_command_sub(rparam, list, rparam_slash_list, "", "list remote parameters");
 
 
 

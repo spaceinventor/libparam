@@ -218,7 +218,7 @@ param_t * param_name_to_ptr(char * name)
 
 param_t * param_index_to_ptr(int idx)
 {
-	return (param_t *) (((char *) &__start_param) + idx * PARAM_STORAGE_SIZE);
+	return (param_t *) (intptr_t) (((char *) &__start_param) + idx * PARAM_STORAGE_SIZE);
 }
 
 int param_ptr_to_index(param_t * param)

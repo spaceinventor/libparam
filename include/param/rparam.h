@@ -37,6 +37,9 @@ typedef struct {
 	char name[13];
 } __attribute__((packed)) rparam_transfer_t;
 
+int rparam_get(rparam_t * rparam, void * out);
+int rparam_set(rparam_t * rparam, void * in);
+
 #define RPARAM_GET(_type, _name) _type rparam_get_##_name(rparam_t * rparam);
 RPARAM_GET(uint8_t, uint8)
 RPARAM_GET(uint16_t, uint16)

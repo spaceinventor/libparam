@@ -51,7 +51,7 @@ def configure(ctx):
         ctx.env.append_unique('FILES_PARAM', 'src/param/rparam.c')
         ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_list.c')
         
-    ctx.env.append_unique('DEFINES', 'PARAM_STORAGE_SIZE=96')
+    ctx.env.append_unique('DEFINES', 'PARAM_STORAGE_SIZE=56')
 
 def build(ctx):
     ctx.objects(
