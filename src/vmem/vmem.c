@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <csp/csp.h>
 
 #include <vmem/vmem.h>
 
@@ -16,13 +17,13 @@ void vmem_dump(vmem_t * vmem)
 {
 	uint8_t data[vmem->size];
 	vmem->read(vmem, 0x0, data, vmem->size);
-	//hex_dump(vmem->name, data, vmem->size);
+	csp_hex_dump(vmem->name, data, vmem->size);
 
 }
 
 void vmem_list(void) {
 	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
-		printf(" [vmem_%lu] (%u) %s at %p\r\n", vmem - (vmem_t *) &__start_vmem, vmem->size, vmem->name, vmem->vaddr);
+		printf(" [vmem_%u] (%u) %s at %p\r\n", vmem - (vmem_t *) &__start_vmem, vmem->size, vmem->name, vmem->vaddr);
 	}
 }
 
