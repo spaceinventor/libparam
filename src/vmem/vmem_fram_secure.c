@@ -19,7 +19,7 @@ void vmem_fram_secure_init(vmem_t * vmem)
 	uint32_t fram_crc, ram_crc;
 	vmem_fram_secure_driver_t * driver = vmem->driver;
 
-	printf("Vmem fram secure init: %s addr: %x, backup: %x\r\n", vmem->name, driver->fram_primary_addr, driver->fram_backup_addr);
+	//printf("Vmem fram secure init: %s addr: %x, backup: %x\r\n", vmem->name, driver->fram_primary_addr, driver->fram_backup_addr);
 
 	/* Read from primary FRAM */
 	fm25w256_read_data(driver->fram_primary_addr, driver->data, vmem->size);
@@ -31,7 +31,7 @@ void vmem_fram_secure_init(vmem_t * vmem)
 		return;
 	}
 
-	printf("Primary FRAM corrupt, restoring backup\n");
+	printf("%s: Primary FRAM corrupt, restoring backup\n", vmem->name);
 
 	/* Read from backup */
 	fm25w256_read_data(driver->fram_backup_addr, driver->data, vmem->size);
@@ -49,7 +49,7 @@ void vmem_fram_secure_init(vmem_t * vmem)
 		return;
 	}
 
-	printf("Backup FRAM corrupt, falling back to factory config\n");
+	printf("%s: Backup FRAM corrupt, falling back to factory config\n", vmem->name);
 
 	/* Reset the entire FRAM memory area */
 	memset(driver->data, 0x00, vmem->size);
