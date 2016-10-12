@@ -10,7 +10,7 @@
 
 #include <vmem/vmem_fram.h>
 
-#include <fm25w256.h>
+#include <drivers/fm25w256.h>
 
 
 void vmem_fram_read(vmem_t * vmem, uint16_t addr, void * dataout, int len) {

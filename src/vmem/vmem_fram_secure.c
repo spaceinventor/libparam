@@ -12,7 +12,7 @@
 
 #include <vmem/vmem_fram_secure.h>
 
-#include <fm25w256.h>
+#include <drivers/fm25w256.h>
 
 void vmem_fram_secure_init(vmem_t * vmem)
 {
