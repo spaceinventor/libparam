@@ -32,6 +32,27 @@ void vmem_fram_secure_init(vmem_t * vmem)
 	}
 
 	printf("%s: Primary FRAM corrupt, restoring backup\n", vmem->name);
+	vmem_fram_secure_restore(vmem);
+
+}
+
+void vmem_fram_secure_backup(vmem_t * vmem)
+{
+	vmem_fram_secure_driver_t * driver = vmem->driver;
+	printf("Vmem fram secure backup %s\r\n", vmem->name);
+
+	/* Write entire RAM cache to FRAM backup */
+	fm25w256_write_data(driver->fram_backup_addr, driver->data, vmem->size - sizeof(uint32_t));
+
+	/* Write checksum (always kept in top 4 bytes of vmem) */
+	uint32_t crc = csp_crc32_memory(driver->data, vmem->size - sizeof(uint32_t));
+	fm25w256_write_data(driver->fram_backup_addr + vmem->size - sizeof(uint32_t), &crc, sizeof(uint32_t));
+}
+
+void vmem_fram_secure_restore(vmem_t * vmem)
+{
+	uint32_t fram_crc, ram_crc;
+	vmem_fram_secure_driver_t * driver = vmem->driver;
 
 	/* Read from backup */
 	fm25w256_read_data(driver->fram_backup_addr, driver->data, vmem->size);
@@ -59,19 +80,6 @@ void vmem_fram_secure_init(vmem_t * vmem)
 
 	/* Call fallback config */
 	driver->fallback_fct();
-}
-
-void vmem_fram_secure_backup(vmem_t * vmem)
-{
-	vmem_fram_secure_driver_t * driver = vmem->driver;
-	printf("Vmem fram secure backup %s\r\n", vmem->name);
-
-	/* Write entire RAM cache to FRAM backup */
-	fm25w256_write_data(driver->fram_backup_addr, driver->data, vmem->size - sizeof(uint32_t));
-
-	/* Write checksum (always kept in top 4 bytes of vmem) */
-	uint32_t crc = csp_crc32_memory(driver->data, vmem->size - sizeof(uint32_t));
-	fm25w256_write_data(driver->fram_backup_addr + vmem->size - sizeof(uint32_t), &crc, sizeof(uint32_t));
 }
 
 void vmem_fram_secure_read(vmem_t * vmem, uint16_t addr, void * dataout, int len)
