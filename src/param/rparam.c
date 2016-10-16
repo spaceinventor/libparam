@@ -9,7 +9,6 @@
 #include <inttypes.h>
 #include <param/rparam.h>
 #include <param/param.h>
-#include <slash/slash.h>
 #include <csp/csp.h>
 #include <csp/csp_endian.h>
 #include "param_serializer.h"
@@ -113,6 +112,7 @@ RPARAM_SET(int64_t, int64)
 RPARAM_SET(float, float)
 RPARAM_SET(double, double)
 
+#if 0
 static int rparam_test(struct slash *slash)
 {
 	rparam_t rparam;
@@ -133,4 +133,4 @@ static int rparam_test(struct slash *slash)
 }
 slash_command(test, rparam_test, NULL, "List parameters");
 
-
+#endif
