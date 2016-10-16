@@ -55,7 +55,8 @@ typedef struct param_s {
 extern param_t __start_param, __stop_param;
 
 #ifndef PARAM_STORAGE_SIZE
-#define PARAM_STORAGE_SIZE sizeof(param_t)
+static const param_t param_size_set[2];
+#define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set[1] - (intptr_t) &param_size_set[0])
 #endif
 
 #define param_foreach(_c) \
@@ -65,6 +66,7 @@ extern param_t __start_param, __stop_param;
 
 #define PARAM_DEFINE_STATIC_RAM(name_in, type_in, size_in, min_in, max_in, readonly_in, callback_in, unit_in, physaddr_in) \
 	__attribute__((section("param"))) \
+	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t name_in = { \
 		.type = type_in, \
@@ -93,7 +95,9 @@ extern param_t __start_param, __stop_param;
 
 
 #define PARAM_DEFINE_STATIC_VMEM(_name, type_in, size_in, min_in, max_in, readonly_in, callback_in, unit_in, vmem_name, addr_in) \
-	__attribute__ ((section("param"), used)) \
+	__attribute__((section("param"))) \
+	__attribute__((aligned(1))) \
+	__attribute__((used)) \
 	param_t _name = { \
 		.type = type_in, \
 		.name = #_name, \
