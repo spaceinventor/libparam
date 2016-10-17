@@ -114,7 +114,7 @@ static const param_t param_size_set[2];
 #define PARAM_DEFINE_STRUCT_VMEM(fieldname, type_in, size_in, min_in, max_in, readonly_in, callback_in, unit_in, vmem_name, addr_in) \
 	.fieldname = { \
 		.type = type_in, \
-		.name = #fieldname, \
+		.name = #vmem_name "_" #fieldname, \
 		.size = size_in, \
 		.min = min_in, \
 		.max = max_in, \
