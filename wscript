@@ -27,7 +27,6 @@ def configure(ctx):
     if ctx.options.vmem_fram:
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_fram.c')
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_fram_secure.c')
-        ctx.env.append_unique('FILES_PARAM', 'sets/basis.c')
         if ctx.env.SLASH_ENABLED:
             ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_fram_secure_slash.c')
         ctx.env.append_unique('USE_VMEM', 'driver-fram')

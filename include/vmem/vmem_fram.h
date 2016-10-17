@@ -11,7 +11,7 @@
 #include <vmem/vmem.h>
 
 typedef struct {
-	uint8_t *fram_addr;
+	int fram_addr;
 } vmem_fram_driver_t;
 
 #define VMEM_DEFINE_FRAM(name_in, strname, fram_addr_in, size_in, _vaddr) \

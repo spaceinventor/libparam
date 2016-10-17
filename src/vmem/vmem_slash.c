@@ -8,9 +8,13 @@
 #include <vmem/vmem.h>
 #include <slash/slash.h>
 
+#include "vmem_slash.h"
+
+//slash_command_group(vmem, "VMEM");
+
 static int slash_vmem_list(struct slash *slash)
 {
 	vmem_list();
 	return SLASH_SUCCESS;
 }
-slash_command(vmem_list, slash_vmem_list, NULL, "List vmems");
+slash_command_sub(vmem, list, slash_vmem_list, NULL, "List vmems");

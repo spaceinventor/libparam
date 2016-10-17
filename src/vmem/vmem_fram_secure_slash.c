@@ -11,6 +11,10 @@
 
 #include <slash/slash.h>
 
+#include "vmem_slash.h"
+
+slash_command_group(vmem, "VMEM");
+
 static int slash_vmem_backup(struct slash *slash)
 {
 	if (slash->argc != 2)
@@ -22,6 +26,6 @@ static int slash_vmem_backup(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command(vmem_backup, slash_vmem_backup, "<vmem idx>", "Backup FRAM vmem");
+slash_command_sub(vmem, backup, slash_vmem_backup, "<vmem idx>", "Backup FRAM vmem");
 
 
