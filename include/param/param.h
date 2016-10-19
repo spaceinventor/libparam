@@ -130,7 +130,7 @@ static const param_t param_size_set[2];
 void param_callback_enabled(bool callbacks_enabled);
 param_t * param_from_id(uint16_t id);
 void param_print(param_t * param);
-void param_list(struct vmem_s * vmem);
+void param_list(char * token);
 void param_list_array(param_t * param, int count);
 void param_value_str(param_t *param, char * out, int len);
 

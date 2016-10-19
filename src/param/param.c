@@ -56,16 +56,20 @@ void param_print(param_t * param)
 
 }
 
-void param_list(struct vmem_s * vmem)
+void param_list(char * token)
 {
 	param_t * param;
 	param_foreach(param) {
 
-		/* Filter on vmem */
-		if ((vmem != NULL) && (param->vmem != vmem))
+		if (param->readonly == PARAM_HIDDEN)
 			continue;
 
-		if (param->readonly == PARAM_HIDDEN)
+#define param_min(a,b) \
+	({ __typeof__ (a) _a = (a); \
+	__typeof__ (b) _b = (b); \
+	_a < _b ? _a : _b; })
+
+		if (strncmp(token, param->name, param_min(strlen(param->name), strlen(token))) != 0)
 			continue;
 
 		param_print(param);
