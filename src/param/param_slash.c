@@ -66,8 +66,8 @@ static void param_completer(struct slash *slash, char * token) {
 			if (matches == 1)
 				slash_printf(slash, "\n");
 
-			/* Print command */
-			printf("  %s\n", param->name);
+			/* Print param */
+			param_print(param);
 
 		}
 
