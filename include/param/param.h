@@ -38,18 +38,18 @@ typedef enum {
 	PARAM_READONLY_INTERNAL,      //! Readonly Internal only
 } param_readonly_type_e;
 
-typedef struct param_s {
+typedef const struct param_s {
 	int addr;
 	int size;
 	param_type_e type;
 	const char *name;
 	const char *unit;
-	struct vmem_s * vmem;
+	const struct vmem_s * vmem;
 	void * physaddr;
 	uint64_t min;
 	uint64_t max;
 	param_readonly_type_e readonly;
-	void (*callback)(struct param_s * param);
+	void (*callback)(const struct param_s * param);
 } param_t;
 
 extern param_t __start_param, __stop_param;

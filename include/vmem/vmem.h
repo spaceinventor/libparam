@@ -11,14 +11,14 @@
 #include <stddef.h>
 #include <param/param.h>
 
-typedef struct vmem_s {
-	void (*read)(struct vmem_s * vmem, uint16_t addr, void * dataout, int len);
-	void (*write)(struct vmem_s * vmem, uint16_t addr, void * datain, int len);
+typedef const struct vmem_s {
+	void (*read)(const struct vmem_s * vmem, uint16_t addr, void * dataout, int len);
+	void (*write)(const struct vmem_s * vmem, uint16_t addr, void * datain, int len);
 	void * vaddr;
 	int size;
 	const char *name;
 	int big_endian;
-	void * driver;
+	const void * driver;
 } vmem_t;
 
 void vmem_dump(vmem_t * vmem);
