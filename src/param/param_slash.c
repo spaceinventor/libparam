@@ -49,6 +49,9 @@ static void param_completer(struct slash *slash, char * token) {
 		if (tokenlen > strlen(param->name))
 			continue;
 
+		if (param->readonly == PARAM_HIDDEN)
+			continue;
+
 		if (strncmp(token, param->name, slash_min(strlen(param->name), tokenlen)) == 0) {
 
 			/* Count matches */

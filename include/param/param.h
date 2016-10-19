@@ -36,6 +36,7 @@ typedef enum {
 	PARAM_READONLY_TRUE,          //! Readonly Internal and external
 	PARAM_READONLY_EXTERNAL,      //! Readonly External only
 	PARAM_READONLY_INTERNAL,      //! Readonly Internal only
+	PARAM_HIDDEN,                 //! Do not display on lists
 } param_readonly_type_e;
 
 typedef const struct param_s {

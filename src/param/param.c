@@ -65,6 +65,9 @@ void param_list(struct vmem_s * vmem)
 		if ((vmem != NULL) && (param->vmem != vmem))
 			continue;
 
+		if (param->readonly == PARAM_HIDDEN)
+			continue;
+
 		param_print(param);
 	}
 }
