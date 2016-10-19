@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <inttypes.h>
 #include <slash/slash.h>
 
@@ -35,6 +36,52 @@ static param_t * parse_param(char * arg) {
 
 }
 
+static void param_completer(struct slash *slash, char * token) {
+
+	int matches = 0;
+	size_t prefixlen = -1;
+	param_t *prefix = NULL;
+	size_t tokenlen = strlen(token);
+
+	param_t * param;
+	param_foreach(param) {
+
+		if (tokenlen > strlen(param->name))
+			continue;
+
+		if (strncmp(token, param->name, slash_min(strlen(param->name), tokenlen)) == 0) {
+
+			/* Count matches */
+			matches++;
+
+			/* Find common prefix */
+			if (prefixlen == (size_t) -1) {
+				prefix = param;
+				prefixlen = strlen(prefix->name);
+			} else {
+				prefixlen = slash_prefix_length(prefix->name, param->name);
+			}
+
+			/* Print newline on first match */
+			if (matches == 1)
+				slash_printf(slash, "\n");
+
+			/* Print command */
+			printf("  %s\n", param->name);
+
+		}
+
+	}
+
+	if (!matches) {
+		slash_bell(slash);
+	} else {
+		strncpy(token, prefix->name, prefixlen);
+		slash->cursor = slash->length = (token - slash->buffer) + prefixlen;
+	}
+
+}
+
 static int get(struct slash *slash)
 {
 	if (slash->argc != 2)
@@ -51,7 +98,7 @@ static int get(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(param, get, get, "<param>", "Get");
+slash_command_sub_completer(param, get, get, param_completer, "<param>", "Get");
 
 static int set(struct slash *slash)
 {
@@ -74,6 +121,6 @@ static int set(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(param, set, set, "<param> <value>", "Set");
+slash_command_sub_completer(param, set, set, param_completer, "<param> <value>", "Set");
 
 
