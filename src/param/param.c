@@ -5,14 +5,6 @@
 
 #include <csp/csp_endian.h>
 
-/* Callbacks on/off */
-static bool param_callbacks_enabled = true;
-
-void param_callback_enabled(bool callbacks_enabled)
-{
-	param_callbacks_enabled = callbacks_enabled;
-}
-
 param_t * param_from_id(uint16_t id)
 {
 	return (param_t *) &__start_param + id;
@@ -155,7 +147,7 @@ void param_get_data(param_t * param, void * outbuf, int len)
 		} \
 		\
 		/* Callback */ \
-		if ((do_callback == true) && (param_callbacks_enabled == true) && (param->callback)) { \
+		if ((do_callback == true) && (param->callback)) { \
 			param->callback(param); \
 		} \
 	} \
