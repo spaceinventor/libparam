@@ -120,44 +120,53 @@ void param_get_data(param_t * param, void * outbuf, int len)
 }
 
 #define PARAM_SET(_type, name_in, _swapfct) \
-	void param_set_##name_in(param_t * param, _type value) \
+	void __param_set_##name_in(param_t * param, _type value, bool do_callback); \
+	void __param_set_##name_in(param_t * param, _type value, bool do_callback) \
 	{ \
-	\
-	/* Check readonly */ \
-	if ((param->readonly == PARAM_READONLY_TRUE) || (param->readonly == PARAM_READONLY_INTERNAL)) { \
-		printf("Tried to set readonly parameter %s\r\n", param->name); \
-		return; \
-	} \
-	\
-	/* Check limits */ \
-	if ((param->type != PARAM_TYPE_FLOAT) && (param->type != PARAM_TYPE_DOUBLE)) { \
-		if (value > (_type) param->max) { \
-			printf("Param value exceeds max\r\n"); \
+		\
+		/* Check readonly */ \
+		if ((param->readonly == PARAM_READONLY_TRUE) || (param->readonly == PARAM_READONLY_INTERNAL)) { \
+			printf("Tried to set readonly parameter %s\r\n", param->name); \
 			return; \
 		} \
 		\
-		if (value < (_type) param->min) { \
-			printf("Param value below min\r\n"); \
-			return; \
+		/* Check limits */ \
+		if ((param->type != PARAM_TYPE_FLOAT) && (param->type != PARAM_TYPE_DOUBLE)) { \
+			if (value > (_type) param->max) { \
+				printf("Param value exceeds max\r\n"); \
+				return; \
+			} \
+			\
+			if (value < (_type) param->min) { \
+				printf("Param value below min\r\n"); \
+				return; \
+			} \
+		} \
+		\
+		/* Aligned access directly to RAM */ \
+		if (param->physaddr) { \
+			*(_type*)(param->physaddr) = value; \
+		\
+		/* Otherwise call to vmem */ \
+		} else { \
+			if (param->vmem->big_endian == 1) \
+				value = _swapfct(value); \
+			param->vmem->write(param->vmem, param->addr, &value, sizeof(value)); \
+		} \
+		\
+		/* Callback */ \
+		if ((do_callback == true) && (param_callbacks_enabled == true) && (param->callback)) { \
+			param->callback(param); \
 		} \
 	} \
-	\
-	/* Aligned access directly to RAM */ \
-	if (param->physaddr) { \
-		*(_type*)(param->physaddr) = value; \
-	\
-	/* Otherwise call to vmem */ \
-	} else { \
-		if (param->vmem->big_endian == 1) \
-			value = _swapfct(value); \
-		param->vmem->write(param->vmem, param->addr, &value, sizeof(value)); \
+	inline void param_set_##name_in(param_t * param, _type value) \
+	{ \
+		__param_set_##name_in(param, value, true); \
 	} \
-	\
-	/* Callback */ \
-	if ((param_callbacks_enabled == true) && (param->callback)) { \
-		param->callback(param); \
-	} \
-}
+	inline void param_set_##name_in##_nocallback(param_t * param, _type value) \
+	{ \
+		__param_set_##name_in(param, value, false); \
+	}
 
 PARAM_SET(uint8_t, uint8, )
 PARAM_SET(uint16_t, uint16, csp_htobe16)

@@ -149,7 +149,8 @@ PARAM_GET(double, double)
 #undef PARAM_GET
 
 #define PARAM_SET(type, name) \
-	void param_set_##name(param_t * param, type value);
+	void param_set_##name(param_t * param, type value); \
+	void param_set_##name##_nocallback(param_t * param, type value);
 PARAM_SET(uint8_t, uint8)
 PARAM_SET(uint16_t, uint16)
 PARAM_SET(uint32_t, uint32)

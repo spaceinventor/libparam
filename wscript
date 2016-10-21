@@ -11,7 +11,6 @@ def options(ctx):
     gr = ctx.add_option_group('libparam options')
     gr.add_option('--vmem', action='store_true')
     gr.add_option('--vmem-fram', action='store_true')
-    gr.add_option('--vmem-ltc', action='store_true')
     
     gr.add_option('--rparam-client', action='store_true')
     gr.add_option('--rparam-server', action='store_true')
@@ -30,11 +29,7 @@ def configure(ctx):
         if ctx.env.SLASH_ENABLED:
             ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_fram_secure_slash.c')
         ctx.env.append_unique('USE_VMEM', 'driver-fram')
-        
-    if ctx.options.vmem_ltc:
-        ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_ltc.c')
-        ctx.env.append_unique('USE_VMEM', 'driver-ltc')
-    
+            
     ctx.env.append_unique('FILES_PARAM', 'src/param/param.c')
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_string.c')
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_serializer.c')
