@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 #include <param/param.h>
 #include "param_string.h"
 
@@ -63,18 +64,18 @@ void param_var_str(param_type_e type, int size, void * in, char * out, int len)
 		snprintf(out, len, strtype, *(strcast *) in); \
 		break;
 
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT8, "%u", uint8_t, uint8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT16, "%u", uint16_t, uint16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT32, "%u", uint32_t, uint32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT64, "%lu", uint64_t, uint64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT8, "%d", int8_t, int8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT16, "%d", int16_t, int16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT32, "%d", int32_t, int32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT64, "%ld", int64_t, int64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT8, "0x%X", uint8_t, uint8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT16, "0x%X", uint16_t, uint16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT32, "0x%X", uint32_t, uint32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT64, "0x%lX", uint64_t, uint64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT8, "%"PRIu8, uint8_t, uint8)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT16, "%"PRIu16, uint16_t, uint16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT32, "%"PRIu32, uint32_t, uint32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT64, "%"PRIu64, uint64_t, uint64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT8, "%"PRId8, int8_t, int8)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT16, "%"PRId16, int16_t, int16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT32, "%"PRId32, int32_t, int32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT64, "%"PRId64, int64_t, int64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT8, "0x%"PRIx8, uint8_t, uint8)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT16, "0x%"PRIx16, uint16_t, uint16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT32, "0x%"PRIx32, uint32_t, uint32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT64, "0x%"PRIx64, uint64_t, uint64)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_FLOAT, "%f", float, float)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DOUBLE, "%f", double, double)
 
