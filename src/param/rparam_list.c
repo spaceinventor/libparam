@@ -43,9 +43,6 @@ void rparam_list_foreach(void) {
 
 void rparam_list_download(int node, int timeout) {
 
-	csp_debug_set_level(4, 1);
-	csp_debug_set_level(5, 1);
-
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_LIST, timeout, CSP_O_RDP);
 	if (conn == NULL)
