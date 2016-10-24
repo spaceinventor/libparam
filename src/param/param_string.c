@@ -22,10 +22,10 @@ void param_value_str(param_t *param, char * out, int len)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT16, "%u", unsigned int, uint16)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT32, "%u", unsigned int, uint32)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT64, "%lu", unsigned long, uint64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT8, "%d", unsigned int, int8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT16, "%d", unsigned int, int16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT32, "%d", unsigned int, int32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT64, "%ld", unsigned long, int64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT8, "%d", signed int, int8)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT16, "%d", signed int, int16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT32, "%d", signed int, int32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT64, "%ld", signed long, int64)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT8, "0x%X", unsigned int, uint8)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT16, "0x%X", unsigned int, uint16)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT32, "0x%X", unsigned int, uint32)
@@ -49,6 +49,49 @@ void param_value_str(param_t *param, char * out, int len)
 
 	case PARAM_TYPE_STRING:
 		param_get_string(param, out, len);
+		break;
+
+#undef PARAM_SWITCH_SNPRINTF
+	}
+}
+
+void param_var_str(param_type_e type, int size, void * in, char * out, int len)
+{
+	switch(type) {
+#define PARAM_SWITCH_SNPRINTF(casename, strtype, strcast, name) \
+	case casename: \
+		snprintf(out, len, strtype, *(strcast *) in); \
+		break;
+
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT8, "%u", uint8_t, uint8)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT16, "%u", uint16_t, uint16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT32, "%u", uint32_t, uint32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT64, "%lu", uint64_t, uint64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT8, "%d", int8_t, int8)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT16, "%d", int16_t, int16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT32, "%d", int32_t, int32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT64, "%ld", int64_t, int64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT8, "0x%X", uint8_t, uint8)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT16, "0x%X", uint16_t, uint16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT32, "0x%X", uint32_t, uint32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT64, "0x%lX", uint64_t, uint64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_FLOAT, "%f", float, float)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DOUBLE, "%f", double, double)
+
+	case PARAM_TYPE_DATA: {
+		int written = snprintf(out, len, "0x");
+		len -= written;
+		out += written;
+		for (int i = 0; i < size; i++) {
+			written = snprintf(out, len, "%02x", ((char *)in)[i]);
+			len -= written;
+			out += written;
+		}
+		break;
+	}
+
+	case PARAM_TYPE_STRING:
+		strncpy(out, in, size);
 		break;
 
 #undef PARAM_SWITCH_SNPRINTF

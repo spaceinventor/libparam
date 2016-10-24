@@ -24,7 +24,7 @@ slash_command_group(rparam, "Remote parameters");
 
 static int rparam_slash_get(struct slash *slash)
 {
-	if (slash->argc != 3)
+	if (slash->argc < 3)
 		return SLASH_EUSAGE;
 
 	rparam_t * rparam = NULL;
@@ -37,14 +37,24 @@ static int rparam_slash_get(struct slash *slash)
 		rparam = rparam_list_find_name(node, slash->argv[2]);
 		if (rparam == NULL)
 			return SLASH_EINVAL;
-	}
-
-	if (!rparam) {
+	} else {
+		if (slash->argc < 4)
+			return SLASH_EINVAL;
 		rparam = alloca(sizeof(rparam_t));
 		rparam->node = node;
 		rparam->idx = idx;
-		rparam->type = PARAM_TYPE_DATA;
-		rparam->size = 16;
+		rparam->timeout = 2000;
+		strcpy(rparam->name, "");
+		rparam->type = (uint8_t) atoi(slash->argv[3]);
+		if (rparam->type == PARAM_TYPE_DATA || rparam->type == PARAM_TYPE_STRING) {
+			if (slash->argc < 5)
+				return SLASH_EINVAL;
+			rparam->size = atoi(slash->argv[4]);
+		}
+	}
+
+	if (!rparam) {
+
 	}
 
 	int size = param_typesize(rparam->type);
@@ -54,9 +64,22 @@ static int rparam_slash_get(struct slash *slash)
 		return SLASH_EINVAL;
 
 	__attribute__((aligned((8)))) char data[size];
-	rparam_get(rparam, data);
+	memset(data, 0, size);
+	if (rparam_get(rparam, data) < 0) {
+		printf("No response\n");
+		return SLASH_EINVAL;
+	}
 
-	csp_hex_dump("Data", data, size);
+	if ((rparam->type != PARAM_TYPE_DATA) && (rparam->type != PARAM_TYPE_STRING)) {
+		char value_str[20] = {};
+		param_var_str(rparam->type, rparam->size, data, value_str, 20);
+		printf(" %u %u", rparam->node, rparam->idx);
+		if (strlen(rparam->name) != 0)
+			printf(" %s", rparam->name);
+		printf(" = %s\n", value_str);
+	} else {
+		csp_hex_dump("Data", data, size);
+	}
 
 	return SLASH_SUCCESS;
 }
@@ -70,7 +93,6 @@ static int rparam_slash_set(struct slash *slash)
 	rparam_t * rparam = NULL;
 	unsigned int node = atoi(slash->argv[1]);
 	unsigned int idx;
-	unsigned int type;
 	char * strarg;
 
 	char * endptr;
@@ -83,18 +105,16 @@ static int rparam_slash_set(struct slash *slash)
 			return SLASH_EINVAL;
 		strarg = slash->argv[3];
 	} else {
-		/* Index */
-		type = atoi(slash->argv[3]);
 		strarg = slash->argv[4];
-	}
-
-	if (!rparam) {
 		rparam = alloca(sizeof(rparam_t));
 		rparam->node = node;
 		rparam->idx = idx;
-		rparam->type = type;
-		if (type == PARAM_TYPE_DATA || type == PARAM_TYPE_STRING)
-			return SLASH_EINVAL;
+		rparam->type = atoi(slash->argv[3]);;
+		if (rparam->type == PARAM_TYPE_DATA || rparam->type == PARAM_TYPE_STRING) {
+			if (slash->argc < 5)
+				return SLASH_EINVAL;
+			rparam->size = atoi(slash->argv[4]);
+		}
 	}
 
 	printf("Node %u idx %u type %u size %u\r\n", rparam->node, rparam->idx, rparam->type, rparam->size);
