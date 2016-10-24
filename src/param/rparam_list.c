@@ -42,26 +42,25 @@ void rparam_list_foreach(void) {
 }
 
 void rparam_list_download(int node, int timeout) {
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_LIST, 0, CSP_O_NONE);
 
-	csp_packet_t * packet = csp_buffer_get(1);
-	packet->length = 0;
-	if (!csp_send(conn, packet, 0)) {
-		csp_buffer_free(packet);
-		csp_close(conn);
-	}
+	csp_debug_set_level(4, 1);
+	csp_debug_set_level(5, 1);
 
-	void * data = NULL;
-	int datasize;
-	csp_sfp_recv(conn, &data, &datasize, timeout);
-
-	csp_close(conn);
-
-	printf("Received %u bytes\n", datasize);
-
-	if (data == NULL)
+	/* Establish RDP connection */
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_LIST, timeout, CSP_O_RDP);
+	if (conn == NULL)
 		return;
 
+	csp_packet_t * packet;
+	while((packet = csp_read(conn, timeout)) != NULL) {
+		csp_hex_dump("Response", packet->data, packet->length);
+		csp_buffer_free(packet);
+	}
+
+	printf("No more data\n");
+	csp_close(conn);
+
+#if 0
 	for (rparam_transfer_t * rtrans = data; (intptr_t) rtrans < (intptr_t) data + datasize; rtrans++) {
 		printf("Param %s\n", rtrans->name);
 		rparam_t * rparam = csp_malloc(sizeof(param_t));
@@ -77,6 +76,7 @@ void rparam_list_download(int node, int timeout) {
 
 	csp_hex_dump("rparam list", data, datasize);
 	csp_free(data);
+#endif
 }
 
 

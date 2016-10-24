@@ -37,30 +37,22 @@ static void rparam_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 	csp_buffer_free(packet);
 }
 
-static void rparam_list_handler(csp_conn_t * conn, csp_packet_t * packet)
+static void rparam_list_handler(csp_conn_t * conn)
 {
-	csp_buffer_free(packet);
-
-	// TODO: Write SFP fragment sender
-
-	/* calculate total size */
 	param_t * param;
-	int paramcount = 0;
 	param_foreach(param) {
-		paramcount++;
+		printf("Send param %s\n", param->name);
+		csp_packet_t * packet = csp_buffer_get(256);
+		rparam_transfer_t * rparam = (void *) packet->data;
+		rparam->idx = csp_hton16(param_ptr_to_index(param));
+		rparam->type = param->type;
+		strncpy(rparam->name, param->name, 12);
+		packet->length = sizeof(rparam_transfer_t);
+		if (!csp_send(conn, packet, 1000)) {
+			csp_buffer_free(packet);
+			return;
+		}
 	}
-
-	rparam_transfer_t rparams[paramcount];
-	int i = 0;
-	param_foreach(param) {
-		rparams[i].idx = param_ptr_to_index(param);
-		rparams[i].type = param->type;
-		strncpy(rparams[i].name, param->name, 12);
-		i++;
-	}
-
-	csp_sfp_send(conn, rparams, i * sizeof(rparam_transfer_t), PARAM_SERVER_MTU, 1000);
-
 }
 
 csp_thread_return_t rparam_server_task(void *pvParameters)
@@ -86,6 +78,15 @@ csp_thread_return_t rparam_server_task(void *pvParameters)
 		if ((conn = csp_accept(sock, CSP_MAX_DELAY)) == NULL)
 			continue;
 
+		printf("New connection\n");
+
+		/* Handle RDP service differently */
+		if (csp_conn_dport(conn) == PARAM_PORT_LIST) {
+			rparam_list_handler(conn);
+			csp_close(conn);
+			continue;
+		}
+
 		/* Read packets. Timout is 100 ms */
 		while ((packet = csp_read(conn, 0)) != NULL) {
 			switch (csp_conn_dport(conn)) {
@@ -96,10 +97,6 @@ csp_thread_return_t rparam_server_task(void *pvParameters)
 
 			case PARAM_PORT_SET:
 				rparam_set_handler(conn, packet);
-				break;
-
-			case PARAM_PORT_LIST:
-				rparam_list_handler(conn, packet);
 				break;
 
 			default:
