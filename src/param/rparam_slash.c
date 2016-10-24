@@ -27,41 +27,30 @@ static int rparam_slash_get(struct slash *slash)
 	if (slash->argc != 3)
 		return SLASH_EUSAGE;
 
+	rparam_t * rparam = NULL;
 	unsigned int node = atoi(slash->argv[1]);
-	unsigned int id = atoi(slash->argv[2]);
+	unsigned int idx;
 
-	csp_packet_t * packet = csp_buffer_get(256);
-	if (packet == NULL)
-		return SLASH_EINVAL;
-
-	uint16_t * request = packet->data16;
-	request[0] = csp_hton16(id);
-	packet->length = sizeof(request[0]);
-
-	csp_hex_dump("request", packet->data, packet->length);
-
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_GET, 0, CSP_SO_NONE);
-	if (conn == NULL) {
-		csp_buffer_free(packet);
-		return SLASH_EINVAL;
+	char * endptr;
+	idx = strtoul(slash->argv[2], &endptr, 10);
+	if (*endptr != '\0') {
+		rparam = rparam_list_find_name(node, slash->argv[2]);
+		if (rparam == NULL)
+			return SLASH_EINVAL;
 	}
 
-	if (!csp_send(conn, packet, 0)) {
-		csp_close(conn);
-		csp_buffer_free(packet);
-		return SLASH_EINVAL;
+	if (!rparam) {
+		rparam = alloca(sizeof(rparam_t));
+		rparam->node = node;
+		rparam->idx = idx;
+		rparam->type = PARAM_TYPE_DATA;
+		rparam->size = 16;
 	}
 
-	packet = csp_read(conn, 5000);
-	if (packet == NULL) {
-		csp_close(conn);
-		slash_printf(slash, "No response\n");
-		return SLASH_EINVAL;
-	}
+	__attribute__((aligned((8)))) char data[16];
+	rparam_get(rparam, data);
 
-	csp_hex_dump("Response", packet->data, packet->length);
-	csp_buffer_free(packet);
-	csp_close(conn);
+	csp_hex_dump("Data", data, 16);
 
 	return SLASH_SUCCESS;
 }
@@ -69,26 +58,47 @@ slash_command_sub(rparam, get, rparam_slash_get, "<node> <param>", "Get remote p
 
 static int rparam_slash_set(struct slash *slash)
 {
-	if (slash->argc != 5)
+	if (slash->argc < 3)
 		return SLASH_EUSAGE;
 
+	rparam_t * rparam = NULL;
 	unsigned int node = atoi(slash->argv[1]);
-	unsigned int idx = atoi(slash->argv[2]);
-	unsigned int type = atoi(slash->argv[3]);
+	unsigned int idx;
+	unsigned int type;
+	char * strarg;
 
-	//printf("Node %u idx %u type %u\r\n", node, idx, type);
+	char * endptr;
+	idx = strtoul(slash->argv[2], &endptr, 10);
 
-	unsigned int value;
-	param_str_to_value(type, slash->argv[4], &value);
+	if (*endptr != '\0') {
+		/* String */
+		rparam = rparam_list_find_name(node, slash->argv[2]);
+		if (rparam == NULL)
+			return SLASH_EINVAL;
+		strarg = slash->argv[3];
+	} else {
+		/* Index */
+		type = atoi(slash->argv[3]);
+		strarg = slash->argv[4];
+	}
 
-	//printf("value %u\r\n", value);
+	if (!rparam) {
+		rparam = alloca(sizeof(rparam_t));
+		rparam->node = node;
+		rparam->idx = idx;
+		rparam->type = type;
+		if (type == PARAM_TYPE_DATA || type == PARAM_TYPE_STRING)
+			return SLASH_EINVAL;
+	}
+
+	printf("Node %u idx %u type %u size %u\r\n", rparam->node, rparam->idx, rparam->type, rparam->size);
 
 	csp_packet_t * packet = csp_buffer_get(256);
 	if (packet == NULL)
 		return SLASH_EINVAL;
 
 	packet->length = 0;
-	packet->length += param_serialize_single_fromstr(idx, type, slash->argv[4], (char *) packet->data, 256 - packet->length);
+	packet->length += param_serialize_single_fromstr(rparam->idx, rparam->type, strarg, (char *) packet->data, 256 - packet->length);
 
 	csp_hex_dump("packet", packet->data, packet->length);
 

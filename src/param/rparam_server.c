@@ -46,6 +46,7 @@ static void rparam_list_handler(csp_conn_t * conn)
 		rparam_transfer_t * rparam = (void *) packet->data;
 		rparam->idx = csp_hton16(param_ptr_to_index(param));
 		rparam->type = param->type;
+		rparam->size = param->size;
 		strncpy(rparam->name, param->name, 12);
 		packet->length = sizeof(rparam_transfer_t);
 		if (!csp_send(conn, packet, 1000)) {
