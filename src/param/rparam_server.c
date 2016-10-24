@@ -78,8 +78,6 @@ csp_thread_return_t rparam_server_task(void *pvParameters)
 		if ((conn = csp_accept(sock, CSP_MAX_DELAY)) == NULL)
 			continue;
 
-		printf("New connection\n");
-
 		/* Handle RDP service differently */
 		if (csp_conn_dport(conn) == PARAM_PORT_LIST) {
 			rparam_list_handler(conn);
