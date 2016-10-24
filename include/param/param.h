@@ -36,20 +36,21 @@ typedef enum {
 	PARAM_READONLY_TRUE,          //! Readonly Internal and external
 	PARAM_READONLY_EXTERNAL,      //! Readonly External only
 	PARAM_READONLY_INTERNAL,      //! Readonly Internal only
+	PARAM_HIDDEN,                 //! Do not display on lists
 } param_readonly_type_e;
 
-typedef struct param_s {
+typedef const struct param_s {
 	int addr;
 	int size;
 	param_type_e type;
 	const char *name;
 	const char *unit;
-	struct vmem_s * vmem;
+	const struct vmem_s * vmem;
 	void * physaddr;
 	uint64_t min;
 	uint64_t max;
 	param_readonly_type_e readonly;
-	void (*callback)(struct param_s * param);
+	void (*callback)(const struct param_s * param);
 } param_t;
 
 extern param_t __start_param, __stop_param;
@@ -126,10 +127,9 @@ static const param_t param_size_set[2];
 	}
 
 
-void param_callback_enabled(bool callbacks_enabled);
 param_t * param_from_id(uint16_t id);
 void param_print(param_t * param);
-void param_list(struct vmem_s * vmem);
+void param_list(char * token);
 void param_list_array(param_t * param, int count);
 void param_value_str(param_t *param, char * out, int len);
 
@@ -148,7 +148,8 @@ PARAM_GET(double, double)
 #undef PARAM_GET
 
 #define PARAM_SET(type, name) \
-	void param_set_##name(param_t * param, type value);
+	void param_set_##name(param_t * param, type value); \
+	void param_set_##name##_nocallback(param_t * param, type value);
 PARAM_SET(uint8_t, uint8)
 PARAM_SET(uint16_t, uint16)
 PARAM_SET(uint32_t, uint32)

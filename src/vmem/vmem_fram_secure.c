@@ -79,7 +79,8 @@ void vmem_fram_secure_restore(vmem_t * vmem)
 	fm25w256_write_data(driver->fram_primary_addr + vmem->size - sizeof(uint32_t), &crc, sizeof(uint32_t));
 
 	/* Call fallback config */
-	driver->fallback_fct();
+	if (driver->fallback_fct != NULL)
+		driver->fallback_fct();
 }
 
 void vmem_fram_secure_read(vmem_t * vmem, uint16_t addr, void * dataout, int len)

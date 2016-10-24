@@ -5,14 +5,6 @@
 
 #include <csp/csp_endian.h>
 
-/* Callbacks on/off */
-static bool param_callbacks_enabled = true;
-
-void param_callback_enabled(bool callbacks_enabled)
-{
-	param_callbacks_enabled = callbacks_enabled;
-}
-
 param_t * param_from_id(uint16_t id)
 {
 	return (param_t *) &__start_param + id;
@@ -56,13 +48,20 @@ void param_print(param_t * param)
 
 }
 
-void param_list(struct vmem_s * vmem)
+void param_list(char * token)
 {
 	param_t * param;
 	param_foreach(param) {
 
-		/* Filter on vmem */
-		if ((vmem != NULL) && (param->vmem != vmem))
+		if (param->readonly == PARAM_HIDDEN)
+			continue;
+
+#define param_min(a,b) \
+	({ __typeof__ (a) _a = (a); \
+	__typeof__ (b) _b = (b); \
+	_a < _b ? _a : _b; })
+
+		if (strncmp(token, param->name, param_min(strlen(param->name), strlen(token))) != 0)
 			continue;
 
 		param_print(param);
@@ -113,44 +112,53 @@ void param_get_data(param_t * param, void * outbuf, int len)
 }
 
 #define PARAM_SET(_type, name_in, _swapfct) \
-	void param_set_##name_in(param_t * param, _type value) \
+	void __param_set_##name_in(param_t * param, _type value, bool do_callback); \
+	void __param_set_##name_in(param_t * param, _type value, bool do_callback) \
 	{ \
-	\
-	/* Check readonly */ \
-	if ((param->readonly == PARAM_READONLY_TRUE) || (param->readonly == PARAM_READONLY_INTERNAL)) { \
-		printf("Tried to set readonly parameter %s\r\n", param->name); \
-		return; \
-	} \
-	\
-	/* Check limits */ \
-	if ((param->type != PARAM_TYPE_FLOAT) && (param->type != PARAM_TYPE_DOUBLE)) { \
-		if (value > (_type) param->max) { \
-			printf("Param value exceeds max\r\n"); \
+		\
+		/* Check readonly */ \
+		if ((param->readonly == PARAM_READONLY_TRUE) || (param->readonly == PARAM_READONLY_INTERNAL)) { \
+			printf("Tried to set readonly parameter %s\r\n", param->name); \
 			return; \
 		} \
 		\
-		if (value < (_type) param->min) { \
-			printf("Param value below min\r\n"); \
-			return; \
+		/* Check limits */ \
+		if ((param->type != PARAM_TYPE_FLOAT) && (param->type != PARAM_TYPE_DOUBLE)) { \
+			if (value > (_type) param->max) { \
+				printf("Param value exceeds max\r\n"); \
+				return; \
+			} \
+			\
+			if (value < (_type) param->min) { \
+				printf("Param value below min\r\n"); \
+				return; \
+			} \
+		} \
+		\
+		/* Aligned access directly to RAM */ \
+		if (param->physaddr) { \
+			*(_type*)(param->physaddr) = value; \
+		\
+		/* Otherwise call to vmem */ \
+		} else { \
+			if (param->vmem->big_endian == 1) \
+				value = _swapfct(value); \
+			param->vmem->write(param->vmem, param->addr, &value, sizeof(value)); \
+		} \
+		\
+		/* Callback */ \
+		if ((do_callback == true) && (param->callback)) { \
+			param->callback(param); \
 		} \
 	} \
-	\
-	/* Aligned access directly to RAM */ \
-	if (param->physaddr) { \
-		*(_type*)(param->physaddr) = value; \
-	\
-	/* Otherwise call to vmem */ \
-	} else { \
-		if (param->vmem->big_endian == 1) \
-			value = _swapfct(value); \
-		param->vmem->write(param->vmem, param->addr, &value, sizeof(value)); \
+	inline void param_set_##name_in(param_t * param, _type value) \
+	{ \
+		__param_set_##name_in(param, value, true); \
 	} \
-	\
-	/* Callback */ \
-	if ((param_callbacks_enabled == true) && (param->callback)) { \
-		param->callback(param); \
-	} \
-}
+	inline void param_set_##name_in##_nocallback(param_t * param, _type value) \
+	{ \
+		__param_set_##name_in(param, value, false); \
+	}
 
 PARAM_SET(uint8_t, uint8, )
 PARAM_SET(uint16_t, uint16, csp_htobe16)

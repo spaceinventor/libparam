@@ -16,12 +16,11 @@ void vmem_fram_secure_read(vmem_t * vmem, uint16_t addr, void * dataout, int len
 void vmem_fram_secure_write(vmem_t * vmem, uint16_t addr, void * datain, int len);
 void vmem_fram_secure_restore(vmem_t * vmem);
 
-typedef struct {
+typedef const struct {
 	uint8_t *data;
 	int fram_primary_addr;
 	int fram_backup_addr;
 	void (*fallback_fct)(void);
-	uint32_t crc;
 } vmem_fram_secure_driver_t;
 
 #define VMEM_DEFINE_FRAM_SECURE(name_in, strname, fram_primary_addr_in, fram_backup_addr_in, _fallback_fct, size_in, _vaddr) \

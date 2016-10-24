@@ -22,6 +22,6 @@ static int slash_vmem_backup(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command(vmem_backup, slash_vmem_backup, "<vmem idx>", "Backup FRAM vmem");
+slash_command(backup, slash_vmem_backup, "<vmem idx>", "Backup FRAM vmem");
 
 
