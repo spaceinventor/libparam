@@ -56,7 +56,7 @@ typedef const struct param_s {
 extern param_t __start_param, __stop_param;
 
 #ifndef PARAM_STORAGE_SIZE
-static const param_t param_size_set[2];
+static const param_t param_size_set[2] __attribute__((aligned(1)));
 #define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set[1] - (intptr_t) &param_size_set[0])
 #endif
 

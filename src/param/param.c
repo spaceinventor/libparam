@@ -51,6 +51,7 @@ void param_print(param_t * param)
 void param_list(char * token)
 {
 	param_t * param;
+
 	param_foreach(param) {
 
 		if (param->readonly == PARAM_HIDDEN)
@@ -61,8 +62,9 @@ void param_list(char * token)
 	__typeof__ (b) _b = (b); \
 	_a < _b ? _a : _b; })
 
-		if (strncmp(token, param->name, param_min(strlen(param->name), strlen(token))) != 0)
-			continue;
+		if (token)
+			if (strncmp(token, param->name, param_min(strlen(param->name), strlen(token))) != 0)
+				continue;
 
 		param_print(param);
 	}
