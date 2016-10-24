@@ -51,9 +51,6 @@ void param_value_str(param_t *param, char * out, int len)
 		param_get_string(param, out, len);
 		break;
 
-	default:
-		snprintf(out, len, "n/a");
-		break;
 #undef PARAM_SWITCH_SNPRINTF
 	}
 }
@@ -98,9 +95,9 @@ int param_str_to_value(param_type_e type, char * in, void * out)
 	return 0;
 }
 
-void param_type_str(param_t *param, char * out, int len)
+void param_type_str(param_type_e type, char * out, int len)
 {
-	switch(param->type) {
+	switch(type) {
 
 #define PARAM_SWITCH_SNPRINTF(casename, name) \
 	case casename: \

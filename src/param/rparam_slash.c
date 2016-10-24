@@ -47,10 +47,16 @@ static int rparam_slash_get(struct slash *slash)
 		rparam->size = 16;
 	}
 
-	__attribute__((aligned((8)))) char data[16];
+	int size = param_typesize(rparam->type);
+	if (size < 0)
+		size = rparam->size;
+	if (size == UINT8_MAX)
+		return SLASH_EINVAL;
+
+	__attribute__((aligned((8)))) char data[size];
 	rparam_get(rparam, data);
 
-	csp_hex_dump("Data", data, 16);
+	csp_hex_dump("Data", data, size);
 
 	return SLASH_SUCCESS;
 }
@@ -98,7 +104,12 @@ static int rparam_slash_set(struct slash *slash)
 		return SLASH_EINVAL;
 
 	packet->length = 0;
-	packet->length += param_serialize_single_fromstr(rparam->idx, rparam->type, strarg, (char *) packet->data, 256 - packet->length);
+
+	int maxlength = 256 - packet->length;
+	if (rparam->size < maxlength)
+		maxlength = rparam->size;
+
+	packet->length += param_serialize_single_fromstr(rparam->idx, rparam->type, strarg, (char *) packet->data, maxlength);
 
 	csp_hex_dump("packet", packet->data, packet->length);
 

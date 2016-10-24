@@ -103,7 +103,7 @@ int param_deserialize_to_param(void * in, param_t * param) {
 
 }
 
-int param_serialize_from_str(param_type_e type, char * str, void * out)
+int param_serialize_from_str(param_type_e type, char * str, void * out, int strlen)
 {
 
 	int count = 0;
@@ -136,8 +136,8 @@ int param_serialize_from_str(param_type_e type, char * str, void * out)
 		PARAM_SERIALIZE(PARAM_TYPE_DOUBLE, double, double, )
 
 		case PARAM_TYPE_STRING:
-			strcpy(out, str);
-			count += strlen(str);
+			strncpy(out, str, strlen);
+			count += strlen;
 			break;
 
 		default:
@@ -266,7 +266,7 @@ int param_serialize_single_fromstr(uint16_t idx, param_type_e type, char * in, c
 	memcpy(outbuf, &idx, sizeof(uint16_t));
 	size += sizeof(uint16_t);
 
-	size += param_serialize_from_str(type, in, outbuf + size);
+	size += param_serialize_from_str(type, in, outbuf + size, len);
 
 	return size;
 

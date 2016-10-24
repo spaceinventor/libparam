@@ -172,4 +172,6 @@ param_t * param_index_to_ptr(int idx);
 param_t * param_name_to_ptr(char * name);
 int param_ptr_to_index(param_t * param);
 
+int param_typesize(param_type_e type);
+
 #endif /* SRC_PARAM_PARAM_H_ */

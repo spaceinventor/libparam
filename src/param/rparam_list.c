@@ -10,6 +10,7 @@
 #include <csp/csp_endian.h>
 #include <param/param.h>
 #include <param/rparam.h>
+#include "param_string.h"
 #include "rparam_list.h"
 
 rparam_t * list_begin = NULL;
@@ -75,7 +76,20 @@ void rparam_list_foreach(void) {
 
 	rparam_t * rparam = list_begin;
 	while(rparam != NULL) {
-		printf("list %s\n", rparam->name);
+
+		printf(" %u ", rparam->node);
+
+		printf(" %s", rparam->name);
+
+		/* Type */
+		char type_str[20] = "";
+		param_type_str(rparam->type, type_str, 20);
+		printf(" %s", type_str);
+
+		printf(" (%u)", rparam->size);
+
+		printf("\n");
+
 		rparam = rparam->next;
 	}
 
