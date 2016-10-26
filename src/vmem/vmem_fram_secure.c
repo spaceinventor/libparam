@@ -41,12 +41,18 @@ void vmem_fram_secure_backup(vmem_t * vmem)
 	vmem_fram_secure_driver_t * driver = vmem->driver;
 	printf("Vmem fram secure backup %s\r\n", vmem->name);
 
+	/* Unlock FRAM */
+	fm25w256_unlock_upper();
+
 	/* Write entire RAM cache to FRAM backup */
 	fm25w256_write_data(driver->fram_backup_addr, driver->data, vmem->size - sizeof(uint32_t));
 
 	/* Write checksum (always kept in top 4 bytes of vmem) */
 	uint32_t crc = csp_crc32_memory(driver->data, vmem->size - sizeof(uint32_t));
 	fm25w256_write_data(driver->fram_backup_addr + vmem->size - sizeof(uint32_t), &crc, sizeof(uint32_t));
+
+	/* Lock FRAM */
+	fm25w256_unlock_upper();
 }
 
 void vmem_fram_secure_restore(vmem_t * vmem)
