@@ -41,7 +41,7 @@ void param_print(param_t * param)
 
 	/* Type */
 	char type_str[20] = "";
-	param_type_str(param, type_str, 20);
+	param_type_str(param->type, type_str, 20);
 	printf(" %s", type_str);
 
 	printf("\n");
@@ -51,6 +51,7 @@ void param_print(param_t * param)
 void param_list(char * token)
 {
 	param_t * param;
+
 	param_foreach(param) {
 
 		if (param->readonly == PARAM_HIDDEN)
@@ -61,8 +62,9 @@ void param_list(char * token)
 	__typeof__ (b) _b = (b); \
 	_a < _b ? _a : _b; })
 
-		if (strncmp(token, param->name, param_min(strlen(param->name), strlen(token))) != 0)
-			continue;
+		if (token)
+			if (strncmp(token, param->name, param_min(strlen(param->name), strlen(token))) != 0)
+				continue;
 
 		param_print(param);
 	}
@@ -232,5 +234,27 @@ param_t * param_index_to_ptr(int idx)
 int param_ptr_to_index(param_t * param)
 {
 	return ((intptr_t) param - (intptr_t) &__start_param) / PARAM_STORAGE_SIZE;
+}
+
+int param_typesize(param_type_e type) {
+	switch(type) {
+	case PARAM_TYPE_UINT8: return sizeof(uint8_t); break;
+	case PARAM_TYPE_UINT16: return sizeof(uint16_t); break;
+	case PARAM_TYPE_UINT32: return sizeof(uint32_t); break;
+	case PARAM_TYPE_UINT64: return sizeof(uint64_t); break;
+	case PARAM_TYPE_INT8: return sizeof(int8_t); break;
+	case PARAM_TYPE_INT16: return sizeof(int16_t); break;
+	case PARAM_TYPE_INT32: return sizeof(int32_t); break;
+	case PARAM_TYPE_INT64: return sizeof(int64_t); break;
+	case PARAM_TYPE_XINT8: return sizeof(uint8_t); break;
+	case PARAM_TYPE_XINT16: return sizeof(uint16_t); break;
+	case PARAM_TYPE_XINT32: return sizeof(uint32_t); break;
+	case PARAM_TYPE_XINT64: return sizeof(uint64_t); break;
+	case PARAM_TYPE_FLOAT: return sizeof(float); break;
+	case PARAM_TYPE_DOUBLE: return sizeof(double); break;
+	case PARAM_TYPE_STRING: return -1; break;
+	case PARAM_TYPE_DATA: return -1; break;
+	}
+	return -1;
 }
 

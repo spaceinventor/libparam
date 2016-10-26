@@ -7,14 +7,19 @@
 
 #include <stdio.h>
 #include <csp/arch/csp_malloc.h>
+#include <csp/csp_endian.h>
 #include <param/param.h>
 #include <param/rparam.h>
+#include "param_string.h"
 #include "rparam_list.h"
 
 rparam_t * list_begin = NULL;
 rparam_t * list_end = NULL;
 
-void rparam_list_add(rparam_t * item) {
+int rparam_list_add(rparam_t * item) {
+
+	if (rparam_list_find_idx(item->node, item->idx) != NULL)
+		return -1;
 
 	if (list_begin == NULL)
 		list_begin = item;
@@ -25,58 +30,105 @@ void rparam_list_add(rparam_t * item) {
 	list_end = item;
 	item->next = NULL;
 
+	return 0;
+
 }
 
-void rparam_list_find(rparam_t * item) {
+rparam_t * rparam_list_find_idx(int node, int idx)
+{
+	rparam_t * rparam = list_begin;
+	while(rparam != NULL) {
 
+		if (rparam->node != node)
+			goto next;
+
+		if (rparam->idx != idx)
+			goto next;
+
+		return rparam;
+
+next:
+		rparam = rparam->next;
+	}
+	return NULL;
+}
+
+rparam_t * rparam_list_find_name(int node, char * name)
+{
+	rparam_t * rparam = list_begin;
+	while(rparam != NULL) {
+
+		if (rparam->node != node)
+			goto next;
+
+		if (strcmp(rparam->name, name) != 0)
+			goto next;
+
+		return rparam;
+
+next:
+		rparam = rparam->next;
+	}
+	return NULL;
 }
 
 void rparam_list_foreach(void) {
 
 	rparam_t * rparam = list_begin;
 	while(rparam != NULL) {
-		printf("list %s\n", rparam->name);
+
+		printf(" %u ", rparam->node);
+
+		printf(" %s", rparam->name);
+
+		/* Type */
+		char type_str[20] = "";
+		param_type_str(rparam->type, type_str, 20);
+		printf(" %s", type_str);
+
+		printf(" (%u)", rparam->size);
+
+		printf("\n");
+
 		rparam = rparam->next;
 	}
 
 }
 
 void rparam_list_download(int node, int timeout) {
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_LIST, 0, CSP_O_NONE);
 
-	csp_packet_t * packet = csp_buffer_get(1);
-	packet->length = 0;
-	if (!csp_send(conn, packet, 0)) {
-		csp_buffer_free(packet);
-		csp_close(conn);
-	}
-
-	void * data = NULL;
-	int datasize;
-	csp_sfp_recv(conn, &data, &datasize, timeout);
-
-	csp_close(conn);
-
-	printf("Received %u bytes\n", datasize);
-
-	if (data == NULL)
+	/* Establish RDP connection */
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_LIST, timeout, CSP_O_RDP);
+	if (conn == NULL)
 		return;
 
-	for (rparam_transfer_t * rtrans = data; (intptr_t) rtrans < (intptr_t) data + datasize; rtrans++) {
-		printf("Param %s\n", rtrans->name);
-		rparam_t * rparam = csp_malloc(sizeof(param_t));
-		if (rparam == NULL)
-			break;
-		rparam->idx = rtrans->idx;
-		rparam->type = rtrans->type;
+	csp_packet_t * packet;
+	while((packet = csp_read(conn, timeout)) != NULL) {
+
+		//csp_hex_dump("Response", packet->data, packet->length);
+		rparam_transfer_t * new_param = (void *) packet->data;
+
+		/* Allocate new rparam type */
+		rparam_t * rparam = malloc(sizeof(rparam_t));
 		rparam->node = node;
 		rparam->timeout = timeout;
-		strncpy(rparam->name, rtrans->name, 13);
-		rparam_list_add(rparam);
+		rparam->idx = csp_ntoh16(new_param->idx);
+		rparam->type = new_param->type;
+		rparam->size = new_param->size;
+		strncpy(rparam->name, new_param->name, 13);
+		rparam->name[13] = '\0';
+
+		printf("Got param: %s\n", new_param->name);
+
+		/* Add to list */
+		if (rparam_list_add(rparam) != 0)
+			free(rparam);
+
+		csp_buffer_free(packet);
 	}
 
-	csp_hex_dump("rparam list", data, datasize);
-	csp_free(data);
+	printf("No more data\n");
+	csp_close(conn);
 }
 
 

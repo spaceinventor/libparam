@@ -18,7 +18,10 @@ slash_command_group(param, "Local parameters");
 
 static int list(struct slash *slash)
 {
-	param_list(slash->argv[1]);
+	if (slash->argc > 1)
+		param_list(slash->argv[1]);
+	else
+		param_list(NULL);
 	return SLASH_SUCCESS;
 }
 slash_command_sub(param, list, list, "[str]", "List parameters");

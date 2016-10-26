@@ -24,44 +24,62 @@ slash_command_group(rparam, "Remote parameters");
 
 static int rparam_slash_get(struct slash *slash)
 {
-	if (slash->argc != 3)
+	if (slash->argc < 3)
 		return SLASH_EUSAGE;
 
+	rparam_t * rparam = NULL;
 	unsigned int node = atoi(slash->argv[1]);
-	unsigned int id = atoi(slash->argv[2]);
+	unsigned int idx;
 
-	csp_packet_t * packet = csp_buffer_get(256);
-	if (packet == NULL)
+	char * endptr;
+	idx = strtoul(slash->argv[2], &endptr, 10);
+	if (*endptr != '\0') {
+		rparam = rparam_list_find_name(node, slash->argv[2]);
+		if (rparam == NULL)
+			return SLASH_EINVAL;
+	} else {
+		if (slash->argc < 4)
+			return SLASH_EINVAL;
+		rparam = alloca(sizeof(rparam_t));
+		rparam->node = node;
+		rparam->idx = idx;
+		rparam->timeout = 2000;
+		strcpy(rparam->name, "");
+		rparam->type = (uint8_t) atoi(slash->argv[3]);
+		if (rparam->type == PARAM_TYPE_DATA || rparam->type == PARAM_TYPE_STRING) {
+			if (slash->argc < 5)
+				return SLASH_EINVAL;
+			rparam->size = atoi(slash->argv[4]);
+		}
+	}
+
+	if (!rparam) {
+
+	}
+
+	int size = param_typesize(rparam->type);
+	if (size < 0)
+		size = rparam->size;
+	if (size == UINT8_MAX)
 		return SLASH_EINVAL;
 
-	uint16_t * request = packet->data16;
-	request[0] = csp_hton16(id);
-	packet->length = sizeof(request[0]);
-
-	csp_hex_dump("request", packet->data, packet->length);
-
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_GET, 0, CSP_SO_NONE);
-	if (conn == NULL) {
-		csp_buffer_free(packet);
+	__attribute__((aligned((8)))) char data[size];
+	memset(data, 0, size);
+	if (rparam_get(rparam, data) < 0) {
+		printf("No response\n");
 		return SLASH_EINVAL;
 	}
 
-	if (!csp_send(conn, packet, 0)) {
-		csp_close(conn);
-		csp_buffer_free(packet);
-		return SLASH_EINVAL;
+	if ((rparam->type != PARAM_TYPE_DATA) && (rparam->type != PARAM_TYPE_STRING)) {
+		char value_str[20] = {};
+		param_var_str(rparam->type, rparam->size, data, value_str, 20);
+		printf(" %u %u", rparam->node, rparam->idx);
+		if (strlen(rparam->name) != 0)
+			printf(" %s", rparam->name);
+		printf(" = %s\n", value_str);
+	} else {
+		csp_hex_dump("Data", data, size);
 	}
-
-	packet = csp_read(conn, 5000);
-	if (packet == NULL) {
-		csp_close(conn);
-		slash_printf(slash, "No response\n");
-		return SLASH_EINVAL;
-	}
-
-	csp_hex_dump("Response", packet->data, packet->length);
-	csp_buffer_free(packet);
-	csp_close(conn);
 
 	return SLASH_SUCCESS;
 }
@@ -69,26 +87,49 @@ slash_command_sub(rparam, get, rparam_slash_get, "<node> <param>", "Get remote p
 
 static int rparam_slash_set(struct slash *slash)
 {
-	if (slash->argc != 5)
+	if (slash->argc < 3)
 		return SLASH_EUSAGE;
 
+	rparam_t * rparam = NULL;
 	unsigned int node = atoi(slash->argv[1]);
-	unsigned int idx = atoi(slash->argv[2]);
-	unsigned int type = atoi(slash->argv[3]);
+	unsigned int idx;
+	char * strarg;
 
-	//printf("Node %u idx %u type %u\r\n", node, idx, type);
+	char * endptr;
+	idx = strtoul(slash->argv[2], &endptr, 10);
 
-	unsigned int value;
-	param_str_to_value(type, slash->argv[4], &value);
+	if (*endptr != '\0') {
+		/* String */
+		rparam = rparam_list_find_name(node, slash->argv[2]);
+		if (rparam == NULL)
+			return SLASH_EINVAL;
+		strarg = slash->argv[3];
+	} else {
+		strarg = slash->argv[4];
+		rparam = alloca(sizeof(rparam_t));
+		rparam->node = node;
+		rparam->idx = idx;
+		rparam->type = atoi(slash->argv[3]);;
+		if (rparam->type == PARAM_TYPE_DATA || rparam->type == PARAM_TYPE_STRING) {
+			if (slash->argc < 5)
+				return SLASH_EINVAL;
+			rparam->size = atoi(slash->argv[4]);
+		}
+	}
 
-	//printf("value %u\r\n", value);
+	printf("Node %u idx %u type %u size %u\r\n", rparam->node, rparam->idx, rparam->type, rparam->size);
 
 	csp_packet_t * packet = csp_buffer_get(256);
 	if (packet == NULL)
 		return SLASH_EINVAL;
 
 	packet->length = 0;
-	packet->length += param_serialize_single_fromstr(idx, type, slash->argv[4], (char *) packet->data, 256 - packet->length);
+
+	int maxlength = 256 - packet->length;
+	if (rparam->size < maxlength)
+		maxlength = rparam->size;
+
+	packet->length += param_serialize_single_fromstr(rparam->idx, rparam->type, strarg, (char *) packet->data, maxlength);
 
 	csp_hex_dump("packet", packet->data, packet->length);
 

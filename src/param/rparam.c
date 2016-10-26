@@ -49,7 +49,7 @@ int rparam_get(rparam_t * rparam, void * out)
 	csp_buffer_free(packet);
 	csp_close(conn);
 
-	param_deserialize_to_var(rparam->type, packet->data + 2, out);
+	param_deserialize_to_var(rparam->type, rparam->size, packet->data + 2, out);
 
 	return 0;
 
@@ -86,7 +86,7 @@ int rparam_set(rparam_t * rparam, void * in)
 	memcpy(packet->data, &idx, sizeof(uint16_t));
 	packet->length += sizeof(uint16_t);
 
-	packet->length += param_serialize_from_var(rparam->type, in, (char *) packet->data + packet->length);
+	packet->length += param_serialize_from_var(rparam->type, rparam->size, in, (char *) packet->data + packet->length);
 
 	//csp_hex_dump("packet", packet->data, packet->length);
 

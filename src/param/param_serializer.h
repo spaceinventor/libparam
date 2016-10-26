@@ -8,11 +8,11 @@
 #ifndef SRC_PARAM_PARAM_SERIALIZER_H_
 #define SRC_PARAM_PARAM_SERIALIZER_H_
 
-int param_serialize_from_str(param_type_e type, char * str, void * out);
+int param_serialize_from_str(param_type_e type, char * str, void * out, int strlen);
 int param_serialize_from_param(param_t * param, char * out);
-int param_serialize_from_var(param_type_e type, void * in, char * out);
+int param_serialize_from_var(param_type_e type, int size, void * in, char * out);
 
-int param_deserialize_to_var(param_type_e type, void * in, void * out);
+int param_deserialize_to_var(param_type_e type, int size, void * in, void * out);
 int param_deserialize_to_param(void * in, param_t * param);
 
 int param_deserialize_single(char * inbuf);

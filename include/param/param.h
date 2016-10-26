@@ -56,7 +56,7 @@ typedef const struct param_s {
 extern param_t __start_param, __stop_param;
 
 #ifndef PARAM_STORAGE_SIZE
-static const param_t param_size_set[2];
+static const param_t param_size_set[2] __attribute__((aligned(1)));
 #define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set[1] - (intptr_t) &param_size_set[0])
 #endif
 
@@ -171,5 +171,7 @@ void param_get_data(param_t * param, void * outbuf, int len);
 param_t * param_index_to_ptr(int idx);
 param_t * param_name_to_ptr(char * name);
 int param_ptr_to_index(param_t * param);
+
+int param_typesize(param_type_e type);
 
 #endif /* SRC_PARAM_PARAM_H_ */

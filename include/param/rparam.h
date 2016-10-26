@@ -18,22 +18,23 @@
 csp_thread_return_t rparam_server_task(void *pvParameters);
 
 typedef struct rparam_t {
-	int node;
-	int timeout;
-	int idx;
+	uint8_t node;
+	uint16_t timeout;
+	uint16_t idx;
 	param_type_e type;
-	char name[13];
-	int size;
+	char name[14]; // One extra to allow for '\0'
+	uint8_t size;
 	char unit[5];
 	uint64_t min;
 	uint64_t max;
 	param_readonly_type_e readonly;
 	struct rparam_t * next;
-} rparam_t;
+} __attribute__((packed)) rparam_t;
 
 typedef struct {
 	uint16_t idx;
 	uint8_t type;
+	uint8_t size;
 	char name[13];
 } __attribute__((packed)) rparam_transfer_t;
 
