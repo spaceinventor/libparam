@@ -36,9 +36,16 @@ void vmem_download(int node, int timeout, uint32_t address, uint32_t length, cha
 
 	/* Go into download loop */
 	int count = 0;
+	int dotcount = 0;
 	while((packet = csp_read(conn, timeout)) != NULL) {
 
-		csp_hex_dump("Download", packet->data, packet->length);
+		//csp_hex_dump("Download", packet->data, packet->length);
+
+		printf(".");
+		fflush(stdout);
+		dotcount++;
+		if (dotcount % 32 == 0)
+			printf(" - %u\n", count);
 
 		/* Put data */
 		memcpy((void *) ((intptr_t) dataout + count), packet->data, packet->length);
@@ -48,6 +55,8 @@ void vmem_download(int node, int timeout, uint32_t address, uint32_t length, cha
 
 		csp_buffer_free(packet);
 	}
+
+	printf(" - %u\n", count);
 
 	csp_close(conn);
 }
@@ -75,7 +84,14 @@ void vmem_upload(int node, int timeout, uint32_t address, char * datain, uint32_
 	}
 
 	int count = 0;
+	int dotcount = 0;
 	while(count < length) {
+
+		printf(".");
+		fflush(stdout);
+		dotcount++;
+		if (dotcount % 32 == 0)
+			printf(" - %u\n", count);
 
 		/* Prepare packet */
 		csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
@@ -93,6 +109,8 @@ void vmem_upload(int node, int timeout, uint32_t address, char * datain, uint32_
 		}
 
 	}
+
+	printf(" - %u\n", count);
 
 	csp_close(conn);
 

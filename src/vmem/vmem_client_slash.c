@@ -114,7 +114,9 @@ static int vmem_client_slash_upload(struct slash *slash)
 	int size = fread(data, 1, file_stat.st_size, fd);
 	fclose(fd);
 
-	csp_hex_dump("file", data, size);
+	//csp_hex_dump("file", data, size);
+
+	printf("Size %u\n", size);
 
 	vmem_upload(node, timeout, address, data, size);
 
