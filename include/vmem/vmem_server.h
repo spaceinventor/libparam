@@ -13,6 +13,18 @@
 
 #define VMEM_PORT_SERVER 13
 
+typedef enum {
+	VMEM_SERVER_UPLOAD,
+	VMEM_SERVER_DOWNLOAD,
+} vmem_request_type;
+
+typedef struct {
+	uint8_t version;
+	uint8_t type;
+	uint32_t address;
+	uint32_t length;
+} __attribute__((packed)) vmem_request_t;
+
 void vmem_server_handler(csp_conn_t * conn);
 csp_thread_return_t vmem_server_task(void *pvParameters);
 

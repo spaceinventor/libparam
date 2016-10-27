@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 
-void vmem_download(int node, int timeout, uint64_t address, char * dataout, int len);
-void vmem_upload(int node, int timeout, uint64_t address, char * datain, int len);
+void vmem_download(int node, int timeout, uint32_t address, uint32_t length, char * dataout);
+void vmem_upload(int node, int timeout, uint32_t address, char * datain, int len);
 
 #endif /* LIB_PARAM_INCLUDE_VMEM_VMEM_CLIENT_H_ */

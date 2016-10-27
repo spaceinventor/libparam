@@ -20,10 +20,11 @@ static int vmem_client_slash_download(struct slash *slash)
 	int node;
 	int timeout = 2000;
 	uint32_t address;
+	uint32_t length;
 	char * file;
 	char * endptr;
 
-	if (slash->argc < 4)
+	if (slash->argc < 5)
 		return SLASH_EUSAGE;
 
 	node = strtoul(slash->argv[1], &endptr, 10);
@@ -34,20 +35,24 @@ static int vmem_client_slash_download(struct slash *slash)
 	if (*endptr != '\0')
 		return SLASH_EUSAGE;
 
-	file = slash->argv[3];
+	length = strtoul(slash->argv[3], &endptr, 10);
+	if (*endptr != '\0')
+		return SLASH_EUSAGE;
 
-	if (slash->argc > 4) {
-		timeout = strtoul(slash->argv[4], &endptr, 10);
+	file = slash->argv[4];
+
+	if (slash->argc > 5) {
+		timeout = strtoul(slash->argv[5], &endptr, 10);
 		if (*endptr != '\0')
 			return SLASH_EUSAGE;
 	}
 
 	printf("Download from %u addr 0x%"PRIX32" to %s with timeout %u\n", node, address, file, timeout);
 
-	vmem_download(1, 1000, 0x10000000, NULL, 0);
+	vmem_download(node, timeout, address, length, NULL);
 	return SLASH_SUCCESS;
 }
-slash_command(download, vmem_client_slash_download, "<node> <address> <file> [timeout]", "Download from VMEM to FILE");
+slash_command(download, vmem_client_slash_download, "<node> <address> <length> <file> [timeout]", "Download from VMEM to FILE");
 
 static int vmem_client_slash_upload(struct slash *slash)
 {

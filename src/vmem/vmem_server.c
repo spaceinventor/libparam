@@ -12,10 +12,55 @@
 
 #include <vmem/vmem_server.h>
 
+#define VMEM_SERVER_TIMEOUT 30000
+#define VMEM_SERVER_MTU 200
+
+#define MAX(a,b) ((a) > (b) ? a : b)
+#define MIN(a,b) ((a) < (b) ? a : b)
 
 void vmem_server_handler(csp_conn_t * conn)
 {
-	printf("New vmem conn\n");
+	/* Read request */
+	csp_packet_t * packet = csp_read(conn, VMEM_SERVER_TIMEOUT);
+	if (packet == NULL)
+		return;
+
+	/* Copy data from request */
+	vmem_request_t * request = (void *) packet->data;
+	int type = request->type;
+	uint32_t address = csp_ntoh32(request->address);
+	uint32_t length = csp_ntoh32(request->length);
+	csp_buffer_free(packet);
+
+	printf("Type %u, addr 0x%X, length %u\n", type, address, length);
+
+	/**
+	 * DOWNLOAD
+	 */
+	if (type == VMEM_SERVER_DOWNLOAD) {
+
+		printf("Download\n");
+		int count = 0;
+		while(count < length) {
+			printf("Send chunk %u\n", count);
+			csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
+			packet->length = MIN(VMEM_SERVER_MTU, length - count);
+			count += packet->length;
+			if (!csp_send(conn, packet, VMEM_SERVER_TIMEOUT)) {
+				csp_buffer_free(packet);
+				return;
+			}
+		}
+
+	/**
+	 * UPLOAD
+	 */
+	} else if (request->type == VMEM_SERVER_UPLOAD) {
+
+		printf("Upload\n");
+
+	}
+
 }
 
 csp_thread_return_t vmem_server_task(void *pvParameters)
