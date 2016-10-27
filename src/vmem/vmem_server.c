@@ -10,6 +10,7 @@
 #include <csp/csp_endian.h>
 #include <csp/arch/csp_thread.h>
 
+#include <vmem/vmem.h>
 #include <vmem/vmem_server.h>
 
 #define VMEM_SERVER_TIMEOUT 30000
@@ -32,20 +33,24 @@ void vmem_server_handler(csp_conn_t * conn)
 	uint32_t length = csp_ntoh32(request->length);
 	csp_buffer_free(packet);
 
-	printf("Type %u, addr 0x%X, length %u\n", type, address, length);
-
 	/**
 	 * DOWNLOAD
 	 */
 	if (type == VMEM_SERVER_DOWNLOAD) {
 
-		printf("Download\n");
 		int count = 0;
 		while(count < length) {
-			printf("Send chunk %u\n", count);
+
+			/* Prepare packet */
 			csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
 			packet->length = MIN(VMEM_SERVER_MTU, length - count);
+
+			/* Copy data */
+			vmem_memcpy(packet->data, (void *) ((intptr_t) address + count), packet->length);
+
+			/* Increment */
 			count += packet->length;
+
 			if (!csp_send(conn, packet, VMEM_SERVER_TIMEOUT)) {
 				csp_buffer_free(packet);
 				return;

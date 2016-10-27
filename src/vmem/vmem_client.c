@@ -40,7 +40,6 @@ void vmem_download(int node, int timeout, uint32_t address, uint32_t length, cha
 		csp_buffer_free(packet);
 	}
 
-	printf("No more data\n");
 	csp_close(conn);
 }
 

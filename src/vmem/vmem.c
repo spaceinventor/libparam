@@ -23,7 +23,7 @@ void vmem_dump(vmem_t * vmem)
 
 void vmem_list(void) {
 	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
-		printf(" [vmem_%u] (%u) %s at %p\r\n", vmem - (vmem_t *) &__start_vmem, vmem->size, vmem->name, vmem->vaddr);
+		printf(" [vmem_%u] (%u) %s at %p\r\n", (unsigned int) (vmem - (vmem_t *) &__start_vmem), vmem->size, vmem->name, vmem->vaddr);
 	}
 }
 
@@ -33,14 +33,14 @@ void * vmem_memcpy(void * to, void * from, size_t size) {
 
 		/* Write to VMEM */
 		if ((to >= vmem->vaddr) && (to + size <= vmem->vaddr + vmem->size)) {
-			printf("Write to vmem %s\n", vmem->name);
+			//printf("Write to vmem %s\n", vmem->name);
 			vmem->write(vmem, to - vmem->vaddr, from, size);
 			return NULL;
 		}
 
 		/* Read */
 		if ((from >= vmem->vaddr) && (from + size <= vmem->vaddr + vmem->size)) {
-			printf("Read from vmem %s\n", vmem->name);
+			//printf("Read from vmem %s\n", vmem->name);
 			vmem->read(vmem, from - vmem->vaddr, to, size);
 			return NULL;
 		}
