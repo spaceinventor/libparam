@@ -83,7 +83,7 @@ static int rparam_slash_get(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(rparam, get, rparam_slash_get, "<node> <param>", "Get remote parameter");
+slash_command_sub(rparam, get, rparam_slash_get, "<node> <param> [type] [size]", "Get remote parameter");
 
 static int rparam_slash_set(struct slash *slash)
 {
@@ -105,15 +105,18 @@ static int rparam_slash_set(struct slash *slash)
 			return SLASH_EINVAL;
 		strarg = slash->argv[3];
 	} else {
+		if (slash->argc < 5)
+			return SLASH_EUSAGE;
 		strarg = slash->argv[4];
 		rparam = alloca(sizeof(rparam_t));
 		rparam->node = node;
 		rparam->idx = idx;
 		rparam->type = atoi(slash->argv[3]);;
 		if (rparam->type == PARAM_TYPE_DATA || rparam->type == PARAM_TYPE_STRING) {
-			if (slash->argc < 5)
+			if (slash->argc < 6)
 				return SLASH_EINVAL;
 			rparam->size = atoi(slash->argv[4]);
+			strarg = slash->argv[5];
 		}
 	}
 
@@ -138,7 +141,7 @@ static int rparam_slash_set(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(rparam, set, rparam_slash_set, "<node> <param> <type> <value>", "Set remote parameter");
+slash_command_sub(rparam, set, rparam_slash_set, "<node> <param> [type] [size] <value>", "Set remote parameter");
 
 static int rparam_slash_download(struct slash *slash)
 {
