@@ -32,7 +32,7 @@ void vmem_server_handler(csp_conn_t * conn)
 	 */
 	if (type == VMEM_SERVER_DOWNLOAD) {
 
-		int count = 0;
+		unsigned int count = 0;
 		while(count < length) {
 
 			/* Prepare packet */

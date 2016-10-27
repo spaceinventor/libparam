@@ -8,6 +8,9 @@
 #ifndef SRC_PARAM_VMEM_H_
 #define SRC_PARAM_VMEM_H_
 
+#define VMEM_MAX(a,b) ((a) > (b) ? a : b)
+#define VMEM_MIN(a,b) ((a) < (b) ? a : b)
+
 #include <stddef.h>
 #include <param/param.h>
 
