@@ -6,20 +6,79 @@
  */
 
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <inttypes.h>
+
 #include <vmem/vmem_client.h>
 
 #include <slash/slash.h>
 
 static int vmem_client_slash_download(struct slash *slash)
 {
+	int node;
+	int timeout = 2000;
+	uint32_t address;
+	char * file;
+	char * endptr;
+
+	if (slash->argc < 4)
+		return SLASH_EUSAGE;
+
+	node = strtoul(slash->argv[1], &endptr, 10);
+	if (*endptr != '\0')
+		return SLASH_EUSAGE;
+
+	address = strtoul(slash->argv[2], &endptr, 16);
+	if (*endptr != '\0')
+		return SLASH_EUSAGE;
+
+	file = slash->argv[3];
+
+	if (slash->argc > 4) {
+		timeout = strtoul(slash->argv[4], &endptr, 10);
+		if (*endptr != '\0')
+			return SLASH_EUSAGE;
+	}
+
+	printf("Download from %u addr 0x%"PRIX32" to %s with timeout %u\n", node, address, file, timeout);
+
 	vmem_download(1, 1000, 0x10000000, NULL, 0);
 	return SLASH_SUCCESS;
 }
-slash_command(download, vmem_client_slash_download, "<node> <timeout> <address> <file>", "Download from VMEM to FILE");
+slash_command(download, vmem_client_slash_download, "<node> <address> <file> [timeout]", "Download from VMEM to FILE");
 
 static int vmem_client_slash_upload(struct slash *slash)
 {
+	int node;
+	int timeout = 2000;
+	uint32_t address;
+	char * file;
+	char * endptr;
+
+	if (slash->argc < 4)
+		return SLASH_EUSAGE;
+
+	file = slash->argv[1];
+
+	node = strtoul(slash->argv[2], &endptr, 10);
+	if (*endptr != '\0')
+		return SLASH_EUSAGE;
+
+	address = strtoul(slash->argv[3], &endptr, 16);
+	if (*endptr != '\0')
+		return SLASH_EUSAGE;
+
+	if (slash->argc > 4) {
+		timeout = strtoul(slash->argv[4], &endptr, 10);
+		if (*endptr != '\0')
+			return SLASH_EUSAGE;
+	}
+
+	printf("Upload from %s to node %u addr 0x%"PRIX32" with timeout %u\n", file, node, address, timeout);
+
 	vmem_upload(1, 1000, 0x10000000, NULL, 0);
 	return SLASH_SUCCESS;
 }
-slash_command(upload, vmem_client_slash_upload, "<node> <timeout> <file> <address>", "Upload from FILE to VMEM");
+slash_command(upload, vmem_client_slash_upload, "<file> <node> <address> [timeout]", "Upload from FILE to VMEM");
