@@ -9,9 +9,10 @@
 #include <csp/arch/csp_malloc.h>
 #include <csp/csp_endian.h>
 
-#include "vmem_client.h"
+#include <vmem/vmem_server.h>
+#include <vmem/vmem_client.h>
 
-void vmem_download(int node, int timeout, uint64_t address, char * dataout, size_t len)
+void vmem_download(int node, int timeout, uint64_t address, char * dataout, int len)
 {
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP);
@@ -28,7 +29,7 @@ void vmem_download(int node, int timeout, uint64_t address, char * dataout, size
 	csp_close(conn);
 }
 
-void vmem_upload(int node, int timeout, uint64_t address, char * datain, size_t len)
+void vmem_upload(int node, int timeout, uint64_t address, char * datain, int len)
 {
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP);

@@ -24,6 +24,14 @@ def configure(ctx):
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_ram.c')
         if ctx.env.SLASH_ENABLED:
             ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_slash.c')
+            
+    if ctx.options.vmem_client:
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_client.c')
+        if ctx.env.SLASH_ENABLED:
+            ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_client_slash.c')
+            
+    if ctx.options.vmem_server:
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_server.c')
     	
     if ctx.options.vmem_fram:
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_fram.c')

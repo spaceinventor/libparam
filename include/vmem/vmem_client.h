@@ -8,7 +8,9 @@
 #ifndef LIB_PARAM_INCLUDE_VMEM_VMEM_CLIENT_H_
 #define LIB_PARAM_INCLUDE_VMEM_VMEM_CLIENT_H_
 
-void vmem_download(int node, int timeout, uint64_t address, char * dataout, size_t len);
-void vmem_upload(int node, int timeout, uint64_t address, char * datain, size_t len);
+#include <stdint.h>
+
+void vmem_download(int node, int timeout, uint64_t address, char * dataout, int len);
+void vmem_upload(int node, int timeout, uint64_t address, char * datain, int len);
 
 #endif /* LIB_PARAM_INCLUDE_VMEM_VMEM_CLIENT_H_ */

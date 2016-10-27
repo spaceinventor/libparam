@@ -1,5 +1,5 @@
 /*
- * vmem_client_slash.h
+ * vmem_client_slash.c
  *
  *  Created on: Oct 27, 2016
  *      Author: johan

@@ -7,8 +7,8 @@
 
 #include <stdio.h>
 #include <csp/csp.h>
-#include <csp/arch/csp_thread.h>
 #include <csp/csp_endian.h>
+#include <csp/arch/csp_thread.h>
 
 #include <vmem/vmem_server.h>
 
@@ -32,7 +32,6 @@ csp_thread_return_t vmem_server_task(void *pvParameters)
 
 	/* Pointer to current connection and packet */
 	csp_conn_t *conn;
-	csp_packet_t *packet;
 
 	/* Process incoming connections */
 	while (1) {
