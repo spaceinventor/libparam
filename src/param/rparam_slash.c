@@ -83,7 +83,7 @@ static int rparam_slash_get(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(rparam, get, rparam_slash_get, "<node> <param>", "Get remote parameter");
+slash_command_sub(rparam, get, rparam_slash_get, "<node> <param> [type] [size]", "Get remote parameter");
 
 static int rparam_slash_set(struct slash *slash)
 {
@@ -138,7 +138,7 @@ static int rparam_slash_set(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(rparam, set, rparam_slash_set, "<node> <param> <type> <value>", "Set remote parameter");
+slash_command_sub(rparam, set, rparam_slash_set, "<node> <param> [type] [size] <value>", "Set remote parameter");
 
 static int rparam_slash_download(struct slash *slash)
 {
