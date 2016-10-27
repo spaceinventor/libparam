@@ -28,8 +28,8 @@ typedef struct {
 	}; \
 	vmem_t * vmem_##name_in = &vmem_##name_in##_instance;
 
-void vmem_fram_read(vmem_t * vmem, uint16_t addr, void * dataout, int len);
-void vmem_fram_write(vmem_t * vmem, uint16_t addr, void * datain, int len);
+void vmem_fram_read(vmem_t * vmem, uint32_t addr, void * dataout, int len);
+void vmem_fram_write(vmem_t * vmem, uint32_t addr, void * datain, int len);
 
 
 #endif /* SRC_PARAM_VMEM_FRAM_H_ */
