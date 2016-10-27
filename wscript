@@ -15,6 +15,7 @@ def options(ctx):
     gr.add_option('--vmem-client', action='store_true')
     
     gr.add_option('--rparam-client', action='store_true')
+    gr.add_option('--rparam-client-slash', action='store_true')
     gr.add_option('--rparam-server', action='store_true')
 
 def configure(ctx):
@@ -46,7 +47,7 @@ def configure(ctx):
     
     if ctx.env.SLASH_ENABLED:
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_slash.c')
-        if ctx.options.rparam_client:
+        if ctx.options.rparam_client_slash:
             ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_slash.c')
     
     if ctx.options.rparam_server:	
