@@ -105,15 +105,18 @@ static int rparam_slash_set(struct slash *slash)
 			return SLASH_EINVAL;
 		strarg = slash->argv[3];
 	} else {
+		if (slash->argc < 5)
+			return SLASH_EUSAGE;
 		strarg = slash->argv[4];
 		rparam = alloca(sizeof(rparam_t));
 		rparam->node = node;
 		rparam->idx = idx;
 		rparam->type = atoi(slash->argv[3]);;
 		if (rparam->type == PARAM_TYPE_DATA || rparam->type == PARAM_TYPE_STRING) {
-			if (slash->argc < 5)
+			if (slash->argc < 6)
 				return SLASH_EINVAL;
 			rparam->size = atoi(slash->argv[4]);
+			strarg = slash->argv[5];
 		}
 	}
 
