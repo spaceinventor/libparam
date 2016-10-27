@@ -7,6 +7,8 @@
 
 
 #include <stdio.h>
+#include <sys/stat.h>
+#include <csp/csp.h>
 #include <string.h>
 #include <stdlib.h>
 #include <inttypes.h>
@@ -49,7 +51,22 @@ static int vmem_client_slash_download(struct slash *slash)
 
 	printf("Download from %u addr 0x%"PRIX32" to %s with timeout %u\n", node, address, file, timeout);
 
-	vmem_download(node, timeout, address, length, NULL);
+	/* Allocate memory for reply */
+	char * data = malloc(length);
+
+	vmem_download(node, timeout, address, length, data);
+
+	/* Open file (truncate or create) */
+	FILE * fd = fopen(file, "w+");
+	if (fd == NULL)
+		return SLASH_EINVAL;
+
+	/* Write data */
+	int written = fwrite(data, 1, length, fd);
+	fclose(fd);
+
+	printf("Downloaded %u bytes\n", written);
+
 	return SLASH_SUCCESS;
 }
 slash_command(download, vmem_client_slash_download, "<node> <address> <length> <file> [timeout]", "Download from VMEM to FILE");
@@ -83,7 +100,26 @@ static int vmem_client_slash_upload(struct slash *slash)
 
 	printf("Upload from %s to node %u addr 0x%"PRIX32" with timeout %u\n", file, node, address, timeout);
 
-	vmem_upload(1, 1000, 0x10000000, NULL, 0);
+	/* Open file */
+	FILE * fd = fopen(file, "r");
+	if (fd == NULL)
+		return SLASH_EINVAL;
+
+	/* Read size */
+	struct stat file_stat;
+	fstat(fd->_fileno, &file_stat);
+
+	/* Copy to memory */
+	char * data = malloc(file_stat.st_size);
+	int size = fread(data, 1, file_stat.st_size, fd);
+	fclose(fd);
+
+	csp_hex_dump("file", data, size);
+
+	vmem_upload(node, timeout, address, data, size);
+
+
+
 	return SLASH_SUCCESS;
 }
 slash_command(upload, vmem_client_slash_upload, "<file> <node> <address> [timeout]", "Upload from FILE to VMEM");

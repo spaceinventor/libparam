@@ -13,12 +13,6 @@
 #include <vmem/vmem.h>
 #include <vmem/vmem_server.h>
 
-#define VMEM_SERVER_TIMEOUT 30000
-#define VMEM_SERVER_MTU 200
-
-#define MAX(a,b) ((a) > (b) ? a : b)
-#define MIN(a,b) ((a) < (b) ? a : b)
-
 void vmem_server_handler(csp_conn_t * conn)
 {
 	/* Read request */
@@ -43,9 +37,9 @@ void vmem_server_handler(csp_conn_t * conn)
 
 			/* Prepare packet */
 			csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
-			packet->length = MIN(VMEM_SERVER_MTU, length - count);
+			packet->length = VMEM_MIN(VMEM_SERVER_MTU, length - count);
 
-			/* Copy data */
+			/* Get data */
 			vmem_memcpy(packet->data, (void *) ((intptr_t) address + count), packet->length);
 
 			/* Increment */
@@ -62,7 +56,19 @@ void vmem_server_handler(csp_conn_t * conn)
 	 */
 	} else if (request->type == VMEM_SERVER_UPLOAD) {
 
-		printf("Upload\n");
+		int count = 0;
+		while((packet = csp_read(conn, VMEM_SERVER_TIMEOUT)) != NULL) {
+
+			//csp_hex_dump("Upload", packet->data, packet->length);
+
+			/* Put data */
+			vmem_memcpy((void *) ((intptr_t) address + count), packet->data, packet->length);
+
+			/* Increment */
+			count += packet->length;
+
+			csp_buffer_free(packet);
+		}
 
 	}
 

@@ -11,7 +11,12 @@
 #include <csp/csp.h>
 #include <csp/arch/csp_thread.h>
 
+#define VMEM_SERVER_TIMEOUT 30000
+#define VMEM_SERVER_MTU 200
 #define VMEM_PORT_SERVER 13
+
+#define VMEM_MAX(a,b) ((a) > (b) ? a : b)
+#define VMEM_MIN(a,b) ((a) < (b) ? a : b)
 
 typedef enum {
 	VMEM_SERVER_UPLOAD,
