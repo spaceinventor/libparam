@@ -12,8 +12,8 @@
 
 void vmem_fram_secure_init(vmem_t * vmem);
 void vmem_fram_secure_backup(vmem_t * vmem);
-void vmem_fram_secure_read(vmem_t * vmem, uint16_t addr, void * dataout, int len);
-void vmem_fram_secure_write(vmem_t * vmem, uint16_t addr, void * datain, int len);
+void vmem_fram_secure_read(vmem_t * vmem, uint32_t addr, void * dataout, int len);
+void vmem_fram_secure_write(vmem_t * vmem, uint32_t addr, void * datain, int len);
 void vmem_fram_secure_restore(vmem_t * vmem);
 
 typedef const struct {

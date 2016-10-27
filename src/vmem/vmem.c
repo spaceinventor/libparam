@@ -33,7 +33,7 @@ void * vmem_memcpy(void * to, void * from, size_t size) {
 
 		/* Write to VMEM */
 		if ((to >= vmem->vaddr) && (to + size <= vmem->vaddr + vmem->size)) {
-			//printf("Write to vmem %s\n", vmem->name);
+			//printf("Write to vmem %s, to %x from %x\n", vmem->name, to, from);
 			vmem->write(vmem, to - vmem->vaddr, from, size);
 			return NULL;
 		}

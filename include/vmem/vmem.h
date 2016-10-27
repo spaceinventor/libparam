@@ -15,8 +15,8 @@
 #include <param/param.h>
 
 typedef const struct vmem_s {
-	void (*read)(const struct vmem_s * vmem, uint16_t addr, void * dataout, int len);
-	void (*write)(const struct vmem_s * vmem, uint16_t addr, void * datain, int len);
+	void (*read)(const struct vmem_s * vmem, uint32_t addr, void * dataout, int len);
+	void (*write)(const struct vmem_s * vmem, uint32_t addr, void * datain, int len);
 	void * vaddr;
 	int size;
 	const char *name;
