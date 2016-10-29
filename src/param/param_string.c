@@ -103,36 +103,47 @@ int param_str_to_value(param_type_e type, char * in, void * out)
 {
 	switch(type) {
 
-#define PARAM_SCANF(casename, strtype, strcast, name, outcast) \
+#define PARAM_SCANF(casename, strtype, outcast) \
 	case casename: { \
-		strcast obj; \
+		outcast obj; \
 		sscanf(in, strtype, &obj); \
 		*(outcast *) out = (outcast) obj; \
 		return sizeof(outcast); \
 	}
 
-	PARAM_SCANF(PARAM_TYPE_UINT8, "%u", unsigned int, uint8, uint8_t)
-	PARAM_SCANF(PARAM_TYPE_UINT16, "%u", unsigned int, uint16, uint16_t)
-	PARAM_SCANF(PARAM_TYPE_UINT32, "%u", unsigned int, uint32, uint32_t)
-	PARAM_SCANF(PARAM_TYPE_UINT64, "%lu", unsigned long, uint64, uint64_t)
-	PARAM_SCANF(PARAM_TYPE_INT8, "%d", unsigned int, int8, int8_t)
-	PARAM_SCANF(PARAM_TYPE_INT16, "%d", unsigned int, int16, int16_t)
-	PARAM_SCANF(PARAM_TYPE_INT32, "%d", unsigned int, int32, int32_t)
-	PARAM_SCANF(PARAM_TYPE_INT64, "%ld", unsigned long, int64, int64_t)
-	PARAM_SCANF(PARAM_TYPE_XINT8, "0x%X", unsigned int, uint8, uint8_t)
-	PARAM_SCANF(PARAM_TYPE_XINT16, "0x%X", unsigned int, uint16, uint16_t)
-	PARAM_SCANF(PARAM_TYPE_XINT32, "0x%X", unsigned int, uint32, uint32_t)
-	PARAM_SCANF(PARAM_TYPE_XINT64, "0x%lX", unsigned long, uint64, uint64_t)
-	PARAM_SCANF(PARAM_TYPE_FLOAT, "%f", float, float, float)
-	PARAM_SCANF(PARAM_TYPE_DOUBLE, "%lf", double, double, double)
+	PARAM_SCANF(PARAM_TYPE_UINT8, "%"SCNu8, uint8_t)
+	PARAM_SCANF(PARAM_TYPE_UINT16, "%"SCNu16, uint16_t)
+	PARAM_SCANF(PARAM_TYPE_UINT32, "%"SCNu32, uint32_t)
+	PARAM_SCANF(PARAM_TYPE_UINT64, "%"SCNu64, uint64_t)
+	PARAM_SCANF(PARAM_TYPE_INT8, "%"SCNd8, int8_t)
+	PARAM_SCANF(PARAM_TYPE_INT16, "%"SCNd16, int16_t)
+	PARAM_SCANF(PARAM_TYPE_INT32, "%"SCNd32, int32_t)
+	PARAM_SCANF(PARAM_TYPE_INT64, "%"SCNd64, int64_t)
+	PARAM_SCANF(PARAM_TYPE_XINT8, "%"SCNx8, uint8_t)
+	PARAM_SCANF(PARAM_TYPE_XINT16, "%"SCNx16, uint16_t)
+	PARAM_SCANF(PARAM_TYPE_XINT32, "%"SCNx32, uint32_t)
+	PARAM_SCANF(PARAM_TYPE_XINT64, "%"SCNc64, uint64_t)
+	PARAM_SCANF(PARAM_TYPE_FLOAT, "%"SCNflt, float)
+	PARAM_SCANF(PARAM_TYPE_DOUBLE, "%"SCNdbl, double)
 
 	case PARAM_TYPE_STRING:
 		strcpy(out, in);
 		return strlen(in);
+			
+	case PARAM_TYPE_DATA:
+		int len = strlen(in) / 2;
+		unsigned int nibble(char c) {
+			if (c >= '0' && c <= '9') return      c - '0';
+			if (c >= 'A' && c <= 'F') return 10 + c - 'A';
+			if (c >= 'a' && c <= 'f') return 10 + c - 'a';
+			return -1;
+		}
 
-	default:
-		printf("Unsupported type\r\n");
-		break;
+		for (int i = 0; i < len; i=i+2)
+			out[i] = 16 * nibble(in[i]) + nibble(in[i+1]);
+			
+		return len;
+
 #undef PARAM_SCANF
 	}
 
