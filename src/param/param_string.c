@@ -108,15 +108,15 @@ int param_str_to_value(param_type_e type, char * in, void * out)
 		*(outcast *) out = (outcast) obj; \
 		return sizeof(outcast); \
 	}
-	PARAM_SCANF(PARAM_TYPE_UINT8, "%"SCNu8, uint8_t)
+	PARAM_SCANF(PARAM_TYPE_UINT8, "%hhu", uint8_t)
 	PARAM_SCANF(PARAM_TYPE_UINT16, "%"SCNu16, uint16_t)
 	PARAM_SCANF(PARAM_TYPE_UINT32, "%"SCNu32, uint32_t)
 	PARAM_SCANF(PARAM_TYPE_UINT64, "%"SCNu64, uint64_t)
-	PARAM_SCANF(PARAM_TYPE_INT8, "%"SCNd8, int8_t)
+	PARAM_SCANF(PARAM_TYPE_INT8, "%hhd", int8_t)
 	PARAM_SCANF(PARAM_TYPE_INT16, "%"SCNd16, int16_t)
 	PARAM_SCANF(PARAM_TYPE_INT32, "%"SCNd32, int32_t)
 	PARAM_SCANF(PARAM_TYPE_INT64, "%"SCNd64, int64_t)
-	PARAM_SCANF(PARAM_TYPE_XINT8, "%"SCNx8, uint8_t)
+	PARAM_SCANF(PARAM_TYPE_XINT8, "%hhx", uint8_t)
 	PARAM_SCANF(PARAM_TYPE_XINT16, "%"SCNx16, uint16_t)
 	PARAM_SCANF(PARAM_TYPE_XINT32, "%"SCNx32, uint32_t)
 	PARAM_SCANF(PARAM_TYPE_XINT64, "%"SCNx64, uint64_t)
