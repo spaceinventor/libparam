@@ -37,11 +37,9 @@ void param_value_str(param_t *param, char * out, int len)
 	case PARAM_TYPE_DATA: {
 		char data[param->size];
 		param_get_data(param, data, param->size);
-		int written = snprintf(out, len, "0x");
-		len -= written;
-		out += written;
+		int written;
 		for (int i = 0; i < param->size; i++) {
-			written = snprintf(out, len, "%02x", data[i]);
+			written = snprintf(out, len, "%02hhx", (char) data[i]);
 			len -= written;
 			out += written;
 		}
@@ -110,7 +108,6 @@ int param_str_to_value(param_type_e type, char * in, void * out)
 		*(outcast *) out = (outcast) obj; \
 		return sizeof(outcast); \
 	}
-
 	PARAM_SCANF(PARAM_TYPE_UINT8, "%"SCNu8, uint8_t)
 	PARAM_SCANF(PARAM_TYPE_UINT16, "%"SCNu16, uint16_t)
 	PARAM_SCANF(PARAM_TYPE_UINT32, "%"SCNu32, uint32_t)
@@ -122,16 +119,18 @@ int param_str_to_value(param_type_e type, char * in, void * out)
 	PARAM_SCANF(PARAM_TYPE_XINT8, "%"SCNx8, uint8_t)
 	PARAM_SCANF(PARAM_TYPE_XINT16, "%"SCNx16, uint16_t)
 	PARAM_SCANF(PARAM_TYPE_XINT32, "%"SCNx32, uint32_t)
-	PARAM_SCANF(PARAM_TYPE_XINT64, "%"SCNc64, uint64_t)
-	PARAM_SCANF(PARAM_TYPE_FLOAT, "%"SCNflt, float)
-	PARAM_SCANF(PARAM_TYPE_DOUBLE, "%"SCNdbl, double)
+	PARAM_SCANF(PARAM_TYPE_XINT64, "%"SCNx64, uint64_t)
+	PARAM_SCANF(PARAM_TYPE_FLOAT, "%f", float)
+	PARAM_SCANF(PARAM_TYPE_DOUBLE, "%lf", double)
+#undef PARAM_SCANF
 
 	case PARAM_TYPE_STRING:
 		strcpy(out, in);
 		return strlen(in);
 			
-	case PARAM_TYPE_DATA:
+	case PARAM_TYPE_DATA: {
 		int len = strlen(in) / 2;
+
 		unsigned int nibble(char c) {
 			if (c >= '0' && c <= '9') return      c - '0';
 			if (c >= 'A' && c <= 'F') return 10 + c - 'A';
@@ -139,12 +138,11 @@ int param_str_to_value(param_type_e type, char * in, void * out)
 			return -1;
 		}
 
-		for (int i = 0; i < len; i=i+2)
-			out[i] = 16 * nibble(in[i]) + nibble(in[i+1]);
+		for (int i = 0; i < len; i++)
+			((char *) out)[i] = (nibble(in[i*2]) << 4) + nibble(in[i*2+1]);
 			
 		return len;
-
-#undef PARAM_SCANF
+	}
 	}
 
 	return 0;

@@ -200,8 +200,8 @@ void param_set(param_t * param, void * value) {
 	case PARAM_TYPE_STRING:
 		param_set_data(param, value, strlen(value) + 1);
 		break;
-	default:
-		printf("Unsupported type\n");
+	case PARAM_TYPE_DATA:
+		param_set_data(param, value, param->size);
 		break;
 
 	}
