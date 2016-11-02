@@ -37,7 +37,8 @@ void param_print(param_t * param)
 	printf(" %s = %s", param->name, value_str);
 
 	/* Unit */
-	printf(" %s", param->unit);
+	if (param->unit != NULL)
+		printf(" %s", param->unit);
 
 	/* Type */
 	char type_str[20] = "";
