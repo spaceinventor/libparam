@@ -83,7 +83,7 @@ void param_list_array(param_t * param, int count)
 		if (param->physaddr) \
 			return *(_type *)(param->physaddr); \
 		\
-		_type data; \
+		_type data = 0; \
 		param->vmem->read(param->vmem, param->addr, &data, sizeof(data)); \
 		if (param->vmem->big_endian == 1) { \
 			data = _swapfct(data); \
