@@ -22,6 +22,19 @@ static int slash_vmem_backup(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command(backup, slash_vmem_backup, "<vmem idx>", "Backup FRAM vmem");
+slash_command(backup, slash_vmem_backup, "<vmem idx>", NULL);
+
+static int slash_vmem_restore(struct slash *slash)
+{
+	if (slash->argc != 2)
+		return SLASH_EUSAGE;
+
+	int idx = atoi(slash->argv[1]);
+	vmem_t * vmem = vmem_index_to_ptr(idx);
+	vmem_fram_secure_restore(vmem);
+
+	return SLASH_SUCCESS;
+}
+slash_command(restore, slash_vmem_restore, "<vmem idx>", NULL);
 
 
