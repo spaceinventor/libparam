@@ -41,14 +41,13 @@ static void rparam_list_handler(csp_conn_t * conn)
 {
 	param_t * param;
 	param_foreach(param) {
-		printf("Send param %s\n", param->name);
 		csp_packet_t * packet = csp_buffer_get(256);
 		rparam_transfer_t * rparam = (void *) packet->data;
 		rparam->idx = csp_hton16(param_ptr_to_index(param));
 		rparam->type = param->type;
 		rparam->size = param->size;
-		strncpy(rparam->name, param->name, 12);
-		packet->length = sizeof(rparam_transfer_t);
+		strncpy(rparam->name, param->name, 25);
+		packet->length = offsetof(rparam_transfer_t, name) + min(strlen(param->name), 25);
 		if (!csp_send(conn, packet, 1000)) {
 			csp_buffer_free(packet);
 			return;

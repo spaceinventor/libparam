@@ -102,6 +102,7 @@ void rparam_list_download(int node, int timeout) {
 	if (conn == NULL)
 		return;
 
+	int count = 0;
 	csp_packet_t * packet;
 	while((packet = csp_read(conn, timeout)) != NULL) {
 
@@ -115,19 +116,22 @@ void rparam_list_download(int node, int timeout) {
 		rparam->idx = csp_ntoh16(new_param->idx);
 		rparam->type = new_param->type;
 		rparam->size = new_param->size;
-		strncpy(rparam->name, new_param->name, 13);
-		rparam->name[13] = '\0';
 
-		printf("Got param: %s\n", new_param->name);
+		int strlen = packet->length - offsetof(rparam_transfer_t, name);
+		strncpy(rparam->name, new_param->name, strlen);
+		rparam->name[strlen] = '\0';
+
+		printf("Got param: %s\n", rparam->name);
 
 		/* Add to list */
 		if (rparam_list_add(rparam) != 0)
 			free(rparam);
 
 		csp_buffer_free(packet);
+		count++;
 	}
 
-	printf("No more data\n");
+	printf("Received %u parameters\n", count);
 	csp_close(conn);
 }
 

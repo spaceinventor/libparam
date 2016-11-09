@@ -22,7 +22,7 @@ typedef struct rparam_t {
 	uint16_t timeout;
 	uint16_t idx;
 	param_type_e type;
-	char name[14]; // One extra to allow for '\0'
+	char name[26]; // One extra to allow for '\0'
 	uint8_t size;
 	char unit[5];
 	uint64_t min;
@@ -35,7 +35,7 @@ typedef struct {
 	uint16_t idx;
 	uint8_t type;
 	uint8_t size;
-	char name[13];
+	char name[];
 } __attribute__((packed)) rparam_transfer_t;
 
 int rparam_get(rparam_t * rparam, void * out);
