@@ -40,6 +40,18 @@ static int rparam_deserialize_packet(csp_packet_t * packet, int verbose) {
 			return -1;
 		}
 
+		if (rparam->value == NULL) {
+
+			/* Allocate storage for parameter data */
+			int valuesize = param_typesize(rparam->type);
+			if (valuesize == -1) {
+				valuesize = rparam->size;
+			}
+
+			rparam->value = calloc(valuesize, 1);
+
+		}
+
 		i += param_deserialize_to_var(rparam->type, rparam->size, &packet->data[i], rparam->value);
 
 		csp_timestamp_t now;
@@ -116,32 +128,49 @@ RPARAM_GET(int64_t, int64)
 RPARAM_GET(float, float)
 RPARAM_GET(double, double)
 
-int rparam_set(rparam_t * rparam, void * in)
+int rparam_set(rparam_t * rparams[], int count)
 {
 	csp_packet_t * packet = csp_buffer_get(256);
 	if (packet == NULL)
 		return -1;
 
 	packet->length = 0;
+	for (int i = 0; i < count; i++) {
 
-	/* Parameter id */
-	uint16_t idx = csp_hton16(rparam->idx);
-	memcpy(packet->data, &idx, sizeof(uint16_t));
-	packet->length += sizeof(uint16_t);
+		if ((rparams[i]->setvalue == NULL) || (rparams[i]->setvalue_pending == 0))
+			continue;
 
-	packet->length += param_serialize_from_var(rparam->type, rparam->size, in, (char *) packet->data + packet->length);
+		/* Parameter id */
+		uint16_t idx = csp_hton16(rparams[i]->idx);
+		memcpy(packet->data, &idx, sizeof(uint16_t));
+		packet->length += sizeof(uint16_t);
 
-	//csp_hex_dump("packet", packet->data, packet->length);
+		packet->length += param_serialize_from_var(rparams[i]->type, rparams[i]->size, rparams[i]->setvalue, (char *) packet->data + packet->length);
 
-	if (csp_sendto(CSP_PRIO_HIGH, rparam->node, PARAM_PORT_SET, 0, CSP_SO_NONE, packet, 0) != CSP_ERR_NONE)
+	}
+
+	csp_hex_dump("request", packet->data, packet->length);
+
+	if (csp_sendto(CSP_PRIO_HIGH, rparams[0]->node, PARAM_PORT_SET, 0, CSP_SO_NONE, packet, 0) != CSP_ERR_NONE) {
 		csp_buffer_free(packet);
+		return -1;
+	}
+
+	for (int i = 0; i < count; i++) {
+		if ((rparams[i]->setvalue == NULL) || (rparams[i]->setvalue_pending == 0))
+			continue;
+		rparams[i]->setvalue_pending = 0;
+	}
+
 
 	return 0;
 }
 
 #define RPARAM_SET(_type, _name) \
 	void rparam_set_##_name(rparam_t * rparam, _type value) { \
-		rparam_set(rparam, &value); \
+		*(_type *) rparam->setvalue = value; \
+		rparam->setvalue_pending = 1; \
+		rparam_set(&rparam, 1); \
 	} \
 
 RPARAM_SET(uint8_t, uint8)
@@ -176,6 +205,12 @@ void rparam_print(rparam_t * rparam) {
 
 	if (rparam->size != 255)
 		printf("[%u]", rparam->size);
+
+	if ((rparam->setvalue != NULL) && (rparam->setvalue_pending)) {
+		printf(" Pending:");
+		param_var_str(rparam->type, rparam->size, rparam->setvalue, tmpstr, 20);
+		printf(" => %s", tmpstr);
+	}
 
 	printf("\n");
 

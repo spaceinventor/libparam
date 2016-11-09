@@ -27,8 +27,24 @@ static rparam_t * rparams[100];
 static int rparams_count = 0;
 static int rparam_autosend = 1;
 
+static void rparam_print_queue(void) {
+	printf("Queue\n");
+	for(int i = 0; i < rparams_count; i++)
+		rparam_print(rparams[i]);
+}
+
 static int rparam_slash_get(struct slash *slash)
 {
+	if ((slash->argc <= 1) && (rparams_count > 0)) {
+
+		if (rparam_get(rparams, rparams_count) < 0) {
+			printf("No response\n");
+			return SLASH_EINVAL;
+		}
+
+		return SLASH_SUCCESS;
+	}
+
 	if (slash->argc < 3)
 		return SLASH_EUSAGE;
 
@@ -57,14 +73,10 @@ static int rparam_slash_get(struct slash *slash)
 			printf("Added %s to queue\n", rparam->name);
 	}
 
-	if (rparams_count > 1) {
-		printf("Queue\n");
-		for(int i = 0; i < rparams_count; i++)
-			printf("  %s\n", rparams[i]->name);
-	}
-
-	if (rparam_autosend == 0)
+	if (rparam_autosend == 0) {
+		rparam_print_queue();
 		return SLASH_SUCCESS;
+	}
 
 	if (rparam_get(rparams, rparams_count) < 0) {
 		printf("No response\n");
@@ -78,61 +90,75 @@ slash_command_sub(rparam, get, rparam_slash_get, "<node> <param> [type] [size]",
 
 static int rparam_slash_set(struct slash *slash)
 {
+	if ((slash->argc <= 1) && (rparams_count > 0)) {
+
+		if (rparam_set(rparams, rparams_count) < 0) {
+			printf("No response\n");
+			return SLASH_EINVAL;
+		}
+
+		return SLASH_SUCCESS;
+	}
+
 	if (slash->argc < 3)
 		return SLASH_EUSAGE;
 
-	rparam_t * rparam = NULL;
 	unsigned int node = atoi(slash->argv[1]);
-	unsigned int idx;
-	char * strarg;
+	rparam_t * rparam = rparam_list_find_name(node, slash->argv[2]);
 
-	char * endptr;
-	idx = strtoul(slash->argv[2], &endptr, 10);
-
-	if (*endptr != '\0') {
-		/* String */
-		rparam = rparam_list_find_name(node, slash->argv[2]);
-		if (rparam == NULL)
-			return SLASH_EINVAL;
-		strarg = slash->argv[3];
-	} else {
-		if (slash->argc < 5)
-			return SLASH_EUSAGE;
-		strarg = slash->argv[4];
-		rparam = alloca(sizeof(rparam_t));
-		rparam->node = node;
-		rparam->idx = idx;
-		rparam->type = atoi(slash->argv[3]);
-		if (rparam->type == PARAM_TYPE_DATA || rparam->type == PARAM_TYPE_STRING) {
-			if (slash->argc < 6)
-				return SLASH_EINVAL;
-			rparam->size = atoi(slash->argv[4]);
-			strarg = slash->argv[5];
-		}
+	if (rparam == NULL) {
+		slash_printf(slash, "Could not find parameter\n");
+		return SLASH_EINVAL;
 	}
 
-	printf("Node %u idx %u type %u size %u\r\n", rparam->node, rparam->idx, rparam->type, rparam->size);
-
-	csp_packet_t * packet = csp_buffer_get(256);
-	if (packet == NULL)
+	if ((rparams_count > 0) && (rparams[0]->node != rparam->node)) {
+		printf("You can only queue parameters from the same node\n");
 		return SLASH_EINVAL;
+	}
 
-	packet->length = 0;
+	if (rparam->setvalue == NULL) {
 
-	int maxlength = 256 - packet->length;
-	if (rparam->size < maxlength)
-		maxlength = rparam->size;
+		/* Allocate storage for parameter data */
+		int valuesize = param_typesize(rparam->type);
+		if (valuesize == -1) {
+			valuesize = rparam->size;
+		}
 
-	packet->length += param_serialize_single_fromstr(rparam->idx, rparam->type, strarg, (char *) packet->data, maxlength);
+		rparam->setvalue = calloc(valuesize, 1);
 
-	csp_hex_dump("packet", packet->data, packet->length);
+	}
 
-	if (csp_sendto(CSP_PRIO_HIGH, node, PARAM_PORT_SET, 0, CSP_SO_NONE, packet, 0) != CSP_ERR_NONE)
-		csp_buffer_free(packet);
+	int serialized = param_serialize_from_str(rparam->type, slash->argv[3], rparam->setvalue, rparam->size);
+	printf("Serialized %u bytes\n", serialized);
+	rparam->setvalue_pending = 1;
 
+	int already_in_queue = 0;
+	for(int i = 0; i < rparams_count; i++) {
+		if (rparams[i]->idx == rparam->idx)
+			already_in_queue = 1;
+	}
+
+	if (!already_in_queue) {
+		rparams[rparams_count++] = rparam;
+		if (rparam_autosend == 0)
+			printf("Added %s to queue\n", rparam->name);
+	}
+
+	if (rparam_autosend == 0) {
+		rparam_print_queue();
+		return SLASH_SUCCESS;
+	}
+
+	if (rparam_set(rparams, rparams_count) < 0) {
+		printf("No response\n");
+		return SLASH_EINVAL;
+	}
+
+	rparams_count = 0;
 	return SLASH_SUCCESS;
+
 }
-slash_command_sub(rparam, set, rparam_slash_set, "<node> <param> [type] [size] <value>", NULL);
+slash_command_sub(rparam, set, rparam_slash_set, "<node> <param> <value>", NULL);
 
 static int rparam_slash_download(struct slash *slash)
 {
@@ -152,23 +178,13 @@ slash_command_sub(rparam, download, rparam_slash_download, "<node> [timeout]", N
 
 static int rparam_slash_list(struct slash *slash)
 {
-	rparam_list_print();
+	int node = -1;
+	if (slash->argc >= 2)
+		node = atoi(slash->argv[1]);
+	rparam_list_print(node);
 	return SLASH_SUCCESS;
 }
 slash_command_sub(rparam, list, rparam_slash_list, "", "list remote parameters");
-
-static int rparam_slash_send(struct slash *slash)
-{
-	if (rparams_count == 0)
-		return SLASH_EINVAL;
-
-	if (rparam_get(rparams, rparams_count) < 0) {
-		printf("No response\n");
-		return SLASH_EINVAL;
-	}
-	return SLASH_SUCCESS;
-}
-slash_command_sub(rparam, send, rparam_slash_send, "", NULL);
 
 static int rparam_slash_clear(struct slash *slash)
 {
@@ -186,4 +202,10 @@ static int rparam_slash_autosend(struct slash *slash)
 }
 slash_command_sub(rparam, autosend, rparam_slash_autosend, "<autosend>", NULL);
 
+static int rparam_slash_queue(struct slash *slash)
+{
+	rparam_print_queue();
+	return SLASH_SUCCESS;
+}
+slash_command_sub(rparam, queue, rparam_slash_queue, "<autosend>", NULL);
 

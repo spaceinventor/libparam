@@ -31,6 +31,8 @@ typedef struct rparam_t {
 	struct rparam_t * next;
 	void * value;
 	uint32_t value_updated; // Timestamp
+	void * setvalue;
+	uint8_t setvalue_pending; // 0 = OK, 1 = pending;
 } __attribute__((packed)) rparam_t;
 
 typedef struct {
@@ -54,8 +56,8 @@ typedef struct {
 		.value = &_nodename##_##_name##_value, \
 	}; \
 
-int rparam_get(rparam_t * rparam[], int count);
-int rparam_set(rparam_t * rparam, void * in);
+int rparam_get(rparam_t * rparams[], int count);
+int rparam_set(rparam_t * rparams[], int count);
 
 #define RPARAM_GET(_type, _name) _type rparam_get_##_name(rparam_t * rparam);
 RPARAM_GET(uint8_t, uint8)

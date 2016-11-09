@@ -74,10 +74,14 @@ next:
 	return NULL;
 }
 
-void rparam_list_print(void) {
+void rparam_list_print(int node_filter) {
 
 	rparam_t * rparam = list_begin;
 	while(rparam != NULL) {
+		if ((node_filter >= 0) && (rparam->node != node_filter)) {
+			rparam = rparam->next;
+			continue;
+		}
 		rparam_print(rparam);
 		rparam = rparam->next;
 	}
@@ -109,14 +113,6 @@ void rparam_list_download(int node, int timeout) {
 		int strlen = packet->length - offsetof(rparam_transfer_t, name);
 		strncpy(rparam->name, new_param->name, strlen);
 		rparam->name[strlen] = '\0';
-
-		/* Allocate storage for parameter data */
-		int valuesize = param_typesize(rparam->type);
-		if (valuesize == -1) {
-			valuesize = rparam->size;
-		}
-		rparam->value = calloc(valuesize, 1);
-		rparam->value_updated = 0;
 
 		printf("Got param: %s\n", rparam->name);
 
