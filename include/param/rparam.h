@@ -29,6 +29,8 @@ typedef struct rparam_t {
 	uint64_t max;
 	param_readonly_type_e readonly;
 	struct rparam_t * next;
+	void * value;
+	uint32_t value_updated; // Timestamp
 } __attribute__((packed)) rparam_t;
 
 typedef struct {
@@ -38,7 +40,21 @@ typedef struct {
 	char name[];
 } __attribute__((packed)) rparam_transfer_t;
 
-int rparam_get(rparam_t * rparam, void * out);
+#define RPARAM(_nodename, _node, _timeout, _idx, _type, _name, _size, _unit, _readonly, _valuesize) \
+	char _nodename##_##_name##_value[_valuesize]; \
+	struct rparam_t _nodename##_##_name = { \
+		.node = _node, \
+		.timeout = _timeout, \
+		.idx = _idx, \
+		.type = _type, \
+		.name = #_name, \
+		.size = _size, \
+		.unit = _unit, \
+		.readonly = _readonly, \
+		.value = &_nodename##_##_name##_value, \
+	}; \
+
+int rparam_get(rparam_t * rparam[], int count);
 int rparam_set(rparam_t * rparam, void * in);
 
 #define RPARAM_GET(_type, _name) _type rparam_get_##_name(rparam_t * rparam);
@@ -66,5 +82,7 @@ RPARAM_SET(int64_t, int64)
 RPARAM_SET(float, float)
 RPARAM_SET(double, double)
 #undef RPARAM_SET
+
+void rparam_print(rparam_t * rparam);
 
 #endif /* LIB_PARAM_INCLUDE_PARAM_RPARAM_H_ */

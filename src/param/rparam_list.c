@@ -10,8 +10,10 @@
 #include <csp/csp_endian.h>
 #include <param/param.h>
 #include <param/rparam.h>
+#include <param/rparam_list.h>
+
 #include "param_string.h"
-#include "rparam_list.h"
+
 
 rparam_t * list_begin = NULL;
 rparam_t * list_end = NULL;
@@ -72,24 +74,11 @@ next:
 	return NULL;
 }
 
-void rparam_list_foreach(void) {
+void rparam_list_print(void) {
 
 	rparam_t * rparam = list_begin;
 	while(rparam != NULL) {
-
-		printf(" %u ", rparam->node);
-
-		printf(" %s", rparam->name);
-
-		/* Type */
-		char type_str[20] = "";
-		param_type_str(rparam->type, type_str, 20);
-		printf(" %s", type_str);
-
-		printf(" (%u)", rparam->size);
-
-		printf("\n");
-
+		rparam_print(rparam);
 		rparam = rparam->next;
 	}
 
@@ -110,7 +99,7 @@ void rparam_list_download(int node, int timeout) {
 		rparam_transfer_t * new_param = (void *) packet->data;
 
 		/* Allocate new rparam type */
-		rparam_t * rparam = malloc(sizeof(rparam_t));
+		rparam_t * rparam = calloc(sizeof(rparam_t), 1);
 		rparam->node = node;
 		rparam->timeout = timeout;
 		rparam->idx = csp_ntoh16(new_param->idx);
@@ -120,6 +109,14 @@ void rparam_list_download(int node, int timeout) {
 		int strlen = packet->length - offsetof(rparam_transfer_t, name);
 		strncpy(rparam->name, new_param->name, strlen);
 		rparam->name[strlen] = '\0';
+
+		/* Allocate storage for parameter data */
+		int valuesize = param_typesize(rparam->type);
+		if (valuesize == -1) {
+			valuesize = rparam->size;
+		}
+		rparam->value = calloc(valuesize, 1);
+		rparam->value_updated = 0;
 
 		printf("Got param: %s\n", rparam->name);
 
