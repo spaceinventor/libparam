@@ -75,12 +75,20 @@ int rparam_get(rparam_t * rparams[], int count)
 
 	uint16_t * request = packet->data16;
 
-	for (int i = 0; i < count; i++) {
+	int response_size = 0;
+
+	int i;
+	for (i = 0; i < count; i++) {
+		if (response_size + sizeof(uint16_t) + rparam_size(rparams[i]) > PARAM_SERVER_MTU) {
+			printf("Request cropped: > MTU\n");
+			break;
+		}
+		response_size += sizeof(uint16_t) + rparam_size(rparams[i]);
 		request[i] = csp_hton16(rparams[i]->idx);
 	}
-	packet->length = sizeof(uint16_t) * count;
+	packet->length = sizeof(uint16_t) * i;
 
-	//csp_hex_dump("request", packet->data, packet->length);
+	csp_hex_dump("request", packet->data, packet->length);
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, rparams[0]->node, PARAM_PORT_GET, 0, CSP_SO_NONE);
 	if (conn == NULL) {
@@ -100,7 +108,7 @@ int rparam_get(rparam_t * rparams[], int count)
 		return -1;
 	}
 
-	//csp_hex_dump("Response", packet->data, packet->length);
+	csp_hex_dump("Response", packet->data, packet->length);
 
 	rparam_deserialize_packet(packet, 1);
 
@@ -139,6 +147,11 @@ int rparam_set(rparam_t * rparams[], int count)
 
 		if ((rparams[i]->setvalue == NULL) || (rparams[i]->setvalue_pending != 1))
 			continue;
+
+		if (packet->length + sizeof(uint16_t) + rparam_size(rparams[i]) > PARAM_SERVER_MTU) {
+			printf("Request cropped: > MTU\n");
+			break;
+		}
 
 		/* Parameter id */
 		uint16_t idx = csp_hton16(rparams[i]->idx);
