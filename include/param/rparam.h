@@ -32,7 +32,7 @@ typedef struct rparam_t {
 	void * value;
 	uint32_t value_updated; // Timestamp
 	void * setvalue;
-	uint8_t setvalue_pending; // 0 = OK, 1 = pending;
+	uint8_t setvalue_pending; // 0 = OK, 1 = pending, 2 = acked
 } __attribute__((packed)) rparam_t;
 
 typedef struct {

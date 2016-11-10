@@ -57,6 +57,8 @@ static int rparam_deserialize_packet(csp_packet_t * packet, int verbose) {
 		csp_timestamp_t now;
 		clock_get_time(&now);
 		rparam->value_updated = now.tv_sec;
+		if (rparam->setvalue_pending == 2)
+			rparam->setvalue_pending = 0;
 
 		if (verbose)
 			rparam_print(rparam);
@@ -137,7 +139,7 @@ int rparam_set(rparam_t * rparams[], int count)
 	packet->length = 0;
 	for (int i = 0; i < count; i++) {
 
-		if ((rparams[i]->setvalue == NULL) || (rparams[i]->setvalue_pending == 0))
+		if ((rparams[i]->setvalue == NULL) || (rparams[i]->setvalue_pending != 1))
 			continue;
 
 		/* Parameter id */
@@ -149,19 +151,45 @@ int rparam_set(rparam_t * rparams[], int count)
 
 	}
 
-	csp_hex_dump("request", packet->data, packet->length);
+	//csp_hex_dump("request", packet->data, packet->length);
 
-	if (csp_sendto(CSP_PRIO_HIGH, rparams[0]->node, PARAM_PORT_SET, 0, CSP_SO_NONE, packet, 0) != CSP_ERR_NONE) {
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, rparams[0]->node, PARAM_PORT_SET, 0, CSP_SO_NONE);
+	if (conn == NULL) {
 		csp_buffer_free(packet);
 		return -1;
 	}
 
+	if (!csp_send(conn, packet, 0)) {
+		csp_close(conn);
+		csp_buffer_free(packet);
+		return -1;
+	}
+
+	packet = csp_read(conn, rparams[0]->timeout);
+	if (packet == NULL) {
+		csp_close(conn);
+		printf("No response\n");
+		return -1;
+	}
+
+	//csp_hex_dump("Response", packet->data, packet->length);
+
 	for (int i = 0; i < count; i++) {
 		if ((rparams[i]->setvalue == NULL) || (rparams[i]->setvalue_pending == 0))
 			continue;
-		rparams[i]->setvalue_pending = 0;
-	}
+		rparams[i]->setvalue_pending = 2;
 
+		/* Copy from pending to actual */
+		int valuesize = param_typesize(rparams[i]->type);
+		if (valuesize == -1) {
+			valuesize = rparams[i]->size;
+		}
+
+		memcpy(rparams[i]->value, rparams[i]->setvalue, valuesize);
+
+		rparam_print(rparams[i]);
+
+	}
 
 	return 0;
 }
@@ -196,6 +224,8 @@ void rparam_print(rparam_t * rparam) {
 	if ((rparam->value != NULL) && (rparam->value_updated > 0)) {
 		param_var_str(rparam->type, rparam->size, rparam->value, tmpstr, 20);
 		printf(" = %s", tmpstr);
+		if (rparam->setvalue_pending == 2)
+			printf("*");
 		printf(" (%lu)", rparam->value_updated);
 	}
 
@@ -206,7 +236,7 @@ void rparam_print(rparam_t * rparam) {
 	if (rparam->size != 255)
 		printf("[%u]", rparam->size);
 
-	if ((rparam->setvalue != NULL) && (rparam->setvalue_pending)) {
+	if ((rparam->setvalue != NULL) && (rparam->setvalue_pending == 1)) {
 		printf(" Pending:");
 		param_var_str(rparam->type, rparam->size, rparam->setvalue, tmpstr, 20);
 		printf(" => %s", tmpstr);

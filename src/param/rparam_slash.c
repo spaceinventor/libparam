@@ -128,8 +128,7 @@ static int rparam_slash_set(struct slash *slash)
 
 	}
 
-	int serialized = param_str_to_value(rparam->type, slash->argv[3], rparam->setvalue);
-	printf("Serialized %u bytes\n", serialized);
+	param_str_to_value(rparam->type, slash->argv[3], rparam->setvalue);
 	rparam->setvalue_pending = 1;
 
 	int already_in_queue = 0;
