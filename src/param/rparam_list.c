@@ -14,7 +14,6 @@
 
 #include "param_string.h"
 
-
 rparam_t * list_begin = NULL;
 rparam_t * list_end = NULL;
 
@@ -74,7 +73,7 @@ next:
 	return NULL;
 }
 
-void rparam_list_print(int node_filter) {
+void rparam_list_print(int node_filter, int pending) {
 
 	rparam_t * rparam = list_begin;
 	while(rparam != NULL) {
@@ -82,10 +81,22 @@ void rparam_list_print(int node_filter) {
 			rparam = rparam->next;
 			continue;
 		}
+		if (pending && rparam->setvalue_pending != 1) {
+			rparam = rparam->next;
+			continue;
+		}
 		rparam_print(rparam);
 		rparam = rparam->next;
 	}
 
+}
+
+void rparam_list_foreach(void (*iterator)(rparam_t * rparam)) {
+	rparam_t * rparam = list_begin;
+	while(rparam != NULL) {
+		iterator(rparam);
+		rparam = rparam->next;
+	}
 }
 
 void rparam_list_download(int node, int timeout) {

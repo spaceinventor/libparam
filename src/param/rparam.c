@@ -10,7 +10,7 @@
 #include <param/rparam.h>
 #include <param/param.h>
 #include <csp/csp.h>
-#include <csp/arch/csp_clock.h>
+#include <csp/arch/csp_time.h>
 #include <csp/csp_endian.h>
 
 #include "param_serializer.h"
@@ -49,14 +49,13 @@ static int rparam_deserialize_packet(csp_packet_t * packet, int verbose) {
 			}
 
 			rparam->value = calloc(valuesize, 1);
+			//printf("Allocated %u for %s\n", valuesize, rparam->name);
 
 		}
 
 		i += param_deserialize_to_var(rparam->type, rparam->size, &packet->data[i], rparam->value);
 
-		csp_timestamp_t now;
-		clock_get_time(&now);
-		rparam->value_updated = now.tv_sec;
+		rparam->value_updated = csp_get_ms();
 		if (rparam->setvalue_pending == 2)
 			rparam->setvalue_pending = 0;
 
