@@ -41,16 +41,7 @@ static int rparam_deserialize_packet(csp_packet_t * packet, int verbose) {
 		}
 
 		if (rparam->value == NULL) {
-
-			/* Allocate storage for parameter data */
-			int valuesize = param_typesize(rparam->type);
-			if (valuesize == -1) {
-				valuesize = rparam->size;
-			}
-
-			rparam->value = calloc(valuesize, 1);
-			//printf("Allocated %u for %s\n", valuesize, rparam->name);
-
+			rparam->value = calloc(rparam_size(rparam), 1);
 		}
 
 		i += param_deserialize_to_var(rparam->type, rparam->size, &packet->data[i], rparam->value);
@@ -66,6 +57,14 @@ static int rparam_deserialize_packet(csp_packet_t * packet, int verbose) {
 
 	return 0;
 
+}
+
+int rparam_size(rparam_t * rparam) {
+	int size = param_typesize(rparam->type);
+	if (size == -1) {
+		size = rparam->size;
+	}
+	return size;
 }
 
 int rparam_get(rparam_t * rparams[], int count)
@@ -178,13 +177,7 @@ int rparam_set(rparam_t * rparams[], int count)
 			continue;
 		rparams[i]->setvalue_pending = 2;
 
-		/* Copy from pending to actual */
-		int valuesize = param_typesize(rparams[i]->type);
-		if (valuesize == -1) {
-			valuesize = rparams[i]->size;
-		}
-
-		memcpy(rparams[i]->value, rparams[i]->setvalue, valuesize);
+		memcpy(rparams[i]->value, rparams[i]->setvalue, rparam_size(rparams[i]));
 
 		rparam_print(rparams[i]);
 

@@ -86,5 +86,6 @@ RPARAM_SET(double, double)
 #undef RPARAM_SET
 
 void rparam_print(rparam_t * rparam);
+int rparam_size(rparam_t * rparam);
 
 #endif /* LIB_PARAM_INCLUDE_PARAM_RPARAM_H_ */

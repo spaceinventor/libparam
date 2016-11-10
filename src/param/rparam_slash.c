@@ -173,15 +173,7 @@ static int rparam_slash_set(struct slash *slash)
 	}
 
 	if (rparam->setvalue == NULL) {
-
-		/* Allocate storage for parameter data */
-		int valuesize = param_typesize(rparam->type);
-		if (valuesize == -1) {
-			valuesize = rparam->size;
-		}
-
-		rparam->setvalue = calloc(valuesize, 1);
-
+		rparam->setvalue = calloc(rparam_size(rparam), 1);
 	}
 
 	param_str_to_value(rparam->type, slash->argv[3], rparam->setvalue);
