@@ -6,6 +6,7 @@
  */
 
 #include <stdio.h>
+#include <malloc.h>
 #include <inttypes.h>
 #include <param/rparam.h>
 #include <param/param.h>
@@ -190,6 +191,10 @@ int rparam_set(rparam_t * rparams[], int count)
 			continue;
 		rparams[i]->setvalue_pending = 2;
 
+		if (rparams[i]->value == NULL) {
+			rparams[i]->value = calloc(rparam_size(rparams[i]), 1);
+		}
+
 		memcpy(rparams[i]->value, rparams[i]->setvalue, rparam_size(rparams[i]));
 
 		rparam_print(rparams[i]);
@@ -231,7 +236,7 @@ void rparam_print(rparam_t * rparam) {
 		printf(" = %s", tmpstr);
 		if (rparam->setvalue_pending == 2)
 			printf("*");
-		printf(" (%lu)", rparam->value_updated);
+		printf(" (%"PRIu32")", rparam->value_updated);
 	}
 
 	/* Type */

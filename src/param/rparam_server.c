@@ -13,6 +13,8 @@
 #include <param/rparam.h>
 #include "param_serializer.h"
 
+#define MIN(a,b) (((a)<(b))?(a):(b))
+
 static void rparam_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 
 	uint16_t idx[packet->length / 2];
@@ -53,7 +55,7 @@ static void rparam_list_handler(csp_conn_t * conn)
 		rparam->type = param->type;
 		rparam->size = param->size;
 		strncpy(rparam->name, param->name, 25);
-		packet->length = offsetof(rparam_transfer_t, name) + min(strlen(param->name), 25);
+		packet->length = offsetof(rparam_transfer_t, name) + MIN(strlen(param->name), 25);
 		if (!csp_send(conn, packet, 1000)) {
 			csp_buffer_free(packet);
 			return;

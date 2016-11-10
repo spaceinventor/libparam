@@ -80,7 +80,7 @@ void param_var_str(param_type_e type, int size, void * in, char * out, int len)
 	case PARAM_TYPE_DATA: {
 		int written;
 		for (int i = 0; i < size; i++) {
-			written = snprintf(out, len, "%02x", ((char *)in)[i]);
+			written = snprintf(out, len, "%02hhx", ((char *)in)[i]);
 			len -= written;
 			out += written;
 		}
