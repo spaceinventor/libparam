@@ -128,7 +128,7 @@ static int rparam_slash_set(struct slash *slash)
 
 	}
 
-	int serialized = param_serialize_from_str(rparam->type, slash->argv[3], rparam->setvalue, rparam->size);
+	int serialized = param_str_to_value(rparam->type, slash->argv[3], rparam->setvalue);
 	printf("Serialized %u bytes\n", serialized);
 	rparam->setvalue_pending = 1;
 
