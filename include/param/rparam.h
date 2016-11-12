@@ -42,12 +42,12 @@ typedef struct {
 	char name[];
 } __attribute__((packed)) rparam_transfer_t;
 
-#define RPARAM(_nodename, _node, _timeout, _idx, _type, _name, _size, _unit, _readonly, _valuesize) \
+#define RPARAM(_nodename, _node, _timeout, _id, _type, _name, _size, _unit, _readonly, _valuesize) \
 	char _nodename##_##_name##_value[_valuesize]; \
 	struct rparam_t _nodename##_##_name = { \
 		.node = _node, \
 		.timeout = _timeout, \
-		.idx = _idx, \
+		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
 		.size = _size, \
