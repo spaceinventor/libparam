@@ -113,7 +113,7 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 		.callback = _callback, \
 		.unit = _unit, \
 		.addr = _addr, \
-		.vmem = &vmem_##vmem_name##_instance, \
+		.vmem = &vmem_##_vmem_name##_instance, \
 	}
 
 #define PARAM_DEFINE_STRUCT_VMEM(fieldname, _id, _type, _size, _min, _max, _readonly, _callback, _unit, vmem_name, _addr) \
@@ -127,7 +127,7 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 		.callback = _callback, \
 		.unit = _unit, \
 		.addr = _addr, \
-		.vmem = &vmem_##vmem_name##_instance, \
+		.vmem = &vmem_##_vmem_name##_instance, \
 	}
 
 void param_print(param_t * param);
