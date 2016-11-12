@@ -201,6 +201,8 @@ int rparam_set(rparam_t * rparams[], int count)
 
 	}
 
+	csp_close(conn);
+
 	return 0;
 }
 
