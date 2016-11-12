@@ -89,7 +89,7 @@ int rparam_get(rparam_t * rparams[], int count)
 	}
 	packet->length = sizeof(uint16_t) * i;
 
-	csp_hex_dump("request", packet->data, packet->length);
+	//csp_hex_dump("request", packet->data, packet->length);
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, rparams[0]->node, PARAM_PORT_GET, 0, CSP_SO_NONE);
 	if (conn == NULL) {
@@ -109,7 +109,7 @@ int rparam_get(rparam_t * rparams[], int count)
 		return -1;
 	}
 
-	csp_hex_dump("Response", packet->data, packet->length);
+	//csp_hex_dump("Response", packet->data, packet->length);
 
 	rparam_deserialize_packet(packet, 1);
 
