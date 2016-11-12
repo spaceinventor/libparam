@@ -40,6 +40,7 @@ typedef enum {
 } param_readonly_type_e;
 
 typedef const struct param_s {
+	uint16_t id;
 	int addr;
 	int size;
 	param_type_e type;
@@ -126,8 +127,6 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 		.vmem = &vmem_##vmem_name##_instance, \
 	}
 
-
-param_t * param_from_id(uint16_t id);
 void param_print(param_t * param);
 void param_list(char * token);
 void param_list_array(param_t * param, int count);
@@ -168,9 +167,11 @@ void param_get_data(param_t * param, void * outbuf, int len);
 #define param_set_string param_set_data
 #define param_get_string param_get_data
 
-param_t * param_index_to_ptr(int idx);
+param_t * param_ptr_from_id(int id);
+param_t * param_ptr_from_idx(int idx);
+int param_idx_from_ptr(param_t * param);
+
 param_t * param_name_to_ptr(char * name);
-int param_ptr_to_index(param_t * param);
 
 int param_typesize(param_type_e type);
 

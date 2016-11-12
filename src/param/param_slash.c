@@ -34,7 +34,7 @@ static param_t * parse_param(char * arg) {
 	if (*endptr != '\0') {
 		return param_name_to_ptr(arg);
 	} else {
-		return param_index_to_ptr(idx);
+		return param_ptr_from_idx(idx);
 	}
 
 }

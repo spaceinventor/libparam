@@ -51,7 +51,7 @@ static void rparam_list_handler(csp_conn_t * conn)
 	param_foreach(param) {
 		csp_packet_t * packet = csp_buffer_get(256);
 		rparam_transfer_t * rparam = (void *) packet->data;
-		rparam->idx = csp_hton16(param_ptr_to_index(param));
+		rparam->idx = csp_hton16(param_idx_from_ptr(param));
 		rparam->type = param->type;
 		rparam->size = param->size;
 		strncpy(rparam->name, param->name, 25);

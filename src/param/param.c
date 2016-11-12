@@ -5,11 +5,6 @@
 
 #include <csp/csp_endian.h>
 
-param_t * param_from_id(uint16_t id)
-{
-	return (param_t *) &__start_param + id;
-}
-
 void param_print(param_t * param)
 {
 	if (param == NULL)
@@ -20,7 +15,7 @@ void param_print(param_t * param)
 		return;
 
 	/* Param id */
-	printf(" %u",  param_ptr_to_index(param));
+	printf(" %u",  param_idx_from_ptr(param));
 
 	/* Vmem */
 #if 0
@@ -227,12 +222,23 @@ param_t * param_name_to_ptr(char * name)
 	return NULL;
 }
 
-param_t * param_index_to_ptr(int idx)
+param_t * param_ptr_from_id(int id) {
+
+	param_t * param;
+	param_foreach(param) {
+		if (param->id == id)
+			return param;
+	}
+
+	return NULL;
+}
+
+param_t * param_ptr_from_idx(int idx)
 {
 	return (param_t *) (intptr_t) (((char *) &__start_param) + idx * PARAM_STORAGE_SIZE);
 }
 
-int param_ptr_to_index(param_t * param)
+int param_idx_from_ptr(param_t * param)
 {
 	return ((intptr_t) param - (intptr_t) &__start_param) / PARAM_STORAGE_SIZE;
 }
