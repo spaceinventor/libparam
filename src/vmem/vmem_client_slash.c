@@ -20,7 +20,7 @@
 static int vmem_client_slash_download(struct slash *slash)
 {
 	int node;
-	int timeout = 2000;
+	int timeout = 10000;
 	uint32_t address;
 	uint32_t length;
 	char * file;
