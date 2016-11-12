@@ -17,6 +17,8 @@ def options(ctx):
     gr.add_option('--rparam-client', action='store_true')
     gr.add_option('--rparam-client-slash', action='store_true')
     gr.add_option('--rparam-server', action='store_true')
+    gr.add_option('--rparam-store-file', action='store_true')
+    
 
 def configure(ctx):
 
@@ -56,6 +58,10 @@ def configure(ctx):
     if ctx.options.rparam_client:
         ctx.env.append_unique('FILES_PARAM', 'src/param/rparam.c')
         ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_list.c')
+    
+    if ctx.options.rparam_store_file: 
+        ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_list_store_file.c')
+
 
 def build(ctx):
     ctx.objects(
