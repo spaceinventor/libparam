@@ -92,7 +92,7 @@ static int rparam_slash_get(struct slash *slash)
 
 	int already_in_queue = 0;
 	for(int i = 0; i < rparams_count; i++) {
-		if (rparams[i]->idx == rparam->idx)
+		if (rparams[i]->id == rparam->id)
 			already_in_queue = 1;
 	}
 
@@ -181,7 +181,7 @@ static int rparam_slash_set(struct slash *slash)
 
 	int already_in_queue = 0;
 	for(int i = 0; i < rparams_count; i++) {
-		if (rparams[i]->idx == rparam->idx)
+		if (rparams[i]->id == rparam->id)
 			already_in_queue = 1;
 	}
 

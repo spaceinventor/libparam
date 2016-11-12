@@ -17,9 +17,9 @@ int param_deserialize_to_param(void * in, param_t * param);
 
 int param_deserialize_single(char * inbuf);
 int param_serialize_single(param_t * param, char * outbuf, int len);
-int param_serialize_single_fromstr(uint16_t idx, param_type_e type, char * in, char * outbuf, int len);
+int param_serialize_single_fromstr(uint16_t id, param_type_e type, char * in, char * outbuf, int len);
 int param_serialize(param_t * param[], int count, char * outbuf, int len);
-int param_serialize_idx(uint16_t param_idx[], int count, char * outbuf, int len);
+int param_serialize_id(uint16_t param_id[], int count, char * outbuf, int len);
 
 
 #endif /* SRC_PARAM_PARAM_SERIALIZER_H_ */

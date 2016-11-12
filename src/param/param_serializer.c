@@ -244,12 +244,14 @@ int param_deserialize_single(char * inbuf) {
 
 	int count = 0;
 
-	uint16_t idx;
-	memcpy(&idx, inbuf, sizeof(idx));
-	count += sizeof(idx);
-	idx = csp_ntoh16(idx);
+	uint16_t id;
+	memcpy(&id, inbuf, sizeof(id));
+	count += sizeof(id);
+	id = csp_ntoh16(id);
 
-	param_t * param = param_ptr_from_idx(idx);
+	param_t * param = param_ptr_from_id(id);
+	if (param == NULL)
+		return 0;
 
 	count += param_deserialize_to_param(inbuf + count, param);
 
@@ -257,13 +259,13 @@ int param_deserialize_single(char * inbuf) {
 
 }
 
-int param_serialize_single_fromstr(uint16_t idx, param_type_e type, char * in, char * outbuf, int len) {
+int param_serialize_single_fromstr(uint16_t id, param_type_e type, char * in, char * outbuf, int len) {
 
 	int size = 0;
 
 	/* Parameter id */
-	idx = csp_hton16(idx);
-	memcpy(outbuf, &idx, sizeof(uint16_t));
+	id = csp_hton16(id);
+	memcpy(outbuf, &id, sizeof(uint16_t));
 	size += sizeof(uint16_t);
 
 	size += param_serialize_from_str(type, in, outbuf + size, len);
@@ -278,10 +280,8 @@ int param_serialize_single(param_t * param, char * outbuf, int len)
 	int size = 0;
 
 	/* Parameter id */
-	uint16_t idx = param_idx_from_ptr(param);
-	//printf("paramter %s type %u idx %u\r\n", param->name, param->type, (unsigned int) idx);
-	idx = csp_hton16(idx);
-	memcpy(outbuf, &idx, sizeof(uint16_t));
+	uint16_t id = csp_hton16(param->id);
+	memcpy(outbuf, &id, sizeof(uint16_t));
 	size += sizeof(uint16_t);
 
 	size += param_serialize_from_param(param, outbuf + size);
@@ -300,11 +300,11 @@ int param_serialize(param_t * param[], int count, char * outbuf, int len)
 	return output;
 }
 
-int param_serialize_idx(uint16_t param_idx[], int count, char * outbuf, int len)
+int param_serialize_id(uint16_t param_id[], int count, char * outbuf, int len)
 {
 	param_t * param[count];
 	for (int i = 0; i < count; i++) {
-		param[i] = param_ptr_from_idx(param_idx[i]);
+		param[i] = param_ptr_from_id(param_id[i]);
 	}
 	return param_serialize(param, count, outbuf, len);
 }

@@ -20,7 +20,7 @@ csp_thread_return_t rparam_server_task(void *pvParameters);
 typedef struct rparam_t {
 	uint8_t node;
 	uint16_t timeout;
-	uint16_t idx;
+	uint16_t id;
 	param_type_e type;
 	char name[26]; // One extra to allow for '\0'
 	uint8_t size;
@@ -36,7 +36,7 @@ typedef struct rparam_t {
 } __attribute__((packed)) rparam_t;
 
 typedef struct {
-	uint16_t idx;
+	uint16_t id;
 	uint8_t type;
 	uint8_t size;
 	char name[];

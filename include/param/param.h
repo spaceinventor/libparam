@@ -66,64 +66,67 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 	     _c < &__stop_param; \
 	     _c = (param_t *)(intptr_t)((char *)_c + PARAM_STORAGE_SIZE))
 
-#define PARAM_DEFINE_STATIC_RAM(name_in, type_in, size_in, min_in, max_in, readonly_in, callback_in, unit_in, physaddr_in) \
-	__attribute__((section("param"))) \
-	__attribute__((aligned(1))) \
-	__attribute__((used)) \
-	param_t name_in = { \
-		.type = type_in, \
-		.name = #name_in, \
-		.size = size_in, \
-		.min = min_in, \
-		.max = max_in, \
-		.readonly = readonly_in, \
-		.unit = unit_in, \
-		.callback = callback_in, \
-		.physaddr = physaddr_in, \
-	}
-
-#define PARAM_DEFINE_STRUCT_RAM(fieldname, name_in, type_in, size_in, min_in, max_in, readonly_in, callback_in, unit_in, physaddr_in) \
-	.fieldname = { \
-		.type = type_in, \
-		.name = #name_in, \
-		.size = size_in, \
-		.min = min_in, \
-		.max = max_in, \
-		.readonly = readonly_in, \
-		.unit = unit_in, \
-		.callback = callback_in, \
-		.physaddr = physaddr_in, \
-	}
-
-
-#define PARAM_DEFINE_STATIC_VMEM(_name, type_in, size_in, min_in, max_in, readonly_in, callback_in, unit_in, vmem_name, addr_in) \
+#define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _physaddr) \
 	__attribute__((section("param"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
-		.type = type_in, \
+		.id = _id, \
+		.type = _type, \
 		.name = #_name, \
-		.size = size_in, \
-		.min = min_in, \
-		.max = max_in, \
-		.readonly = readonly_in, \
-		.callback = callback_in, \
-		.unit = unit_in, \
-		.addr = addr_in, \
+		.size = _size, \
+		.min = _min, \
+		.max = _max, \
+		.readonly = _readonly, \
+		.unit = _unit, \
+		.callback = _callback, \
+		.physaddr = _physaddr, \
+	}
+
+#define PARAM_DEFINE_STRUCT_RAM(fieldname, _id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _physaddr) \
+	.fieldname = { \
+		.id = _id, \
+		.type = _type, \
+		.name = #_name, \
+		.size = _size, \
+		.min = _min, \
+		.max = _max, \
+		.readonly = _readonly, \
+		.unit = _unit, \
+		.callback = _callback, \
+		.physaddr = _physaddr, \
+	}
+
+
+#define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _vmem_name, _addr) \
+	__attribute__((section("param"))) \
+	__attribute__((aligned(1))) \
+	__attribute__((used)) \
+	param_t _name = { \
+		.id = _id, \
+		.type = _type, \
+		.name = #_name, \
+		.size = _size, \
+		.min = _min, \
+		.max = _max, \
+		.readonly = _readonly, \
+		.callback = _callback, \
+		.unit = _unit, \
+		.addr = _addr, \
 		.vmem = &vmem_##vmem_name##_instance, \
 	}
 
-#define PARAM_DEFINE_STRUCT_VMEM(fieldname, type_in, size_in, min_in, max_in, readonly_in, callback_in, unit_in, vmem_name, addr_in) \
+#define PARAM_DEFINE_STRUCT_VMEM(fieldname, _id, _type, _size, _min, _max, _readonly, _callback, _unit, vmem_name, _addr) \
 	.fieldname = { \
-		.type = type_in, \
+		.type = _type, \
 		.name = #vmem_name "_" #fieldname, \
-		.size = size_in, \
-		.min = min_in, \
-		.max = max_in, \
-		.readonly = readonly_in, \
-		.callback = callback_in, \
-		.unit = unit_in, \
-		.addr = addr_in, \
+		.size = _size, \
+		.min = _min, \
+		.max = _max, \
+		.readonly = _readonly, \
+		.callback = _callback, \
+		.unit = _unit, \
+		.addr = _addr, \
 		.vmem = &vmem_##vmem_name##_instance, \
 	}
 

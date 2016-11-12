@@ -17,14 +17,16 @@
 
 static void rparam_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 
-	uint16_t idx[packet->length / 2];
+	csp_hex_dump("get handler", packet->data, packet->length);
+
+	uint16_t id[packet->length / 2];
 	for (int i = 0; i < packet->length / 2; i++) {
-		idx[i] = csp_ntoh16(packet->data16[i]);
+		id[i] = csp_ntoh16(packet->data16[i]);
 	}
 
-	packet->length = param_serialize_idx(idx, packet->length / 2, (void *) packet->data, PARAM_SERVER_MTU);
+	packet->length = param_serialize_id(id, packet->length / 2, (void *) packet->data, PARAM_SERVER_MTU);
 
-	//csp_hex_dump("get handler", packet->data, packet->length);
+	csp_hex_dump("get handler", packet->data, packet->length);
 
 	if (!csp_send(conn, packet, 0))
 		csp_buffer_free(packet);
@@ -51,7 +53,7 @@ static void rparam_list_handler(csp_conn_t * conn)
 	param_foreach(param) {
 		csp_packet_t * packet = csp_buffer_get(256);
 		rparam_transfer_t * rparam = (void *) packet->data;
-		rparam->idx = csp_hton16(param_idx_from_ptr(param));
+		rparam->id = csp_hton16(param->id);
 		rparam->type = param->type;
 		rparam->size = param->size;
 		strncpy(rparam->name, param->name, 25);

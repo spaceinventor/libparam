@@ -15,7 +15,7 @@ void param_print(param_t * param)
 		return;
 
 	/* Param id */
-	printf(" %u",  param_idx_from_ptr(param));
+	printf(" %u", param->id);
 
 	/* Vmem */
 #if 0
@@ -231,16 +231,6 @@ param_t * param_ptr_from_id(int id) {
 	}
 
 	return NULL;
-}
-
-param_t * param_ptr_from_idx(int idx)
-{
-	return (param_t *) (intptr_t) (((char *) &__start_param) + idx * PARAM_STORAGE_SIZE);
-}
-
-int param_idx_from_ptr(param_t * param)
-{
-	return ((intptr_t) param - (intptr_t) &__start_param) / PARAM_STORAGE_SIZE;
 }
 
 int param_typesize(param_type_e type) {

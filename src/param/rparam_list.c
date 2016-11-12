@@ -19,7 +19,7 @@ rparam_t * list_end = NULL;
 
 int rparam_list_add(rparam_t * item) {
 
-	if (rparam_list_find_idx(item->node, item->idx) != NULL)
+	if (rparam_list_find_id(item->node, item->id) != NULL)
 		return -1;
 
 	if (list_begin == NULL)
@@ -35,7 +35,7 @@ int rparam_list_add(rparam_t * item) {
 
 }
 
-rparam_t * rparam_list_find_idx(int node, int idx)
+rparam_t * rparam_list_find_id(int node, int id)
 {
 	rparam_t * rparam = list_begin;
 	while(rparam != NULL) {
@@ -43,7 +43,7 @@ rparam_t * rparam_list_find_idx(int node, int idx)
 		if (rparam->node != node)
 			goto next;
 
-		if (rparam->idx != idx)
+		if (rparam->id != id)
 			goto next;
 
 		return rparam;
@@ -117,7 +117,7 @@ void rparam_list_download(int node, int timeout) {
 		rparam_t * rparam = calloc(sizeof(rparam_t), 1);
 		rparam->node = node;
 		rparam->timeout = timeout;
-		rparam->idx = csp_ntoh16(new_param->idx);
+		rparam->id = csp_ntoh16(new_param->id);
 		rparam->type = new_param->type;
 		rparam->size = new_param->size;
 

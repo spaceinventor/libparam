@@ -27,17 +27,17 @@ static int rparam_deserialize_packet(csp_packet_t * packet, int verbose) {
 	int i = 0;
 	while(i < packet->length) {
 
-		/* Get index */
-		uint16_t idx;
-		memcpy(&idx, &packet->data[i], sizeof(idx));
-		i += sizeof(idx);
-		idx = csp_ntoh16(idx);
+		/* Get id */
+		uint16_t id;
+		memcpy(&id, &packet->data[i], sizeof(id));
+		i += sizeof(id);
+		id = csp_ntoh16(id);
 
 		/* Search for rparam using list */
-		rparam_t * rparam = rparam_list_find_idx(packet->id.src, idx);
+		rparam_t * rparam = rparam_list_find_id(packet->id.src, id);
 
 		if (rparam == NULL) {
-			printf("No rparam for node %u idx %u\n", packet->id.src, idx);
+			printf("No rparam for node %u id %u\n", packet->id.src, id);
 			return -1;
 		}
 
@@ -85,7 +85,7 @@ int rparam_get(rparam_t * rparams[], int count)
 			break;
 		}
 		response_size += sizeof(uint16_t) + rparam_size(rparams[i]);
-		request[i] = csp_hton16(rparams[i]->idx);
+		request[i] = csp_hton16(rparams[i]->id);
 	}
 	packet->length = sizeof(uint16_t) * i;
 
@@ -155,8 +155,8 @@ int rparam_set(rparam_t * rparams[], int count)
 		}
 
 		/* Parameter id */
-		uint16_t idx = csp_hton16(rparams[i]->idx);
-		memcpy(packet->data, &idx, sizeof(uint16_t));
+		uint16_t id = csp_hton16(rparams[i]->id);
+		memcpy(packet->data, &id, sizeof(uint16_t));
 		packet->length += sizeof(uint16_t);
 
 		packet->length += param_serialize_from_var(rparams[i]->type, rparams[i]->size, rparams[i]->setvalue, (char *) packet->data + packet->length);
@@ -226,7 +226,7 @@ void rparam_print(rparam_t * rparam) {
 
 	char tmpstr[21];
 
-	printf(" %u ", rparam->node);
+	printf(" %u:%u", rparam->node, rparam->id);
 
 	printf(" %-20s", rparam->name);
 
@@ -255,26 +255,3 @@ void rparam_print(rparam_t * rparam) {
 	printf("\n");
 
 }
-
-#if 0
-static int rparam_test(struct slash *slash)
-{
-	rparam_t rparam;
-	rparam.idx = 1;
-	strcpy(rparam.name, "flt");
-	rparam.node = 1;
-	rparam.type = PARAM_TYPE_FLOAT;
-	rparam.timeout = 1000;
-
-	float flt = 2.34;
-	rparam_set_float(&rparam, flt);
-
-	flt = rparam_get_float(&rparam);
-
-	printf("Got %f\n", flt);
-
-	return SLASH_SUCCESS;
-}
-slash_command(test, rparam_test, NULL, "List parameters");
-
-#endif

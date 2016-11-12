@@ -29,12 +29,12 @@ slash_command_sub(param, list, list, "[str]", "List parameters");
 static param_t * parse_param(char * arg) {
 
 	char * endptr;
-	int idx = strtoul(arg, &endptr, 10);
+	int id = strtoul(arg, &endptr, 10);
 
 	if (*endptr != '\0') {
 		return param_name_to_ptr(arg);
 	} else {
-		return param_ptr_from_idx(idx);
+		return param_ptr_from_id(id);
 	}
 
 }
