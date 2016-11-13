@@ -39,35 +39,33 @@ static void rparam_print_queue(void) {
 
 static void rparam_completer(struct slash *slash, char * token) {
 
-#if 0
 	int matches = 0;
 	size_t prefixlen = -1;
-	param_t *prefix = NULL;
+	rparam_t *prefix = NULL;
 	size_t tokenlen = strlen(token);
 
-	printf("Match %u %s\n", tokenlen, token);
+	void rparam_foreach(rparam_t * rparam) {
 
+		if (tokenlen > strlen(rparam->name))
+			return;
 
-	param_t * param;
-	param_foreach(param) {
+		if (rparam_default_node != rparam->node)
+			return;
 
-		if (tokenlen > strlen(param->name))
-			continue;
+		if (rparam->readonly == PARAM_HIDDEN)
+			return;
 
-		if (param->readonly == PARAM_HIDDEN)
-			continue;
-
-		if (strncmp(token, param->name, slash_min(strlen(param->name), tokenlen)) == 0) {
+		if (strncmp(token, rparam->name, slash_min(strlen(rparam->name), tokenlen)) == 0) {
 
 			/* Count matches */
 			matches++;
 
 			/* Find common prefix */
 			if (prefixlen == (size_t) -1) {
-				prefix = param;
+				prefix = rparam;
 				prefixlen = strlen(prefix->name);
 			} else {
-				prefixlen = slash_prefix_length(prefix->name, param->name);
+				prefixlen = slash_prefix_length(prefix->name, rparam->name);
 			}
 
 			/* Print newline on first match */
@@ -75,11 +73,13 @@ static void rparam_completer(struct slash *slash, char * token) {
 				slash_printf(slash, "\n");
 
 			/* Print param */
-			param_print(param);
+			rparam_print(rparam);
 
 		}
 
 	}
+
+	rparam_list_foreach(rparam_foreach);
 
 	if (!matches) {
 		slash_bell(slash);
@@ -87,8 +87,6 @@ static void rparam_completer(struct slash *slash, char * token) {
 		strncpy(token, prefix->name, prefixlen);
 		slash->cursor = slash->length = (token - slash->buffer) + prefixlen;
 	}
-
-#endif
 
 }
 
