@@ -28,8 +28,9 @@ slash_command_group(rparam, "Remote parameters");
 static rparam_t * rparams[RPARAM_SLASH_MAX_QUEUESIZE];
 static int rparams_count = 0;
 static int rparam_autosend = 1;
-static int rparam_default_node = 0;
-static int rparam_default_timeout = 2000;
+
+int rparam_default_node = 0;
+int rparam_default_timeout = 2000;
 
 static void rparam_print_queue(void) {
 	printf("Queue\n");
@@ -92,15 +93,17 @@ static void rparam_completer(struct slash *slash, char * token) {
 
 static int rparam_slash_node(struct slash *slash)
 {
-	if (slash->argc < 2)
+	if (slash->argc < 2) {
+		slash_printf(slash, "node: %u, timeout: %u\n", rparam_default_node, rparam_default_timeout);
 		return SLASH_EUSAGE;
+	}
 
 	rparam_default_node = atoi(slash->argv[1]);
 
 	if (slash->argc >= 3)
 		rparam_default_timeout = atoi(slash->argv[2]);
 
-	slash_printf(slash, "Set node to %u timeout %u\n", rparam_default_node, rparam_default_timeout);
+	slash_printf(slash, "Set node to: %u, timeout: %u\n", rparam_default_node, rparam_default_timeout);
 	return SLASH_SUCCESS;
 }
 slash_command_sub(rparam, node, rparam_slash_node, "<node> [timeout]", NULL);
@@ -293,6 +296,20 @@ static int rparam_slash_set(struct slash *slash)
 
 }
 slash_command_sub_completer(rparam, set, rparam_slash_set, rparam_completer, "<param> <value>", NULL);
+
+static int rparam_slash_getstatic(struct slash *slash)
+{
+	printf("getstatic\n");
+	return SLASH_SUCCESS;
+}
+slash_command_sub(rparam, getstatic, rparam_slash_getstatic, "<node> <id> <type>", NULL);
+
+static int rparam_slash_setstatic(struct slash *slash)
+{
+	printf("setstatic\n");
+	return SLASH_SUCCESS;
+}
+slash_command_sub(rparam, setstatic, rparam_slash_setstatic, "<node> <id> <type> <value>", NULL);
 
 static int rparam_slash_download(struct slash *slash)
 {
