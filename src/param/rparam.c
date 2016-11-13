@@ -226,9 +226,9 @@ RPARAM_SET(double, double)
 
 void rparam_print(rparam_t * rparam) {
 
-	char tmpstr[21];
+	char tmpstr[22];
 
-	printf(" %u:%u", rparam->node, rparam->id);
+	printf(" %2u:%-3u", rparam->node, rparam->id);
 
 	printf(" %-20s", rparam->name);
 
