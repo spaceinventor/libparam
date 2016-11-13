@@ -297,20 +297,6 @@ static int rparam_slash_set(struct slash *slash)
 }
 slash_command_sub_completer(rparam, set, rparam_slash_set, rparam_completer, "<param> <value>", NULL);
 
-static int rparam_slash_getstatic(struct slash *slash)
-{
-	printf("getstatic\n");
-	return SLASH_SUCCESS;
-}
-slash_command_sub(rparam, getstatic, rparam_slash_getstatic, "<node> <id> <type>", NULL);
-
-static int rparam_slash_setstatic(struct slash *slash)
-{
-	printf("setstatic\n");
-	return SLASH_SUCCESS;
-}
-slash_command_sub(rparam, setstatic, rparam_slash_setstatic, "<node> <id> <type> <value>", NULL);
-
 static int rparam_slash_download(struct slash *slash)
 {
 	if (slash->argc < 2)
