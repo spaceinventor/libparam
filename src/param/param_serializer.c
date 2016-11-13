@@ -91,60 +91,11 @@ int param_deserialize_to_param(void * in, param_t * param) {
 
 		case PARAM_TYPE_STRING:
 		case PARAM_TYPE_DATA:
-			printf("Set data\n");
 			param_set_data(param, in, param->size);
 			count += param->size;
 			break;
 
 #undef PARAM_DESERIALIZE
-	}
-
-	return count;
-
-}
-
-int param_serialize_from_str(param_type_e type, char * str, void * out, int strlen)
-{
-
-	int count = 0;
-
-	switch(type) {
-
-#define PARAM_SERIALIZE(casename, objtype, name, swapfct) \
-		case casename: { \
-			objtype obj; \
-			param_str_to_value(type, str, &obj); \
-			obj = swapfct(obj); \
-			memcpy(out, &obj, sizeof(objtype)); \
-			count += sizeof(objtype); \
-			break; \
-		}
-
-		PARAM_SERIALIZE(PARAM_TYPE_UINT8, uint8_t, uint8, )
-		PARAM_SERIALIZE(PARAM_TYPE_UINT16, uint16_t, uint16, csp_hton16)
-		PARAM_SERIALIZE(PARAM_TYPE_UINT32, uint32_t, uint32, csp_hton32)
-		PARAM_SERIALIZE(PARAM_TYPE_UINT64, uint64_t, uint64, csp_hton64)
-		PARAM_SERIALIZE(PARAM_TYPE_INT8, int8_t, int8, )
-		PARAM_SERIALIZE(PARAM_TYPE_INT16, int16_t, int16, csp_hton16)
-		PARAM_SERIALIZE(PARAM_TYPE_INT32, int32_t, int32, csp_hton32)
-		PARAM_SERIALIZE(PARAM_TYPE_INT64, int64_t, int64, csp_hton64)
-		PARAM_SERIALIZE(PARAM_TYPE_XINT8, uint8_t, uint8, )
-		PARAM_SERIALIZE(PARAM_TYPE_XINT16, uint16_t, uint16, csp_hton16)
-		PARAM_SERIALIZE(PARAM_TYPE_XINT32, uint32_t, uint32, csp_hton32)
-		PARAM_SERIALIZE(PARAM_TYPE_XINT64, uint64_t, uint64, csp_hton64)
-		PARAM_SERIALIZE(PARAM_TYPE_FLOAT, float, float, )
-		PARAM_SERIALIZE(PARAM_TYPE_DOUBLE, double, double, )
-
-		case PARAM_TYPE_STRING:
-			strncpy(out, str, strlen);
-			count += strlen;
-			break;
-
-		default:
-			printf("parameter type not supported\r\n");
-			break;
-
-#undef PARAM_SERIALIZE
 	}
 
 	return count;
@@ -256,21 +207,6 @@ int param_deserialize_single(char * inbuf) {
 	count += param_deserialize_to_param(inbuf + count, param);
 
 	return count;
-
-}
-
-int param_serialize_single_fromstr(uint16_t id, param_type_e type, char * in, char * outbuf, int len) {
-
-	int size = 0;
-
-	/* Parameter id */
-	id = csp_hton16(id);
-	memcpy(outbuf, &id, sizeof(uint16_t));
-	size += sizeof(uint16_t);
-
-	size += param_serialize_from_str(type, in, outbuf + size, len);
-
-	return size;
 
 }
 
