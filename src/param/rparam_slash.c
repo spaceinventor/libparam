@@ -39,6 +39,7 @@ static void rparam_print_queue(void) {
 
 static void rparam_completer(struct slash *slash, char * token) {
 
+#if 0
 	int matches = 0;
 	size_t prefixlen = -1;
 	param_t *prefix = NULL;
@@ -46,7 +47,7 @@ static void rparam_completer(struct slash *slash, char * token) {
 
 	printf("Match %u %s\n", tokenlen, token);
 
-#if 0
+
 	param_t * param;
 	param_foreach(param) {
 
@@ -138,6 +139,37 @@ static int rparam_slash_getall(struct slash *slash)
 }
 slash_command_sub(rparam, getall, rparam_slash_getall, "[node] [timeout]", NULL);
 
+static int rparam_slash_setall(struct slash *slash)
+{
+	unsigned int node = rparam_default_node;
+	unsigned int timeout = rparam_default_timeout;
+
+	if (slash->argc >= 2)
+		node = atoi(slash->argv[1]);
+	if (slash->argc >= 3)
+		timeout = atoi(slash->argv[2]);
+
+	/* Clear queue first */
+	rparams_count = 0;
+
+	void add_to_queue(rparam_t * rparam) {
+		if (rparam->node == node && rparam->setvalue_pending == 1) {
+			if (rparams_count < RPARAM_SLASH_MAX_QUEUESIZE)
+				rparams[rparams_count++] = rparam;
+		}
+	}
+	rparam_list_foreach(add_to_queue);
+
+	if (rparams_count == 0)
+		return SLASH_SUCCESS;
+
+	rparams[0]->timeout = timeout;
+	rparam_set(rparams, rparams_count);
+
+	return SLASH_SUCCESS;
+}
+slash_command_sub(rparam, setall, rparam_slash_setall, "[node] [timeout]", NULL);
+
 static int rparam_slash_get(struct slash *slash)
 {
 
@@ -154,11 +186,10 @@ static int rparam_slash_get(struct slash *slash)
 		return SLASH_SUCCESS;
 	}
 
-	if (slash->argc < 3)
+	if (slash->argc < 2)
 		return SLASH_EUSAGE;
 
-	unsigned int node = atoi(slash->argv[1]);
-	rparam_t * rparam = rparam_list_find_name(node, slash->argv[2]);
+	rparam_t * rparam = rparam_list_find_name(rparam_default_node, slash->argv[1]);
 
 	if (rparam == NULL) {
 		slash_printf(slash, "Could not find parameter\n");
@@ -196,7 +227,7 @@ static int rparam_slash_get(struct slash *slash)
 	rparams_count = 0;
 	return SLASH_SUCCESS;
 }
-slash_command_sub_completer(rparam, get, rparam_slash_get, rparam_completer, "<node> <param> [type] [size]", "Get remote parameter");
+slash_command_sub_completer(rparam, get, rparam_slash_get, rparam_completer, "<param>", NULL);
 
 static int rparam_slash_set(struct slash *slash)
 {
@@ -214,33 +245,10 @@ static int rparam_slash_set(struct slash *slash)
 		return SLASH_SUCCESS;
 	}
 
-	/**
-	 * If called with a node, and the queue is clear, create the queue automatically
-	 */
-	if ((slash->argc == 2) && (rparams_count == 0)) {
-
-		printf("Autogenerating queue from pending parameters\n");
-
-		unsigned int node = atoi(slash->argv[1]);
-
-		void add_to_queue(rparam_t * rparam) {
-			if (rparam->node == node && rparam->setvalue_pending == 1) {
-				if (rparams_count < RPARAM_SLASH_MAX_QUEUESIZE)
-					rparams[rparams_count++] = rparam;
-			}
-		}
-		rparam_list_foreach(add_to_queue);
-
-		rparam_print_queue();
-		return SLASH_SUCCESS;
-
-	}
-
 	if (slash->argc < 3)
 		return SLASH_EUSAGE;
 
-	unsigned int node = atoi(slash->argv[1]);
-	rparam_t * rparam = rparam_list_find_name(node, slash->argv[2]);
+	rparam_t * rparam = rparam_list_find_name(rparam_default_node, slash->argv[1]);
 
 	if (rparam == NULL) {
 		slash_printf(slash, "Could not find parameter\n");
@@ -256,7 +264,7 @@ static int rparam_slash_set(struct slash *slash)
 		rparam->setvalue = calloc(rparam_size(rparam), 1);
 	}
 
-	param_str_to_value(rparam->type, slash->argv[3], rparam->setvalue);
+	param_str_to_value(rparam->type, slash->argv[2], rparam->setvalue);
 	rparam->setvalue_pending = 1;
 
 	int already_in_queue = 0;
@@ -286,7 +294,7 @@ static int rparam_slash_set(struct slash *slash)
 	return SLASH_SUCCESS;
 
 }
-slash_command_sub_completer(rparam, set, rparam_slash_set, rparam_completer, "<node> <param> <value>", NULL);
+slash_command_sub_completer(rparam, set, rparam_slash_set, rparam_completer, "<param> <value>", NULL);
 
 static int rparam_slash_download(struct slash *slash)
 {
