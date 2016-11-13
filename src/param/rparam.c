@@ -156,7 +156,7 @@ int rparam_set(rparam_t * rparams[], int count)
 
 		/* Parameter id */
 		uint16_t id = csp_hton16(rparams[i]->id);
-		memcpy(packet->data, &id, sizeof(uint16_t));
+		memcpy(packet->data + packet->length, &id, sizeof(uint16_t));
 		packet->length += sizeof(uint16_t);
 
 		packet->length += param_serialize_from_var(rparams[i]->type, rparams[i]->size, rparams[i]->setvalue, (char *) packet->data + packet->length);
