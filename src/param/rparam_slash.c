@@ -28,12 +28,115 @@ slash_command_group(rparam, "Remote parameters");
 static rparam_t * rparams[RPARAM_SLASH_MAX_QUEUESIZE];
 static int rparams_count = 0;
 static int rparam_autosend = 1;
+static int rparam_default_node = 0;
+static int rparam_default_timeout = 2000;
 
 static void rparam_print_queue(void) {
 	printf("Queue\n");
 	for(int i = 0; i < rparams_count; i++)
 		rparam_print(rparams[i]);
 }
+
+static void rparam_completer(struct slash *slash, char * token) {
+
+	int matches = 0;
+	size_t prefixlen = -1;
+	param_t *prefix = NULL;
+	size_t tokenlen = strlen(token);
+
+	printf("Match %u %s\n", tokenlen, token);
+
+#if 0
+	param_t * param;
+	param_foreach(param) {
+
+		if (tokenlen > strlen(param->name))
+			continue;
+
+		if (param->readonly == PARAM_HIDDEN)
+			continue;
+
+		if (strncmp(token, param->name, slash_min(strlen(param->name), tokenlen)) == 0) {
+
+			/* Count matches */
+			matches++;
+
+			/* Find common prefix */
+			if (prefixlen == (size_t) -1) {
+				prefix = param;
+				prefixlen = strlen(prefix->name);
+			} else {
+				prefixlen = slash_prefix_length(prefix->name, param->name);
+			}
+
+			/* Print newline on first match */
+			if (matches == 1)
+				slash_printf(slash, "\n");
+
+			/* Print param */
+			param_print(param);
+
+		}
+
+	}
+
+	if (!matches) {
+		slash_bell(slash);
+	} else {
+		strncpy(token, prefix->name, prefixlen);
+		slash->cursor = slash->length = (token - slash->buffer) + prefixlen;
+	}
+
+#endif
+
+}
+
+static int rparam_slash_node(struct slash *slash)
+{
+	if (slash->argc < 2)
+		return SLASH_EUSAGE;
+
+	rparam_default_node = atoi(slash->argv[1]);
+
+	if (slash->argc >= 3)
+		rparam_default_timeout = atoi(slash->argv[2]);
+
+	slash_printf(slash, "Set node to %u timeout %u\n", rparam_default_node, rparam_default_timeout);
+	return SLASH_SUCCESS;
+}
+slash_command_sub(rparam, node, rparam_slash_node, "<node> [timeout]", NULL);
+
+
+static int rparam_slash_getall(struct slash *slash)
+{
+	unsigned int node = rparam_default_node;
+	unsigned int timeout = rparam_default_timeout;
+
+	if (slash->argc >= 2)
+		node = atoi(slash->argv[1]);
+	if (slash->argc >= 3)
+		timeout = atoi(slash->argv[2]);
+
+	/* Clear queue first */
+	rparams_count = 0;
+
+	void add_to_queue(rparam_t * rparam) {
+		if (rparam->node == node) {
+			if (rparams_count < RPARAM_SLASH_MAX_QUEUESIZE)
+				rparams[rparams_count++] = rparam;
+		}
+	}
+	rparam_list_foreach(add_to_queue);
+
+	if (rparams_count == 0)
+		return SLASH_SUCCESS;
+
+	rparams[0]->timeout = timeout;
+	rparam_get(rparams, rparams_count);
+
+	return SLASH_SUCCESS;
+}
+slash_command_sub(rparam, getall, rparam_slash_getall, "[node] [timeout]", NULL);
 
 static int rparam_slash_get(struct slash *slash)
 {
@@ -50,29 +153,6 @@ static int rparam_slash_get(struct slash *slash)
 
 		return SLASH_SUCCESS;
 	}
-
-	/**
-	 * If called with a node, and the queue is clear, create the queue automatically
-	 */
-	if ((slash->argc == 2) && (rparams_count == 0)) {
-
-		printf("Autogenerating queue from all parameters\n");
-
-		unsigned int node = atoi(slash->argv[1]);
-
-		void add_to_queue(rparam_t * rparam) {
-			if (rparam->node == node) {
-				if (rparams_count < RPARAM_SLASH_MAX_QUEUESIZE)
-					rparams[rparams_count++] = rparam;
-			}
-		}
-		rparam_list_foreach(add_to_queue);
-
-		rparam_print_queue();
-		return SLASH_SUCCESS;
-
-	}
-
 
 	if (slash->argc < 3)
 		return SLASH_EUSAGE;
@@ -116,7 +196,7 @@ static int rparam_slash_get(struct slash *slash)
 	rparams_count = 0;
 	return SLASH_SUCCESS;
 }
-slash_command_sub(rparam, get, rparam_slash_get, "<node> <param> [type] [size]", "Get remote parameter");
+slash_command_sub_completer(rparam, get, rparam_slash_get, rparam_completer, "<node> <param> [type] [size]", "Get remote parameter");
 
 static int rparam_slash_set(struct slash *slash)
 {
@@ -206,7 +286,7 @@ static int rparam_slash_set(struct slash *slash)
 	return SLASH_SUCCESS;
 
 }
-slash_command_sub(rparam, set, rparam_slash_set, "<node> <param> <value>", NULL);
+slash_command_sub_completer(rparam, set, rparam_slash_set, rparam_completer, "<node> <param> <value>", NULL);
 
 static int rparam_slash_download(struct slash *slash)
 {
