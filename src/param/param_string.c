@@ -38,7 +38,7 @@ void param_value_str(param_t *param, char * out, int len)
 		char data[param->size];
 		param_get_data(param, data, param->size);
 		int written;
-		for (int i = 0; i < param->size; i++) {
+		for (int i = 0; i < param->size && len >= 2; i++) {
 			written = snprintf(out, len, "%02hhx", (char) data[i]);
 			len -= written;
 			out += written;
@@ -79,7 +79,7 @@ void param_var_str(param_type_e type, int size, void * in, char * out, int len)
 
 	case PARAM_TYPE_DATA: {
 		int written;
-		for (int i = 0; i < size; i++) {
+		for (int i = 0; i < size && len >= 2; i++) {
 			written = snprintf(out, len, "%02hhx", ((char *)in)[i]);
 			len -= written;
 			out += written;
