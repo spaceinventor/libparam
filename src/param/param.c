@@ -109,6 +109,21 @@ void param_get_data(param_t * param, void * outbuf, int len)
 	param->vmem->read(param->vmem, param->addr, outbuf, len);
 }
 
+#if 0
+/* Check limits : Fixme: does not work sig signed integers */ \
+if ((param->type != PARAM_TYPE_FLOAT) && (param->type != PARAM_TYPE_DOUBLE)) { \
+	if (value > (_type) param->max) { \
+		printf("Param value exceeds max\r\n"); \
+		return; \
+	} \
+	\
+	if (value < (_type) param->min) { \
+		printf("Param value below min\r\n"); \
+		return; \
+	} \
+}
+#endif
+
 #define PARAM_SET(_type, name_in, _swapfct) \
 	void __param_set_##name_in(param_t * param, _type value, bool do_callback); \
 	void __param_set_##name_in(param_t * param, _type value, bool do_callback) \
@@ -118,19 +133,6 @@ void param_get_data(param_t * param, void * outbuf, int len)
 		if ((param->readonly == PARAM_READONLY_TRUE) || (param->readonly == PARAM_READONLY_INTERNAL)) { \
 			printf("Tried to set readonly parameter %s\r\n", param->name); \
 			return; \
-		} \
-		\
-		/* Check limits */ \
-		if ((param->type != PARAM_TYPE_FLOAT) && (param->type != PARAM_TYPE_DOUBLE)) { \
-			if (value > (_type) param->max) { \
-				printf("Param value exceeds max\r\n"); \
-				return; \
-			} \
-			\
-			if (value < (_type) param->min) { \
-				printf("Param value below min\r\n"); \
-				return; \
-			} \
 		} \
 		\
 		/* Aligned access directly to RAM */ \
