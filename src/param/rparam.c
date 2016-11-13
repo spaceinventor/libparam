@@ -233,12 +233,17 @@ void rparam_print(rparam_t * rparam) {
 	printf(" %-20s", rparam->name);
 
 	/* Value */
-	if ((rparam->value != NULL) && (rparam->value_updated > 0)) {
+	if (rparam->value != NULL) {
+
 		param_var_str(rparam->type, rparam->size, rparam->value, tmpstr, 20);
 		printf(" = %s", tmpstr);
+
 		if (rparam->setvalue_pending == 2)
 			printf("*");
-		printf(" (%"PRIu32")", rparam->value_updated);
+
+		if (rparam->value_updated > 0)
+			printf(" (%"PRIu32")", rparam->value_updated);
+
 	}
 
 	/* Type */
