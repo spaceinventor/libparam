@@ -41,12 +41,13 @@ int rparam_get(rparam_t * rparams[], int count, int verbose)
 
 	int response_size = 0;
 
-	int i = 0;
-	for (int i = 0; i < count; i++) {
+	int i;
+	for (i = 0; i < count; i++) {
 		if (response_size + sizeof(uint16_t) + rparam_size(rparams[i]) > PARAM_SERVER_MTU) {
 			printf("Request cropped: > MTU\n");
 			break;
 		}
+
 		response_size += sizeof(uint16_t) + rparam_size(rparams[i]);
 		request[i] = csp_hton16(rparams[i]->id);
 	}
