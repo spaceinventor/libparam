@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <csp/csp.h>
+#include <csp/arch/csp_time.h>
 #include <string.h>
 #include <stdlib.h>
 #include <inttypes.h>
@@ -54,7 +55,9 @@ static int vmem_client_slash_download(struct slash *slash)
 	/* Allocate memory for reply */
 	char * data = malloc(length);
 
+	uint32_t time_begin = csp_get_ms();
 	vmem_download(node, timeout, address, length, data);
+	uint32_t time_total = csp_get_ms() - time_begin;
 
 	/* Open file (truncate or create) */
 	FILE * fd = fopen(file, "w+");
@@ -65,7 +68,7 @@ static int vmem_client_slash_download(struct slash *slash)
 	int written = fwrite(data, 1, length, fd);
 	fclose(fd);
 
-	printf("Downloaded %u bytes\n", written);
+	printf("Downloaded %u bytes in %.03f s at %u Bps\n", written, time_total / 1000.0, (unsigned int) (written / ((float)time_total / 1000.0)) );
 
 	return SLASH_SUCCESS;
 }
