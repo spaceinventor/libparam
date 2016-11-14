@@ -8,8 +8,6 @@
 #include <vmem/vmem.h>
 #include <slash/slash.h>
 
-slash_command_group(vmem, "VMEM");
-
 static int slash_vmem_list(struct slash *slash)
 {
 	vmem_list();

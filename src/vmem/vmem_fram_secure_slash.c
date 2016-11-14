@@ -22,7 +22,7 @@ static int slash_vmem_backup(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command(backup, slash_vmem_backup, "<vmem idx>", NULL);
+slash_command_sub(vmem, backup, slash_vmem_backup, "<vmem idx>", NULL);
 
 static int slash_vmem_restore(struct slash *slash)
 {
@@ -35,6 +35,6 @@ static int slash_vmem_restore(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command(restore, slash_vmem_restore, "<vmem idx>", NULL);
+slash_command_sub(vmem, restore, slash_vmem_restore, "<vmem idx>", NULL);
 
 
