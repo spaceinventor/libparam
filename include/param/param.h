@@ -116,10 +116,11 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 		.vmem = &vmem_##_vmem_name##_instance, \
 	}
 
-#define PARAM_DEFINE_STRUCT_VMEM(fieldname, _id, _type, _size, _min, _max, _readonly, _callback, _unit, vmem_name, _addr) \
+#define PARAM_DEFINE_STRUCT_VMEM(fieldname, _id, _type, _size, _min, _max, _readonly, _callback, _unit, _vmem_name, _addr) \
 	.fieldname = { \
+		.id = _id, \
 		.type = _type, \
-		.name = #vmem_name "_" #fieldname, \
+		.name = #_vmem_name "_" #fieldname, \
 		.size = _size, \
 		.min = _min, \
 		.max = _max, \
