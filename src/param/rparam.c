@@ -18,48 +18,6 @@
 #include "param_string.h"
 #include <param/rparam_list.h>
 
-/**
- * Responses from rparam get are stateless (ie. contains both key and values)
- * This function does not free the packet
- */
-static int rparam_deserialize_packet(csp_packet_t * packet, int verbose) {
-
-	int i = 0;
-	while(i < packet->length) {
-
-		/* Get id */
-		uint16_t id;
-		memcpy(&id, &packet->data[i], sizeof(id));
-		i += sizeof(id);
-		id = csp_ntoh16(id);
-
-		/* Search for rparam using list */
-		rparam_t * rparam = rparam_list_find_id(packet->id.src, id);
-
-		if (rparam == NULL) {
-			printf("No rparam for node %u id %u\n", packet->id.src, id);
-			return -1;
-		}
-
-		if (rparam->value == NULL) {
-			rparam->value = calloc(rparam_size(rparam), 1);
-		}
-
-		i += param_deserialize_to_var(rparam->type, rparam->size, &packet->data[i], rparam->value);
-
-		rparam->value_updated = csp_get_ms();
-		if (rparam->setvalue_pending == 2)
-			rparam->setvalue_pending = 0;
-
-		if (verbose)
-			rparam_print(rparam);
-
-	}
-
-	return 0;
-
-}
-
 int rparam_size(rparam_t * rparam) {
 	int size = param_typesize(rparam->type);
 	if (size == -1) {
@@ -68,7 +26,12 @@ int rparam_size(rparam_t * rparam) {
 	return size;
 }
 
-int rparam_get(rparam_t * rparams[], int count)
+int rparam_get_single(rparam_t * rparam) {
+	rparam_t * rparams[1] = { rparam };
+	return rparam_get(rparams, 1, 0);
+}
+
+int rparam_get(rparam_t * rparams[], int count, int verbose)
 {
 	csp_packet_t * packet = csp_buffer_get(256);
 	if (packet == NULL)
@@ -78,8 +41,8 @@ int rparam_get(rparam_t * rparams[], int count)
 
 	int response_size = 0;
 
-	int i;
-	for (i = 0; i < count; i++) {
+	int i = 0;
+	for (int i = 0; i < count; i++) {
 		if (response_size + sizeof(uint16_t) + rparam_size(rparams[i]) > PARAM_SERVER_MTU) {
 			printf("Request cropped: > MTU\n");
 			break;
@@ -111,7 +74,37 @@ int rparam_get(rparam_t * rparams[], int count)
 
 	//csp_hex_dump("Response", packet->data, packet->length);
 
-	rparam_deserialize_packet(packet, 1);
+	i = 0;
+	while(i < packet->length) {
+
+		/* Get id */
+		uint16_t id;
+		memcpy(&id, &packet->data[i], sizeof(id));
+		i += sizeof(id);
+		id = csp_ntoh16(id);
+
+		/* Search for rparam using list */
+		rparam_t * rparam = rparam_list_find_id(packet->id.src, id);
+
+		if (rparam == NULL) {
+			printf("No rparam for node %u id %u\n", packet->id.src, id);
+			return -1;
+		}
+
+		if (rparam->value == NULL) {
+			rparam->value = calloc(rparam_size(rparam), 1);
+		}
+
+		i += param_deserialize_to_var(rparam->type, rparam->size, &packet->data[i], rparam->value);
+
+		rparam->value_updated = csp_get_ms();
+		if (rparam->setvalue_pending == 2)
+			rparam->setvalue_pending = 0;
+
+		if (verbose)
+			rparam_print(rparam);
+
+	}
 
 	csp_buffer_free(packet);
 	csp_close(conn);
@@ -122,7 +115,7 @@ int rparam_get(rparam_t * rparams[], int count)
 
 #define RPARAM_GET(_type, _name) \
 	_type rparam_get_##_name(rparam_t * rparam) { \
-		rparam_get(&rparam, 1); \
+		rparam_get(&rparam, 1, 0); \
 		return *(_type *) rparam->value; \
 	} \
 
@@ -137,7 +130,12 @@ RPARAM_GET(int64_t, int64)
 RPARAM_GET(float, float)
 RPARAM_GET(double, double)
 
-int rparam_set(rparam_t * rparams[], int count)
+int rparam_set_single(rparam_t * rparam) {
+	rparam_t * rparams[1] = { rparam };
+	return rparam_set(rparams, 1, 0);
+}
+
+int rparam_set(rparam_t * rparams[], int count, int verbose)
 {
 	csp_packet_t * packet = csp_buffer_get(256);
 	if (packet == NULL)
@@ -163,6 +161,12 @@ int rparam_set(rparam_t * rparams[], int count)
 
 	}
 
+	/* If there were no parameters to be set */
+	if (packet->length == 0) {
+		csp_buffer_free(packet);
+		return 0;
+	}
+
 	//csp_hex_dump("request", packet->data, packet->length);
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, rparams[0]->node, PARAM_PORT_SET, 0, CSP_SO_NONE);
@@ -180,7 +184,7 @@ int rparam_set(rparam_t * rparams[], int count)
 	packet = csp_read(conn, rparams[0]->timeout);
 	if (packet == NULL) {
 		csp_close(conn);
-		printf("No response\n");
+		//printf("No response\n");
 		return -1;
 	}
 
@@ -197,7 +201,8 @@ int rparam_set(rparam_t * rparams[], int count)
 
 		memcpy(rparams[i]->value, rparams[i]->setvalue, rparam_size(rparams[i]));
 
-		rparam_print(rparams[i]);
+		if (verbose)
+			rparam_print(rparams[i]);
 
 	}
 
@@ -207,10 +212,10 @@ int rparam_set(rparam_t * rparams[], int count)
 }
 
 #define RPARAM_SET(_type, _name) \
-	void rparam_set_##_name(rparam_t * rparam, _type value) { \
+	int rparam_set_##_name(rparam_t * rparam, _type value) { \
 		*(_type *) rparam->setvalue = value; \
 		rparam->setvalue_pending = 1; \
-		rparam_set(&rparam, 1); \
+		return rparam_set(&rparam, 1, 0); \
 	} \
 
 RPARAM_SET(uint8_t, uint8)

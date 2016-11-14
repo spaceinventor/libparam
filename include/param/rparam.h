@@ -44,6 +44,7 @@ typedef struct {
 
 #define RPARAM(_nodename, _node, _timeout, _id, _type, _name, _size, _unit, _readonly, _typecast) \
 	_typecast _nodename##_##_name##_value; \
+	_typecast _nodename##_##_name##_setvalue; \
 	struct rparam_t _nodename##_##_name = { \
 		.node = _node, \
 		.timeout = _timeout, \
@@ -54,10 +55,13 @@ typedef struct {
 		.unit = _unit, \
 		.readonly = _readonly, \
 		.value = &_nodename##_##_name##_value, \
+		.setvalue = &_nodename##_##_name##_setvalue, \
 	}; \
 
-int rparam_get(rparam_t * rparams[], int count);
-int rparam_set(rparam_t * rparams[], int count);
+int rparam_get(rparam_t * rparams[], int count, int verbose);
+int rparam_set(rparam_t * rparams[], int count, int verbose);
+int rparam_get_single(rparam_t * rparam);
+int rparam_set_single(rparam_t * rparam);
 
 #define RPARAM_GET(_type, _name) _type rparam_get_##_name(rparam_t * rparam);
 RPARAM_GET(uint8_t, uint8)
@@ -72,7 +76,7 @@ RPARAM_GET(float, float)
 RPARAM_GET(double, double)
 #undef RPARAM_GET
 
-#define RPARAM_SET(_type, _name) void rparam_set_##_name(rparam_t * rparam, _type value);
+#define RPARAM_SET(_type, _name) int rparam_set_##_name(rparam_t * rparam, _type value);
 RPARAM_SET(uint8_t, uint8)
 RPARAM_SET(uint16_t, uint16)
 RPARAM_SET(uint32_t, uint32)
