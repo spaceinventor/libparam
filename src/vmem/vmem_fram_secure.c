@@ -36,8 +36,13 @@ void vmem_fram_secure_init(vmem_t * vmem)
 
 }
 
-void vmem_fram_secure_backup(vmem_t * vmem)
+int vmem_fram_secure_backup(vmem_t * vmem)
 {
+	if (vmem->type != VMEM_TYPE_FRAM_SECURE) {
+		printf("Invalid vmem type\n");
+		return -1;
+	}
+
 	vmem_fram_secure_driver_t * driver = vmem->driver;
 	printf("Vmem fram secure backup %s\r\n", vmem->name);
 
@@ -53,10 +58,17 @@ void vmem_fram_secure_backup(vmem_t * vmem)
 
 	/* Lock FRAM */
 	fm25w256_unlock_upper();
+
+	return 0;
 }
 
-void vmem_fram_secure_restore(vmem_t * vmem)
+int vmem_fram_secure_restore(vmem_t * vmem)
 {
+	if (vmem->type != VMEM_TYPE_FRAM_SECURE) {
+		printf("Invalid vmem type\n");
+		return -1;
+	}
+
 	uint32_t fram_crc, ram_crc;
 	vmem_fram_secure_driver_t * driver = vmem->driver;
 
@@ -73,7 +85,7 @@ void vmem_fram_secure_restore(vmem_t * vmem)
 
 		/* Write checksum (always kept in top 4 bytes of vmem) */
 		fm25w256_write_data(driver->fram_primary_addr + vmem->size - sizeof(uint32_t), &ram_crc, sizeof(uint32_t));
-		return;
+		return 0;
 	}
 
 	printf("%s: Backup FRAM corrupt, falling back to factory config\n", vmem->name);
@@ -87,6 +99,8 @@ void vmem_fram_secure_restore(vmem_t * vmem)
 	/* Call fallback config */
 	if (driver->fallback_fct != NULL)
 		driver->fallback_fct();
+
+	return 0;
 }
 
 void vmem_fram_secure_read(vmem_t * vmem, uint32_t addr, void * dataout, int len)

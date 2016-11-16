@@ -21,7 +21,7 @@ void vmem_download(int node, int timeout, uint32_t address, uint32_t length, cha
 
 	csp_packet_t * packet = csp_buffer_get(sizeof(vmem_request_t));
 	vmem_request_t * request = (void *) packet->data;
-	request->version = 1;
+	request->version = VMEM_VERSION;
 	request->type = VMEM_SERVER_DOWNLOAD;
 	request->data.address = csp_hton32(address);
 	request->data.length = csp_hton32(length);
@@ -70,7 +70,7 @@ void vmem_upload(int node, int timeout, uint32_t address, char * datain, uint32_
 
 	csp_packet_t * packet = csp_buffer_get(sizeof(vmem_request_t));
 	vmem_request_t * request = (void *) packet->data;
-	request->version = 1;
+	request->version = VMEM_VERSION;
 	request->type = VMEM_SERVER_UPLOAD;
 	request->data.address = csp_hton32(address);
 	request->data.length = csp_hton32(length);
@@ -124,7 +124,7 @@ void vmem_client_list(int node, int timeout) {
 
 	csp_packet_t * packet = csp_buffer_get(sizeof(vmem_request_t));
 	vmem_request_t * request = (void *) packet->data;
-	request->version = 1;
+	request->version = VMEM_VERSION;
 	request->type = VMEM_SERVER_LIST;
 	packet->length = sizeof(vmem_request_t);
 
@@ -142,9 +142,29 @@ void vmem_client_list(int node, int timeout) {
 	}
 
 	for (vmem_list_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
-		printf(" %u: %-8s 0x%08X - %u\r\n", vmem->vmem_id, vmem->name, (unsigned int) csp_ntoh32(vmem->vaddr), (unsigned int) csp_ntoh32(vmem->size));
+		printf(" %u: %-8s 0x%08X - %u typ %u\r\n", vmem->vmem_id, vmem->name, (unsigned int) csp_ntoh32(vmem->vaddr), (unsigned int) csp_ntoh32(vmem->size), vmem->type);
 	}
 
 	csp_buffer_free(packet);
+
+}
+
+int vmem_client_backup(int node, int vmem_id, int timeout, int backup_or_restore) {
+
+	vmem_request_t request;
+	request.version = VMEM_VERSION;
+	if (backup_or_restore) {
+		request.type = VMEM_SERVER_BACKUP;
+	} else {
+		request.type = VMEM_SERVER_RESTORE;
+	}
+	request.vmem.vmem_id = vmem_id;
+
+	int8_t response = -1;
+	if (!csp_transaction(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, &request, sizeof(vmem_request_t), &response, 1)) {
+		return -2;
+	}
+
+	return (int) response;
 
 }

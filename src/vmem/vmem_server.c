@@ -12,6 +12,7 @@
 
 #include <vmem/vmem.h>
 #include <vmem/vmem_server.h>
+#include <vmem/vmem_fram_secure.h>
 
 void vmem_server_handler(csp_conn_t * conn)
 {
@@ -84,9 +85,27 @@ void vmem_server_handler(csp_conn_t * conn)
 			list[i].vaddr = csp_hton32((intptr_t) vmem->vaddr);
 			list[i].size = csp_hton32(vmem->size);
 			list[i].vmem_id = i;
+			list[i].type = vmem->type;
 			strncpy(list[i].name, vmem->name, 8);
 			packet->length += sizeof(vmem_list_t);
 		}
+
+		if (!csp_send(conn, packet, VMEM_SERVER_TIMEOUT)) {
+			csp_buffer_free(packet);
+			return;
+		}
+
+	} else if ((request->type == VMEM_SERVER_RESTORE) || (request->type == VMEM_SERVER_BACKUP)) {
+
+		int result;
+		if (request->type == VMEM_SERVER_BACKUP) {
+			result = vmem_fram_secure_backup(vmem_index_to_ptr(request->vmem.vmem_id));
+		} else {
+			result = vmem_fram_secure_restore(vmem_index_to_ptr(request->vmem.vmem_id));
+		}
+
+		packet->data[0] = (int8_t) result;
+		packet->length = 1;
 
 		if (!csp_send(conn, packet, VMEM_SERVER_TIMEOUT)) {
 			csp_buffer_free(packet);

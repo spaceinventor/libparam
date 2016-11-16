@@ -19,6 +19,7 @@ typedef struct {
 		.fram_addr = fram_addr_in, \
 	}; \
 	static vmem_t vmem_##name_in##_instance __attribute__ ((section("vmem"), used)) = { \
+		.type = VMEM_TYPE_FRAM, \
 		.name = strname, \
 		.size = size_in, \
 		.read = vmem_fram_read, \

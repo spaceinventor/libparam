@@ -11,10 +11,10 @@
 #include <vmem/vmem.h>
 
 void vmem_fram_secure_init(vmem_t * vmem);
-void vmem_fram_secure_backup(vmem_t * vmem);
 void vmem_fram_secure_read(vmem_t * vmem, uint32_t addr, void * dataout, int len);
 void vmem_fram_secure_write(vmem_t * vmem, uint32_t addr, void * datain, int len);
-void vmem_fram_secure_restore(vmem_t * vmem);
+int vmem_fram_secure_backup(vmem_t * vmem);
+int vmem_fram_secure_restore(vmem_t * vmem);
 
 typedef const struct {
 	uint8_t *data;
@@ -32,6 +32,7 @@ typedef const struct {
 		.fallback_fct = _fallback_fct, \
 	}; \
 	vmem_t vmem_##name_in##_instance __attribute__ ((section("vmem"), used)) = { \
+		.type = VMEM_TYPE_FRAM_SECURE, \
 		.name = strname, \
 		.size = size_in, \
 		.read = vmem_fram_secure_read, \

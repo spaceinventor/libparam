@@ -23,6 +23,7 @@ typedef struct {
 		.physaddr = vmem_##name_in##_heap, \
 	}; \
 	static vmem_t vmem_##name_in##_instance __attribute__ ((section("vmem"), used)) = { \
+		.type = VMEM_TYPE_RAM, \
 		.name = strname, \
 		.size = size_in, \
 		.read = vmem_ram_read, \
