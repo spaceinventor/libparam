@@ -207,6 +207,7 @@ int rparam_set(rparam_t * rparams[], int count, int verbose)
 
 	}
 
+	csp_buffer_free(packet);
 	csp_close(conn);
 
 	return 0;

@@ -19,14 +19,31 @@
 typedef enum {
 	VMEM_SERVER_UPLOAD,
 	VMEM_SERVER_DOWNLOAD,
+	VMEM_SERVER_LIST,
+	VMEM_SERVER_RESTORE,
+	VMEM_SERVER_BACKUP,
 } vmem_request_type;
 
 typedef struct {
 	uint8_t version;
 	uint8_t type;
-	uint32_t address;
-	uint32_t length;
+	union {
+		struct {
+			uint32_t address;
+			uint32_t length;
+		} data;
+		struct {
+			uint32_t vmem_id;
+		} vmem;
+	};
 } __attribute__((packed)) vmem_request_t;
+
+typedef struct {
+	uint32_t vaddr;
+	uint32_t size;
+	uint8_t vmem_id;
+	char name[8];
+} __attribute__((packed)) vmem_list_t;
 
 void vmem_server_handler(csp_conn_t * conn);
 csp_thread_return_t vmem_server_task(void *pvParameters);

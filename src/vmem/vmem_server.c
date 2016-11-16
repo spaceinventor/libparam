@@ -23,14 +23,15 @@ void vmem_server_handler(csp_conn_t * conn)
 	/* Copy data from request */
 	vmem_request_t * request = (void *) packet->data;
 	int type = request->type;
-	uint32_t address = csp_ntoh32(request->address);
-	uint32_t length = csp_ntoh32(request->length);
-	csp_buffer_free(packet);
 
 	/**
 	 * DOWNLOAD
 	 */
 	if (type == VMEM_SERVER_DOWNLOAD) {
+
+		uint32_t address = csp_ntoh32(request->data.address);
+		uint32_t length = csp_ntoh32(request->data.length);
+		csp_buffer_free(packet);
 
 		unsigned int count = 0;
 		while(count < length) {
@@ -56,6 +57,9 @@ void vmem_server_handler(csp_conn_t * conn)
 	 */
 	} else if (request->type == VMEM_SERVER_UPLOAD) {
 
+		uint32_t address = csp_ntoh32(request->data.address);
+		csp_buffer_free(packet);
+
 		int count = 0;
 		while((packet = csp_read(conn, VMEM_SERVER_TIMEOUT)) != NULL) {
 
@@ -68,6 +72,25 @@ void vmem_server_handler(csp_conn_t * conn)
 			count += packet->length;
 
 			csp_buffer_free(packet);
+		}
+
+	} else if (request->type == VMEM_SERVER_LIST) {
+
+		vmem_list_t * list = (vmem_list_t *) packet->data;
+
+		int i = 0;
+		packet->length = 0;
+		for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++, i++) {
+			list[i].vaddr = csp_hton32((intptr_t) vmem->vaddr);
+			list[i].size = csp_hton32(vmem->size);
+			list[i].vmem_id = i;
+			strncpy(list[i].name, vmem->name, 8);
+			packet->length += sizeof(vmem_list_t);
+		}
+
+		if (!csp_send(conn, packet, VMEM_SERVER_TIMEOUT)) {
+			csp_buffer_free(packet);
+			return;
 		}
 
 	}

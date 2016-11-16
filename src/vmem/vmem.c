@@ -13,20 +13,6 @@
 
 extern int __start_vmem, __stop_vmem;
 
-void vmem_dump(vmem_t * vmem)
-{
-	uint8_t data[vmem->size];
-	vmem->read(vmem, 0x0, data, vmem->size);
-	csp_hex_dump(vmem->name, data, vmem->size);
-
-}
-
-void vmem_list(void) {
-	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
-		printf(" [vmem_%u] (%u) %s at %p\r\n", (unsigned int) (vmem - (vmem_t *) &__start_vmem), vmem->size, vmem->name, vmem->vaddr);
-	}
-}
-
 void * vmem_memcpy(void * to, void * from, size_t size) {
 
 	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {

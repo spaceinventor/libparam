@@ -18,6 +18,7 @@
 
 #include <slash/slash.h>
 
+#if 0
 static int vmem_client_slash_download(struct slash *slash)
 {
 	int node;
@@ -128,3 +129,30 @@ static int vmem_client_slash_upload(struct slash *slash)
 	return SLASH_SUCCESS;
 }
 slash_command(upload, vmem_client_slash_upload, "<file> <node> <address> [timeout]", "Upload from FILE to VMEM");
+#endif
+
+static int vmem_client_slash_list(struct slash *slash)
+{
+	int node;
+	int timeout = 2000;
+	char * endptr;
+
+	if (slash->argc < 2)
+		return SLASH_EUSAGE;
+
+	node = strtoul(slash->argv[1], &endptr, 10);
+	if (*endptr != '\0')
+		return SLASH_EUSAGE;
+
+	if (slash->argc >= 3) {
+		timeout = strtoul(slash->argv[2], &endptr, 10);
+		if (*endptr != '\0')
+			return SLASH_EUSAGE;
+	}
+
+	printf("Requesting vmem list from node %u timeout %u\n", node, timeout);
+
+	vmem_client_list(node, timeout);
+	return SLASH_SUCCESS;
+}
+slash_command_sub(vmem, list, vmem_client_slash_list, "<node> [timeout]", NULL);

@@ -30,4 +30,6 @@ void * vmem_memcpy(void * to, void * from, size_t size);
 vmem_t * vmem_index_to_ptr(int idx);
 int vmem_ptr_to_index(vmem_t * vmem);
 
+extern int __start_vmem, __stop_vmem;
+
 #endif /* SRC_PARAM_VMEM_H_ */
