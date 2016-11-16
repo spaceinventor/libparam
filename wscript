@@ -35,10 +35,9 @@ def configure(ctx):
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_server.c')
     	
     if ctx.options.vmem_fram:
+        ctx.define('VMEM_FRAM', 1)
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_fram.c')
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_fram_secure.c')
-        if ctx.env.SLASH_ENABLED:
-            ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_fram_secure_slash.c')
         ctx.env.append_unique('USE_VMEM', 'driver-fram')
             
     ctx.env.append_unique('FILES_PARAM', 'src/param/param.c')
@@ -59,6 +58,8 @@ def configure(ctx):
     
     if ctx.options.rparam_store_file: 
         ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_list_store_file.c')
+        
+    ctx.write_config_header('include/libparam.h')
 
 
 def build(ctx):

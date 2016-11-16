@@ -13,6 +13,7 @@
 #include <vmem/vmem.h>
 #include <vmem/vmem_server.h>
 #include <vmem/vmem_fram_secure.h>
+#include <libparam.h>
 
 void vmem_server_handler(csp_conn_t * conn)
 {
@@ -95,7 +96,9 @@ void vmem_server_handler(csp_conn_t * conn)
 			return;
 		}
 
-	} else if ((request->type == VMEM_SERVER_RESTORE) || (request->type == VMEM_SERVER_BACKUP)) {
+	}
+#if defined(VMEM_FRAM)
+	else if ((request->type == VMEM_SERVER_RESTORE) || (request->type == VMEM_SERVER_BACKUP)) {
 
 		int result;
 		if (request->type == VMEM_SERVER_BACKUP) {
@@ -113,6 +116,7 @@ void vmem_server_handler(csp_conn_t * conn)
 		}
 
 	}
+#endif
 
 }
 
