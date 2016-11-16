@@ -32,7 +32,7 @@ def configure(ctx):
         if ctx.env.SLASH_ENABLED:
             ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_client_slash.c')
     if ctx.options.vmem_client_ftp:
-        ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_client_ftp.c')
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_client_slash_ftp.c')
             
     if ctx.options.vmem_server:
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_server.c')
