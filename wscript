@@ -13,6 +13,7 @@ def options(ctx):
     gr.add_option('--vmem-fram', action='store_true')
     gr.add_option('--vmem-server', action='store_true')
     gr.add_option('--vmem-client', action='store_true')
+    gr.add_option('--vmem-client-ftp', action='store_true')
     
     gr.add_option('--rparam-client', action='store_true')
     gr.add_option('--rparam-client-slash', action='store_true')
@@ -30,6 +31,8 @@ def configure(ctx):
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_client.c')
         if ctx.env.SLASH_ENABLED:
             ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_client_slash.c')
+    if ctx.options.vmem_client_ftp:
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_client_ftp.c')
             
     if ctx.options.vmem_server:
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_server.c')
