@@ -23,6 +23,7 @@ typedef enum {
 	VMEM_SERVER_LIST,
 	VMEM_SERVER_RESTORE,
 	VMEM_SERVER_BACKUP,
+	VMEM_SERVER_UNLOCK,
 } vmem_request_type;
 
 typedef struct {
@@ -36,6 +37,9 @@ typedef struct {
 		struct {
 			uint8_t vmem_id;
 		} vmem;
+		struct {
+			uint32_t code;
+		} unlock;
 	};
 } __attribute__((packed)) vmem_request_t;
 

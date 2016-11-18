@@ -8,12 +8,18 @@
 #include <stdio.h>
 #include <csp/csp.h>
 #include <csp/csp_endian.h>
+#include <csp/arch/csp_time.h>
 #include <csp/arch/csp_thread.h>
 
 #include <vmem/vmem.h>
 #include <vmem/vmem_server.h>
 #include <vmem/vmem_fram_secure.h>
 #include <libparam.h>
+
+#if defined(VMEM_FRAM)
+#include <drivers/fm25w256.h>
+
+#endif
 
 void vmem_server_handler(csp_conn_t * conn)
 {
@@ -111,6 +117,42 @@ void vmem_server_handler(csp_conn_t * conn)
 		packet->length = 1;
 
 		if (!csp_send(conn, packet, VMEM_SERVER_TIMEOUT)) {
+			csp_buffer_free(packet);
+			return;
+		}
+
+	} else if (request->type == VMEM_SERVER_UNLOCK) {
+
+		/* Step 1: Check initial unlock code */
+		if (csp_ntoh32(request->unlock.code) != 0x28140360) {
+			csp_buffer_free(packet);
+			return;
+		}
+
+		/* Step 2: Generate verification sequence */
+		srand(csp_get_ms());
+		uint32_t verification_sequence = (uint32_t) (rand());
+		request->unlock.code = csp_hton32(verification_sequence);
+
+		if (!csp_send(conn, packet, 0)) {
+			csp_buffer_free(packet);
+			return;
+		}
+
+		/* Step 3: Wait for verification return (you have 30 seconds only) */
+		if ((packet = csp_read(conn, 30000)) == NULL) {
+			return;
+		}
+
+		/* Step 4: Validate verification sequence */
+		if (csp_ntoh32(request->unlock.code) == verification_sequence) {
+			fm25w256_unlock_upper();
+			request->unlock.code = csp_hton32(0);
+		} else {
+			request->unlock.code = csp_hton32(0xFFFFFFFF);
+		}
+
+		if (!csp_send(conn, packet, 0)) {
 			csp_buffer_free(packet);
 			return;
 		}
