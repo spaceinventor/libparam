@@ -46,8 +46,9 @@ int vmem_fram_secure_backup(vmem_t * vmem)
 	vmem_fram_secure_driver_t * driver = vmem->driver;
 	printf("Vmem fram secure backup %s\r\n", vmem->name);
 
-	/* Unlock FRAM */
-	fm25w256_unlock_upper();
+	/* Unlock FRAM:
+	 * This should have been performed by the user in advance */
+	//fm25w256_unlock_upper();
 
 	/* Write entire RAM cache to FRAM backup */
 	fm25w256_write_data(driver->fram_backup_addr, driver->data, vmem->size - sizeof(uint32_t));
