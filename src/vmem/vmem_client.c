@@ -146,6 +146,7 @@ void vmem_client_list(int node, int timeout) {
 	}
 
 	csp_buffer_free(packet);
+	csp_close(conn);
 
 }
 

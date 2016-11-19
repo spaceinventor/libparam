@@ -134,11 +134,13 @@ static int vmem_client_slash_unlock(struct slash *slash)
 
 	if (!csp_send(conn, packet, 0)) {
 		csp_buffer_free(packet);
+		csp_close(conn);
 		return SLASH_EINVAL;
 	}
 
 	/* Step 2: Wait for verification sequence */
 	if ((packet = csp_read(conn, timeout)) == NULL) {
+		csp_close(conn);
 		return SLASH_EINVAL;
 	}
 
@@ -157,12 +159,13 @@ static int vmem_client_slash_unlock(struct slash *slash)
 	/* Step 2a: Ask user to input sequence */
 	uint32_t user_verification;
 	printf("Type verification sequence (you have <30 seconds): \n");
-	scanf("%x", (unsigned int *) &user_verification);
+	if (scanf("%x", (unsigned int *) &user_verification));
 	getchar(); //! Consumes newline
 
 	printf("User input: %x\n", (unsigned int) user_verification);
 	if (user_verification != sat_verification) {
 		csp_buffer_free(packet);
+		csp_close(conn);
 		return SLASH_EINVAL;
 	}
 
@@ -171,9 +174,10 @@ static int vmem_client_slash_unlock(struct slash *slash)
 
 	printf("Are you sure [Y/N]?\n");
 	unsigned char sure = 'N';
-	scanf("%c", &sure);
+	if (scanf("%c", &sure));
 	if (sure != 'Y') {
 		csp_buffer_free(packet);
+		csp_close(conn);
 		return SLASH_EINVAL;
 	}
 
@@ -182,11 +186,13 @@ static int vmem_client_slash_unlock(struct slash *slash)
 
 	if (!csp_send(conn, packet, 0)) {
 		csp_buffer_free(packet);
+		csp_close(conn);
 		return SLASH_EINVAL;
 	}
 
 	/* Step 4: Check for result */
 	if ((packet = csp_read(conn, timeout)) == NULL) {
+		csp_close(conn);
 		return SLASH_EINVAL;
 	}
 
