@@ -13,6 +13,7 @@ def options(ctx):
     gr.add_option('--vmem-fram', action='store_true')
     gr.add_option('--vmem-server', action='store_true')
     gr.add_option('--vmem-client', action='store_true')
+    gr.add_option('--vmem-client-ftp', action='store_true')
     
     gr.add_option('--rparam-client', action='store_true')
     gr.add_option('--rparam-client-slash', action='store_true')
@@ -25,22 +26,21 @@ def configure(ctx):
     if ctx.options.vmem:
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem.c')
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_ram.c')
-        if ctx.env.SLASH_ENABLED:
-            ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_slash.c')
             
     if ctx.options.vmem_client:
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_client.c')
         if ctx.env.SLASH_ENABLED:
             ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_client_slash.c')
+    if ctx.options.vmem_client_ftp:
+        ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_client_slash_ftp.c')
             
     if ctx.options.vmem_server:
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_server.c')
     	
     if ctx.options.vmem_fram:
+        ctx.define('VMEM_FRAM', 1)
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_fram.c')
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_fram_secure.c')
-        if ctx.env.SLASH_ENABLED:
-            ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_fram_secure_slash.c')
         ctx.env.append_unique('USE_VMEM', 'driver-fram')
             
     ctx.env.append_unique('FILES_PARAM', 'src/param/param.c')
@@ -61,6 +61,8 @@ def configure(ctx):
     
     if ctx.options.rparam_store_file: 
         ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_list_store_file.c')
+        
+    ctx.write_config_header('include/libparam.h')
 
 
 def build(ctx):

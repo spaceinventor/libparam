@@ -8,10 +8,18 @@
 #include <stdio.h>
 #include <csp/csp.h>
 #include <csp/csp_endian.h>
+#include <csp/arch/csp_time.h>
 #include <csp/arch/csp_thread.h>
 
 #include <vmem/vmem.h>
 #include <vmem/vmem_server.h>
+#include <vmem/vmem_fram_secure.h>
+#include <libparam.h>
+
+#if defined(VMEM_FRAM)
+#include <drivers/fm25w256.h>
+
+#endif
 
 void vmem_server_handler(csp_conn_t * conn)
 {
@@ -23,14 +31,15 @@ void vmem_server_handler(csp_conn_t * conn)
 	/* Copy data from request */
 	vmem_request_t * request = (void *) packet->data;
 	int type = request->type;
-	uint32_t address = csp_ntoh32(request->address);
-	uint32_t length = csp_ntoh32(request->length);
-	csp_buffer_free(packet);
 
 	/**
 	 * DOWNLOAD
 	 */
 	if (type == VMEM_SERVER_DOWNLOAD) {
+
+		uint32_t address = csp_ntoh32(request->data.address);
+		uint32_t length = csp_ntoh32(request->data.length);
+		csp_buffer_free(packet);
 
 		unsigned int count = 0;
 		while(count < length) {
@@ -56,6 +65,9 @@ void vmem_server_handler(csp_conn_t * conn)
 	 */
 	} else if (request->type == VMEM_SERVER_UPLOAD) {
 
+		uint32_t address = csp_ntoh32(request->data.address);
+		csp_buffer_free(packet);
+
 		int count = 0;
 		while((packet = csp_read(conn, VMEM_SERVER_TIMEOUT)) != NULL) {
 
@@ -70,7 +82,83 @@ void vmem_server_handler(csp_conn_t * conn)
 			csp_buffer_free(packet);
 		}
 
+	} else if (request->type == VMEM_SERVER_LIST) {
+
+		vmem_list_t * list = (vmem_list_t *) packet->data;
+
+		int i = 0;
+		packet->length = 0;
+		for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++, i++) {
+			list[i].vaddr = csp_hton32((intptr_t) vmem->vaddr);
+			list[i].size = csp_hton32(vmem->size);
+			list[i].vmem_id = i;
+			list[i].type = vmem->type;
+			strncpy(list[i].name, vmem->name, 8);
+			packet->length += sizeof(vmem_list_t);
+		}
+
+		if (!csp_send(conn, packet, VMEM_SERVER_TIMEOUT)) {
+			csp_buffer_free(packet);
+			return;
+		}
+
 	}
+#if defined(VMEM_FRAM)
+	else if ((request->type == VMEM_SERVER_RESTORE) || (request->type == VMEM_SERVER_BACKUP)) {
+
+		int result;
+		if (request->type == VMEM_SERVER_BACKUP) {
+			result = vmem_fram_secure_backup(vmem_index_to_ptr(request->vmem.vmem_id));
+		} else {
+			result = vmem_fram_secure_restore(vmem_index_to_ptr(request->vmem.vmem_id));
+		}
+
+		packet->data[0] = (int8_t) result;
+		packet->length = 1;
+
+		if (!csp_send(conn, packet, VMEM_SERVER_TIMEOUT)) {
+			csp_buffer_free(packet);
+			return;
+		}
+
+	} else if (request->type == VMEM_SERVER_UNLOCK) {
+
+		/* Step 1: Check initial unlock code */
+		if (csp_ntoh32(request->unlock.code) != 0x28140360) {
+			csp_buffer_free(packet);
+			return;
+		}
+
+		/* Step 2: Generate verification sequence */
+		srand(csp_get_ms());
+		uint32_t verification_sequence = (uint32_t) (rand());
+		request->unlock.code = csp_hton32(verification_sequence);
+
+		if (!csp_send(conn, packet, 0)) {
+			csp_buffer_free(packet);
+			return;
+		}
+
+		/* Step 3: Wait for verification return (you have 30 seconds only) */
+		if ((packet = csp_read(conn, 30000)) == NULL) {
+			return;
+		}
+
+		/* Step 4: Validate verification sequence */
+		if (csp_ntoh32(request->unlock.code) == verification_sequence) {
+			fm25w256_unlock_upper();
+			request->unlock.code = csp_hton32(0);
+		} else {
+			request->unlock.code = csp_hton32(0xFFFFFFFF);
+		}
+
+		if (!csp_send(conn, packet, 0)) {
+			csp_buffer_free(packet);
+			return;
+		}
+
+	}
+#endif
 
 }
 

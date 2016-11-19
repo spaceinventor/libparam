@@ -14,7 +14,16 @@
 #include <stddef.h>
 #include <param/param.h>
 
+enum vmem_types{
+	VMEM_TYPE_RAM = 1,
+	VMEM_TYPE_FRAM = 2,
+	VMEM_TYPE_FRAM_SECURE = 3,
+	VMEM_TYPE_FLASH = 4,
+	VMEM_TYPE_DRIVER = 5,
+};
+
 typedef const struct vmem_s {
+	int type;
 	void (*read)(const struct vmem_s * vmem, uint32_t addr, void * dataout, int len);
 	void (*write)(const struct vmem_s * vmem, uint32_t addr, void * datain, int len);
 	void * vaddr;
@@ -24,10 +33,10 @@ typedef const struct vmem_s {
 	const void * driver;
 } vmem_t;
 
-void vmem_dump(vmem_t * vmem);
-void vmem_list(void);
 void * vmem_memcpy(void * to, void * from, size_t size);
 vmem_t * vmem_index_to_ptr(int idx);
 int vmem_ptr_to_index(vmem_t * vmem);
+
+extern int __start_vmem, __stop_vmem;
 
 #endif /* SRC_PARAM_VMEM_H_ */
