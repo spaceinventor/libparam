@@ -48,7 +48,7 @@ typedef struct {
 	uint32_t size;
 	uint8_t vmem_id;
 	uint8_t type;
-	char name[8];
+	char name[5];
 } __attribute__((packed)) vmem_list_t;
 
 void vmem_server_handler(csp_conn_t * conn);
