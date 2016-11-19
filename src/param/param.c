@@ -3,6 +3,7 @@
 #include <param/param.h>
 #include "param_string.h"
 
+#include <csp/csp.h>
 #include <csp/csp_endian.h>
 
 void param_print(param_t * param)
@@ -27,7 +28,7 @@ void param_print(param_t * param)
 #endif
 
 	/* Name and value */
-	char value_str[20] = "";
+	char value_str[21] = {};
 	param_value_str(param, value_str, 20);
 	printf(" %s = %s", param->name, value_str);
 
@@ -36,7 +37,7 @@ void param_print(param_t * param)
 		printf(" %s", param->unit);
 
 	/* Type */
-	char type_str[20] = "";
+	char type_str[21] = {};
 	param_type_str(param->type, type_str, 20);
 	printf(" %s", type_str);
 

@@ -232,7 +232,7 @@ RPARAM_SET(double, double)
 
 void rparam_print(rparam_t * rparam) {
 
-	char tmpstr[22];
+	char tmpstr[21] = {};
 
 	printf(" %2u:%-3u", rparam->node, rparam->id);
 

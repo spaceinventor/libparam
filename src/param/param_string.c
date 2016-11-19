@@ -11,6 +11,10 @@
 #include <param/param.h>
 #include "param_string.h"
 
+#ifndef MIN
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#endif
+
 void param_value_str(param_t *param, char * out, int len)
 {
 	switch(param->type) {
@@ -39,7 +43,7 @@ void param_value_str(param_t *param, char * out, int len)
 		param_get_data(param, data, param->size);
 		int written;
 		for (int i = 0; i < param->size && len >= 2; i++) {
-			written = snprintf(out, len, "%02hhx", (char) data[i]);
+			written = snprintf(out, len, "%02X", (char) data[i]);
 			len -= written;
 			out += written;
 		}
@@ -47,7 +51,7 @@ void param_value_str(param_t *param, char * out, int len)
 	}
 
 	case PARAM_TYPE_STRING:
-		param_get_string(param, out, len);
+		param_get_string(param, out, MIN(param->size, len));
 		break;
 
 #undef PARAM_SWITCH_SNPRINTF
@@ -80,7 +84,7 @@ void param_var_str(param_type_e type, int size, void * in, char * out, int len)
 	case PARAM_TYPE_DATA: {
 		int written;
 		for (int i = 0; i < size && len >= 2; i++) {
-			written = snprintf(out, len, "%02hhx", ((char *)in)[i]);
+			written = snprintf(out, len, "%02X", ((char *)in)[i]);
 			len -= written;
 			out += written;
 		}
@@ -88,7 +92,7 @@ void param_var_str(param_type_e type, int size, void * in, char * out, int len)
 	}
 
 	case PARAM_TYPE_STRING:
-		strncpy(out, in, len);
+		strncpy(out, in, MIN(size, len));
 		break;
 
 #undef PARAM_SWITCH_SNPRINTF
