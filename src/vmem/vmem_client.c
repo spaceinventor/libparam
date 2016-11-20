@@ -15,7 +15,7 @@
 void vmem_download(int node, int timeout, uint32_t address, uint32_t length, char * dataout)
 {
 	/* Establish RDP connection */
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP | CSP_O_CRC32);
 	if (conn == NULL)
 		return;
 
@@ -64,7 +64,7 @@ void vmem_download(int node, int timeout, uint32_t address, uint32_t length, cha
 void vmem_upload(int node, int timeout, uint32_t address, char * datain, uint32_t length)
 {
 	/* Establish RDP connection */
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP | CSP_O_CRC32);
 	if (conn == NULL)
 		return;
 
