@@ -17,7 +17,6 @@
 static rparam_t * list_begin = NULL;
 static rparam_t * list_end = NULL;
 
-
 int rparam_list_add(rparam_t * item) {
 
 	if (rparam_list_find_id(item->node, item->id) != NULL)

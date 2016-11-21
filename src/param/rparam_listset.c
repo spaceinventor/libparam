@@ -5,6 +5,7 @@
  *      Author: johan
  */
 
+#include <stdio.h>
 #include <string.h>
 
 #include <param/rparam_listset.h>
@@ -39,6 +40,16 @@ rparam_listset_t * rparam_listset_find(char * name) {
 		list = list->next;
 	}
 	return NULL;
+}
+
+void rparam_listset_print(void) {
+
+	rparam_listset_t * list = listset_begin;
+		while(list != NULL) {
+			printf("\t%s\n", list->listname);
+			list = list->next;
+		}
+
 }
 
 

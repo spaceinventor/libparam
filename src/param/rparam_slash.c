@@ -361,12 +361,8 @@ static int rparam_slash_list(struct slash *slash)
 	char * endptr;
 
 	if (slash->argc < 2) {
-#if 0
 		printf("Select list:\n");
-		for (struct ax_rparam_list * searchlist = ax_rparam_list; searchlist->listname != NULL; searchlist++) {
-			printf("\t%s\n", searchlist->listname);
-		}
-#endif
+		rparam_listset_print();
 		return SLASH_EUSAGE;
 	}
 

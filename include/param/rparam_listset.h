@@ -16,5 +16,6 @@ typedef struct rparam_list_s {
 
 int rparam_listset_add(rparam_listset_t * item);
 rparam_listset_t * rparam_listset_find(char * name);
+void rparam_listset_print(void);
 
 #endif /* LIB_PARAM_INCLUDE_PARAM_RPARAM_LISTSET_H_ */
