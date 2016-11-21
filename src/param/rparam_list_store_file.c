@@ -42,7 +42,7 @@ void rparam_list_store_file_load(void) {
 			continue;
 		memcpy(rparam_cpy, &rparam, sizeof(rparam_t));
 
-		rparam_add(rparam_cpy);
+		rparam_list_add(rparam_cpy);
 
 	}
 

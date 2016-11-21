@@ -17,6 +17,7 @@
 #include <param/param.h>
 #include <param/rparam.h>
 #include <param/rparam_list.h>
+#include <param/rparam_listset.h>
 
 #include "param_serializer.h"
 #include "param_string.h"
@@ -369,7 +370,7 @@ static int rparam_slash_list(struct slash *slash)
 		return SLASH_EUSAGE;
 	}
 
-	rparam_list_t * list = rparam_list_find(slash->argv[1]);
+	rparam_listset_t * list = rparam_listset_find(slash->argv[1]);
 
 	if (list == NULL) {
 		printf("Could not find list with name: %s\n", slash->argv[1]);
