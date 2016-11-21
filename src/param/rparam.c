@@ -55,7 +55,7 @@ int rparam_get(rparam_t * rparams[], int count, int verbose)
 
 	//csp_hex_dump("request", packet->data, packet->length);
 
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, rparams[0]->node, PARAM_PORT_GET, 0, CSP_SO_NONE);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, rparams[0]->node, PARAM_PORT_GET, 0, CSP_O_CRC32);
 	if (conn == NULL) {
 		csp_buffer_free(packet);
 		return -1;
@@ -170,7 +170,7 @@ int rparam_set(rparam_t * rparams[], int count, int verbose)
 
 	//csp_hex_dump("request", packet->data, packet->length);
 
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, rparams[0]->node, PARAM_PORT_SET, 0, CSP_SO_NONE);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, rparams[0]->node, PARAM_PORT_SET, 0, CSP_O_CRC32);
 	if (conn == NULL) {
 		csp_buffer_free(packet);
 		return -1;
