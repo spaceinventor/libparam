@@ -14,10 +14,41 @@
 
 #include "param_string.h"
 
-rparam_t * list_begin = NULL;
-rparam_t * list_end = NULL;
+static rparam_t * list_begin = NULL;
+static rparam_t * list_end = NULL;
+static rparam_list_t * listset_begin = NULL;
+static rparam_list_t * listset_end = NULL;
 
-int rparam_list_add(rparam_t * item) {
+int rparam_list_add(rparam_list_t * item) {
+
+	if (listset_begin == NULL)
+		listset_begin = item;
+
+	if (listset_end != NULL)
+		listset_end->next = item;
+
+	listset_end = item;
+
+	item->next = NULL;
+
+	return 0;
+
+}
+
+rparam_list_t * rparam_list_find(char * name) {
+
+	rparam_list_t * list = listset_begin;
+	while(list != NULL) {
+
+		if (strcmp(list->listname, name) == 0)
+			return list;
+
+		list = list->next;
+	}
+	return NULL;
+}
+
+int rparam_add(rparam_t * item) {
 
 	if (rparam_list_find_id(item->node, item->id) != NULL)
 		return -1;
@@ -29,6 +60,7 @@ int rparam_list_add(rparam_t * item) {
 		list_end->next = item;
 
 	list_end = item;
+
 	item->next = NULL;
 
 	return 0;
@@ -102,7 +134,7 @@ void rparam_list_foreach(void (*iterator)(rparam_t * rparam)) {
 void rparam_list_download(int node, int timeout) {
 
 	/* Establish RDP connection */
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_LIST, timeout, CSP_O_RDP);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_LIST, timeout, CSP_O_RDP | CSP_O_CRC32);
 	if (conn == NULL)
 		return;
 
@@ -128,7 +160,7 @@ void rparam_list_download(int node, int timeout) {
 		printf("Got param: %s\n", rparam->name);
 
 		/* Add to list */
-		if (rparam_list_add(rparam) != 0)
+		if (rparam_add(rparam) != 0)
 			free(rparam);
 
 		csp_buffer_free(packet);

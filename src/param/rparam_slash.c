@@ -316,7 +316,7 @@ static int rparam_slash_download(struct slash *slash)
 }
 slash_command_sub(rparam, download, rparam_slash_download, "<node> [timeout]", NULL);
 
-static int rparam_slash_list(struct slash *slash)
+static int rparam_slash_all(struct slash *slash)
 {
 	int node = -1;
 	int pending = 0;
@@ -327,7 +327,7 @@ static int rparam_slash_list(struct slash *slash)
 	rparam_list_print(node, pending);
 	return SLASH_SUCCESS;
 }
-slash_command_sub(rparam, list, rparam_slash_list, "<node> <pending>", "list remote parameters");
+slash_command_sub(rparam, all, rparam_slash_all, "<node> <pending>", "show all remote parameters");
 
 static int rparam_slash_clear(struct slash *slash)
 {
@@ -351,4 +351,65 @@ static int rparam_slash_queue(struct slash *slash)
 	return SLASH_SUCCESS;
 }
 slash_command_sub(rparam, queue, rparam_slash_queue, "<autosend>", NULL);
+
+
+static int rparam_slash_list(struct slash *slash)
+{
+	int node = csp_get_address();
+	int timeout = 2000;
+	char * endptr;
+
+	if (slash->argc < 2) {
+#if 0
+		printf("Select list:\n");
+		for (struct ax_rparam_list * searchlist = ax_rparam_list; searchlist->listname != NULL; searchlist++) {
+			printf("\t%s\n", searchlist->listname);
+		}
+#endif
+		return SLASH_EUSAGE;
+	}
+
+	rparam_list_t * list = rparam_list_find(slash->argv[1]);
+
+	if (list == NULL) {
+		printf("Could not find list with name: %s\n", slash->argv[1]);
+		return SLASH_EINVAL;
+	}
+
+	if (slash->argc >= 3) {
+		node = strtoul(slash->argv[2], &endptr, 10);
+		if (*endptr != '\0')
+			return SLASH_EUSAGE;
+	}
+
+	if (slash->argc >= 4) {
+		timeout = strtoul(slash->argv[3], &endptr, 10);
+		if (*endptr != '\0')
+			return SLASH_EUSAGE;
+	}
+
+	printf("Requesting list %s from %u, timeout %u\n", list->listname, node, timeout);
+
+	rparam_t *rparams[50];
+	int rparams_count = 0;
+	for (char ** name = list->names; *name != NULL; name++) {
+		rparams[rparams_count] = rparam_list_find_name(node, *name);
+		if ((rparams[rparams_count] != NULL) && (rparams_count < 50)) {
+			rparams_count++;
+		}
+	}
+
+	if (rparams_count == 0) {
+		return SLASH_EINVAL;
+	}
+
+	rparams[0]->node = node;
+	rparams[0]->timeout = timeout;
+
+	rparam_get(rparams, rparams_count, 1);
+
+	return SLASH_SUCCESS;
+}
+
+slash_command_sub(rparam, list, rparam_slash_list, "<list> [node] [timeout]", NULL);
 
