@@ -89,6 +89,8 @@ int rparam_get(rparam_t * rparams[], int count, int verbose)
 
 		if (rparam == NULL) {
 			printf("No rparam for node %u id %u\n", packet->id.src, id);
+			csp_buffer_free(packet);
+			csp_close(conn);
 			return -1;
 		}
 
