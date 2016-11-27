@@ -212,6 +212,8 @@ int param_deserialize_single(char * inbuf) {
 
 int param_serialize_single(param_t * param, char * outbuf, int len)
 {
+	if (param == NULL)
+		return 0;
 
 	int size = 0;
 
