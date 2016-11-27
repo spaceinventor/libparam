@@ -14,6 +14,9 @@
 #include <vmem/vmem.h>
 #include <vmem/vmem_server.h>
 #include <vmem/vmem_fram_secure.h>
+
+#include <param/rparam.h>
+
 #include <libparam.h>
 
 #if defined(VMEM_FRAM)
@@ -162,6 +165,26 @@ void vmem_server_handler(csp_conn_t * conn)
 
 }
 
+#define MIN(a,b) (((a)<(b))?(a):(b))
+
+static void rparam_list_handler(csp_conn_t * conn)
+{
+	param_t * param;
+	param_foreach(param) {
+		csp_packet_t * packet = csp_buffer_get(256);
+		rparam_transfer_t * rparam = (void *) packet->data;
+		rparam->id = csp_hton16(param->id);
+		rparam->type = param->type;
+		rparam->size = param->size;
+		strncpy(rparam->name, param->name, 25);
+		packet->length = offsetof(rparam_transfer_t, name) + MIN(strlen(param->name), 25);
+		if (!csp_send(conn, packet, 1000)) {
+			csp_buffer_free(packet);
+			return;
+		}
+	}
+}
+
 csp_thread_return_t vmem_server_task(void *pvParameters)
 {
 
@@ -170,6 +193,7 @@ csp_thread_return_t vmem_server_task(void *pvParameters)
 
 	/* Bind all ports to socket */
 	csp_bind(sock, VMEM_PORT_SERVER);
+	csp_bind(sock, PARAM_PORT_LIST);
 
 	/* Create 10 connections backlog queue */
 	csp_listen(sock, 10);
@@ -187,6 +211,13 @@ csp_thread_return_t vmem_server_task(void *pvParameters)
 		/* Handle RDP service differently */
 		if (csp_conn_dport(conn) == VMEM_PORT_SERVER) {
 			vmem_server_handler(conn);
+			csp_close(conn);
+			continue;
+		}
+
+		/* Handle RDP service differently */
+		if (csp_conn_dport(conn) == PARAM_PORT_LIST) {
+			rparam_list_handler(conn);
 			csp_close(conn);
 			continue;
 		}

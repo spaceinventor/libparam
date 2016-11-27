@@ -13,8 +13,6 @@
 #include <param/rparam.h>
 #include "param_serializer.h"
 
-#define MIN(a,b) (((a)<(b))?(a):(b))
-
 static void rparam_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 
 	//csp_hex_dump("get handler", packet->data, packet->length);
@@ -47,24 +45,6 @@ static void rparam_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 
 }
 
-static void rparam_list_handler(csp_conn_t * conn)
-{
-	param_t * param;
-	param_foreach(param) {
-		csp_packet_t * packet = csp_buffer_get(256);
-		rparam_transfer_t * rparam = (void *) packet->data;
-		rparam->id = csp_hton16(param->id);
-		rparam->type = param->type;
-		rparam->size = param->size;
-		strncpy(rparam->name, param->name, 25);
-		packet->length = offsetof(rparam_transfer_t, name) + MIN(strlen(param->name), 25);
-		if (!csp_send(conn, packet, 1000)) {
-			csp_buffer_free(packet);
-			return;
-		}
-	}
-}
-
 csp_thread_return_t rparam_server_task(void *pvParameters)
 {
 
@@ -87,13 +67,6 @@ csp_thread_return_t rparam_server_task(void *pvParameters)
 		/* Wait for connection, 10000 ms timeout */
 		if ((conn = csp_accept(sock, CSP_MAX_DELAY)) == NULL)
 			continue;
-
-		/* Handle RDP service differently */
-		if (csp_conn_dport(conn) == PARAM_PORT_LIST) {
-			rparam_list_handler(conn);
-			csp_close(conn);
-			continue;
-		}
 
 		/* Read packets. Timout is 100 ms */
 		while ((packet = csp_read(conn, 0)) != NULL) {
