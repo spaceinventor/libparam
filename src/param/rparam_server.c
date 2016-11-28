@@ -34,7 +34,12 @@ static void rparam_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 {
 	int count = 0;
 	while(count < packet->length) {
-		count += param_deserialize_single((char *) packet->data + count);
+		int ret = param_deserialize_single((char *) packet->data + count);
+		if (ret == 0) {
+			csp_buffer_free(packet);
+			return;
+		}
+		count += ret;
 	}
 
 	/* Send ack */
