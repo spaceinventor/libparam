@@ -34,13 +34,18 @@ void rparam_list_store_file_load(void) {
 	if (store == NULL)
 		return;
 
-	rparam_t rparam;
+	rparam_t rparam = {};
 	while (fread(&rparam, 1, sizeof(rparam_t), store) == sizeof(rparam_t)) {
 
-		rparam_t * rparam_cpy = malloc(sizeof(rparam_t));
+		rparam_t * rparam_cpy = calloc(sizeof(rparam_t), 1);
 		if (rparam_cpy == NULL)
 			continue;
 		memcpy(rparam_cpy, &rparam, sizeof(rparam_t));
+		rparam_cpy->setvalue = NULL;
+		rparam_cpy->setvalue_pending = 0;
+		rparam_cpy->value = NULL;
+		rparam_cpy->value_updated = 0;
+		rparam_cpy->next = NULL;
 
 		rparam_list_add(rparam_cpy);
 
