@@ -28,8 +28,8 @@ void param_print(param_t * param)
 #endif
 
 	/* Name and value */
-	char value_str[21] = {};
-	param_value_str(param, value_str, 20);
+	char value_str[41] = {};
+	param_value_str(param, value_str, 40);
 	printf(" %s = %s", param->name, value_str);
 
 	/* Unit */
@@ -37,8 +37,8 @@ void param_print(param_t * param)
 		printf(" %s", param->unit);
 
 	/* Type */
-	char type_str[21] = {};
-	param_type_str(param->type, type_str, 20);
+	char type_str[11] = {};
+	param_type_str(param->type, type_str, 10);
 	printf(" %s", type_str);
 
 	printf("\n");
@@ -199,6 +199,7 @@ void param_set(param_t * param, void * value) {
 	case PARAM_TYPE_STRING:
 		param_set_data(param, value, strlen(value) + 1);
 		break;
+	case PARAM_TYPE_VECTOR3:
 	case PARAM_TYPE_DATA:
 		param_set_data(param, value, param->size);
 		break;
@@ -254,6 +255,7 @@ int param_typesize(param_type_e type) {
 	case PARAM_TYPE_DOUBLE: return sizeof(double); break;
 	case PARAM_TYPE_STRING: return -1; break;
 	case PARAM_TYPE_DATA: return -1; break;
+	case PARAM_TYPE_VECTOR3: return sizeof(param_type_vector3); break;
 	}
 	return -1;
 }

@@ -6,6 +6,7 @@
  */
 
 #include <stdio.h>
+#include <math.h>
 #include <string.h>
 #include <inttypes.h>
 #include <param/param.h>
@@ -54,6 +55,13 @@ void param_value_str(param_t *param, char * out, int len)
 		param_get_string(param, out, MIN(param->size, len));
 		break;
 
+	case PARAM_TYPE_VECTOR3: {
+		param_type_vector3 vect;
+		param_get_data(param, &vect, sizeof(param_type_vector3));
+		snprintf(out, len, "[%.2f %.2f %.2f] |%.2f|", vect.x, vect.y, vect.z, sqrtf((powf(vect.x, 2) + powf(vect.y, 2) + powf(vect.z, 2))));
+		break;
+	}
+
 #undef PARAM_SWITCH_SNPRINTF
 	}
 }
@@ -94,6 +102,12 @@ void param_var_str(param_type_e type, int size, void * in, char * out, int len)
 	case PARAM_TYPE_STRING:
 		strncpy(out, in, MIN(size, len));
 		break;
+
+	case PARAM_TYPE_VECTOR3: {
+		param_type_vector3 *vect = in;
+		snprintf(out, len, "[%.2f %.2f %.2f] |%.2f|", vect->x, vect->y, vect->z, sqrtf((powf(vect->x, 2) + powf(vect->y, 2) + powf(vect->z, 2))));
+		break;
+	}
 
 #undef PARAM_SWITCH_SNPRINTF
 	}
@@ -146,6 +160,13 @@ int param_str_to_value(param_type_e type, char * in, void * out)
 			
 		return len;
 	}
+
+	case PARAM_TYPE_VECTOR3: {
+		param_type_vector3 *vect = out;
+		sscanf(in, "%f %f %f", &vect->x, &vect->y, &vect->z);
+		return sizeof(param_type_vector3);
+	}
+
 	}
 
 	return 0;
@@ -174,8 +195,9 @@ void param_type_str(param_type_e type, char * out, int len)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT64, uint64)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_FLOAT, float)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DOUBLE, double)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DATA, data)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_STRING, string)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DATA, data)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_VECTOR3, vect3)
 #undef PARAM_SWITCH_SNPRINTF
 	}
 }

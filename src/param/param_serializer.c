@@ -45,6 +45,7 @@ int param_deserialize_to_var(param_type_e type, int size, void * in, void * out)
 		PARAM_DESERIALIZE(PARAM_TYPE_XINT64, uint64_t, uint64, csp_ntoh64)
 		PARAM_DESERIALIZE(PARAM_TYPE_FLOAT, float, float, )
 		PARAM_DESERIALIZE(PARAM_TYPE_DOUBLE, double, double, )
+		PARAM_DESERIALIZE(PARAM_TYPE_VECTOR3, param_type_vector3, param_type_vector3, )
 
 #undef PARAM_DESERIALIZE
 
@@ -89,6 +90,7 @@ int param_deserialize_to_param(void * in, param_t * param) {
 		PARAM_DESERIALIZE(PARAM_TYPE_FLOAT, float, float)
 		PARAM_DESERIALIZE(PARAM_TYPE_DOUBLE, double, double)
 
+		case PARAM_TYPE_VECTOR3:
 		case PARAM_TYPE_STRING:
 		case PARAM_TYPE_DATA:
 			param_set_data(param, in, param->size);
@@ -133,6 +135,7 @@ int param_serialize_from_param(param_t * param, char * out)
 		PARAM_SERIALIZE(PARAM_TYPE_FLOAT, float, float, )
 		PARAM_SERIALIZE(PARAM_TYPE_DOUBLE, double, double, )
 
+		case PARAM_TYPE_VECTOR3:
 		case PARAM_TYPE_STRING:
 		case PARAM_TYPE_DATA:
 			param_get_data(param, out, param->size);
@@ -178,6 +181,7 @@ int param_serialize_from_var(param_type_e type, int size, void * in, char * out)
 		PARAM_SERIALIZE(PARAM_TYPE_FLOAT, float, float, )
 		PARAM_SERIALIZE(PARAM_TYPE_DOUBLE, double, double, )
 
+		case PARAM_TYPE_VECTOR3:
 		case PARAM_TYPE_STRING:
 		case PARAM_TYPE_DATA:
 			memcpy(out, in, size);

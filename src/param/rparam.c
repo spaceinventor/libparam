@@ -235,7 +235,7 @@ RPARAM_SET(double, double)
 
 void rparam_print(rparam_t * rparam) {
 
-	char tmpstr[21] = {};
+	char tmpstr[41] = {};
 
 	printf(" %2u:%-3u", rparam->node, rparam->id);
 
@@ -244,7 +244,7 @@ void rparam_print(rparam_t * rparam) {
 	/* Value */
 	if (rparam->value != NULL) {
 
-		param_var_str(rparam->type, rparam->size, rparam->value, tmpstr, 20);
+		param_var_str(rparam->type, rparam->size, rparam->value, tmpstr, 40);
 		printf(" = %s", tmpstr);
 
 		if (rparam->setvalue_pending == 2)
@@ -256,7 +256,7 @@ void rparam_print(rparam_t * rparam) {
 	}
 
 	/* Type */
-	param_type_str(rparam->type, tmpstr, 20);
+	param_type_str(rparam->type, tmpstr, 10);
 	printf(" %s", tmpstr);
 
 	if (rparam->size != 255)
@@ -264,7 +264,7 @@ void rparam_print(rparam_t * rparam) {
 
 	if ((rparam->setvalue != NULL) && (rparam->setvalue_pending == 1)) {
 		printf(" Pending:");
-		param_var_str(rparam->type, rparam->size, rparam->setvalue, tmpstr, 20);
+		param_var_str(rparam->type, rparam->size, rparam->setvalue, tmpstr, 40);
 		printf(" => %s", tmpstr);
 	}
 

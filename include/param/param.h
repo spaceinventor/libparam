@@ -12,6 +12,12 @@
 #include <stdbool.h>
 #include <vmem/vmem.h>
 
+typedef struct {
+	float x;
+	float y;
+	float z;
+} __attribute__((__packed__)) param_type_vector3;
+
 typedef enum {
 	PARAM_TYPE_UINT8,
 	PARAM_TYPE_UINT16,
@@ -29,6 +35,7 @@ typedef enum {
 	PARAM_TYPE_DOUBLE,
 	PARAM_TYPE_STRING,
 	PARAM_TYPE_DATA,
+	PARAM_TYPE_VECTOR3,
 } param_type_e;
 
 typedef enum {
