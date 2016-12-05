@@ -29,7 +29,7 @@ def configure(ctx):
             
     if ctx.options.vmem_client:
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_client.c')
-        if ctx.env.SLASH_ENABLED:
+        if ctx.options.slash_enabled == True:
             ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_client_slash.c')
     if ctx.options.vmem_client_ftp:
         ctx.env.append_unique('FILES_VMEM', 'src/vmem/vmem_client_slash_ftp.c')
@@ -47,7 +47,7 @@ def configure(ctx):
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_string.c')
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_serializer.c')
     
-    if ctx.env.SLASH_ENABLED:
+    if ctx.options.slash_enabled == True:
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_slash.c')
         if ctx.options.rparam_client_slash:
             ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_slash.c')
