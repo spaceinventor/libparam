@@ -116,6 +116,10 @@ void rparam_list_download(int node, int timeout) {
 
 		/* Allocate new rparam type */
 		rparam_t * rparam = calloc(sizeof(rparam_t), 1);
+		if (rparam == NULL) {
+			csp_buffer_free(packet);
+			break;
+		}
 		rparam->node = node;
 		rparam->timeout = timeout;
 		rparam->id = csp_ntoh16(new_param->id);
@@ -139,6 +143,3 @@ void rparam_list_download(int node, int timeout) {
 	printf("Received %u parameters\n", count);
 	csp_close(conn);
 }
-
-
-

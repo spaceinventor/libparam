@@ -46,7 +46,7 @@ static void rparam_completer(struct slash *slash, char * token) {
 	rparam_t *prefix = NULL;
 	size_t tokenlen = strlen(token);
 
-	void rparam_foreach(rparam_t * rparam) {
+	void rparam_iterator(rparam_t * rparam) {
 
 		if (tokenlen > strlen(rparam->name))
 			return;
@@ -81,7 +81,7 @@ static void rparam_completer(struct slash *slash, char * token) {
 
 	}
 
-	rparam_list_foreach(rparam_foreach);
+	rparam_list_foreach(rparam_iterator);
 
 	if (!matches) {
 		slash_bell(slash);
