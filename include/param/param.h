@@ -12,6 +12,10 @@
 #include <stdbool.h>
 #include <vmem/vmem.h>
 
+/**
+ * DATATYPES
+ */
+
 typedef struct {
 	float x;
 	float y;
@@ -46,6 +50,10 @@ typedef enum {
 	PARAM_HIDDEN,                 //! Do not display on lists
 } param_readonly_type_e;
 
+/**
+ * Parameter description structure
+ * Note: this is not packed in order to maximise run-time efficiency
+ */
 typedef const struct param_s {
 	uint16_t id;
 	int addr;
@@ -61,18 +69,41 @@ typedef const struct param_s {
 	void (*callback)(const struct param_s * param);
 } param_t;
 
+/**
+ * GNU Linker symbols. These will be autogenerate by GCC when using
+ * __attribute__((section("param"))
+ */
 extern param_t __start_param, __stop_param;
 
+/**
+ * The storage size (i.e. how closely two param_t structs are packed in memory)
+ * varies from platform to platform (in example on x64 and arm32). This macro
+ * defines two param_t structs and saves the storage size in a define.
+ */
 #ifndef PARAM_STORAGE_SIZE
 static const param_t param_size_set[2] __attribute__((aligned(1)));
 #define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set[1] - (intptr_t) &param_size_set[0])
 #endif
 
+/* Convenient macro to loop over the parameter list */
 #define param_foreach(_c) \
 	for (_c = &__start_param; \
 	     _c < &__stop_param; \
 	     _c = (param_t *)(intptr_t)((char *)_c + PARAM_STORAGE_SIZE))
 
+/**
+ * DEFINITION HELPERS:
+ *
+ * These macros are one-liners that will simplify the layout of the parameter descriptions
+ * found in source files.
+ *
+ * A parameter can reside either in VMEM or in RAM directly.
+ *  For a RAM parameter the physaddr must be defined, and,
+ *  for a VMEM parameter the vmem and addr's must be defined.
+ *
+ * The size field is only important for non-native types such as string, data and vector.
+ *
+ */
 #define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _physaddr) \
 	__attribute__((section("param"))) \
 	__attribute__((aligned(1))) \
@@ -138,11 +169,7 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 		.vmem = &vmem_##_vmem_name##_instance, \
 	}
 
-void param_print(param_t * param);
-void param_list(char * token);
-void param_list_array(param_t * param, int count);
-void param_value_str(param_t *param, char * out, int len);
-
+/* Native getter functions, will return native types */
 #define PARAM_GET(type, name) \
 	type param_get_##name(param_t * param);
 PARAM_GET(uint8_t, uint8)
@@ -157,6 +184,7 @@ PARAM_GET(float, float)
 PARAM_GET(double, double)
 #undef PARAM_GET
 
+/* Native setter functions, these take a native type as argument */
 #define PARAM_SET(type, name) \
 	void param_set_##name(param_t * param, type value); \
 	void param_set_##name##_nocallback(param_t * param, type value);
@@ -172,18 +200,26 @@ PARAM_SET(float, float)
 PARAM_SET(double, double)
 #undef PARAM_SET
 
-void param_set(param_t * param, void * value);
+/* Non-native types needs to go through a function which includes a void pointer and the length */
 void param_set_data(param_t * param, void * inbuf, int len);
 void param_get_data(param_t * param, void * outbuf, int len);
 #define param_set_string param_set_data
 #define param_get_string param_get_data
 
+/* Generic setter function:
+ * This function can be used to set data of any type
+ */
+void param_set(param_t * param, void * value);
+
+/* Print and list helpers */
+void param_print(param_t * param);
+void param_list(char * token);
+
+/* Search parameters by id or name */
 param_t * param_ptr_from_id(int id);
-param_t * param_ptr_from_idx(int idx);
-int param_idx_from_ptr(param_t * param);
+param_t * param_ptr_from_name(char * name);
 
-param_t * param_name_to_ptr(char * name);
-
+/* Returns the size of a native type */
 int param_typesize(param_type_e type);
 
 #endif /* SRC_PARAM_PARAM_H_ */

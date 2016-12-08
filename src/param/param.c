@@ -67,13 +67,6 @@ void param_list(char * token)
 	}
 }
 
-void param_list_array(param_t * param, int count)
-{
-	for (int i = 0; i < count; i++) {
-		param_print(param + i);
-	}
-}
-
 #define PARAM_GET(_type, _name, _swapfct) \
 	_type param_get_##_name(param_t * param) { \
 		/* Aligned access directly to RAM */ \
@@ -215,7 +208,7 @@ void param_set_data(param_t * param, void * inbuf, int len) {
 	param->vmem->write(param->vmem, param->addr, inbuf, len);
 }
 
-param_t * param_name_to_ptr(char * name)
+param_t * param_ptr_from_name(char * name)
 {
 	param_t * param;
 	param_foreach(param) {

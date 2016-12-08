@@ -32,7 +32,7 @@ static param_t * parse_param(char * arg) {
 	int id = strtoul(arg, &endptr, 10);
 
 	if (*endptr != '\0') {
-		return param_name_to_ptr(arg);
+		return param_ptr_from_name(arg);
 	} else {
 		return param_ptr_from_id(id);
 	}
