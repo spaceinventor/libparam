@@ -41,9 +41,9 @@ void rparam_list_store_file_load(void) {
 		if (rparam_cpy == NULL)
 			continue;
 		memcpy(rparam_cpy, &rparam, sizeof(rparam_t));
-		rparam_cpy->setvalue = NULL;
-		rparam_cpy->setvalue_pending = 0;
-		rparam_cpy->value = NULL;
+		rparam_cpy->value_set = NULL;
+		rparam_cpy->value_pending = 0;
+		rparam_cpy->value_get = NULL;
 		rparam_cpy->value_updated = 0;
 		rparam_cpy->next = NULL;
 
