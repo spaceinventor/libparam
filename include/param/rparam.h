@@ -18,21 +18,26 @@
 csp_thread_return_t rparam_server_task(void *pvParameters);
 
 typedef struct rparam_t {
-	uint8_t node;
-	uint16_t timeout;
+
+	/* Parameter declaration */
 	uint16_t id;
 	param_type_e type;
-	char name[26]; // One extra to allow for '\0'
 	uint8_t size;
-	char unit[5];
-	uint64_t min;
-	uint64_t max;
-	param_readonly_type_e readonly;
-	struct rparam_t * next;
-	void * value;
+	char name[26]; // One extra to allow for '\0'
+
+	/* Parameter definition */
+	uint8_t node;
+	uint16_t timeout;
+
+	/* Used for rparam get/set */
+	void * value_get;
+	void * value_set;
 	uint32_t value_updated; // Timestamp
-	void * setvalue;
-	uint8_t setvalue_pending; // 0 = OK, 1 = pending, 2 = acked
+	uint8_t value_pending; // 0 = none, 1 = pending, 2 = acked
+
+	/* Used for linked list */
+	struct rparam_t * next;
+
 } __attribute__((packed)) rparam_t;
 
 typedef struct {
@@ -42,21 +47,29 @@ typedef struct {
 	char name[];
 } __attribute__((packed)) rparam_transfer_t;
 
-#define RPARAM(_nodename, _node, _timeout, _id, _type, _name, _size, _unit, _readonly, _typecast) \
-	_typecast _nodename##_##_name##_value; \
-	_typecast _nodename##_##_name##_setvalue; \
-	struct rparam_t _nodename##_##_name = { \
-		.node = _node, \
-		.timeout = _timeout, \
+#define _rparam_struct(_name, _node, _timeout, _id, _type, _size, _value_get, _value_set) \
+	struct rparam_t _##_name = { \
 		.id = _id, \
 		.type = _type, \
-		.name = #_name, \
 		.size = _size, \
-		.unit = _unit, \
-		.readonly = _readonly, \
-		.value = &_nodename##_##_name##_value, \
-		.setvalue = &_nodename##_##_name##_setvalue, \
-	}; \
+		.name = #_name, \
+		\
+		.node = _node, \
+		.timeout = _timeout, \
+		\
+		.value_get = _value_get, \
+		.value_set = _value_set \
+	};
+
+#define rparam_define_readonly(_name, _node, _timeout, _id, _type, _size) \
+	char __attribute__((aligned(8))) _##_name##_value_get[_size]; \
+	_rparam_struct(_name, _node, _timeout, _id, _type, _size, _##_name##_value_get, NULL)
+
+
+#define rparam_define_readwrite(_name, _node, _timeout, _id, _type, _size) \
+	char __attribute__((aligned(8))) _##_name##_value_get[_size]; \
+	char __attribute__((aligned(8))) _##_name##_value_set[_size]; \
+	_rparam_struct(_name, _node, _timeout, _id, _type, _size, _##_name##_value_get, _##name##_value_set)
 
 int rparam_get(rparam_t * rparams[], int count, int verbose);
 int rparam_set(rparam_t * rparams[], int count, int verbose);

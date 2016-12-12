@@ -94,15 +94,15 @@ int rparam_get(rparam_t * rparams[], int count, int verbose)
 			return -1;
 		}
 
-		if (rparam->value == NULL) {
-			rparam->value = calloc(rparam_size(rparam), 1);
+		if (rparam->value_get == NULL) {
+			rparam->value_get = calloc(rparam_size(rparam), 1);
 		}
 
-		i += param_deserialize_to_var(rparam->type, rparam->size, &packet->data[i], rparam->value);
+		i += param_deserialize_to_var(rparam->type, rparam->size, &packet->data[i], rparam->value_get);
 
 		rparam->value_updated = csp_get_ms();
-		if (rparam->setvalue_pending == 2)
-			rparam->setvalue_pending = 0;
+		if (rparam->value_pending == 2)
+			rparam->value_pending = 0;
 
 		if (verbose)
 			rparam_print(rparam);
@@ -119,7 +119,7 @@ int rparam_get(rparam_t * rparams[], int count, int verbose)
 #define RPARAM_GET(_type, _name) \
 	_type rparam_get_##_name(rparam_t * rparam) { \
 		rparam_get(&rparam, 1, 0); \
-		return *(_type *) rparam->value; \
+		return *(_type *) rparam->value_get; \
 	} \
 
 RPARAM_GET(uint8_t, uint8)
@@ -147,7 +147,7 @@ int rparam_set(rparam_t * rparams[], int count, int verbose)
 	packet->length = 0;
 	for (int i = 0; i < count; i++) {
 
-		if ((rparams[i]->setvalue == NULL) || (rparams[i]->setvalue_pending != 1))
+		if ((rparams[i]->value_set == NULL) || (rparams[i]->value_pending != 1))
 			continue;
 
 		if (packet->length + sizeof(uint16_t) + rparam_size(rparams[i]) > PARAM_SERVER_MTU) {
@@ -160,7 +160,7 @@ int rparam_set(rparam_t * rparams[], int count, int verbose)
 		memcpy(packet->data + packet->length, &id, sizeof(uint16_t));
 		packet->length += sizeof(uint16_t);
 
-		packet->length += param_serialize_from_var(rparams[i]->type, rparams[i]->size, rparams[i]->setvalue, (char *) packet->data + packet->length);
+		packet->length += param_serialize_from_var(rparams[i]->type, rparams[i]->size, rparams[i]->value_set, (char *) packet->data + packet->length);
 
 	}
 
@@ -194,15 +194,15 @@ int rparam_set(rparam_t * rparams[], int count, int verbose)
 	//csp_hex_dump("Response", packet->data, packet->length);
 
 	for (int i = 0; i < count; i++) {
-		if ((rparams[i]->setvalue == NULL) || (rparams[i]->setvalue_pending == 0))
+		if ((rparams[i]->value_set == NULL) || (rparams[i]->value_pending == 0))
 			continue;
-		rparams[i]->setvalue_pending = 2;
+		rparams[i]->value_pending = 2;
 
-		if (rparams[i]->value == NULL) {
-			rparams[i]->value = calloc(rparam_size(rparams[i]), 1);
+		if (rparams[i]->value_get == NULL) {
+			rparams[i]->value_get = calloc(rparam_size(rparams[i]), 1);
 		}
 
-		memcpy(rparams[i]->value, rparams[i]->setvalue, rparam_size(rparams[i]));
+		memcpy(rparams[i]->value_get, rparams[i]->value_set, rparam_size(rparams[i]));
 
 		if (verbose)
 			rparam_print(rparams[i]);
@@ -217,8 +217,8 @@ int rparam_set(rparam_t * rparams[], int count, int verbose)
 
 #define RPARAM_SET(_type, _name) \
 	int rparam_set_##_name(rparam_t * rparam, _type value) { \
-		*(_type *) rparam->setvalue = value; \
-		rparam->setvalue_pending = 1; \
+		*(_type *) rparam->value_set = value; \
+		rparam->value_pending = 1; \
 		return rparam_set(&rparam, 1, 0); \
 	} \
 
@@ -242,12 +242,12 @@ void rparam_print(rparam_t * rparam) {
 	printf(" %-20s", rparam->name);
 
 	/* Value */
-	if (rparam->value != NULL) {
+	if (rparam->value_get != NULL) {
 
-		param_var_str(rparam->type, rparam->size, rparam->value, tmpstr, 40);
+		param_var_str(rparam->type, rparam->size, rparam->value_get, tmpstr, 40);
 		printf(" = %s", tmpstr);
 
-		if (rparam->setvalue_pending == 2)
+		if (rparam->value_pending == 2)
 			printf("*");
 
 		if (rparam->value_updated > 0)
@@ -262,9 +262,9 @@ void rparam_print(rparam_t * rparam) {
 	if (rparam->size != 255)
 		printf("[%u]", rparam->size);
 
-	if ((rparam->setvalue != NULL) && (rparam->setvalue_pending == 1)) {
+	if ((rparam->value_set != NULL) && (rparam->value_pending == 1)) {
 		printf(" Pending:");
-		param_var_str(rparam->type, rparam->size, rparam->setvalue, tmpstr, 40);
+		param_var_str(rparam->type, rparam->size, rparam->value_set, tmpstr, 40);
 		printf(" => %s", tmpstr);
 	}
 

@@ -82,7 +82,7 @@ void rparam_list_print(int node_filter, int pending) {
 			rparam = rparam->next;
 			continue;
 		}
-		if (pending && rparam->setvalue_pending != 1) {
+		if (pending && rparam->value_pending != 1) {
 			rparam = rparam->next;
 			continue;
 		}

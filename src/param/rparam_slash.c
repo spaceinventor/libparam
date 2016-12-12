@@ -54,9 +54,6 @@ static void rparam_completer(struct slash *slash, char * token) {
 		if (rparam_default_node != rparam->node)
 			return;
 
-		if (rparam->readonly == PARAM_HIDDEN)
-			return;
-
 		if (strncmp(token, rparam->name, slash_min(strlen(rparam->name), tokenlen)) == 0) {
 
 			/* Count matches */
@@ -155,7 +152,7 @@ static int rparam_slash_setall(struct slash *slash)
 	rparams_count = 0;
 
 	void add_to_queue(rparam_t * rparam) {
-		if (rparam->node == node && rparam->setvalue_pending == 1) {
+		if (rparam->node == node && rparam->value_pending == 1) {
 			if (rparams_count < RPARAM_SLASH_MAX_QUEUESIZE)
 				rparams[rparams_count++] = rparam;
 		}
@@ -265,12 +262,12 @@ static int rparam_slash_set(struct slash *slash)
 		return SLASH_EINVAL;
 	}
 
-	if (rparam->setvalue == NULL) {
-		rparam->setvalue = calloc(rparam_size(rparam), 1);
+	if (rparam->value_set == NULL) {
+		rparam->value_set = calloc(rparam_size(rparam), 1);
 	}
 
-	param_str_to_value(rparam->type, slash->argv[2], rparam->setvalue);
-	rparam->setvalue_pending = 1;
+	param_str_to_value(rparam->type, slash->argv[2], rparam->value_set);
+	rparam->value_pending = 1;
 
 	int already_in_queue = 0;
 	for(int i = 0; i < rparams_count; i++) {
