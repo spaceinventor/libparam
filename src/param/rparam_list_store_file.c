@@ -18,8 +18,8 @@ void rparam_list_store_file_save(void) {
 	if (store == NULL)
 		return;
 
-	void add_rparam(rparam_t * rparam) {
-		fwrite(rparam, 1, sizeof(rparam_t), store);
+	void add_rparam(param_t * rparam) {
+		fwrite(rparam, 1, sizeof(param_t), store);
 	}
 
 	rparam_list_foreach(add_rparam);
@@ -34,13 +34,13 @@ void rparam_list_store_file_load(void) {
 	if (store == NULL)
 		return;
 
-	rparam_t rparam = {};
-	while (fread(&rparam, 1, sizeof(rparam_t), store) == sizeof(rparam_t)) {
+	param_t rparam = {};
+	while (fread(&rparam, 1, sizeof(param_t), store) == sizeof(param_t)) {
 
-		rparam_t * rparam_cpy = calloc(sizeof(rparam_t), 1);
+		param_t * rparam_cpy = calloc(sizeof(param_t), 1);
 		if (rparam_cpy == NULL)
 			continue;
-		memcpy(rparam_cpy, &rparam, sizeof(rparam_t));
+		memcpy(rparam_cpy, &rparam, sizeof(param_t));
 		rparam_cpy->value_set = NULL;
 		rparam_cpy->value_pending = 0;
 		rparam_cpy->value_get = NULL;

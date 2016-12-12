@@ -18,7 +18,7 @@
 #include "param_string.h"
 #include <param/rparam_list.h>
 
-int rparam_size(rparam_t * rparam) {
+int rparam_size(param_t * rparam) {
 	int size = param_typesize(rparam->type);
 	if (size == -1) {
 		size = rparam->size;
@@ -26,12 +26,12 @@ int rparam_size(rparam_t * rparam) {
 	return size;
 }
 
-int rparam_get_single(rparam_t * rparam) {
-	rparam_t * rparams[1] = { rparam };
+int rparam_get_single(param_t * rparam) {
+	param_t * rparams[1] = { rparam };
 	return rparam_get(rparams, 1, 0);
 }
 
-int rparam_get(rparam_t * rparams[], int count, int verbose)
+int rparam_get(param_t * rparams[], int count, int verbose)
 {
 	csp_packet_t * packet = csp_buffer_get(256);
 	if (packet == NULL)
@@ -85,7 +85,7 @@ int rparam_get(rparam_t * rparams[], int count, int verbose)
 		id = csp_ntoh16(id);
 
 		/* Search for rparam using list */
-		rparam_t * rparam = rparam_list_find_id(packet->id.src, id);
+		param_t * rparam = rparam_list_find_id(packet->id.src, id);
 
 		if (rparam == NULL) {
 			printf("No rparam for node %u id %u\n", packet->id.src, id);
@@ -105,7 +105,7 @@ int rparam_get(rparam_t * rparams[], int count, int verbose)
 			rparam->value_pending = 0;
 
 		if (verbose)
-			rparam_print(rparam);
+			param_print(rparam);
 
 	}
 
@@ -117,7 +117,7 @@ int rparam_get(rparam_t * rparams[], int count, int verbose)
 }
 
 #define RPARAM_GET(_type, _name) \
-	_type rparam_get_##_name(rparam_t * rparam) { \
+	_type rparam_get_##_name(param_t * rparam) { \
 		rparam_get(&rparam, 1, 0); \
 		return *(_type *) rparam->value_get; \
 	} \
@@ -133,12 +133,12 @@ RPARAM_GET(int64_t, int64)
 RPARAM_GET(float, float)
 RPARAM_GET(double, double)
 
-int rparam_set_single(rparam_t * rparam) {
-	rparam_t * rparams[1] = { rparam };
+int rparam_set_single(param_t * rparam) {
+	param_t * rparams[1] = { rparam };
 	return rparam_set(rparams, 1, 0);
 }
 
-int rparam_set(rparam_t * rparams[], int count, int verbose)
+int rparam_set(param_t * rparams[], int count, int verbose)
 {
 	csp_packet_t * packet = csp_buffer_get(256);
 	if (packet == NULL)
@@ -205,7 +205,7 @@ int rparam_set(rparam_t * rparams[], int count, int verbose)
 		memcpy(rparams[i]->value_get, rparams[i]->value_set, rparam_size(rparams[i]));
 
 		if (verbose)
-			rparam_print(rparams[i]);
+			param_print(rparams[i]);
 
 	}
 
@@ -216,7 +216,7 @@ int rparam_set(rparam_t * rparams[], int count, int verbose)
 }
 
 #define RPARAM_SET(_type, _name) \
-	int rparam_set_##_name(rparam_t * rparam, _type value) { \
+	int rparam_set_##_name(param_t * rparam, _type value) { \
 		*(_type *) rparam->value_set = value; \
 		rparam->value_pending = 1; \
 		return rparam_set(&rparam, 1, 0); \
@@ -233,41 +233,3 @@ RPARAM_SET(int64_t, int64)
 RPARAM_SET(float, float)
 RPARAM_SET(double, double)
 
-void rparam_print(rparam_t * rparam) {
-
-	char tmpstr[41] = {};
-
-	printf(" %2u:%-3u", rparam->node, rparam->id);
-
-	printf(" %-20s", rparam->name);
-
-	/* Value */
-	if (rparam->value_get != NULL) {
-
-		param_var_str(rparam->type, rparam->size, rparam->value_get, tmpstr, 40);
-		printf(" = %s", tmpstr);
-
-		if (rparam->value_pending == 2)
-			printf("*");
-
-		if (rparam->value_updated > 0)
-			printf(" (%"PRIu32")", rparam->value_updated);
-
-	}
-
-	/* Type */
-	param_type_str(rparam->type, tmpstr, 10);
-	printf(" %s", tmpstr);
-
-	if (rparam->size != 255)
-		printf("[%u]", rparam->size);
-
-	if ((rparam->value_set != NULL) && (rparam->value_pending == 1)) {
-		printf(" Pending:");
-		param_var_str(rparam->type, rparam->size, rparam->value_set, tmpstr, 40);
-		printf(" => %s", tmpstr);
-	}
-
-	printf("\n");
-
-}

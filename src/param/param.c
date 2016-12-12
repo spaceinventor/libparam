@@ -6,67 +6,6 @@
 #include <csp/csp.h>
 #include <csp/csp_endian.h>
 
-void param_print(param_t * param)
-{
-	if (param == NULL)
-		return;
-	if (param >= &__stop_param)
-		return;
-	if (param < &__start_param)
-		return;
-
-	/* Param id */
-	printf(" %u", param->id);
-
-	/* Vmem */
-#if 0
-	if (param->vmem) {
-		printf(" %s", param->vmem->name);
-	} else {
-		printf(" RAM");
-	}
-#endif
-
-	/* Name and value */
-	char value_str[41] = {};
-	param_value_str(param, value_str, 40);
-	printf(" %s = %s", param->name, value_str);
-
-	/* Unit */
-	if (param->unit != NULL)
-		printf(" %s", param->unit);
-
-	/* Type */
-	char type_str[11] = {};
-	param_type_str(param->type, type_str, 10);
-	printf(" %s", type_str);
-
-	printf("\n");
-
-}
-
-void param_list(char * token)
-{
-	param_t * param;
-
-	param_foreach(param) {
-
-		if (param->readonly == PARAM_HIDDEN)
-			continue;
-
-#define param_min(a,b) \
-	({ __typeof__ (a) _a = (a); \
-	__typeof__ (b) _b = (b); \
-	_a < _b ? _a : _b; })
-
-		if (token)
-			if (strncmp(token, param->name, param_min(strlen(param->name), strlen(token))) != 0)
-				continue;
-
-		param_print(param);
-	}
-}
-
 #define PARAM_GET(_type, _name, _swapfct) \
 	_type param_get_##_name(param_t * param) { \
 		/* Aligned access directly to RAM */ \
@@ -206,28 +145,6 @@ void param_set_data(param_t * param, void * inbuf, int len) {
 		return;
 	}
 	param->vmem->write(param->vmem, param->addr, inbuf, len);
-}
-
-param_t * param_ptr_from_name(char * name)
-{
-	param_t * param;
-	param_foreach(param) {
-		if (strcmp(param->name, name) == 0) {
-			return param;
-		}
-	}
-	return NULL;
-}
-
-param_t * param_ptr_from_id(int id) {
-
-	param_t * param;
-	param_foreach(param) {
-		if (param->id == id)
-			return param;
-	}
-
-	return NULL;
 }
 
 int param_typesize(param_type_e type) {

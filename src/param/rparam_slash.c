@@ -26,7 +26,7 @@ slash_command_group(rparam, "Remote parameters");
 
 #define RPARAM_SLASH_MAX_QUEUESIZE 500
 
-static rparam_t * rparams[RPARAM_SLASH_MAX_QUEUESIZE];
+static param_t * rparams[RPARAM_SLASH_MAX_QUEUESIZE];
 static int rparams_count = 0;
 static int rparam_autosend = 1;
 
@@ -36,17 +36,17 @@ int rparam_default_timeout = 2000;
 static void rparam_print_queue(void) {
 	printf("Queue\n");
 	for(int i = 0; i < rparams_count; i++)
-		rparam_print(rparams[i]);
+		param_print(rparams[i]);
 }
 
 static void rparam_completer(struct slash *slash, char * token) {
 
 	int matches = 0;
 	size_t prefixlen = -1;
-	rparam_t *prefix = NULL;
+	param_t *prefix = NULL;
 	size_t tokenlen = strlen(token);
 
-	void rparam_iterator(rparam_t * rparam) {
+	void rparam_iterator(param_t * rparam) {
 
 		if (tokenlen > strlen(rparam->name))
 			return;
@@ -72,7 +72,7 @@ static void rparam_completer(struct slash *slash, char * token) {
 				slash_printf(slash, "\n");
 
 			/* Print param */
-			rparam_print(rparam);
+			param_print(rparam);
 
 		}
 
@@ -120,7 +120,7 @@ static int rparam_slash_getall(struct slash *slash)
 	/* Clear queue first */
 	rparams_count = 0;
 
-	void add_to_queue(rparam_t * rparam) {
+	void add_to_queue(param_t * rparam) {
 		if (rparam->node == node) {
 			if (rparams_count < RPARAM_SLASH_MAX_QUEUESIZE)
 				rparams[rparams_count++] = rparam;
@@ -151,7 +151,7 @@ static int rparam_slash_setall(struct slash *slash)
 	/* Clear queue first */
 	rparams_count = 0;
 
-	void add_to_queue(rparam_t * rparam) {
+	void add_to_queue(param_t * rparam) {
 		if (rparam->node == node && rparam->value_pending == 1) {
 			if (rparams_count < RPARAM_SLASH_MAX_QUEUESIZE)
 				rparams[rparams_count++] = rparam;
@@ -191,7 +191,7 @@ static int rparam_slash_get(struct slash *slash)
 	if (slash->argc < 2)
 		return SLASH_EUSAGE;
 
-	rparam_t * rparam = rparam_list_find_name(rparam_default_node, slash->argv[1]);
+	param_t * rparam = rparam_list_find_name(rparam_default_node, slash->argv[1]);
 
 	if (rparam == NULL) {
 		slash_printf(slash, "Could not find parameter\n");
@@ -250,7 +250,7 @@ static int rparam_slash_set(struct slash *slash)
 	if (slash->argc < 3)
 		return SLASH_EUSAGE;
 
-	rparam_t * rparam = rparam_list_find_name(rparam_default_node, slash->argv[1]);
+	param_t * rparam = rparam_list_find_name(rparam_default_node, slash->argv[1]);
 
 	if (rparam == NULL) {
 		slash_printf(slash, "Could not find parameter\n");
@@ -314,19 +314,6 @@ static int rparam_slash_download(struct slash *slash)
 }
 slash_command_sub(rparam, download, rparam_slash_download, "<node> [timeout]", NULL);
 
-static int rparam_slash_all(struct slash *slash)
-{
-	int node = -1;
-	int pending = 0;
-	if (slash->argc >= 2)
-		node = atoi(slash->argv[1]);
-	if (slash->argc >= 3)
-		pending = atoi(slash->argv[2]);
-	rparam_list_print(node, pending);
-	return SLASH_SUCCESS;
-}
-slash_command_sub(rparam, all, rparam_slash_all, "<node> <pending>", "show all remote parameters");
-
 static int rparam_slash_clear(struct slash *slash)
 {
 	rparams_count = 0;
@@ -384,7 +371,7 @@ static int rparam_slash_list(struct slash *slash)
 
 	printf("Requesting list %s from %u, timeout %u\n", list->listname, node, timeout);
 
-	rparam_t *rparams[50];
+	param_t *rparams[50];
 	int rparams_count = 0;
 	for (char ** name = list->names; *name != NULL; name++) {
 		rparams[rparams_count] = rparam_list_find_name(node, *name);

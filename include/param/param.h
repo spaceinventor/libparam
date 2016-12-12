@@ -54,19 +54,48 @@ typedef enum {
  * Parameter description structure
  * Note: this is not packed in order to maximise run-time efficiency
  */
-typedef const struct param_s {
+typedef struct param_s {
+
+	int paramtype;
+
+	/* Parameter declaration */
+	uint8_t node;
 	uint16_t id;
-	int addr;
-	int size;
 	param_type_e type;
-	const char *name;
-	const char *unit;
-	const struct vmem_s * vmem;
-	void * physaddr;
-	uint64_t min;
-	uint64_t max;
-	param_readonly_type_e readonly;
-	void (*callback)(const struct param_s * param);
+	int size;
+	char *name;
+
+	union {
+		struct {
+			union {
+				struct {
+				const struct vmem_s * vmem;
+				int addr;
+				};
+				struct {
+					void * physaddr;
+				};
+			};
+			/* Additional info */
+			const char *unit;
+			uint64_t min;
+			uint64_t max;
+			param_readonly_type_e readonly;
+			void (*callback)(const struct param_s * param);
+		};
+		struct {
+			uint16_t timeout;
+
+			/* Used for rparam get/set */
+			void * value_get;
+			void * value_set;
+			uint32_t value_updated; // Timestamp
+			uint8_t value_pending; // 0 = none, 1 = pending, 2 = acked
+
+			/* Used for linked list */
+			struct param_s * next;
+		};
+	};
 } param_t;
 
 /**
@@ -109,6 +138,7 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
+		.node = 255, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
@@ -123,6 +153,7 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 
 #define PARAM_DEFINE_STRUCT_RAM(fieldname, _id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _physaddr) \
 	.fieldname = { \
+		.node = 255, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
@@ -141,6 +172,7 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
+		.node = 255, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
@@ -156,6 +188,7 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 
 #define PARAM_DEFINE_STRUCT_VMEM(fieldname, _id, _type, _size, _min, _max, _readonly, _callback, _unit, _vmem_name, _addr) \
 	.fieldname = { \
+		.node = 255, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_vmem_name "_" #fieldname, \
@@ -214,10 +247,6 @@ void param_set(param_t * param, void * value);
 /* Print and list helpers */
 void param_print(param_t * param);
 void param_list(char * token);
-
-/* Search parameters by id or name */
-param_t * param_ptr_from_id(int id);
-param_t * param_ptr_from_name(char * name);
 
 /* Returns the size of a native type */
 int param_typesize(param_type_e type);
