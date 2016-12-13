@@ -8,16 +8,25 @@
 
 #define PARAM_GET(_type, _name, _swapfct) \
 	_type param_get_##_name(param_t * param) { \
-		/* Aligned access directly to RAM */ \
-		if (param->physaddr) \
-			return *(_type *)(param->physaddr); \
-		\
-		_type data = 0; \
-		param->vmem->read(param->vmem, param->addr, &data, sizeof(data)); \
-		if (param->vmem->big_endian == 1) { \
-			data = _swapfct(data); \
+		switch(param->storage_type) {\
+		case PARAM_STORAGE_RAM: \
+			if (param->physaddr) \
+				return *(_type *)(param->physaddr); \
+			return 0; \
+		case PARAM_STORAGE_VMEM: { \
+			_type data = 0; \
+			param->vmem->read(param->vmem, param->addr, &data, sizeof(data)); \
+			if (param->vmem->big_endian == 1) { \
+				data = _swapfct(data); \
+			} \
+			return data; \
 		} \
-		return data; \
+		case PARAM_STORAGE_REMOTE: \
+			if (param->value_get) \
+				return *(_type *)(param->value_get); \
+			return 0; \
+		} \
+		return 0; \
 	}
 
 PARAM_GET(uint8_t, uint8, )
@@ -42,25 +51,17 @@ void param_get_data(param_t * param, void * outbuf, int len)
 	param->vmem->read(param->vmem, param->addr, outbuf, len);
 }
 
-#if 0
-/* Check limits : Fixme: does not work sig signed integers */ \
-if ((param->type != PARAM_TYPE_FLOAT) && (param->type != PARAM_TYPE_DOUBLE)) { \
-	if (value > (_type) param->max) { \
-		printf("Param value exceeds max\r\n"); \
-		return; \
-	} \
-	\
-	if (value < (_type) param->min) { \
-		printf("Param value below min\r\n"); \
-		return; \
-	} \
-}
-#endif
-
 #define PARAM_SET(_type, name_in, _swapfct) \
 	void __param_set_##name_in(param_t * param, _type value, bool do_callback); \
 	void __param_set_##name_in(param_t * param, _type value, bool do_callback) \
 	{ \
+		if (param->storage_type == PARAM_STORAGE_REMOTE) { \
+			if (param->value_set) { \
+				*(_type *) param->value_set = value; \
+				param->value_pending = 1; \
+			} \
+			return; \
+		}\
 		\
 		/* Check readonly */ \
 		if ((param->readonly == PARAM_READONLY_TRUE) || (param->readonly == PARAM_READONLY_INTERNAL)) { \
@@ -140,11 +141,19 @@ void param_set(param_t * param, void * value) {
 }
 
 void param_set_data(param_t * param, void * inbuf, int len) {
-	if (param->physaddr) {
-		memcpy(param->physaddr, inbuf, len);
+	switch(param->storage_type) {
+	case PARAM_STORAGE_RAM:
+		if (param->physaddr)
+			memcpy(param->physaddr, inbuf, len);
+		return;
+	case PARAM_STORAGE_VMEM:
+		param->vmem->write(param->vmem, param->addr, inbuf, len);
+		return;
+	case PARAM_STORAGE_REMOTE:
+		if (param->value_set)
+			memcpy(param->value_set, inbuf, len);
 		return;
 	}
-	param->vmem->write(param->vmem, param->addr, inbuf, len);
 }
 
 int param_typesize(param_type_e type) {

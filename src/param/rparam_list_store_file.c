@@ -7,9 +7,9 @@
 
 #include <stdio.h>
 #include <malloc.h>
+#include <param/param_list.h>
 #include <slash/slash.h>
 #include <param/rparam.h>
-#include <param/rparam_list.h>
 
 
 void rparam_list_store_file_save(void) {
@@ -18,11 +18,12 @@ void rparam_list_store_file_save(void) {
 	if (store == NULL)
 		return;
 
-	void add_rparam(param_t * rparam) {
-		fwrite(rparam, 1, sizeof(param_t), store);
+	int add_rparam(param_t * param) {
+		fwrite(param, 1, sizeof(param_t), store);
+		return 1;
 	}
 
-	rparam_list_foreach(add_rparam);
+	param_list_foreach(add_rparam);
 
 	fclose(store);
 
@@ -34,20 +35,20 @@ void rparam_list_store_file_load(void) {
 	if (store == NULL)
 		return;
 
-	param_t rparam = {};
-	while (fread(&rparam, 1, sizeof(param_t), store) == sizeof(param_t)) {
+	param_t param = {};
+	while (fread(&param, 1, sizeof(param_t), store) == sizeof(param_t)) {
 
-		param_t * rparam_cpy = calloc(sizeof(param_t), 1);
-		if (rparam_cpy == NULL)
+		param_t * param_cpy = calloc(sizeof(param_t), 1);
+		if (param_cpy == NULL)
 			continue;
-		memcpy(rparam_cpy, &rparam, sizeof(param_t));
-		rparam_cpy->value_set = NULL;
-		rparam_cpy->value_pending = 0;
-		rparam_cpy->value_get = NULL;
-		rparam_cpy->value_updated = 0;
-		rparam_cpy->next = NULL;
+		memcpy(param_cpy, &param, sizeof(param_t));
+		param_cpy->value_set = NULL;
+		param_cpy->value_pending = 0;
+		param_cpy->value_get = NULL;
+		param_cpy->value_updated = 0;
+		param_cpy->next = NULL;
 
-		rparam_list_add(rparam_cpy);
+		param_list_add(param_cpy);
 
 	}
 

@@ -46,6 +46,7 @@ def configure(ctx):
     ctx.env.append_unique('FILES_PARAM', 'src/param/param.c')
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_string.c')
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_serializer.c')
+    ctx.env.append_unique('FILES_PARAM', 'src/param/param_list.c')
     
     if ctx.options.slash_enabled == True:
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_slash.c')
@@ -57,7 +58,6 @@ def configure(ctx):
         
     if ctx.options.rparam_client:
         ctx.env.append_unique('FILES_PARAM', 'src/param/rparam.c')
-        ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_list.c')
         ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_listset.c')
     
     if ctx.options.rparam_store_file: 

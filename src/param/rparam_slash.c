@@ -15,8 +15,8 @@
 #include <csp/arch/csp_malloc.h>
 
 #include <param/param.h>
+#include <param/param_list.h>
 #include <param/rparam.h>
-#include <param/rparam_list.h>
 #include <param/rparam_listset.h>
 
 #include "param_serializer.h"
@@ -46,13 +46,13 @@ static void rparam_completer(struct slash *slash, char * token) {
 	param_t *prefix = NULL;
 	size_t tokenlen = strlen(token);
 
-	void rparam_iterator(param_t * rparam) {
+	int rparam_iterator(param_t * rparam) {
 
 		if (tokenlen > strlen(rparam->name))
-			return;
+			return 1;
 
 		if (rparam_default_node != rparam->node)
-			return;
+			return 1;
 
 		if (strncmp(token, rparam->name, slash_min(strlen(rparam->name), tokenlen)) == 0) {
 
@@ -76,9 +76,11 @@ static void rparam_completer(struct slash *slash, char * token) {
 
 		}
 
+		return 1;
+
 	}
 
-	rparam_list_foreach(rparam_iterator);
+	param_list_foreach(rparam_iterator);
 
 	if (!matches) {
 		slash_bell(slash);
@@ -120,13 +122,14 @@ static int rparam_slash_getall(struct slash *slash)
 	/* Clear queue first */
 	rparams_count = 0;
 
-	void add_to_queue(param_t * rparam) {
+	int add_to_queue(param_t * rparam) {
 		if (rparam->node == node) {
 			if (rparams_count < RPARAM_SLASH_MAX_QUEUESIZE)
 				rparams[rparams_count++] = rparam;
 		}
+		return 1;
 	}
-	rparam_list_foreach(add_to_queue);
+	param_list_foreach(add_to_queue);
 
 	if (rparams_count == 0)
 		return SLASH_SUCCESS;
@@ -151,13 +154,14 @@ static int rparam_slash_setall(struct slash *slash)
 	/* Clear queue first */
 	rparams_count = 0;
 
-	void add_to_queue(param_t * rparam) {
+	int add_to_queue(param_t * rparam) {
 		if (rparam->node == node && rparam->value_pending == 1) {
 			if (rparams_count < RPARAM_SLASH_MAX_QUEUESIZE)
 				rparams[rparams_count++] = rparam;
 		}
+		return 1;
 	}
-	rparam_list_foreach(add_to_queue);
+	param_list_foreach(add_to_queue);
 
 	if (rparams_count == 0)
 		return SLASH_SUCCESS;
@@ -191,7 +195,7 @@ static int rparam_slash_get(struct slash *slash)
 	if (slash->argc < 2)
 		return SLASH_EUSAGE;
 
-	param_t * rparam = rparam_list_find_name(rparam_default_node, slash->argv[1]);
+	param_t * rparam = param_list_find_name(rparam_default_node, slash->argv[1]);
 
 	if (rparam == NULL) {
 		slash_printf(slash, "Could not find parameter\n");
@@ -250,7 +254,7 @@ static int rparam_slash_set(struct slash *slash)
 	if (slash->argc < 3)
 		return SLASH_EUSAGE;
 
-	param_t * rparam = rparam_list_find_name(rparam_default_node, slash->argv[1]);
+	param_t * rparam = param_list_find_name(rparam_default_node, slash->argv[1]);
 
 	if (rparam == NULL) {
 		slash_printf(slash, "Could not find parameter\n");
@@ -308,7 +312,7 @@ static int rparam_slash_download(struct slash *slash)
 	if (slash->argc >= 3)
 		timeout = atoi(slash->argv[2]);
 
-	rparam_list_download(node, timeout);
+	param_list_download(node, timeout);
 
 	return SLASH_SUCCESS;
 }
@@ -374,7 +378,7 @@ static int rparam_slash_list(struct slash *slash)
 	param_t *rparams[50];
 	int rparams_count = 0;
 	for (char ** name = list->names; *name != NULL; name++) {
-		rparams[rparams_count] = rparam_list_find_name(node, *name);
+		rparams[rparams_count] = param_list_find_name(node, *name);
 		if ((rparams[rparams_count] != NULL) && (rparams_count < 50)) {
 			rparams_count++;
 		}

@@ -10,11 +10,11 @@
 #include <stdint.h>
 
 #include <param/param.h>
-#include <param/rparam_list.h>
 #include "param_serializer.h"
 #include "param_string.h"
 
 #include <csp/csp_endian.h>
+#include <param/param_list.h>
 
 int param_deserialize_to_var(param_type_e type, int size, void * in, void * out)
 {
@@ -205,7 +205,7 @@ int param_deserialize_single(char * inbuf) {
 	count += sizeof(id);
 	id = csp_ntoh16(id);
 
-	param_t * param = rparam_list_find_id(255, id);
+	param_t * param = param_list_find_id(255, id);
 	if (param == NULL)
 		return 0;
 
@@ -247,7 +247,7 @@ int param_serialize_id(uint16_t param_id[], int count, char * outbuf, int len)
 {
 	param_t * param[count];
 	for (int i = 0; i < count; i++) {
-		param[i] = rparam_list_find_id(255, param_id[i]);
+		param[i] = param_list_find_id(255, param_id[i]);
 	}
 	return param_serialize(param, count, outbuf, len);
 }

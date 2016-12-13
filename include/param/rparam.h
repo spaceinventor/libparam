@@ -26,7 +26,8 @@ typedef struct {
 
 #define _rparam_struct(_name, _node, _timeout, _id, _type, _size, _value_get, _value_set) \
 	struct param_s _##_name = { \
-		.paramtype = 1, \
+		.storage_type = PARAM_STORAGE_REMOTE, \
+		\
 		.id = _id, \
 		.type = _type, \
 		.size = _size, \
@@ -47,25 +48,12 @@ typedef struct {
 #define rparam_define_readwrite(_name, _node, _timeout, _id, _type, _size) \
 	char __attribute__((aligned(8))) _##_name##_value_get[_size]; \
 	char __attribute__((aligned(8))) _##_name##_value_set[_size]; \
-	_rparam_struct(_name, _node, _timeout, _id, _type, _size, _##_name##_value_get, _##name##_value_set)
+	_rparam_struct(_name, _node, _timeout, _id, _type, _size, _##_name##_value_get, _##_name##_value_set)
 
 int rparam_get(param_t * rparams[], int count, int verbose);
 int rparam_set(param_t * rparams[], int count, int verbose);
 int rparam_get_single(param_t * rparam);
 int rparam_set_single(param_t * rparam);
-
-#define RPARAM_GET(_type, _name) _type rparam_get_##_name(param_t * rparam);
-RPARAM_GET(uint8_t, uint8)
-RPARAM_GET(uint16_t, uint16)
-RPARAM_GET(uint32_t, uint32)
-RPARAM_GET(uint64_t, uint64)
-RPARAM_GET(int8_t, int8)
-RPARAM_GET(int16_t, int16)
-RPARAM_GET(int32_t, int32)
-RPARAM_GET(int64_t, int64)
-RPARAM_GET(float, float)
-RPARAM_GET(double, double)
-#undef RPARAM_GET
 
 #define RPARAM_SET(_type, _name) int rparam_set_##_name(param_t * rparam, _type value);
 RPARAM_SET(uint8_t, uint8)

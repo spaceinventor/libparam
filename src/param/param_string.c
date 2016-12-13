@@ -208,7 +208,7 @@ void param_print(param_t * param)
 		return;
 
 	/* Node/ID */
-	if (param->paramtype == 1) {
+	if (param->storage_type == PARAM_STORAGE_REMOTE) {
 		printf(" %2u:%-3u", param->node, param->id);
 	} else {
 		printf("   :%-3u", param->id);
@@ -219,12 +219,8 @@ void param_print(param_t * param)
 
 	/* value */
 	char value_str[41] = {};
-	if (param->paramtype == 0) {
 
-		param_value_str(param, value_str, 40);
-		printf(" = %s", value_str);
-
-	} else if (param->paramtype == 1) {
+	if (param->storage_type == PARAM_STORAGE_REMOTE) {
 
 		if ((param->value_get != NULL) && (param->value_updated > 0)) {
 			param_var_str(param->type, param->size, param->value_get, value_str, 40);
@@ -234,6 +230,11 @@ void param_print(param_t * param)
 				printf("*");
 
 		}
+	} else {
+
+		param_value_str(param, value_str, 40);
+		printf(" = %s", value_str);
+
 	}
 
 	/* Unit */
@@ -248,7 +249,7 @@ void param_print(param_t * param)
 	if (param->size > 0)
 		printf("[%u]", param->size);
 
-	if (param->paramtype == 1) {
+	if (param->storage_type == PARAM_STORAGE_REMOTE) {
 		if ((param->value_set != NULL) && (param->value_pending == 1)) {
 			printf(" Pending:");
 			param_var_str(param->type, param->size, param->value_set, value_str, 40);
@@ -259,46 +260,3 @@ void param_print(param_t * param)
 	printf("\n");
 
 }
-
-#if 0
-
-void rparam_print(param_t * rparam) {
-
-	char tmpstr[41] = {};
-
-	printf(" %2u:%-3u", rparam->node, rparam->id);
-
-	printf(" %-20s", rparam->name);
-
-	/* Value */
-	if (rparam->value_get != NULL) {
-
-		param_var_str(rparam->type, rparam->size, rparam->value_get, tmpstr, 40);
-		printf(" = %s", tmpstr);
-
-		if (rparam->value_pending == 2)
-			printf("*");
-
-		if (rparam->value_updated > 0)
-			printf(" (%"PRIu32")", rparam->value_updated);
-
-	}
-
-	/* Type */
-	param_type_str(rparam->type, tmpstr, 10);
-	printf(" %s", tmpstr);
-
-	if (rparam->size != 255)
-		printf("[%u]", rparam->size);
-
-	if ((rparam->value_set != NULL) && (rparam->value_pending == 1)) {
-		printf(" Pending:");
-		param_var_str(rparam->type, rparam->size, rparam->value_set, tmpstr, 40);
-		printf(" => %s", tmpstr);
-	}
-
-	printf("\n");
-
-}
-
-#endif

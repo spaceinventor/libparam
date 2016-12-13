@@ -12,7 +12,8 @@
 #include <slash/slash.h>
 
 #include <param/param.h>
-#include <param/rparam_list.h>
+#include <param/param_list.h>
+
 #include "param_string.h"
 
 slash_command_group(param, "Local parameters");
@@ -20,9 +21,9 @@ slash_command_group(param, "Local parameters");
 static int list(struct slash *slash)
 {
 	if (slash->argc > 1)
-		rparam_list_print(slash->argv[1]);
+		param_list_print(slash->argv[1]);
 	else
-		rparam_list_print(NULL);
+		param_list_print(NULL);
 	return SLASH_SUCCESS;
 }
 slash_command_sub(param, list, list, "[str]", "List parameters");
@@ -36,16 +37,16 @@ static param_t * parse_param(char * arg) {
 	int id = strtoul(arg, &endptr, 10);
 
 	if (*endptr == '\0')
-		return rparam_list_find_id(node, id);
+		return param_list_find_id(node, id);
 
 	/* Try to parse as id:node */
 	if (sscanf(arg, "%u:%u", &id, &node) == 2) {
-		return rparam_list_find_id(node, id);
+		return param_list_find_id(node, id);
 	}
 
 	/* Try to parse as name:node */
 	sscanf(arg, "%s %u", name, &node);
-	return rparam_list_find_name(node, name);
+	return param_list_find_name(node, name);
 
 }
 
@@ -56,13 +57,13 @@ static void param_completer(struct slash *slash, char * token) {
 	param_t *prefix = NULL;
 	size_t tokenlen = strlen(token);
 
-	void iterator(param_t * param) {
+	int iterator(param_t * param) {
 
 		if (tokenlen > strlen(param->name))
-			return;
+			return 1;
 
 		if (param->readonly == PARAM_HIDDEN)
-			return;
+			return 1;
 
 		if (strncmp(token, param->name, slash_min(strlen(param->name), tokenlen)) == 0) {
 
@@ -86,8 +87,10 @@ static void param_completer(struct slash *slash, char * token) {
 
 		}
 
+		return 1;
+
 	}
-	rparam_list_foreach(iterator);
+	param_list_foreach(iterator);
 
 	if (!matches) {
 		slash_bell(slash);

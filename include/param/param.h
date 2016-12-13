@@ -50,13 +50,21 @@ typedef enum {
 	PARAM_HIDDEN,                 //! Do not display on lists
 } param_readonly_type_e;
 
+typedef enum {
+	PARAM_STORAGE_RAM,            //! Use local RAM access
+	PARAM_STORAGE_VMEM,           //! Use VMEM read/write functions
+	PARAM_STORAGE_REMOTE,         //! Use remote parameter service
+} param_storage_type_e;
+
 /**
  * Parameter description structure
  * Note: this is not packed in order to maximise run-time efficiency
  */
 typedef struct param_s {
 
-	int paramtype;
+	/* Storage type:
+	 * 0 = RAM, 1 = REMOTE, 2 = VMEM */
+	param_storage_type_e storage_type;
 
 	/* Parameter declaration */
 	uint8_t node;
@@ -64,6 +72,11 @@ typedef struct param_s {
 	param_type_e type;
 	int size;
 	char *name;
+	char *unit;
+	char *help;
+
+	/* Used for linked list */
+	struct param_s * next;
 
 	union {
 		struct {
@@ -76,10 +89,6 @@ typedef struct param_s {
 					void * physaddr;
 				};
 			};
-			/* Additional info */
-			const char *unit;
-			uint64_t min;
-			uint64_t max;
 			param_readonly_type_e readonly;
 			void (*callback)(const struct param_s * param);
 		};
@@ -92,8 +101,6 @@ typedef struct param_s {
 			uint32_t value_updated; // Timestamp
 			uint8_t value_pending; // 0 = none, 1 = pending, 2 = acked
 
-			/* Used for linked list */
-			struct param_s * next;
 		};
 	};
 } param_t;
@@ -138,13 +145,11 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
-		.node = 255, \
+		.storage_type = PARAM_STORAGE_RAM, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
 		.size = _size, \
-		.min = _min, \
-		.max = _max, \
 		.readonly = _readonly, \
 		.unit = _unit, \
 		.callback = _callback, \
@@ -153,13 +158,11 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 
 #define PARAM_DEFINE_STRUCT_RAM(fieldname, _id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _physaddr) \
 	.fieldname = { \
-		.node = 255, \
+		.storage_type = PARAM_STORAGE_RAM, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
 		.size = _size, \
-		.min = _min, \
-		.max = _max, \
 		.readonly = _readonly, \
 		.unit = _unit, \
 		.callback = _callback, \
@@ -172,7 +175,7 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
-		.node = 255, \
+		.storage_type = PARAM_STORAGE_VMEM, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
@@ -188,7 +191,7 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 
 #define PARAM_DEFINE_STRUCT_VMEM(fieldname, _id, _type, _size, _min, _max, _readonly, _callback, _unit, _vmem_name, _addr) \
 	.fieldname = { \
-		.node = 255, \
+		.storage_type = PARAM_STORAGE_VMEM, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_vmem_name "_" #fieldname, \

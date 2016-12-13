@@ -13,10 +13,10 @@
 #include <csp/csp.h>
 #include <csp/arch/csp_time.h>
 #include <csp/csp_endian.h>
+#include <param/param_list.h>
 
 #include "param_serializer.h"
 #include "param_string.h"
-#include <param/rparam_list.h>
 
 int rparam_size(param_t * rparam) {
 	int size = param_typesize(rparam->type);
@@ -85,7 +85,7 @@ int rparam_get(param_t * rparams[], int count, int verbose)
 		id = csp_ntoh16(id);
 
 		/* Search for rparam using list */
-		param_t * rparam = rparam_list_find_id(packet->id.src, id);
+		param_t * rparam = param_list_find_id(packet->id.src, id);
 
 		if (rparam == NULL) {
 			printf("No rparam for node %u id %u\n", packet->id.src, id);
@@ -115,23 +115,6 @@ int rparam_get(param_t * rparams[], int count, int verbose)
 	return 0;
 
 }
-
-#define RPARAM_GET(_type, _name) \
-	_type rparam_get_##_name(param_t * rparam) { \
-		rparam_get(&rparam, 1, 0); \
-		return *(_type *) rparam->value_get; \
-	} \
-
-RPARAM_GET(uint8_t, uint8)
-RPARAM_GET(uint16_t, uint16)
-RPARAM_GET(uint32_t, uint32)
-RPARAM_GET(uint64_t, uint64)
-RPARAM_GET(int8_t, int8)
-RPARAM_GET(int16_t, int16)
-RPARAM_GET(int32_t, int32)
-RPARAM_GET(int64_t, int64)
-RPARAM_GET(float, float)
-RPARAM_GET(double, double)
 
 int rparam_set_single(param_t * rparam) {
 	param_t * rparams[1] = { rparam };
