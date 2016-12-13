@@ -9,7 +9,6 @@
 #define SRC_PARAM_PARAM_H_
 
 #include <stdint.h>
-#include <stdbool.h>
 #include <vmem/vmem.h>
 
 /**
@@ -73,7 +72,6 @@ typedef struct param_s {
 	int size;
 	char *name;
 	char *unit;
-	char *help;
 
 	/* Used for linked list */
 	struct param_s * next;
@@ -104,28 +102,6 @@ typedef struct param_s {
 		};
 	};
 } param_t;
-
-/**
- * GNU Linker symbols. These will be autogenerate by GCC when using
- * __attribute__((section("param"))
- */
-extern param_t __start_param, __stop_param;
-
-/**
- * The storage size (i.e. how closely two param_t structs are packed in memory)
- * varies from platform to platform (in example on x64 and arm32). This macro
- * defines two param_t structs and saves the storage size in a define.
- */
-#ifndef PARAM_STORAGE_SIZE
-static const param_t param_size_set[2] __attribute__((aligned(1)));
-#define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set[1] - (intptr_t) &param_size_set[0])
-#endif
-
-/* Convenient macro to loop over the parameter list */
-#define param_foreach(_c) \
-	for (_c = &__start_param; \
-	     _c < &__stop_param; \
-	     _c = (param_t *)(intptr_t)((char *)_c + PARAM_STORAGE_SIZE))
 
 /**
  * DEFINITION HELPERS:

@@ -211,7 +211,7 @@ void param_print(param_t * param)
 	if (param->storage_type == PARAM_STORAGE_REMOTE) {
 		printf(" %2u:%-3u", param->node, param->id);
 	} else {
-		printf("   :%-3u", param->id);
+		printf("  L:%-3u", param->id);
 	}
 
 	/* Name */
@@ -246,7 +246,7 @@ void param_print(param_t * param)
 	param_type_str(param->type, type_str, 10);
 	printf(" %s", type_str);
 
-	if (param->size > 0)
+	if (param->size > 0 && param->size != 255)
 		printf("[%u]", param->size);
 
 	if (param->storage_type == PARAM_STORAGE_REMOTE) {

@@ -14,6 +14,28 @@
 
 #include "param_string.h"
 
+/**
+ * GNU Linker symbols. These will be autogenerate by GCC when using
+ * __attribute__((section("param"))
+ */
+extern param_t __start_param, __stop_param;
+
+/**
+ * The storage size (i.e. how closely two param_t structs are packed in memory)
+ * varies from platform to platform (in example on x64 and arm32). This macro
+ * defines two param_t structs and saves the storage size in a define.
+ */
+#ifndef PARAM_STORAGE_SIZE
+static const param_t param_size_set[2] __attribute__((aligned(1)));
+#define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set[1] - (intptr_t) &param_size_set[0])
+#endif
+
+/* Convenient macro to loop over the parameter list */
+#define param_foreach(_c) \
+	for (_c = &__start_param; \
+	     _c < &__stop_param; \
+	     _c = (param_t *)(intptr_t)((char *)_c + PARAM_STORAGE_SIZE))
+
 static param_t * list_begin = NULL;
 static param_t * list_end = NULL;
 
@@ -42,10 +64,12 @@ param_t * param_list_find_id(int node, int id)
 	param_t * found = NULL;
 	int iterator(param_t * param) {
 
-		if (param->storage_type == PARAM_STORAGE_REMOTE) {
-			if (param->node != node)
-				return 1;
-		}
+		int param_node = PARAM_LIST_LOCAL;
+		if (param->storage_type == PARAM_STORAGE_REMOTE)
+			param_node = param->node;
+
+		if (param_node != node)
+			return 1;
 
 		if (param->id == id) {
 			found = param;
@@ -64,10 +88,12 @@ param_t * param_list_find_name(int node, char * name)
 	param_t * found = NULL;
 	int iterator(param_t * param) {
 
-		if (param->storage_type == PARAM_STORAGE_REMOTE) {
-			if (param->node != node)
-				return 1;
-		}
+		int param_node = PARAM_LIST_LOCAL;
+		if (param->storage_type == PARAM_STORAGE_REMOTE)
+			param_node = param->node;
+
+		if (param_node != node)
+			return 1;
 
 		if (strcmp(param->name, name) == 0) {
 			found = param;
