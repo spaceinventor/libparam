@@ -120,7 +120,7 @@ typedef struct param_s {
 	__attribute__((section("param"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
-	param_t _name = { \
+	const param_t _name = { \
 		.storage_type = PARAM_STORAGE_RAM, \
 		.id = _id, \
 		.type = _type, \
@@ -150,7 +150,7 @@ typedef struct param_s {
 	__attribute__((section("param"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
-	param_t _name = { \
+	const param_t _name = { \
 		.storage_type = PARAM_STORAGE_VMEM, \
 		.id = _id, \
 		.type = _type, \

@@ -25,13 +25,13 @@ typedef struct {
 } __attribute__((packed)) rparam_transfer_t;
 
 #define _rparam_struct(_name, _node, _timeout, _id, _type, _size, _value_get, _value_set) \
-	struct param_s _##_name = { \
+	param_t _name = { \
 		.storage_type = PARAM_STORAGE_REMOTE, \
 		\
 		.id = _id, \
 		.type = _type, \
 		.size = _size, \
-		.name = #_name, \
+		.name = (char *) #_name, \
 		\
 		.node = _node, \
 		.timeout = _timeout, \
