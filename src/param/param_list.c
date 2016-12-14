@@ -144,12 +144,15 @@ void param_list_download(int node, int timeout) {
 		rparam_transfer_t * new_param = (void *) packet->data;
 
 		int strlen = packet->length - offsetof(rparam_transfer_t, name);
+		int size = param_typesize(new_param->type);
+		if (size == -1)
+			size = new_param->size;
 
 		struct param_heap_s {
 			param_t param;
 			char name[strlen];
-			uint8_t value_get[new_param->size];
-			uint8_t value_set[new_param->size];
+			uint8_t value_get[size];
+			uint8_t value_set[size];
 		} *param_heap = calloc(sizeof(struct param_heap_s), 1);
 
 		/* Allocate new rparam type */
@@ -163,7 +166,7 @@ void param_list_download(int node, int timeout) {
 		param->timeout = timeout;
 		param->id = csp_ntoh16(new_param->id);
 		param->type = new_param->type;
-		param->size = new_param->size;
+		param->size = size;
 		param->unit = NULL;
 
 		/* Name */
@@ -175,7 +178,7 @@ void param_list_download(int node, int timeout) {
 		param->value_get = param_heap->value_get;
 		param->value_set = param_heap->value_set;
 
-		printf("Got param: %s\n", param->name);
+		printf("Got param: %s size (%u)\n", param->name, param->size);
 
 		/* Add to list */
 		if (param_list_add(param) != 0)

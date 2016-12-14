@@ -179,3 +179,11 @@ int param_typesize(param_type_e type) {
 	return -1;
 }
 
+int param_size(param_t * param) {
+	int size = param_typesize(param->type);
+	if (size == -1) {
+		size = param->size;
+	}
+	return size;
+}
+

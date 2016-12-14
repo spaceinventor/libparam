@@ -18,14 +18,6 @@
 #include "param_serializer.h"
 #include "param_string.h"
 
-int rparam_size(param_t * rparam) {
-	int size = param_typesize(rparam->type);
-	if (size == -1) {
-		size = rparam->size;
-	}
-	return size;
-}
-
 int rparam_get_single(param_t * rparam) {
 	param_t * rparams[1] = { rparam };
 	return rparam_get(rparams, 1, 0);
@@ -43,12 +35,12 @@ int rparam_get(param_t * rparams[], int count, int verbose)
 
 	int i;
 	for (i = 0; i < count; i++) {
-		if (response_size + sizeof(uint16_t) + rparam_size(rparams[i]) > PARAM_SERVER_MTU) {
+		if (response_size + sizeof(uint16_t) + param_size(rparams[i]) > PARAM_SERVER_MTU) {
 			printf("Request cropped: > MTU\n");
 			break;
 		}
 
-		response_size += sizeof(uint16_t) + rparam_size(rparams[i]);
+		response_size += sizeof(uint16_t) + param_size(rparams[i]);
 		request[i] = csp_hton16(rparams[i]->id);
 	}
 	packet->length = sizeof(uint16_t) * i;
@@ -95,7 +87,10 @@ int rparam_get(param_t * rparams[], int count, int verbose)
 		}
 
 		if (rparam->value_get == NULL) {
-			rparam->value_get = calloc(rparam_size(rparam), 1);
+			printf("No memory allocated\n");
+			csp_buffer_free(packet);
+			csp_close(conn);
+			return -1;
 		}
 
 		i += param_deserialize_to_var(rparam->type, rparam->size, &packet->data[i], rparam->value_get);
@@ -133,7 +128,7 @@ int rparam_set(param_t * rparams[], int count, int verbose)
 		if ((rparams[i]->value_set == NULL) || (rparams[i]->value_pending != 1))
 			continue;
 
-		if (packet->length + sizeof(uint16_t) + rparam_size(rparams[i]) > PARAM_SERVER_MTU) {
+		if (packet->length + sizeof(uint16_t) + param_size(rparams[i]) > PARAM_SERVER_MTU) {
 			printf("Request cropped: > MTU\n");
 			break;
 		}
@@ -181,11 +176,9 @@ int rparam_set(param_t * rparams[], int count, int verbose)
 			continue;
 		rparams[i]->value_pending = 2;
 
-		if (rparams[i]->value_get == NULL) {
-			rparams[i]->value_get = calloc(rparam_size(rparams[i]), 1);
+		if (rparams[i]->value_get) {
+			memcpy(rparams[i]->value_get, rparams[i]->value_set, param_size(rparams[i]));
 		}
-
-		memcpy(rparams[i]->value_get, rparams[i]->value_set, rparam_size(rparams[i]));
 
 		if (verbose)
 			param_print(rparams[i]);

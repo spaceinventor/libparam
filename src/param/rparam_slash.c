@@ -266,12 +266,10 @@ static int rparam_slash_set(struct slash *slash)
 		return SLASH_EINVAL;
 	}
 
-	if (rparam->value_set == NULL) {
-		rparam->value_set = calloc(rparam_size(rparam), 1);
+	if (rparam->value_set != NULL) {
+		param_str_to_value(rparam->type, slash->argv[2], rparam->value_set);
+		rparam->value_pending = 1;
 	}
-
-	param_str_to_value(rparam->type, slash->argv[2], rparam->value_set);
-	rparam->value_pending = 1;
 
 	int already_in_queue = 0;
 	for(int i = 0; i < rparams_count; i++) {

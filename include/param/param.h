@@ -225,5 +225,6 @@ void param_list(char * token);
 
 /* Returns the size of a native type */
 int param_typesize(param_type_e type);
+int param_size(param_t * param);
 
 #endif /* SRC_PARAM_PARAM_H_ */
