@@ -91,14 +91,10 @@ typedef struct param_s {
 			void (*callback)(struct param_s * param);
 		};
 		struct {
-			uint16_t timeout;
-
-			/* Used for rparam get/set */
 			void * value_get;
 			void * value_set;
 			uint32_t value_updated; // Timestamp
 			uint8_t value_pending; // 0 = none, 1 = pending, 2 = acked
-
 		};
 	};
 } param_t;
@@ -168,14 +164,36 @@ typedef struct param_s {
 		.storage_type = PARAM_STORAGE_VMEM, \
 		.id = _id, \
 		.type = _type, \
-		.name = #_vmem_name "_" #fieldname, \
 		.size = _size, \
+		.name = #_vmem_name "_" #fieldname, \
 		.readonly = _readonly, \
 		.callback = _callback, \
 		.unit = _unit, \
 		.addr = _addr, \
 		.vmem = &vmem_##_vmem_name##_instance, \
 	}
+
+#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _size, _value_get, _value_set) \
+	param_t _name = { \
+		.storage_type = PARAM_STORAGE_REMOTE, \
+		.id = _id, \
+		.type = _type, \
+		.size = _size, \
+		.name = (char *) #_name, \
+		\
+		.node = _node, \
+		.value_get = _value_get, \
+		.value_set = _value_set \
+	};
+
+#define PARAM_DEFINE_STATIC_REMOTE_READONLY(_name, _node, _id, _type, _size) \
+	char __attribute__((aligned(8))) _##_name##_value_get[_size]; \
+	PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _size, _##_name##_value_get, NULL)
+
+#define PARAM_DEFINE_STATIC_REMOTE_READWRITE(_name, _node, _id, _type, _size) \
+	char __attribute__((aligned(8))) _##_name##_value_get[_size]; \
+	char __attribute__((aligned(8))) _##_name##_value_set[_size]; \
+	PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _size, _##_name##_value_get, _##_name##_value_set)
 
 /* Native getter functions, will return native types */
 #define PARAM_GET(type, name) \

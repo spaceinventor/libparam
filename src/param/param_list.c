@@ -163,7 +163,6 @@ void param_list_download(int node, int timeout) {
 		}
 		param->storage_type = PARAM_STORAGE_REMOTE;
 		param->node = node;
-		param->timeout = timeout;
 		param->id = csp_ntoh16(new_param->id);
 		param->type = new_param->type;
 		param->size = size;

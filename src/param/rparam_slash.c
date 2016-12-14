@@ -134,7 +134,6 @@ static int rparam_slash_getall(struct slash *slash)
 	if (rparams_count == 0)
 		return SLASH_SUCCESS;
 
-	rparams[0]->timeout = timeout;
 	rparam_get(rparams, rparams_count, 1);
 
 	return SLASH_SUCCESS;
@@ -166,7 +165,6 @@ static int rparam_slash_setall(struct slash *slash)
 	if (rparams_count == 0)
 		return SLASH_SUCCESS;
 
-	rparams[0]->timeout = timeout;
 	if (rparam_set(rparams, rparams_count, 1) < 0) {
 		printf("No response\n");
 		return SLASH_EINVAL;
@@ -371,7 +369,6 @@ static int rparam_slash_list(struct slash *slash)
 	}
 
 	rparams[0]->node = node;
-	rparams[0]->timeout = timeout;
 
 	rparam_get(rparams, rparams_count, 1);
 

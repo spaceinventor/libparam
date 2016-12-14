@@ -59,7 +59,8 @@ int rparam_get(param_t * rparams[], int count, int verbose)
 		return -1;
 	}
 
-	packet = csp_read(conn, rparams[0]->timeout);
+	// TODO: Fixtimeout
+	packet = csp_read(conn, 2000);
 	if (packet == NULL) {
 		csp_close(conn);
 		return -1;
@@ -162,7 +163,8 @@ int rparam_set(param_t * rparams[], int count, int verbose)
 		return -1;
 	}
 
-	packet = csp_read(conn, rparams[0]->timeout);
+	// TODO: Fixtimeout
+	packet = csp_read(conn, 2000);
 	if (packet == NULL) {
 		csp_close(conn);
 		//printf("No response\n");
