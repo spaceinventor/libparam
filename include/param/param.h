@@ -88,7 +88,7 @@ typedef struct param_s {
 				};
 			};
 			param_readonly_type_e readonly;
-			void (*callback)(const struct param_s * param);
+			void (*callback)(struct param_s * param);
 		};
 		struct {
 			uint16_t timeout;
@@ -156,8 +156,6 @@ typedef struct param_s {
 		.type = _type, \
 		.name = #_name, \
 		.size = _size, \
-		.min = _min, \
-		.max = _max, \
 		.readonly = _readonly, \
 		.callback = _callback, \
 		.unit = _unit, \
@@ -172,8 +170,6 @@ typedef struct param_s {
 		.type = _type, \
 		.name = #_vmem_name "_" #fieldname, \
 		.size = _size, \
-		.min = _min, \
-		.max = _max, \
 		.readonly = _readonly, \
 		.callback = _callback, \
 		.unit = _unit, \
