@@ -10,7 +10,8 @@
 #include <csp/arch/csp_thread.h>
 #include <csp/csp_endian.h>
 #include <param/param.h>
-#include <param/rparam.h>
+#include <param/param_server.h>
+
 #include "param_serializer.h"
 
 static void rparam_get_handler(csp_conn_t * conn, csp_packet_t * packet) {

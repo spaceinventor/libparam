@@ -15,10 +15,10 @@
 #include <vmem/vmem_server.h>
 #include <vmem/vmem_fram_secure.h>
 
-#include <param/rparam.h>
 #include <param/param_list.h>
 
 #include <libparam.h>
+#include <param/param_server.h>
 
 #if defined(VMEM_FRAM)
 #include <drivers/fm25w256.h>

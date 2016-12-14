@@ -8,12 +8,13 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <inttypes.h>
-#include <param/rparam.h>
 #include <param/param.h>
 #include <csp/csp.h>
 #include <csp/arch/csp_time.h>
 #include <csp/csp_endian.h>
 #include <param/param_list.h>
+#include <param/param_server.h>
+#include <param/param_client.h>
 
 #include "param_serializer.h"
 #include "param_string.h"

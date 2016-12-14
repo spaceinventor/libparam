@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <param/param_list.h>
+#include <param/param_server.h>
 #include <slash/slash.h>
-#include <param/rparam.h>
 
 
 void rparam_list_store_file_save(void) {

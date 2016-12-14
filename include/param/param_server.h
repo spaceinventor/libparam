@@ -5,8 +5,8 @@
  *      Author: johan
  */
 
-#ifndef LIB_PARAM_INCLUDE_PARAM_RPARAM_H_
-#define LIB_PARAM_INCLUDE_PARAM_RPARAM_H_
+#ifndef LIB_PARAM_INCLUDE_PARAM_PARAM_SERVER_H_
+#define LIB_PARAM_INCLUDE_PARAM_PARAM_SERVER_H_
 
 #include <csp/arch/csp_thread.h>
 #include <param/param.h>
@@ -24,9 +24,4 @@ typedef struct {
 	char name[];
 } __attribute__((packed)) rparam_transfer_t;
 
-int param_push_single(param_t * param, int timeout);
-int param_push(param_t * params[], int count, int verbose, int timeout);
-int param_pull_single(param_t * param, int timeout);
-int param_pull(param_t * params[], int count, int verbose, int timeout);
-
-#endif /* LIB_PARAM_INCLUDE_PARAM_RPARAM_H_ */
+#endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_SERVER_H_ */

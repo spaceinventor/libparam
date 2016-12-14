@@ -16,7 +16,7 @@
 
 #include <param/param.h>
 #include <param/param_list.h>
-#include <param/rparam.h>
+#include <param/param_server.h>
 #include <param/rparam_listset.h>
 
 #include "param_serializer.h"

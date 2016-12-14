@@ -9,8 +9,8 @@
 #include <csp/arch/csp_malloc.h>
 #include <csp/csp_endian.h>
 #include <param/param.h>
-#include <param/rparam.h>
 #include <param/param_list.h>
+#include <param/param_server.h>
 
 #include "param_string.h"
 
