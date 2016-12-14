@@ -134,7 +134,7 @@ static int rparam_slash_getall(struct slash *slash)
 	if (rparams_count == 0)
 		return SLASH_SUCCESS;
 
-	rparam_get(rparams, rparams_count, 1);
+	param_pull(rparams, rparams_count, 1, timeout);
 
 	return SLASH_SUCCESS;
 }
@@ -165,7 +165,7 @@ static int rparam_slash_setall(struct slash *slash)
 	if (rparams_count == 0)
 		return SLASH_SUCCESS;
 
-	if (rparam_set(rparams, rparams_count, 1) < 0) {
+	if (param_push(rparams, rparams_count, 1, timeout) < 0) {
 		printf("No response\n");
 		return SLASH_EINVAL;
 	}
@@ -182,7 +182,7 @@ static int rparam_slash_get(struct slash *slash)
 	 */
 	if ((slash->argc <= 1) && (rparams_count > 0)) {
 
-		if (rparam_get(rparams, rparams_count, 1) < 0) {
+		if (param_pull(rparams, rparams_count, 1, rparam_default_timeout) < 0) {
 			printf("No response\n");
 			return SLASH_EINVAL;
 		}
@@ -223,7 +223,7 @@ static int rparam_slash_get(struct slash *slash)
 		return SLASH_SUCCESS;
 	}
 
-	if (rparam_get(rparams, rparams_count, 1) < 0) {
+	if (param_pull(rparams, rparams_count, 1, rparam_default_timeout) < 0) {
 		printf("No response\n");
 		return SLASH_EINVAL;
 	}
@@ -241,7 +241,7 @@ static int rparam_slash_set(struct slash *slash)
 	 */
 	if ((slash->argc <= 1) && (rparams_count > 0)) {
 
-		if (rparam_set(rparams, rparams_count, 1) < 0) {
+		if (param_push(rparams, rparams_count, 1, rparam_default_timeout) < 0) {
 			printf("No response\n");
 			return SLASH_EINVAL;
 		}
@@ -287,7 +287,7 @@ static int rparam_slash_set(struct slash *slash)
 		return SLASH_SUCCESS;
 	}
 
-	if (rparam_set(rparams, rparams_count, 1) < 0) {
+	if (param_push(rparams, rparams_count, 1, rparam_default_timeout) < 0) {
 		printf("No response\n");
 		return SLASH_EINVAL;
 	}
@@ -370,7 +370,7 @@ static int rparam_slash_list(struct slash *slash)
 
 	rparams[0]->node = node;
 
-	rparam_get(rparams, rparams_count, 1);
+	param_pull(rparams, rparams_count, 1, timeout);
 
 	return SLASH_SUCCESS;
 }

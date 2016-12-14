@@ -58,7 +58,7 @@ def configure(ctx):
         ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_server.c')
         
     if ctx.options.rparam_client:
-        ctx.env.append_unique('FILES_PARAM', 'src/param/rparam.c')
+        ctx.env.append_unique('FILES_PARAM', 'src/param/param_client.c')
         ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_listset.c')
     
     if ctx.options.rparam_store_file: 

@@ -24,12 +24,9 @@ typedef struct {
 	char name[];
 } __attribute__((packed)) rparam_transfer_t;
 
-int rparam_get(param_t * rparams[], int count, int verbose);
-int rparam_set(param_t * rparams[], int count, int verbose);
-int rparam_get_single(param_t * rparam);
-int rparam_set_single(param_t * rparam);
-
-void rparam_print(param_t * rparam);
-int rparam_size(param_t * rparam);
+int param_push_single(param_t * param, int timeout);
+int param_push(param_t * params[], int count, int verbose, int timeout);
+int param_pull_single(param_t * param, int timeout);
+int param_pull(param_t * params[], int count, int verbose, int timeout);
 
 #endif /* LIB_PARAM_INCLUDE_PARAM_RPARAM_H_ */

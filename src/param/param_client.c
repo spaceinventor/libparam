@@ -1,5 +1,5 @@
 /*
- * rparam.c
+ * param_client.c
  *
  *  Created on: Oct 9, 2016
  *      Author: johan
@@ -18,13 +18,13 @@
 #include "param_serializer.h"
 #include "param_string.h"
 
-int rparam_get_single(param_t * rparam) {
-	param_t * rparams[1] = { rparam };
-	return rparam_get(rparams, 1, 0);
+int param_pull_single(param_t * param, int timeout) {
+	param_t * params[1] = { param };
+	return param_pull(params, 1, 0, timeout);
 }
 
-int rparam_get(param_t * rparams[], int count, int verbose)
-{
+int param_pull(param_t * params[], int count, int verbose, int timeout) {
+
 	csp_packet_t * packet = csp_buffer_get(256);
 	if (packet == NULL)
 		return -1;
@@ -35,19 +35,19 @@ int rparam_get(param_t * rparams[], int count, int verbose)
 
 	int i;
 	for (i = 0; i < count; i++) {
-		if (response_size + sizeof(uint16_t) + param_size(rparams[i]) > PARAM_SERVER_MTU) {
+		if (response_size + sizeof(uint16_t) + param_size(params[i]) > PARAM_SERVER_MTU) {
 			printf("Request cropped: > MTU\n");
 			break;
 		}
 
-		response_size += sizeof(uint16_t) + param_size(rparams[i]);
-		request[i] = csp_hton16(rparams[i]->id);
+		response_size += sizeof(uint16_t) + param_size(params[i]);
+		request[i] = csp_hton16(params[i]->id);
 	}
 	packet->length = sizeof(uint16_t) * i;
 
 	//csp_hex_dump("request", packet->data, packet->length);
 
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, rparams[0]->node, PARAM_PORT_GET, 0, CSP_O_CRC32);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, params[0]->node, PARAM_PORT_GET, 0, CSP_O_CRC32);
 	if (conn == NULL) {
 		csp_buffer_free(packet);
 		return -1;
@@ -59,8 +59,7 @@ int rparam_get(param_t * rparams[], int count, int verbose)
 		return -1;
 	}
 
-	// TODO: Fixtimeout
-	packet = csp_read(conn, 2000);
+	packet = csp_read(conn, timeout);
 	if (packet == NULL) {
 		csp_close(conn);
 		return -1;
@@ -77,31 +76,31 @@ int rparam_get(param_t * rparams[], int count, int verbose)
 		i += sizeof(id);
 		id = csp_ntoh16(id);
 
-		/* Search for rparam using list */
-		param_t * rparam = param_list_find_id(packet->id.src, id);
+		/* Search for param using list */
+		param_t * param = param_list_find_id(packet->id.src, id);
 
-		if (rparam == NULL) {
-			printf("No rparam for node %u id %u\n", packet->id.src, id);
+		if (param == NULL) {
+			printf("No param for node %u id %u\n", packet->id.src, id);
 			csp_buffer_free(packet);
 			csp_close(conn);
 			return -1;
 		}
 
-		if (rparam->value_get == NULL) {
+		if (param->value_get == NULL) {
 			printf("No memory allocated\n");
 			csp_buffer_free(packet);
 			csp_close(conn);
 			return -1;
 		}
 
-		i += param_deserialize_to_var(rparam->type, rparam->size, &packet->data[i], rparam->value_get);
+		i += param_deserialize_to_var(param->type, param->size, &packet->data[i], param->value_get);
 
-		rparam->value_updated = csp_get_ms();
-		if (rparam->value_pending == 2)
-			rparam->value_pending = 0;
+		param->value_updated = csp_get_ms();
+		if (param->value_pending == 2)
+			param->value_pending = 0;
 
 		if (verbose)
-			param_print(rparam);
+			param_print(param);
 
 	}
 
@@ -112,13 +111,13 @@ int rparam_get(param_t * rparams[], int count, int verbose)
 
 }
 
-int rparam_set_single(param_t * rparam) {
-	param_t * rparams[1] = { rparam };
-	return rparam_set(rparams, 1, 0);
+int param_push_single(param_t * param, int timeout) {
+	param_t * params[1] = { param };
+	return param_push(params, 1, 0, timeout);
 }
 
-int rparam_set(param_t * rparams[], int count, int verbose)
-{
+int param_push(param_t * params[], int count, int verbose, int timeout) {
+
 	csp_packet_t * packet = csp_buffer_get(256);
 	if (packet == NULL)
 		return -1;
@@ -126,20 +125,20 @@ int rparam_set(param_t * rparams[], int count, int verbose)
 	packet->length = 0;
 	for (int i = 0; i < count; i++) {
 
-		if ((rparams[i]->value_set == NULL) || (rparams[i]->value_pending != 1))
+		if ((params[i]->value_set == NULL) || (params[i]->value_pending != 1))
 			continue;
 
-		if (packet->length + sizeof(uint16_t) + param_size(rparams[i]) > PARAM_SERVER_MTU) {
+		if (packet->length + sizeof(uint16_t) + param_size(params[i]) > PARAM_SERVER_MTU) {
 			printf("Request cropped: > MTU\n");
 			break;
 		}
 
 		/* Parameter id */
-		uint16_t id = csp_hton16(rparams[i]->id);
+		uint16_t id = csp_hton16(params[i]->id);
 		memcpy(packet->data + packet->length, &id, sizeof(uint16_t));
 		packet->length += sizeof(uint16_t);
 
-		packet->length += param_serialize_from_var(rparams[i]->type, rparams[i]->size, rparams[i]->value_set, (char *) packet->data + packet->length);
+		packet->length += param_serialize_from_var(params[i]->type, params[i]->size, params[i]->value_set, (char *) packet->data + packet->length);
 
 	}
 
@@ -151,7 +150,7 @@ int rparam_set(param_t * rparams[], int count, int verbose)
 
 	//csp_hex_dump("request", packet->data, packet->length);
 
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, rparams[0]->node, PARAM_PORT_SET, 0, CSP_O_CRC32);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, params[0]->node, PARAM_PORT_SET, 0, CSP_O_CRC32);
 	if (conn == NULL) {
 		csp_buffer_free(packet);
 		return -1;
@@ -163,8 +162,7 @@ int rparam_set(param_t * rparams[], int count, int verbose)
 		return -1;
 	}
 
-	// TODO: Fixtimeout
-	packet = csp_read(conn, 2000);
+	packet = csp_read(conn, timeout);
 	if (packet == NULL) {
 		csp_close(conn);
 		//printf("No response\n");
@@ -174,16 +172,16 @@ int rparam_set(param_t * rparams[], int count, int verbose)
 	//csp_hex_dump("Response", packet->data, packet->length);
 
 	for (int i = 0; i < count; i++) {
-		if ((rparams[i]->value_set == NULL) || (rparams[i]->value_pending == 0))
+		if ((params[i]->value_set == NULL) || (params[i]->value_pending == 0))
 			continue;
-		rparams[i]->value_pending = 2;
+		params[i]->value_pending = 2;
 
-		if (rparams[i]->value_get) {
-			memcpy(rparams[i]->value_get, rparams[i]->value_set, param_size(rparams[i]));
+		if (params[i]->value_get) {
+			memcpy(params[i]->value_get, params[i]->value_set, param_size(params[i]));
 		}
 
 		if (verbose)
-			param_print(rparams[i]);
+			param_print(params[i]);
 
 	}
 
