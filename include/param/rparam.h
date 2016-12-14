@@ -55,19 +55,6 @@ int rparam_set(param_t * rparams[], int count, int verbose);
 int rparam_get_single(param_t * rparam);
 int rparam_set_single(param_t * rparam);
 
-#define RPARAM_SET(_type, _name) int rparam_set_##_name(param_t * rparam, _type value);
-RPARAM_SET(uint8_t, uint8)
-RPARAM_SET(uint16_t, uint16)
-RPARAM_SET(uint32_t, uint32)
-RPARAM_SET(uint64_t, uint64)
-RPARAM_SET(int8_t, int8)
-RPARAM_SET(int16_t, int16)
-RPARAM_SET(int32_t, int32)
-RPARAM_SET(int64_t, int64)
-RPARAM_SET(float, float)
-RPARAM_SET(double, double)
-#undef RPARAM_SET
-
 void rparam_print(param_t * rparam);
 int rparam_size(param_t * rparam);
 

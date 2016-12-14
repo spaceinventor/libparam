@@ -143,8 +143,17 @@ void param_list_download(int node, int timeout) {
 		//csp_hex_dump("Response", packet->data, packet->length);
 		rparam_transfer_t * new_param = (void *) packet->data;
 
+		int strlen = packet->length - offsetof(rparam_transfer_t, name);
+
+		struct param_heap_s {
+			param_t param;
+			char name[strlen];
+			uint8_t value_get[new_param->size];
+			uint8_t value_set[new_param->size];
+		} *param_heap = calloc(sizeof(struct param_heap_s), 1);
+
 		/* Allocate new rparam type */
-		param_t * param = calloc(sizeof(param_t), 1);
+		param_t * param = &param_heap->param;
 		if (param == NULL) {
 			csp_buffer_free(packet);
 			break;
@@ -157,10 +166,14 @@ void param_list_download(int node, int timeout) {
 		param->size = new_param->size;
 		param->unit = NULL;
 
-		int strlen = packet->length - offsetof(rparam_transfer_t, name);
-		param->name = malloc(strlen);
+		/* Name */
+		param->name = param_heap->name;
 		strncpy(param->name, new_param->name, strlen);
 		param->name[strlen] = '\0';
+
+		/* Storage */
+		param->value_get = param_heap->value_get;
+		param->value_set = param_heap->value_set;
 
 		printf("Got param: %s\n", param->name);
 

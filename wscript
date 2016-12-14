@@ -50,6 +50,7 @@ def configure(ctx):
     
     if ctx.options.slash_enabled == True:
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_slash.c')
+        ctx.env.append_unique('FILES_PARAM', 'src/param/param_list_slash.c')
         if ctx.options.rparam_client_slash:
             ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_slash.c')
     

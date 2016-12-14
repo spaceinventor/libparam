@@ -198,21 +198,3 @@ int rparam_set(param_t * rparams[], int count, int verbose)
 	return 0;
 }
 
-#define RPARAM_SET(_type, _name) \
-	int rparam_set_##_name(param_t * rparam, _type value) { \
-		*(_type *) rparam->value_set = value; \
-		rparam->value_pending = 1; \
-		return rparam_set(&rparam, 1, 0); \
-	} \
-
-RPARAM_SET(uint8_t, uint8)
-RPARAM_SET(uint16_t, uint16)
-RPARAM_SET(uint32_t, uint32)
-RPARAM_SET(uint64_t, uint64)
-RPARAM_SET(int8_t, int8)
-RPARAM_SET(int16_t, int16)
-RPARAM_SET(int32_t, int32)
-RPARAM_SET(int64_t, int64)
-RPARAM_SET(float, float)
-RPARAM_SET(double, double)
-

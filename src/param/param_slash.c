@@ -18,16 +18,6 @@
 
 slash_command_group(param, "Local parameters");
 
-static int list(struct slash *slash)
-{
-	if (slash->argc > 1)
-		param_list_print(slash->argv[1]);
-	else
-		param_list_print(NULL);
-	return SLASH_SUCCESS;
-}
-slash_command_sub(param, list, list, "[str]", "List parameters");
-
 static param_t * parse_param(char * arg) {
 
 	/* Try to parse as single id */
