@@ -15,7 +15,7 @@
 #define PARAM_PORT_GET	10
 #define PARAM_PORT_SET	11
 #define PARAM_PORT_LIST	12
-csp_thread_return_t rparam_server_task(void *pvParameters);
+csp_thread_return_t param_server_task(void *pvParameters);
 
 typedef struct {
 	uint16_t id;
