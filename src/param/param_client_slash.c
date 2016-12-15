@@ -56,7 +56,7 @@ static int rparam_slash_node(struct slash *slash)
 }
 slash_command_sub(rparam, node, rparam_slash_node, "<node> [timeout]", NULL);
 
-
+#if 0
 static int rparam_slash_getall(struct slash *slash)
 {
 	unsigned int node = rparam_default_node;
@@ -245,6 +245,7 @@ static int rparam_slash_set(struct slash *slash)
 
 }
 slash_command_sub(rparam, set, rparam_slash_set, "<param> <value>", NULL);
+#endif
 
 static int rparam_slash_clear(struct slash *slash)
 {

@@ -118,6 +118,7 @@ typedef struct param_s {
 	__attribute__((used)) \
 	const param_t _name = { \
 		.storage_type = PARAM_STORAGE_RAM, \
+		.node = PARAM_LIST_LOCAL, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
@@ -131,6 +132,7 @@ typedef struct param_s {
 #define PARAM_DEFINE_STRUCT_RAM(fieldname, _id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _physaddr) \
 	.fieldname = { \
 		.storage_type = PARAM_STORAGE_RAM, \
+		.node = PARAM_LIST_LOCAL, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
@@ -148,6 +150,7 @@ typedef struct param_s {
 	__attribute__((used)) \
 	const param_t _name = { \
 		.storage_type = PARAM_STORAGE_VMEM, \
+		.node = PARAM_LIST_LOCAL, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
@@ -162,6 +165,7 @@ typedef struct param_s {
 #define PARAM_DEFINE_STRUCT_VMEM(fieldname, _id, _type, _size, _min, _max, _readonly, _callback, _unit, _vmem_name, _addr) \
 	.fieldname = { \
 		.storage_type = PARAM_STORAGE_VMEM, \
+		.node = PARAM_LIST_LOCAL, \
 		.id = _id, \
 		.type = _type, \
 		.size = _size, \
@@ -176,12 +180,12 @@ typedef struct param_s {
 #define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _size, _value_get, _value_set) \
 	param_t _name = { \
 		.storage_type = PARAM_STORAGE_REMOTE, \
+		.node = _node, \
 		.id = _id, \
 		.type = _type, \
 		.size = _size, \
 		.name = (char *) #_name, \
 		\
-		.node = _node, \
 		.value_get = _value_get, \
 		.value_set = _value_set \
 	};

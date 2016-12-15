@@ -205,7 +205,7 @@ int param_deserialize_single(char * inbuf) {
 	count += sizeof(id);
 	id = csp_ntoh16(id);
 
-	param_t * param = param_list_find_id(255, id);
+	param_t * param = param_list_find_id(id >> 11, id & 0x7FF);
 	if (param == NULL)
 		return 0;
 
@@ -223,7 +223,7 @@ int param_serialize_single(param_t * param, char * outbuf, int len)
 	int size = 0;
 
 	/* Parameter id */
-	uint16_t id = csp_hton16(param->id);
+	uint16_t id = csp_hton16((param->node << 11) | (param->id & 0x7FF));
 	memcpy(outbuf, &id, sizeof(uint16_t));
 	size += sizeof(uint16_t);
 
@@ -232,22 +232,3 @@ int param_serialize_single(param_t * param, char * outbuf, int len)
 	return size;
 }
 
-int param_serialize(param_t * param[], int count, char * outbuf, int len)
-{
-	int output = 0;
-	for (int i = 0; i < count; i++) {
-		output += param_serialize_single(param[i], outbuf + output, len - output);
-		if (output >= len)
-			return output;
-	}
-	return output;
-}
-
-int param_serialize_id(uint16_t param_id[], int count, char * outbuf, int len)
-{
-	param_t * param[count];
-	for (int i = 0; i < count; i++) {
-		param[i] = param_list_find_id(255, param_id[i]);
-	}
-	return param_serialize(param, count, outbuf, len);
-}

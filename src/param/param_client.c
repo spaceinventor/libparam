@@ -19,12 +19,12 @@
 #include "param_serializer.h"
 #include "param_string.h"
 
-int param_pull_single(param_t * param, int timeout) {
+int param_pull_single(param_t * param, int host, int timeout) {
 	param_t * params[1] = { param };
-	return param_pull(params, 1, 0, timeout);
+	return param_pull(params, 1, 1, host, timeout);
 }
 
-int param_pull(param_t * params[], int count, int verbose, int timeout) {
+int param_pull(param_t * params[], int count, int verbose, int host, int timeout) {
 
 	csp_packet_t * packet = csp_buffer_get(256);
 	if (packet == NULL)
@@ -42,13 +42,13 @@ int param_pull(param_t * params[], int count, int verbose, int timeout) {
 		}
 
 		response_size += sizeof(uint16_t) + param_size(params[i]);
-		request[i] = csp_hton16(params[i]->id);
+		request[i] = csp_hton16((params[i]->node << 11) | (params[i]->id & 0x7FF));
 	}
 	packet->length = sizeof(uint16_t) * i;
 
-	//csp_hex_dump("request", packet->data, packet->length);
+	csp_hex_dump("request", packet->data, packet->length);
 
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, params[0]->node, PARAM_PORT_GET, 0, CSP_O_CRC32);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_GET, 0, CSP_O_CRC32);
 	if (conn == NULL) {
 		csp_buffer_free(packet);
 		return -1;
@@ -66,7 +66,7 @@ int param_pull(param_t * params[], int count, int verbose, int timeout) {
 		return -1;
 	}
 
-	//csp_hex_dump("Response", packet->data, packet->length);
+	csp_hex_dump("Response", packet->data, packet->length);
 
 	i = 0;
 	while(i < packet->length) {
@@ -78,10 +78,10 @@ int param_pull(param_t * params[], int count, int verbose, int timeout) {
 		id = csp_ntoh16(id);
 
 		/* Search for param using list */
-		param_t * param = param_list_find_id(packet->id.src, id);
+		param_t * param = param_list_find_id(id >> 11, id & 0x7FF);
 
 		if (param == NULL) {
-			printf("No param for node %u id %u\n", packet->id.src, id);
+			printf("No param for node %u id %u\n", id >> 11, id & 0x7FF);
 			csp_buffer_free(packet);
 			csp_close(conn);
 			return -1;
@@ -135,7 +135,7 @@ int param_push(param_t * params[], int count, int verbose, int timeout) {
 		}
 
 		/* Parameter id */
-		uint16_t id = csp_hton16(params[i]->id);
+		uint16_t id = csp_hton16((params[i]->node << 11) | (params[i]->id & 0x7FF));
 		memcpy(packet->data + packet->length, &id, sizeof(uint16_t));
 		packet->length += sizeof(uint16_t);
 
@@ -149,7 +149,7 @@ int param_push(param_t * params[], int count, int verbose, int timeout) {
 		return 0;
 	}
 
-	//csp_hex_dump("request", packet->data, packet->length);
+	csp_hex_dump("request", packet->data, packet->length);
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, params[0]->node, PARAM_PORT_SET, 0, CSP_O_CRC32);
 	if (conn == NULL) {
@@ -170,7 +170,7 @@ int param_push(param_t * params[], int count, int verbose, int timeout) {
 		return -1;
 	}
 
-	//csp_hex_dump("Response", packet->data, packet->length);
+	csp_hex_dump("Response", packet->data, packet->length);
 
 	for (int i = 0; i < count; i++) {
 		if ((params[i]->value_set == NULL) || (params[i]->value_pending == 0))

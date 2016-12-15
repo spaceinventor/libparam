@@ -11,24 +11,46 @@
 #include <csp/csp_endian.h>
 #include <param/param.h>
 #include <param/param_server.h>
+#include <param/param_list.h>
 
 #include "param_serializer.h"
 
 static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 
-	//csp_hex_dump("get handler", packet->data, packet->length);
+	csp_hex_dump("get handler", packet->data, packet->length);
 
-	uint16_t id[packet->length / 2];
+	/* Get a new response packet */
+	csp_packet_t * response = csp_buffer_get(PARAM_SERVER_MTU);
+	if (response == NULL) {
+		csp_buffer_free(packet);
+		return;
+	}
+	response->length = 0;
+
+	/* Loop through parameters */
 	for (int i = 0; i < packet->length / 2; i++) {
-		id[i] = csp_ntoh16(packet->data16[i]);
+
+		/* convert and find parameter */
+		uint16_t id = csp_ntoh16(packet->data16[i]);
+		param_t * param = param_list_find_id(id >> 11, id & 0x7FF);
+		if (param == NULL)
+			continue;
+
+		printf("Found param %s\n", param->name);
+
+		/* Serialize into response */
+		response->length = param_serialize_single(param, (char *) response->data + response->length, PARAM_SERVER_MTU - response->length);
+		if (response->length >= PARAM_SERVER_MTU)
+			break;
 	}
 
-	packet->length = param_serialize_id(id, packet->length / 2, (void *) packet->data, PARAM_SERVER_MTU);
+	/* Now free the request */
+	csp_buffer_free(packet);
 
-	//csp_hex_dump("get handler", packet->data, packet->length);
+	csp_hex_dump("get handler", response->data, response->length);
 
-	if (!csp_send(conn, packet, 0))
-		csp_buffer_free(packet);
+	if (!csp_send(conn, response, 0))
+		csp_buffer_free(response);
 }
 
 static void param_set_handler(csp_conn_t * conn, csp_packet_t * packet)

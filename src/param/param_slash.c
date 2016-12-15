@@ -11,8 +11,11 @@
 #include <inttypes.h>
 #include <slash/slash.h>
 
+#include <csp/csp.h>
+
 #include <param/param.h>
 #include <param/param_list.h>
+#include <param/param_client.h>
 
 #include "param_string.h"
 
@@ -40,7 +43,7 @@ static void parse_param(char * arg, param_t **param, int *node, int *host) {
 	if (token != NULL) {
 		sscanf(token, "%d", node);
 		*token = '\0';
-	} else if (*host != -1) {
+	} else if (*node != -1) {
 		*node = *host;
 	} else {
 		*node = -1;
@@ -52,6 +55,7 @@ static void parse_param(char * arg, param_t **param, int *node, int *host) {
 	if (*endptr == '\0') {
 		*param = param_list_find_id(*node, id);
 	} else {
+		printf("Search name %s:%d\n", arg, *node);
 		*param = param_list_find_name(*node, arg);
 	}
 
@@ -116,13 +120,17 @@ static int get(struct slash *slash)
 		return SLASH_EUSAGE;
 
 	param_t * param;
-	int host;
-	int node;
-	parse_param(slash->argv[1], &param, &host, &node);
+	int host = -1;
+	int node = -1;
+	parse_param(slash->argv[1], &param, &node, &host);
 
 	if (param == NULL) {
 		printf("Parameter %s not found\n", slash->argv[1]);
 		return SLASH_EINVAL;
+	}
+
+	if ((host != -1) && (host != csp_get_address())) {
+		param_pull_single(param, host, 1000);
 	}
 
 	param_print(param);
@@ -139,7 +147,7 @@ static int set(struct slash *slash)
 	param_t * param;
 	int host;
 	int node;
-	parse_param(slash->argv[1], &param, &host, &node);
+	parse_param(slash->argv[1], &param, &node, &host);
 
 	if (param == NULL) {
 		printf("Parameter %s not found\n", slash->argv[1]);

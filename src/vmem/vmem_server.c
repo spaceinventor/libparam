@@ -173,7 +173,7 @@ static void rparam_list_handler(csp_conn_t * conn)
 	int iterator(param_t * param) {
 		csp_packet_t * packet = csp_buffer_get(256);
 		rparam_transfer_t * rparam = (void *) packet->data;
-		rparam->id = csp_hton16(param->id);
+		rparam->id = csp_hton16((param->node << 11) | (param->id & 0x7FF));
 		rparam->type = param->type;
 		rparam->size = param->size;
 		strncpy(rparam->name, param->name, 25);

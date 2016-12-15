@@ -223,7 +223,7 @@ void param_print(param_t * param)
 	if (param->storage_type == PARAM_STORAGE_REMOTE) {
 
 		if ((param->value_get != NULL) && (param->value_updated > 0)) {
-			param_var_str(param->type, param->size, param->value_get, value_str, 40);
+			param_value_str(param, value_str, 40);
 			printf(" = %s", value_str);
 
 			if (param->value_pending == 2)
@@ -238,7 +238,7 @@ void param_print(param_t * param)
 	}
 
 	/* Unit */
-	if (param->unit != NULL)
+	if (param->unit != NULL && strlen(param->unit))
 		printf(" %s", param->unit);
 
 	/* Type */
