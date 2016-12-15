@@ -152,6 +152,7 @@ void param_set_data(param_t * param, void * inbuf, int len) {
 	case PARAM_STORAGE_REMOTE:
 		if (param->value_set)
 			memcpy(param->value_set, inbuf, len);
+		param->value_pending = 1;
 		return;
 	}
 }

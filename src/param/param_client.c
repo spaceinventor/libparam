@@ -42,7 +42,12 @@ int param_pull(param_t * params[], int count, int verbose, int host, int timeout
 		}
 
 		response_size += sizeof(uint16_t) + param_size(params[i]);
-		request[i] = csp_hton16((params[i]->node << 11) | (params[i]->id & 0x7FF));
+
+		int node = params[i]->node;
+		if (node == PARAM_LIST_LOCAL)
+			node = csp_get_address();
+
+		request[i] = csp_hton16((node << 11) | (params[i]->id & 0x7FF));
 	}
 	packet->length = sizeof(uint16_t) * i;
 
