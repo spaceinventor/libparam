@@ -32,7 +32,10 @@ static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 
 		/* convert and find parameter */
 		uint16_t id = csp_ntoh16(packet->data16[i]);
-		param_t * param = param_list_find_id(id >> 11, id & 0x7FF);
+		int node = id >> 11;
+		if (node == csp_get_address())
+			node = PARAM_LIST_LOCAL;
+		param_t * param = param_list_find_id(node, id & 0x7FF);
 		if (param == NULL)
 			continue;
 

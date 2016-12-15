@@ -61,10 +61,7 @@ int param_list_add(param_t * item) {
 
 param_t * param_list_find_id(int node, int id)
 {
-	printf("Find id %d %d\n", node, id);
 	if (node == -1)
-		node = PARAM_LIST_LOCAL;
-	if (node == csp_get_address())
 		node = PARAM_LIST_LOCAL;
 	if (node >= 0x1F)
 		node = PARAM_LIST_LOCAL;
@@ -72,11 +69,7 @@ param_t * param_list_find_id(int node, int id)
 	param_t * found = NULL;
 	int iterator(param_t * param) {
 
-		int param_node = PARAM_LIST_LOCAL;
-		if (param->storage_type == PARAM_STORAGE_REMOTE)
-			param_node = param->node;
-
-		if (param_node != node)
+		if (param->node != node)
 			return 1;
 
 		if (param->id == id) {
@@ -95,19 +88,13 @@ param_t * param_list_find_name(int node, char * name)
 {
 	if (node == -1)
 		node = PARAM_LIST_LOCAL;
-	if (node == csp_get_address())
-		node = PARAM_LIST_LOCAL;
 	if (node >= 0x1F)
 		node = PARAM_LIST_LOCAL;
 
 	param_t * found = NULL;
 	int iterator(param_t * param) {
 
-		int param_node = PARAM_LIST_LOCAL;
-		if (param->storage_type == PARAM_STORAGE_REMOTE)
-			param_node = param->node;
-
-		if (param_node != node)
+		if (param->node != node)
 			return 1;
 
 		if (strcmp(param->name, name) == 0) {

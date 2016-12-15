@@ -55,7 +55,6 @@ static void parse_param(char * arg, param_t **param, int *node, int *host) {
 	if (*endptr == '\0') {
 		*param = param_list_find_id(*node, id);
 	} else {
-		printf("Search name %s:%d\n", arg, *node);
 		*param = param_list_find_name(*node, arg);
 	}
 
@@ -129,7 +128,7 @@ static int get(struct slash *slash)
 		return SLASH_EINVAL;
 	}
 
-	if ((host != -1) && (host != csp_get_address())) {
+	if (host != -1) {
 		param_pull_single(param, host, 1000);
 	}
 

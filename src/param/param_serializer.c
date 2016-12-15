@@ -14,6 +14,7 @@
 #include "param_string.h"
 
 #include <csp/csp_endian.h>
+#include <csp/csp.h>
 #include <param/param_list.h>
 
 int param_deserialize_to_var(param_type_e type, int size, void * in, void * out)
@@ -223,7 +224,10 @@ int param_serialize_single(param_t * param, char * outbuf, int len)
 	int size = 0;
 
 	/* Parameter id */
-	uint16_t id = csp_hton16((param->node << 11) | (param->id & 0x7FF));
+	int node = param->node;
+	if (node == PARAM_LIST_LOCAL)
+		node = csp_get_address();
+	uint16_t id = csp_hton16((node << 11) | (param->id & 0x7FF));
 	memcpy(outbuf, &id, sizeof(uint16_t));
 	size += sizeof(uint16_t);
 
