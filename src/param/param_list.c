@@ -61,6 +61,9 @@ int param_list_add(param_t * item) {
 
 param_t * param_list_find_id(int node, int id)
 {
+	if (node == -1)
+		node = PARAM_LIST_LOCAL;
+
 	param_t * found = NULL;
 	int iterator(param_t * param) {
 

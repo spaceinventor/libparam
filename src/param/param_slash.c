@@ -18,25 +18,44 @@
 
 slash_command_group(param, "Local parameters");
 
-static param_t * parse_param(char * arg) {
+static void parse_param(char * arg, param_t **param, int *node, int *host) {
 
-	/* Try to parse as single id */
-	char * endptr;
-	char name[25];
-	int node = 255;
-	int id = strtoul(arg, &endptr, 10);
+	/* Search for the '@' symbol:
+	 * Call strtok twice in order to skip the stuff head of '@' */
+	char * saveptr;
+	char * token;
 
-	if (*endptr == '\0')
-		return param_list_find_id(node, id);
-
-	/* Try to parse as id:node */
-	if (sscanf(arg, "%u:%u", &id, &node) == 2) {
-		return param_list_find_id(node, id);
+	strtok_r(arg, "@", &saveptr);
+	token = strtok_r(NULL, "@", &saveptr);
+	if (token != NULL) {
+		sscanf(token, "%d", host);
+		*token = '\0';
+	} else {
+		*host = -1;
 	}
 
-	/* Try to parse as name:node */
-	sscanf(arg, "%s %u", name, &node);
-	return param_list_find_name(node, name);
+	/* Search for the ':' symbol: */
+	strtok_r(arg, ":", &saveptr);
+	token = strtok_r(NULL, ":", &saveptr);
+	if (token != NULL) {
+		sscanf(token, "%d", node);
+		*token = '\0';
+	} else if (*host != -1) {
+		*node = *host;
+	} else {
+		*node = -1;
+	}
+
+	char *endptr;
+	int id = strtoul(arg, &endptr, 10);
+
+	if (*endptr == '\0') {
+		*param = param_list_find_id(*node, id);
+	} else {
+		*param = param_list_find_name(*node, arg);
+	}
+
+	return;
 
 }
 
@@ -96,7 +115,10 @@ static int get(struct slash *slash)
 	if (slash->argc != 2)
 		return SLASH_EUSAGE;
 
-	param_t * param = parse_param(slash->argv[1]);
+	param_t * param;
+	int host;
+	int node;
+	parse_param(slash->argv[1], &param, &host, &node);
 
 	if (param == NULL) {
 		printf("Parameter %s not found\n", slash->argv[1]);
@@ -114,7 +136,10 @@ static int set(struct slash *slash)
 	if (slash->argc != 3)
 		return SLASH_EUSAGE;
 
-	param_t * param = parse_param(slash->argv[1]);
+	param_t * param;
+	int host;
+	int node;
+	parse_param(slash->argv[1], &param, &host, &node);
 
 	if (param == NULL) {
 		printf("Parameter %s not found\n", slash->argv[1]);
