@@ -44,11 +44,19 @@ PARAM_GET(double, double, )
 
 void param_get_data(param_t * param, void * outbuf, int len)
 {
-	if (param->physaddr) {
-		memcpy(outbuf, param->physaddr, len);
+	switch(param->storage_type) {
+	case PARAM_STORAGE_RAM:
+		if (param->physaddr)
+			memcpy(outbuf, param->physaddr, len);
+		return;
+	case PARAM_STORAGE_VMEM:
+		param->vmem->read(param->vmem, param->addr, outbuf, len);
+		return;
+	case PARAM_STORAGE_REMOTE:
+		if (param->value_get)
+			memcpy(outbuf, param->value_get, len);
 		return;
 	}
-	param->vmem->read(param->vmem, param->addr, outbuf, len);
 }
 
 #define PARAM_SET(_type, name_in, _swapfct) \
@@ -70,11 +78,13 @@ void param_get_data(param_t * param, void * outbuf, int len)
 		} \
 		\
 		/* Aligned access directly to RAM */ \
-		if (param->physaddr) { \
+		if (param->storage_type == PARAM_STORAGE_RAM) { \
+			if (param->physaddr) \
 			*(_type*)(param->physaddr) = value; \
+		} \
 		\
 		/* Otherwise call to vmem */ \
-		} else { \
+		if (param->storage_type == PARAM_STORAGE_VMEM) { \
 			if (param->vmem->big_endian == 1) \
 				value = _swapfct(value); \
 			param->vmem->write(param->vmem, param->addr, &value, sizeof(value)); \

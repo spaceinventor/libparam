@@ -206,7 +206,10 @@ int param_deserialize_single(char * inbuf) {
 	count += sizeof(id);
 	id = csp_ntoh16(id);
 
-	param_t * param = param_list_find_id(id >> 11, id & 0x7FF);
+	int node = id >> 11;
+	if (node == csp_get_address())
+		node = PARAM_LIST_LOCAL;
+	param_t * param = param_list_find_id(node, id & 0x7FF);
 	if (param == NULL)
 		return 0;
 

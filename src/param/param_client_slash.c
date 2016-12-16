@@ -22,23 +22,92 @@
 #include "param_serializer.h"
 #include "param_string.h"
 
-slash_command_group(rparam, "Remote parameters");
+static int param_client_slash_push(struct slash *slash)
+{
+	unsigned int node = 0;
+	unsigned int timeout = 100;
 
-#define RPARAM_SLASH_MAX_QUEUESIZE 500
+	if (slash->argc < 2)
+		return SLASH_EUSAGE;
+	if (slash->argc >= 2)
+		node = atoi(slash->argv[1]);
+	if (slash->argc >= 3)
+		timeout = atoi(slash->argv[2]);
 
-static param_t * rparams[RPARAM_SLASH_MAX_QUEUESIZE];
-static int rparams_count = 0;
-static int rparam_autosend = 1;
+	/* Clear queue first */
+	param_t * params[100];
+	int params_count = 0;
 
-int rparam_default_node = 0;
-int rparam_default_timeout = 2000;
+	int add_to_queue(param_t * param) {
+		if (param->node == node && param->value_pending == 1) {
+			if (params_count < 100)
+				params[params_count++] = param;
+		}
+		return 1;
+	}
+	param_list_foreach(add_to_queue);
 
-static void rparam_print_queue(void) {
-	printf("Queue\n");
-	for(int i = 0; i < rparams_count; i++)
-		param_print(rparams[i]);
+	if (params_count == 0)
+		return SLASH_SUCCESS;
+
+	if (param_push(params, params_count, 1, node, timeout) < 0) {
+		printf("No response\n");
+		return SLASH_EINVAL;
+	}
+
+	return SLASH_SUCCESS;
 }
+slash_command_sub(param, push, param_client_slash_push, "<node> [timeout]", NULL);
 
+static int param_client_slash_pull(struct slash *slash)
+{
+	unsigned int node = 0;
+	unsigned int timeout = 100;
+
+	if (slash->argc < 2)
+		return SLASH_EUSAGE;
+	if (slash->argc >= 2)
+		node = atoi(slash->argv[1]);
+	if (slash->argc >= 3)
+		timeout = atoi(slash->argv[2]);
+
+	/* Clear queue first */
+	param_t * params[100];
+	int params_count = 0;
+	int response_size = 0;
+
+	void send_queue(void) {
+		param_pull(params, params_count, 1, node, timeout);
+		params_count = 0;
+		response_size = 0;
+	}
+
+	int add_to_queue(param_t * param) {
+		if (param->node != node)
+			return 1;
+
+		int param_packed_size = sizeof(uint16_t) + param_size(param);
+		if (response_size + param_packed_size >= PARAM_SERVER_MTU) {
+			send_queue();
+		}
+
+		params[params_count++] = param;
+		response_size += param_packed_size;
+		return 1;
+	}
+	param_list_foreach(add_to_queue);
+
+	if (params_count == 0)
+		return SLASH_SUCCESS;
+
+	send_queue();
+
+	return SLASH_SUCCESS;
+}
+slash_command_sub(param, pull, param_client_slash_pull, "<node> [timeout]", NULL);
+
+
+#if 0
 static int rparam_slash_node(struct slash *slash)
 {
 	if (slash->argc < 2) {
@@ -56,71 +125,7 @@ static int rparam_slash_node(struct slash *slash)
 }
 slash_command_sub(rparam, node, rparam_slash_node, "<node> [timeout]", NULL);
 
-#if 0
-static int rparam_slash_getall(struct slash *slash)
-{
-	unsigned int node = rparam_default_node;
-	unsigned int timeout = rparam_default_timeout;
 
-	if (slash->argc >= 2)
-		node = atoi(slash->argv[1]);
-	if (slash->argc >= 3)
-		timeout = atoi(slash->argv[2]);
-
-	/* Clear queue first */
-	rparams_count = 0;
-
-	int add_to_queue(param_t * rparam) {
-		if (rparam->node == node) {
-			if (rparams_count < RPARAM_SLASH_MAX_QUEUESIZE)
-				rparams[rparams_count++] = rparam;
-		}
-		return 1;
-	}
-	param_list_foreach(add_to_queue);
-
-	if (rparams_count == 0)
-		return SLASH_SUCCESS;
-
-	param_pull(rparams, rparams_count, 1, timeout);
-
-	return SLASH_SUCCESS;
-}
-slash_command_sub(rparam, getall, rparam_slash_getall, "[node] [timeout]", NULL);
-
-static int rparam_slash_setall(struct slash *slash)
-{
-	unsigned int node = rparam_default_node;
-	unsigned int timeout = rparam_default_timeout;
-
-	if (slash->argc >= 2)
-		node = atoi(slash->argv[1]);
-	if (slash->argc >= 3)
-		timeout = atoi(slash->argv[2]);
-
-	/* Clear queue first */
-	rparams_count = 0;
-
-	int add_to_queue(param_t * rparam) {
-		if (rparam->node == node && rparam->value_pending == 1) {
-			if (rparams_count < RPARAM_SLASH_MAX_QUEUESIZE)
-				rparams[rparams_count++] = rparam;
-		}
-		return 1;
-	}
-	param_list_foreach(add_to_queue);
-
-	if (rparams_count == 0)
-		return SLASH_SUCCESS;
-
-	if (param_push(rparams, rparams_count, 1, timeout) < 0) {
-		printf("No response\n");
-		return SLASH_EINVAL;
-	}
-
-	return SLASH_SUCCESS;
-}
-slash_command_sub(rparam, setall, rparam_slash_setall, "[node] [timeout]", NULL);
 
 static int rparam_slash_get(struct slash *slash)
 {
@@ -245,7 +250,7 @@ static int rparam_slash_set(struct slash *slash)
 
 }
 slash_command_sub(rparam, set, rparam_slash_set, "<param> <value>", NULL);
-#endif
+
 
 static int rparam_slash_clear(struct slash *slash)
 {
@@ -270,3 +275,4 @@ static int rparam_slash_queue(struct slash *slash)
 }
 slash_command_sub(rparam, queue, rparam_slash_queue, "<autosend>", NULL);
 
+#endif

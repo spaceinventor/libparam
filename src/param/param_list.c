@@ -152,7 +152,7 @@ void param_list_download(int node, int timeout) {
 
 		struct param_heap_s {
 			param_t param;
-			char name[strlen];
+			char name[strlen+1];
 			uint8_t value_get[size];
 			uint8_t value_set[size];
 		} *param_heap = calloc(sizeof(struct param_heap_s), 1);

@@ -43,7 +43,7 @@ static void parse_param(char * arg, param_t **param, int *node, int *host) {
 	if (token != NULL) {
 		sscanf(token, "%d", node);
 		*token = '\0';
-	} else if (*node != -1) {
+	} else if (*host != -1) {
 		*node = *host;
 	} else {
 		*node = -1;
@@ -156,7 +156,13 @@ static int set(struct slash *slash)
 	char valuebuf[128] __attribute__((aligned(16))) = {};
 	param_str_to_value(param->type, slash->argv[2], valuebuf);
 
+	printf("Param set %s\n", slash->argv[2]);
+	csp_hex_dump("valuebuf", valuebuf, param_size(param));
 	param_set(param, valuebuf);
+
+	if (host != -1) {
+		param_push_single(param, host, 1000);
+	}
 
 	param_print(param);
 

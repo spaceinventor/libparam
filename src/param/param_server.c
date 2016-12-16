@@ -42,7 +42,7 @@ static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 		printf("Found param %s\n", param->name);
 
 		/* Serialize into response */
-		response->length = param_serialize_single(param, (char *) response->data + response->length, PARAM_SERVER_MTU - response->length);
+		response->length += param_serialize_single(param, (char *) response->data + response->length, PARAM_SERVER_MTU - response->length);
 		if (response->length >= PARAM_SERVER_MTU)
 			break;
 	}
@@ -58,6 +58,9 @@ static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 
 static void param_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 {
+
+	csp_hex_dump("set handler", packet->data, packet->length);
+
 	int count = 0;
 	while(count < packet->length) {
 		int ret = param_deserialize_single((char *) packet->data + count);
@@ -71,6 +74,9 @@ static void param_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 	/* Send ack */
 	memcpy(packet->data, "ok", 2);
 	packet->length = 2;
+
+	csp_hex_dump("set handler", packet->data, packet->length);
+
 	if (!csp_send(conn, packet, 0))
 		csp_buffer_free(packet);
 

@@ -106,14 +106,19 @@ int vmem_fram_secure_restore(vmem_t * vmem)
 
 void vmem_fram_secure_read(vmem_t * vmem, uint32_t addr, void * dataout, int len)
 {
+	printf("Read vmem\n");
 	vmem_fram_secure_driver_t * driver = vmem->driver;
 	memcpy(dataout, driver->data + addr, len);
 }
 
+#include <csp/csp.h>
 void vmem_fram_secure_write(vmem_t * vmem, uint32_t addr, void * datain, int len)
 {
 	vmem_fram_secure_driver_t * driver = vmem->driver;
+	printf("Write ram addr %x\n", driver->data + addr);
 	memcpy(driver->data + addr, datain, len);
+	csp_hex_dump("write", datain, len);
+	printf("Write ram addr %x\n", driver->fram_primary_addr + addr);
 	fm25w256_write_data(driver->fram_primary_addr + addr, datain, len);
 
 	/* Write checksum (always kept in top 4 bytes of vmem) */

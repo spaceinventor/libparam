@@ -99,6 +99,8 @@ typedef struct param_s {
 	};
 } param_t;
 
+#define PARAM_LIST_LOCAL	255
+
 /**
  * DEFINITION HELPERS:
  *
