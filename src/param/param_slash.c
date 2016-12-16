@@ -87,7 +87,9 @@ static void param_completer(struct slash *slash, char * token) {
 				prefix = param;
 				prefixlen = strlen(prefix->name);
 			} else {
-				prefixlen = slash_prefix_length(prefix->name, param->name);
+				int new_prefixlen = slash_prefix_length(prefix->name, param->name);
+				if (new_prefixlen < prefixlen)
+					prefixlen = new_prefixlen;
 			}
 
 			/* Print newline on first match */
