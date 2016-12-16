@@ -158,8 +158,6 @@ static int set(struct slash *slash)
 	char valuebuf[128] __attribute__((aligned(16))) = {};
 	param_str_to_value(param->type, slash->argv[2], valuebuf);
 
-	printf("Param set %s\n", slash->argv[2]);
-	csp_hex_dump("valuebuf", valuebuf, param_size(param));
 	param_set(param, valuebuf);
 
 	if (host != -1) {
