@@ -15,10 +15,10 @@ def options(ctx):
     gr.add_option('--vmem-client', action='store_true')
     gr.add_option('--vmem-client-ftp', action='store_true')
     
-    gr.add_option('--rparam-client', action='store_true')
-    gr.add_option('--rparam-client-slash', action='store_true')
-    gr.add_option('--rparam-server', action='store_true')
-    gr.add_option('--rparam-store-file', action='store_true')
+    gr.add_option('--param-client', action='store_true')
+    gr.add_option('--param-client-slash', action='store_true')
+    gr.add_option('--param-server', action='store_true')
+    gr.add_option('--param-store-file', action='store_true')
     
 
 def configure(ctx):
@@ -51,18 +51,17 @@ def configure(ctx):
     if ctx.options.slash_enabled == True:
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_slash.c')
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_list_slash.c')
-        if ctx.options.rparam_client_slash:
-            ctx.env.append_unique('FILES_PARAM', 'src/param/param_client_slash.c')
     
-    if ctx.options.rparam_server:	
+    if ctx.options.param_server:	
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_server.c')
         
-    if ctx.options.rparam_client:
+    if ctx.options.param_client:
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_client.c')
-        ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_listset.c')
+        if ctx.options.param_client_slash:
+            ctx.env.append_unique('FILES_PARAM', 'src/param/param_client_slash.c')
     
-    if ctx.options.rparam_store_file: 
-        ctx.env.append_unique('FILES_PARAM', 'src/param/rparam_list_store_file.c')
+    if ctx.options.param_store_file: 
+        ctx.env.append_unique('FILES_PARAM', 'src/param/param_list_store_file.c')
         
     ctx.write_config_header('include/libparam.h')
 
