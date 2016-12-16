@@ -17,7 +17,7 @@
 
 static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 
-	csp_hex_dump("get handler", packet->data, packet->length);
+	//csp_hex_dump("get handler", packet->data, packet->length);
 
 	/* Get a new response packet */
 	csp_packet_t * response = csp_buffer_get(PARAM_SERVER_MTU);
@@ -39,8 +39,6 @@ static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 		if (param == NULL)
 			continue;
 
-		printf("Found param %s\n", param->name);
-
 		/* Serialize into response */
 		response->length += param_serialize_single(param, (char *) response->data + response->length, PARAM_SERVER_MTU - response->length);
 		if (response->length >= PARAM_SERVER_MTU)
@@ -50,7 +48,7 @@ static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 	/* Now free the request */
 	csp_buffer_free(packet);
 
-	csp_hex_dump("get handler", response->data, response->length);
+	//csp_hex_dump("get handler", response->data, response->length);
 
 	if (!csp_send(conn, response, 0))
 		csp_buffer_free(response);
@@ -59,7 +57,7 @@ static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 static void param_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 {
 
-	csp_hex_dump("set handler", packet->data, packet->length);
+	//csp_hex_dump("set handler", packet->data, packet->length);
 
 	int count = 0;
 	while(count < packet->length) {
@@ -75,7 +73,7 @@ static void param_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 	memcpy(packet->data, "ok", 2);
 	packet->length = 2;
 
-	csp_hex_dump("set handler", packet->data, packet->length);
+	//csp_hex_dump("set handler", packet->data, packet->length);
 
 	if (!csp_send(conn, packet, 0))
 		csp_buffer_free(packet);

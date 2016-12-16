@@ -21,7 +21,7 @@
 
 int param_pull_single(param_t * param, int host, int timeout) {
 	param_t * params[1] = { param };
-	return param_pull(params, 1, 1, host, timeout);
+	return param_pull(params, 1, 0, host, timeout);
 }
 
 int param_pull(param_t * params[], int count, int verbose, int host, int timeout) {
@@ -51,7 +51,7 @@ int param_pull(param_t * params[], int count, int verbose, int host, int timeout
 	}
 	packet->length = sizeof(uint16_t) * i;
 
-	csp_hex_dump("request", packet->data, packet->length);
+	//csp_hex_dump("request", packet->data, packet->length);
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_GET, 0, CSP_O_CRC32);
 	if (conn == NULL) {
@@ -71,7 +71,7 @@ int param_pull(param_t * params[], int count, int verbose, int host, int timeout
 		return -1;
 	}
 
-	csp_hex_dump("Response", packet->data, packet->length);
+	//csp_hex_dump("Response", packet->data, packet->length);
 
 	i = 0;
 	while(i < packet->length) {
@@ -154,7 +154,7 @@ int param_push(param_t * params[], int count, int verbose, int host, int timeout
 		return 0;
 	}
 
-	csp_hex_dump("request", packet->data, packet->length);
+	//csp_hex_dump("request", packet->data, packet->length);
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SET, 0, CSP_O_CRC32);
 	if (conn == NULL) {
@@ -175,7 +175,7 @@ int param_push(param_t * params[], int count, int verbose, int host, int timeout
 		return -1;
 	}
 
-	csp_hex_dump("Response", packet->data, packet->length);
+	//csp_hex_dump("Response", packet->data, packet->length);
 
 	for (int i = 0; i < count; i++) {
 		if ((params[i]->value_set == NULL) || (params[i]->value_pending == 0))
