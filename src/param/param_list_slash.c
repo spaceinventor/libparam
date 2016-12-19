@@ -40,3 +40,13 @@ static int download(struct slash *slash)
 }
 slash_command_sub(param, download, download, "<node> [timeout]", NULL);
 
+static int to_string(struct slash *slash) {
+	int node_filter = -1;
+	if (slash->argc >= 2)
+		node_filter = atoi(slash->argv[1]);
+
+	param_list_to_string(stdout, node_filter, 0);
+	return SLASH_SUCCESS;
+}
+
+slash_command_sub(param, serialize, to_string, "<node_filter>", NULL);

@@ -154,7 +154,7 @@ void param_list_download(int node, int timeout) {
 		int id = csp_ntoh16(new_param->id) & 0x7FF;
 		int type = new_param->type;
 
-		param_t * param = param_create_remote(id, node, type, size, new_param->name, strlen);
+		param_t * param = param_list_create_remote(id, node, type, size, new_param->name, strlen);
 		if (param == NULL) {
 			csp_buffer_free(packet);
 			break;
@@ -164,7 +164,7 @@ void param_list_download(int node, int timeout) {
 
 		/* Add to list */
 		if (param_list_add(param) != 0)
-			param_free(param);
+			param_list_free(param);
 
 		csp_buffer_free(packet);
 		count++;
@@ -174,11 +174,11 @@ void param_list_download(int node, int timeout) {
 	csp_close(conn);
 }
 
-void param_free(param_t * param) {
+void param_list_free(param_t * param) {
 	free(param);
 }
 
-param_t * param_create_remote(int id, int node, int type, int size, char * name, int namelen) {
+param_t * param_list_create_remote(int id, int node, int type, int size, char * name, int namelen) {
 
 	struct param_heap_s {
 		param_t param;
@@ -206,6 +206,47 @@ param_t * param_create_remote(int id, int node, int type, int size, char * name,
 	strncpy(param->name, name, namelen);
 	param->name[namelen] = '\0';
 
+	printf("Created %s\n", param->name);
+
 	return param;
 
 }
+
+void param_list_from_string(FILE *stream, int node_override) {
+	char name[25];
+	int id, node, type, size;
+	while(1) {
+		int scanned = fscanf(stream, "%25[^|]|%u:%u?%u[%d]\n", name, &id, &node, &type, &size);
+		if (scanned < 5)
+			break;
+
+		if (node_override >= 0)
+			node = node_override;
+
+		param_t * param = param_list_create_remote(id, node, type, size, name, strlen(name));
+		if (param) {
+			if (param_list_add(param) < 0) {
+				param_list_free(param);
+			}
+		}
+	}
+}
+
+void param_list_to_string(FILE * stream, int node_filter, int remote_only) {
+	int add_rparam(param_t * param) {
+		printf("Save %s node %d type %d\n", param->name, param->node, param->storage_type);
+		if ((node_filter >= 0) && (param->node != node_filter))
+			return 1;
+
+		if ((remote_only) && (param->storage_type != PARAM_STORAGE_REMOTE))
+			return 1;
+
+		fprintf(stream, "%s|%u:%u?%u[%d]\n", param->name, param->id, param->node, param->type, param->size);
+		return 1;
+	}
+
+	param_list_foreach(add_rparam);
+}
+
+// TODO: Add param list save to vmem
+// TODO: Add param list load from vmem

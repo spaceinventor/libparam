@@ -31,37 +31,13 @@ void param_list_store_file_save(char * filename) {
 
 void param_list_store_file_load(char * filename) {
 
-	FILE * store = fopen(filename, "r");
-	if (store == NULL)
+	FILE * stream = fopen(filename, "r");
+	if (stream == NULL)
 		return;
 
-	while (1) {
+	param_list_from_string(stream, -1);
 
-		char name[100];
-		int id, node, type, size;
-
-		int scanned = fscanf(store, "%25[^|]|%u:%u?%u[%d]\n", name, &id, &node, &type, &size);
-		if (scanned < 0)
-			break;
-
-		//printf("scanned %u - %s|%u:%u?%u[%d]\n", scanned, name, id, node, type, size);
-
-		param_t * param = param_list_find_id(node, id);
-		if (param != NULL)
-			continue;
-
-		if (node == PARAM_LIST_LOCAL)
-			continue;
-
-		param = param_create_remote(id, node, type, size, name, strlen(name));
-
-		//printf("Adding %s %u:%u\n", param->name, param->id, param->node);
-
-		param_list_add(param);
-
-	}
-
-	fclose(store);
+	fclose(stream);
 
 }
 

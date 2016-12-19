@@ -55,6 +55,14 @@ typedef enum {
 	PARAM_STORAGE_REMOTE,         //! Use remote parameter service
 } param_storage_type_e;
 
+typedef struct param_declaration_s {
+	uint16_t id;
+	param_type_e type;
+	int size;
+	char *name;
+	char *unit;
+} param_declaration_t;
+
 /**
  * Parameter description structure
  * Note: this is not packed in order to maximise run-time efficiency
