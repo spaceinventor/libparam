@@ -150,40 +150,21 @@ void param_list_download(int node, int timeout) {
 		if (size == -1)
 			size = new_param->size;
 
-		struct param_heap_s {
-			param_t param;
-			char name[strlen+1];
-			uint8_t value_get[size];
-			uint8_t value_set[size];
-		} *param_heap = calloc(sizeof(struct param_heap_s), 1);
+		int node = csp_ntoh16(new_param->id) >> 11;
+		int id = csp_ntoh16(new_param->id) & 0x7FF;
+		int type = new_param->type;
 
-		/* Allocate new rparam type */
-		param_t * param = &param_heap->param;
+		param_t * param = param_create_remote(id, node, type, size, new_param->name, strlen);
 		if (param == NULL) {
 			csp_buffer_free(packet);
 			break;
 		}
-		param->storage_type = PARAM_STORAGE_REMOTE;
-		param->node = csp_ntoh16(new_param->id) >> 11;
-		param->id = csp_ntoh16(new_param->id) & 0x7FF;
-		param->type = new_param->type;
-		param->size = size;
-		param->unit = NULL;
-
-		/* Name */
-		param->name = param_heap->name;
-		strncpy(param->name, new_param->name, strlen);
-		param->name[strlen] = '\0';
-
-		/* Storage */
-		param->value_get = param_heap->value_get;
-		param->value_set = param_heap->value_set;
 
 		printf("Got param: %s size (%u)\n", param->name, param->size);
 
 		/* Add to list */
 		if (param_list_add(param) != 0)
-			free(param);
+			param_free(param);
 
 		csp_buffer_free(packet);
 		count++;
@@ -191,4 +172,40 @@ void param_list_download(int node, int timeout) {
 
 	printf("Received %u parameters\n", count);
 	csp_close(conn);
+}
+
+void param_free(param_t * param) {
+	free(param);
+}
+
+param_t * param_create_remote(int id, int node, int type, int size, char * name, int namelen) {
+
+	struct param_heap_s {
+		param_t param;
+		char name[namelen+1];
+		uint8_t value_get[size];
+		uint8_t value_set[size];
+	} *param_heap = calloc(sizeof(struct param_heap_s), 1);
+
+	param_t * param = &param_heap->param;
+	if (param == NULL) {
+		return NULL;
+	}
+
+	param->storage_type = PARAM_STORAGE_REMOTE;
+	param->name = param_heap->name;
+	param->value_get = param_heap->value_get;
+	param->value_set = param_heap->value_set;
+	param->unit = NULL;
+
+	param->id = id;
+	param->node = node;
+	param->type = type;
+	param->size = size;
+
+	strncpy(param->name, name, namelen);
+	param->name[namelen] = '\0';
+
+	return param;
+
 }

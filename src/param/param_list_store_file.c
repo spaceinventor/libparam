@@ -53,17 +53,7 @@ void param_list_store_file_load(char * filename) {
 		if (node == PARAM_LIST_LOCAL)
 			continue;
 
-		param = calloc(sizeof(param_t), 1);
-		param->name = strdup(name);
-		param->id = id;
-		param->node = node;
-		param->type = type;
-		param->size = size;
-
-		/* Remote parameter setup */
-		param->storage_type = PARAM_STORAGE_REMOTE;
-		param->value_get = calloc(param_size(param), 1);
-		param->value_set = calloc(param_size(param), 1);
+		param = param_create_remote(id, node, type, size, name, strlen(name));
 
 		//printf("Adding %s %u:%u\n", param->name, param->id, param->node);
 
