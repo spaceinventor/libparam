@@ -215,17 +215,13 @@ param_t * param_list_create_remote(int id, int node, int type, int size, char * 
 void param_list_from_string(FILE *stream, int node_override) {
 
 	char line[100];
-	char *lineptr = line;
-	size_t linelen;
-
 	char name[25];
 	int id, node, type, size;
-	while(getline(&lineptr, &linelen, stream) != -1) {
+	while(fgets(line, 100, stream) != NULL) {
 
 		size = -1;
 
 		int scanned = sscanf(line, "%25[^|]|%u:%u?%u[%d]%*s", name, &id, &node, &type, &size);
-		printf("Scanned %u => %s", scanned, lineptr);
 		if (scanned == EOF)
 			break;
 		if (scanned < 4)
