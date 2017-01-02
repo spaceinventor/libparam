@@ -18,6 +18,7 @@
 #include <param/param_client.h>
 
 #include "param_string.h"
+#include "param_slash.h"
 
 slash_command_group(param, "Local parameters");
 

@@ -20,6 +20,7 @@ def options(ctx):
     gr.add_option('--param-server', action='store_true')
     gr.add_option('--param-store-file', action='store_true')
     gr.add_option('--param-store-vmem', action='store_true')
+    gr.add_option('--param-collector', action='store_true')
     
 
 def configure(ctx):
@@ -66,6 +67,9 @@ def configure(ctx):
         
     if ctx.options.param_store_vmem: 
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_list_store_vmem.c')
+        
+    if ctx.options.param_collector: 
+        ctx.env.append_unique('FILES_PARAM', 'src/param/param_collector.c')
         
     ctx.write_config_header('include/libparam.h')
 

@@ -13,6 +13,7 @@
 
 #include <param/param.h>
 #include <param/param_list.h>
+#include "param_slash.h"
 
 static int list(struct slash *slash)
 {
@@ -59,7 +60,7 @@ static int refresh(struct slash *slash) {
 	param_t * param = NULL;
 	int host = -1;
 	int node = -1;
-	void param_slash_parse(char * arg, param_t **param, int *node, int *host);
+
 	param_slash_parse(slash->argv[1], &param, &node, &host);
 
 	if (param == NULL)
