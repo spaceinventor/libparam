@@ -223,6 +223,10 @@ void param_list_from_string(FILE *stream, int node_override) {
 		if (node_override >= 0)
 			node = node_override;
 
+		if (size == -1) {
+			size = param_typesize(type);
+		}
+
 		param_t * param = param_list_create_remote(id, node, type, size, name, strlen(name));
 		if (param) {
 			if (param_list_add(param) < 0) {
