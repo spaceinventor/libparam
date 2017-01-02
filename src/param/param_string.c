@@ -246,8 +246,13 @@ void param_print(param_t * param)
 	param_type_str(param->type, type_str, 10);
 	printf(" %s", type_str);
 
+	/* Size */
 	if (param->size > 0 && param->size != 255)
 		printf("[%u]", param->size);
+
+	/* Refresh */
+	if (param->refresh > 0)
+		printf(" refresh %u ms", param->refresh);
 
 	if (param->storage_type == PARAM_STORAGE_REMOTE) {
 		if ((param->value_set != NULL) && (param->value_pending == 1)) {

@@ -35,9 +35,9 @@ void param_list_store_vmem_load(vmem_t * vmem) {
 	if (hk_list == NULL)
 		return;
 
-	printf("Reading into %p %u bytes\n", hk_list, vmem->size);
+	//printf("Reading into %p %u bytes\n", hk_list, vmem->size);
 	vmem_memcpy(hk_list, (void *) vmem->vaddr, vmem->size);
-	csp_hex_dump("hk list", hk_list, strlen(hk_list));
+	//csp_hex_dump("hk list", hk_list, strlen(hk_list));
 
 	FILE *stream = fmemopen(hk_list, strlen(hk_list), "r");
 	param_list_from_string(stream, -1);
