@@ -55,7 +55,7 @@ static int param_list_store_vmem_save_slash(struct slash *slash)
 	param_list_store_vmem_save(vmem_index_to_ptr(id));
 	return SLASH_SUCCESS;
 }
-slash_command_sub(param, save, param_list_store_vmem_save_slash, "<vmem_id>", NULL);
+slash_command_subsub(param, list, save, param_list_store_vmem_save_slash, "<vmem_id>", NULL);
 
 
 static int param_list_store_vmem_load_slash(struct slash *slash)
@@ -68,4 +68,4 @@ static int param_list_store_vmem_load_slash(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(param, load, param_list_store_vmem_load_slash, "<vmem_id>", NULL);
+slash_command_subsub(param, list, load, param_list_store_vmem_load_slash, "<vmem_id>", NULL);

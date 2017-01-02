@@ -38,7 +38,7 @@ static int download(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(param, download, download, "<node> [timeout]", NULL);
+slash_command_subsub(param, list, download, download, "<node> [timeout]", NULL);
 
 static int to_string(struct slash *slash) {
 	int node_filter = -1;
@@ -49,4 +49,4 @@ static int to_string(struct slash *slash) {
 	return SLASH_SUCCESS;
 }
 
-slash_command_sub(param, serialize, to_string, "<node_filter>", NULL);
+slash_command_subsub(param, list, savestr, to_string, "<node_filter>", NULL);

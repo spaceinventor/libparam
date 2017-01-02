@@ -234,19 +234,19 @@ void param_list_from_string(FILE *stream, int node_override) {
 
 void param_list_to_string(FILE * stream, int node_filter, int remote_only) {
 	int add_rparam(param_t * param) {
-		printf("Save %s node %d type %d\n", param->name, param->node, param->storage_type);
 		if ((node_filter >= 0) && (param->node != node_filter))
 			return 1;
 
 		if ((remote_only) && (param->storage_type != PARAM_STORAGE_REMOTE))
 			return 1;
 
-		fprintf(stream, "%s|%u:%u?%u[%d]\n", param->name, param->id, param->node, param->type, param->size);
+		int node = param->node;
+		if (node == PARAM_LIST_LOCAL)
+			node = csp_get_address();
+
+		fprintf(stream, "%s|%u:%u?%u[%d]\n", param->name, param->id, node, param->type, param->size);
 		return 1;
 	}
 
 	param_list_foreach(add_rparam);
 }
-
-// TODO: Add param list save to vmem
-// TODO: Add param list load from vmem

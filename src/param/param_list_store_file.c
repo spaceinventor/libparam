@@ -11,6 +11,8 @@
 #include <param/param_server.h>
 #include <slash/slash.h>
 
+// TODO: Add node filter
+// TODO: Add remote only
 
 void param_list_store_file_save(char * filename) {
 
@@ -41,9 +43,12 @@ void param_list_store_file_load(char * filename) {
 
 }
 
+// TODO: Add filename, node_filter and remote_only as input
 static int param_list_store_file_save_slash(struct slash *slash)
 {
 	param_list_store_file_save("param_store.bin");
 	return SLASH_SUCCESS;
 }
-slash_command_sub(param, save, param_list_store_file_save_slash, NULL, NULL);
+slash_command_subsub(param, list, save, param_list_store_file_save_slash, NULL, NULL);
+
+// TODO: Add file load
