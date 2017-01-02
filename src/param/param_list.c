@@ -206,19 +206,30 @@ param_t * param_list_create_remote(int id, int node, int type, int size, char * 
 	strncpy(param->name, name, namelen);
 	param->name[namelen] = '\0';
 
-	printf("Created %s\n", param->name);
+	//printf("Created %s\n", param->name);
 
 	return param;
 
 }
 
 void param_list_from_string(FILE *stream, int node_override) {
+
+	char line[100];
+	char *lineptr = line;
+	size_t linelen;
+
 	char name[25];
 	int id, node, type, size;
-	while(1) {
-		int scanned = fscanf(stream, "%25[^|]|%u:%u?%u[%d]\n", name, &id, &node, &type, &size);
-		if (scanned < 5)
+	while(getline(&lineptr, &linelen, stream) != -1) {
+
+		size = -1;
+
+		int scanned = sscanf(line, "%25[^|]|%u:%u?%u[%d]%*s", name, &id, &node, &type, &size);
+		printf("Scanned %u => %s", scanned, lineptr);
+		if (scanned == EOF)
 			break;
+		if (scanned < 4)
+			continue;
 
 		if (node_override >= 0)
 			node = node_override;
