@@ -50,3 +50,29 @@ static int to_string(struct slash *slash) {
 }
 
 slash_command_subsub(param, list, savestr, to_string, "<node_filter>", NULL);
+
+static int refresh(struct slash *slash) {
+
+	if (slash->argc < 3)
+		return SLASH_EUSAGE;
+
+	param_t * param = NULL;
+	int host = -1;
+	int node = -1;
+	void param_slash_parse(char * arg, param_t **param, int *node, int *host);
+	param_slash_parse(slash->argv[1], &param, &node, &host);
+
+	if (param == NULL)
+		return SLASH_EINVAL;
+
+	if (param->storage_type != PARAM_STORAGE_REMOTE)
+		return SLASH_EINVAL;
+
+	unsigned int refresh_ms = atoi(slash->argv[2]);
+
+	param->refresh = refresh_ms;
+	printf("Set %s refresh %u ms\n", param->name, refresh_ms);
+
+	return SLASH_SUCCESS;
+}
+slash_command_subsub(param, list, refresh, refresh, "<param> <refresh_ms>", NULL);

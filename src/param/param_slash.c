@@ -21,7 +21,7 @@
 
 slash_command_group(param, "Local parameters");
 
-static void parse_param(char * arg, param_t **param, int *node, int *host) {
+void param_slash_parse(char * arg, param_t **param, int *node, int *host) {
 
 	/* Search for the '@' symbol:
 	 * Call strtok twice in order to skip the stuff head of '@' */
@@ -123,7 +123,7 @@ static int get(struct slash *slash)
 	param_t * param;
 	int host = -1;
 	int node = -1;
-	parse_param(slash->argv[1], &param, &node, &host);
+	param_slash_parse(slash->argv[1], &param, &node, &host);
 
 	if (param == NULL) {
 		printf("Parameter %s not found\n", slash->argv[1]);
@@ -148,7 +148,7 @@ static int set(struct slash *slash)
 	param_t * param;
 	int host;
 	int node;
-	parse_param(slash->argv[1], &param, &node, &host);
+	param_slash_parse(slash->argv[1], &param, &node, &host);
 
 	if (param == NULL) {
 		printf("Parameter %s not found\n", slash->argv[1]);

@@ -201,6 +201,7 @@ param_t * param_list_create_remote(int id, int node, int type, int refresh, int 
 	param->id = id;
 	param->node = node;
 	param->type = type;
+	param->refresh = refresh;
 	param->size = size;
 
 	strncpy(param->name, name, namelen);
