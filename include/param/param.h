@@ -103,6 +103,7 @@ typedef struct param_s {
 			void * value_set;
 			uint32_t value_updated; // Timestamp
 			uint8_t value_pending; // 0 = none, 1 = pending, 2 = acked
+			uint32_t refresh; // Update time in ms
 		};
 	};
 } param_t;

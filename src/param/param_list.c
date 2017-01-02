@@ -154,7 +154,7 @@ void param_list_download(int node, int timeout) {
 		int id = csp_ntoh16(new_param->id) & 0x7FF;
 		int type = new_param->type;
 
-		param_t * param = param_list_create_remote(id, node, type, size, new_param->name, strlen);
+		param_t * param = param_list_create_remote(id, node, type, 0, size, new_param->name, strlen);
 		if (param == NULL) {
 			csp_buffer_free(packet);
 			break;
@@ -178,7 +178,7 @@ void param_list_free(param_t * param) {
 	free(param);
 }
 
-param_t * param_list_create_remote(int id, int node, int type, int size, char * name, int namelen) {
+param_t * param_list_create_remote(int id, int node, int type, int refresh, int size, char * name, int namelen) {
 
 	struct param_heap_s {
 		param_t param;
@@ -216,14 +216,17 @@ void param_list_from_string(FILE *stream, int node_override) {
 
 	char line[100];
 	char name[25];
-	int id, node, type, size;
+	int id, node, type, refresh, size;
 	while(fgets(line, 100, stream) != NULL) {
 
 		size = -1;
+		refresh = 0;
 
-		int scanned = sscanf(line, "%25[^|]|%u:%u?%u[%d]%*s", name, &id, &node, &type, &size);
+		int scanned = sscanf(line, "%25[^|]|%u:%u?%u%%%u[%d]%*s", name, &id, &node, &type, &refresh, &size);
+		//printf("Scanned %u => %s", scanned, line);
 		if (scanned == EOF)
 			break;
+
 		if (scanned < 4)
 			continue;
 
@@ -234,7 +237,7 @@ void param_list_from_string(FILE *stream, int node_override) {
 			size = param_typesize(type);
 		}
 
-		param_t * param = param_list_create_remote(id, node, type, size, name, strlen(name));
+		param_t * param = param_list_create_remote(id, node, type, refresh, size, name, strlen(name));
 		if (param) {
 			if (param_list_add(param) < 0) {
 				param_list_free(param);
