@@ -55,13 +55,14 @@ typedef enum {
 	PARAM_STORAGE_REMOTE,         //! Use remote parameter service
 } param_storage_type_e;
 
-typedef struct param_declaration_s {
-	uint16_t id;
-	param_type_e type;
-	int size;
-	char *name;
-	char *unit;
-} param_declaration_t;
+typedef struct param_log_s {
+	void * phys_addr;
+	unsigned int phys_len;
+	unsigned int in;
+	unsigned int out;
+	unsigned int elm_size;
+	unsigned int elm_count;
+} param_log_t;
 
 /**
  * Parameter description structure
@@ -83,6 +84,8 @@ typedef struct param_s {
 
 	/* Used for linked list */
 	struct param_s * next;
+
+	param_log_t * log;
 
 	union {
 		struct {
@@ -123,7 +126,7 @@ typedef struct param_s {
  * The size field is only important for non-native types such as string, data and vector.
  *
  */
-#define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _physaddr) \
+#define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _physaddr, _log) \
 	__attribute__((section("param"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
@@ -138,6 +141,7 @@ typedef struct param_s {
 		.unit = _unit, \
 		.callback = _callback, \
 		.physaddr = _physaddr, \
+		.log = _log, \
 	}
 
 #define PARAM_DEFINE_STRUCT_RAM(fieldname, _id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _physaddr) \

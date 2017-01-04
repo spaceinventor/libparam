@@ -2,6 +2,7 @@
 #include <string.h>
 #include <param/param.h>
 #include "param_string.h"
+#include "param_log.h"
 
 #include <csp/csp.h>
 #include <csp/csp_endian.h>
@@ -76,6 +77,8 @@ void param_get_data(param_t * param, void * outbuf, int len)
 			printf("Tried to set readonly parameter %s\r\n", param->name); \
 			return; \
 		} \
+		/* Log */ \
+		param_log(param, &value); \
 		\
 		/* Aligned access directly to RAM */ \
 		if (param->storage_type == PARAM_STORAGE_RAM) { \
