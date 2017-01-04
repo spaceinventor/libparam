@@ -223,7 +223,7 @@ void param_list_from_string(FILE *stream, int node_override) {
 		size = -1;
 		refresh = 0;
 
-		int scanned = sscanf(line, "%25[^|]|%u:%u?%u%%%u[%d]%*s", name, &id, &node, &type, &refresh, &size);
+		int scanned = sscanf(line, "%25[^|]|%u:%u?%u#%u[%d]%*s", name, &id, &node, &type, &refresh, &size);
 		//printf("Scanned %u => %s", scanned, line);
 		if (scanned == EOF)
 			break;
@@ -259,7 +259,7 @@ void param_list_to_string(FILE * stream, int node_filter, int remote_only) {
 		if (node == PARAM_LIST_LOCAL)
 			node = csp_get_address();
 
-		fprintf(stream, "%s|%u:%u?%u[%d]\n", param->name, param->id, node, param->type, param->size);
+		fprintf(stream, "%s|%u:%u?%u#%u[%d]\n", param->name, param->id, node, param->type, param->refresh, param->size);
 		return 1;
 	}
 
