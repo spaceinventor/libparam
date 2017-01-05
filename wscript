@@ -49,7 +49,11 @@ def configure(ctx):
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_string.c')
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_serializer.c')
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_list.c')
+    
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_log.c')
+    ctx.env.append_unique('FILES_PARAM', 'src/param/param_group.c')
+    if ctx.options.slash_enabled == True:
+    	ctx.env.append_unique('FILES_PARAM', 'src/param/param_group_slash.c')
     
     if ctx.options.slash_enabled == True:
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_slash.c')

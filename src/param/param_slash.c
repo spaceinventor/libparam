@@ -20,8 +20,6 @@
 #include "param_string.h"
 #include "param_slash.h"
 
-slash_command_group(param, "Local parameters");
-
 void param_slash_parse(char * arg, param_t **param, int *node, int *host) {
 
 	/* Search for the '@' symbol:
@@ -139,7 +137,7 @@ static int get(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub_completer(param, get, get, param_completer, "<param>", "Get");
+slash_command_completer(get, get, param_completer, "<param>", "Get");
 
 static int set(struct slash *slash)
 {
@@ -169,6 +167,6 @@ static int set(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub_completer(param, set, set, param_completer, "<param> <value>", "Set");
+slash_command_completer(set, set, param_completer, "<param> <value>", "Set");
 
 

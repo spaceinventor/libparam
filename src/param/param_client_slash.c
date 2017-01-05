@@ -57,7 +57,7 @@ static int param_client_slash_push(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(param, push, param_client_slash_push, "<node> [timeout]", NULL);
+slash_command(push, param_client_slash_push, "<node> [timeout]", NULL);
 
 static int param_client_slash_pull(struct slash *slash)
 {
@@ -104,4 +104,4 @@ static int param_client_slash_pull(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(param, pull, param_client_slash_pull, "<node> [timeout]", NULL);
+slash_command(pull, param_client_slash_pull, "<node> [timeout]", NULL);

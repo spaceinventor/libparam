@@ -23,7 +23,7 @@ static int list(struct slash *slash)
 		param_list_print(NULL);
 	return SLASH_SUCCESS;
 }
-slash_command_sub(param, list, list, "[str]", "List parameters");
+slash_command(list, list, "[str]", "List parameters");
 
 static int download(struct slash *slash)
 {
@@ -39,7 +39,7 @@ static int download(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_subsub(param, list, download, download, "<node> [timeout]", NULL);
+slash_command_sub(list, download, download, "<node> [timeout]", NULL);
 
 static int to_string(struct slash *slash) {
 	int node_filter = -1;
@@ -50,7 +50,7 @@ static int to_string(struct slash *slash) {
 	return SLASH_SUCCESS;
 }
 
-slash_command_subsub(param, list, savestr, to_string, "<node_filter>", NULL);
+slash_command_sub(list, savestr, to_string, "<node_filter>", NULL);
 
 static int refresh(struct slash *slash) {
 
@@ -76,4 +76,4 @@ static int refresh(struct slash *slash) {
 
 	return SLASH_SUCCESS;
 }
-slash_command_subsub(param, list, refresh, refresh, "<param> <refresh_ms>", NULL);
+slash_command_sub(list, refresh, refresh, "<param> <refresh_ms>", NULL);
