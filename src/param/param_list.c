@@ -67,7 +67,7 @@ param_t * param_list_find_id(int node, int id)
 		node = PARAM_LIST_LOCAL;
 
 	param_t * found = NULL;
-	int iterator(param_t * param) {
+	int iterator_list_find(param_t * param) {
 
 		if (param->node != node)
 			return 1;
@@ -79,7 +79,7 @@ param_t * param_list_find_id(int node, int id)
 
 		return 1;
 	}
-	param_list_foreach(iterator);
+	param_list_foreach(iterator_list_find);
 
 	return found;
 }
