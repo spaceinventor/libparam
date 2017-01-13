@@ -26,7 +26,7 @@ static int list(struct slash *slash)
 }
 slash_command(list, list, "[str]", "List parameters");
 
-static int download(struct slash *slash)
+static int list_download(struct slash *slash)
 {
 	if (slash->argc < 2)
 		return SLASH_EUSAGE;
@@ -40,9 +40,9 @@ static int download(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(list, download, download, "<node> [timeout]", NULL);
+slash_command_sub(list, download, list_download, "<node> [timeout]", NULL);
 
-static int to_string(struct slash *slash) {
+static int list_str(struct slash *slash) {
 	int node_filter = -1;
 	if (slash->argc >= 2)
 		node_filter = atoi(slash->argv[1]);
@@ -51,9 +51,9 @@ static int to_string(struct slash *slash) {
 	return SLASH_SUCCESS;
 }
 
-slash_command_sub(list, savestr, to_string, "<node_filter>", NULL);
+slash_command_sub(list, str, list_str, "<node_filter>", NULL);
 
-static int refresh(struct slash *slash) {
+static int list_refresh(struct slash *slash) {
 
 	if (slash->argc < 3)
 		return SLASH_EUSAGE;
@@ -77,4 +77,4 @@ static int refresh(struct slash *slash) {
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(list, refresh, refresh, "<param> <refresh_ms>", NULL);
+slash_command_sub(list, refresh, list_refresh, "<param> <refresh_ms>", NULL);

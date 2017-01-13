@@ -7,12 +7,14 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <sys/queue.h>
 #include <malloc.h>
+
+#include <csp/csp.h>
 
 #include <param/param_list.h>
 #include <param/param_group.h>
-
-#include <sys/queue.h>
+#include "param_group.h"
 
 /**
  * The storage size (i.e. how closely two param_t structs are packed in memory)
@@ -99,5 +101,89 @@ void param_group_param_add(param_group_t *group, param_t *param) {
 
 	/* Add to list */
 	group->params[group->count++] = param;
+
+}
+
+void param_group_from_string(FILE *stream) {
+
+	char line[100];
+	param_group_t * group = NULL;
+	while(fgets(line, 100, stream) != NULL) {
+
+		if (strlen(line) == 0)
+			return;
+
+		/* Group */
+		if (line[0] == '+') {
+
+			/* Forget about the previous group */
+			group = NULL;
+
+			/* Scan line */
+			char name[11];
+			int interval, node, port;
+			int scanned = sscanf(line, "+%10[^#]#%u@%u:%u%*s", name, &interval, &node, &port);
+			if (scanned != 4)
+				continue;
+
+			/* Search for existing group with that name */
+			group = param_group_find_name(name);
+			if (group)
+				continue;
+
+			/* Otherwise, create a new group */
+			group = param_group_create(name, 100);
+			group->interval = interval;
+			group->node = node;
+			group->port = port;
+			printf("Created group %s\n", group->name);
+		}
+
+		/* Parameter */
+		else if (line[0] == '-') {
+
+			/* Don't parse parameters if no group is set fist */
+			if ((group == NULL) || (group->storage_dynamic == 0))
+				continue;
+
+			/* Scan line */
+			char name[26];
+			int id, node;
+			int scanned = sscanf(line, "-%25[^|]|%u:%u%*s", name, &id, &node);
+			if (scanned != 3)
+				continue;
+
+			/* Search for parameter in list */
+			param_t *param = param_list_find_id(node, id);
+			if (param == NULL)
+				continue;
+
+			/* Add parameter to group */
+			param_group_param_add(group, param);
+			printf("Added param %s\n", param->name);
+
+		}
+	}
+}
+
+void param_group_to_string(FILE * stream, char * group_name) {
+
+	param_group_t * group;
+	param_group_iterator i = {};
+	while((group = param_group_iterate(&i)) != NULL) {
+
+		if (group->storage_dynamic == 0)
+			continue;
+
+		fprintf(stream, "+%s#%u@%u:%u\n", group->name, (unsigned int) group->interval, (unsigned int) group->node, (unsigned int) group->port);
+
+		for (int i = 0; i < group->count; i++) {
+			param_t * param = group->params[i];
+			int node = param->node;
+			if (node == PARAM_LIST_LOCAL)
+				node = csp_get_address();
+			fprintf(stream, "-%s|%u:%u\n", param->name, param->id, node);
+		}
+	}
 
 }
