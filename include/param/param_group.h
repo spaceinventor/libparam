@@ -12,27 +12,26 @@
 #include <vmem/vmem.h>
 
 typedef struct param_group_s {
+
 	char name[10];
 	uint32_t interval;					// Used for periodic pull
 	uint8_t node;						// Used for periodic pull
 	uint8_t port;						// Used for periodic pull
 	uint8_t count;						// Number of params in group
 	vmem_t *vmem;						// Set vmem to NULL for direct RAM access
-	uint16_t const *ids;				// Pointer in RAM/VMEM
-	param_t const* *params;				// List of params (only used for static storage)
+
+	param_t const* *params;				// List of params (could exist in flash or ram)
+	uint8_t storage_dynamic;			// 0 = static, 1 = dynamic
+	uint32_t storage_max_count;			// Maximum number of parameters in list (used for dynamic only)
+
 	SLIST_ENTRY(param_group_s) next;	// single linked list
+
 } param_group_t;
 
-#define PARAM_GROUP_STATIC_IDS(_name, _ids) \
-	__attribute__((section("groups"))) \
-	__attribute__((aligned(1))) \
-	__attribute__((used)) \
-	param_group_t _name##_group = { \
-		.name = #_name, \
-		.vmem = NULL, \
-		.ids = _ids, \
-		.count = sizeof(_ids) / sizeof(_ids[0]), \
-	};
+typedef struct group_iterator_s {
+	int phase;							// Hybrid iterator has multiple phases (0 == Static, 1 == Dynamic List)
+	param_group_t * element;
+} group_iterator_t;
 
 #define PARAM_GROUP_STATIC_PARAMS(_name, _params) \
 	__attribute__((section("groups"))) \
@@ -45,12 +44,9 @@ typedef struct param_group_s {
 		.count = sizeof(_params) / sizeof(_params[0]), \
 	};
 
-
-void param_group_init(void);
-void param_group_foreach(int (*iterator)(param_group_t * param));
-void param_group_print(void);
-int param_group_add(param_group_t * item);
 param_group_t * param_group_find_name(char * name);
-param_group_t * param_group_create(char * name);
+param_group_t * param_group_create(char * name, int max_count);
+param_group_t * param_group_iterate(group_iterator_t * iterator);
+void param_group_add_param(param_group_t *group, param_t *param);
 
 #endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_GROUP_H_ */
