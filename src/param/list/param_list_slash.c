@@ -13,7 +13,8 @@
 
 #include <param/param.h>
 #include <param/param_list.h>
-#include "param_slash.h"
+#include "param_list.h"
+#include "../param_slash.h"
 
 static int list(struct slash *slash)
 {

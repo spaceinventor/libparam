@@ -10,7 +10,7 @@
 #include <string.h>
 
 #include <param/param_list.h>
-#include <param/param_list_store_vmem.h>
+#include "param_list.h"
 
 #include <vmem/vmem.h>
 

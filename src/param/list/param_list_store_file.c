@@ -20,12 +20,7 @@ void param_list_store_file_save(char * filename) {
 	if (store == NULL)
 		return;
 
-	int add_rparam(param_t * param) {
-		fprintf(store, "%s|%u:%u?%u[%d]\n", param->name, param->id, param->node, param->type, param->size);
-		return 1;
-	}
-
-	param_list_foreach(add_rparam);
+	param_list_to_string(store, -1, 1);
 
 	fclose(store);
 

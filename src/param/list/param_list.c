@@ -14,7 +14,8 @@
 #include <param/param_list.h>
 #include <param/param_server.h>
 
-#include "param_string.h"
+#include "param_list.h"
+#include "../param_string.h"
 
 /**
  * The storage size (i.e. how closely two param_t structs are packed in memory)
@@ -169,7 +170,7 @@ void param_list_download(int node, int timeout) {
 
 		/* Add to list */
 		if (param_list_add(param) != 0)
-			param_list_free(param);
+			param_list_destroy(param);
 
 		csp_buffer_free(packet);
 		count++;
@@ -179,7 +180,7 @@ void param_list_download(int node, int timeout) {
 	csp_close(conn);
 }
 
-void param_list_free(param_t * param) {
+void param_list_destroy(param_t * param) {
 	free(param);
 }
 
@@ -246,7 +247,7 @@ void param_list_from_string(FILE *stream, int node_override) {
 		param_t * param = param_list_create_remote(id, node, type, refresh, size, name, strlen(name));
 		if (param) {
 			if (param_list_add(param) < 0) {
-				param_list_free(param);
+				param_list_destroy(param);
 			}
 		}
 	}

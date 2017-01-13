@@ -5,10 +5,11 @@
  *      Author: johan
  */
 
-#ifndef LIB_PARAM_SRC_PARAM_PARAM_LIST_H_
-#define LIB_PARAM_SRC_PARAM_PARAM_LIST_H_
+#ifndef LIB_PARAM_INCLUDE_PARAM_PARAM_LIST_H_
+#define LIB_PARAM_INCLUDE_PARAM_PARAM_LIST_H_
 
 #include <param/param.h>
+#include <vmem/vmem.h>
 
 #define PARAM_LIST_LOCAL	255
 
@@ -25,10 +26,17 @@ param_t * param_list_find_name(int node, char * name);
 void param_list_print(char * token);
 
 param_t * param_list_create_remote(int id, int node, int type, int refresh, int size, char * name, int namelen);
-void param_list_free(param_t * param);
-void param_list_from_string(FILE *stream, int node_override);
-void param_list_to_string(FILE * stream, int node_filter, int remote_only);
+void param_list_destroy(param_t * param);
 
 void param_list_download(int node, int timeout);
 
-#endif /* LIB_PARAM_SRC_PARAM_PARAM_LIST_H_ */
+
+/* From param_list_store_file.c */
+void param_list_store_file_save(char * filename);
+void param_list_store_file_load(char * filename);
+
+/* From param_list_store_vmem.c */
+void param_list_store_vmem_save(vmem_t * vmem);
+void param_list_store_vmem_load(vmem_t * vmem);
+
+#endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_LIST_H_ */

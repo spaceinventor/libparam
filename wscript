@@ -22,6 +22,8 @@ def options(ctx):
     gr.add_option('--param-store-vmem', action='store_true')
     gr.add_option('--param-collector', action='store_true')
     
+    gr.add_option('--param-group', action='store_true')
+    
 
 def configure(ctx):
 
@@ -48,16 +50,25 @@ def configure(ctx):
     ctx.env.append_unique('FILES_PARAM', 'src/param/param.c')
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_string.c')
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_serializer.c')
-    ctx.env.append_unique('FILES_PARAM', 'src/param/param_list.c')
+    
+    ctx.env.append_unique('FILES_PARAM', 'src/param/list/param_list.c')
+    if ctx.options.slash_enabled == True:
+        ctx.env.append_unique('FILES_PARAM', 'src/param/list/param_list_slash.c')
+    if ctx.options.param_store_file: 
+        ctx.env.append_unique('FILES_PARAM', 'src/param/list/param_list_store_file.c')
+    if ctx.options.param_store_vmem: 
+        ctx.env.append_unique('FILES_PARAM', 'src/param/list/param_list_store_vmem.c')
+            
+    if ctx.options.param_group:
+        ctx.env.append_unique('FILES_PARAM', 'src/param/group/param_group.c')
+        if ctx.options.slash_enabled == True:
+            ctx.env.append_unique('FILES_PARAM', 'src/param/group/param_group_slash.c')
     
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_log.c')
-    ctx.env.append_unique('FILES_PARAM', 'src/param/param_group.c')
-    if ctx.options.slash_enabled == True:
-    	ctx.env.append_unique('FILES_PARAM', 'src/param/param_group_slash.c')
     
     if ctx.options.slash_enabled == True:
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_slash.c')
-        ctx.env.append_unique('FILES_PARAM', 'src/param/param_list_slash.c')
+        
     
     if ctx.options.param_server:	
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_server.c')
@@ -66,12 +77,6 @@ def configure(ctx):
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_client.c')
         if ctx.options.param_client_slash:
             ctx.env.append_unique('FILES_PARAM', 'src/param/param_client_slash.c')
-    
-    if ctx.options.param_store_file: 
-        ctx.env.append_unique('FILES_PARAM', 'src/param/param_list_store_file.c')
-        
-    if ctx.options.param_store_vmem: 
-        ctx.env.append_unique('FILES_PARAM', 'src/param/param_list_store_vmem.c')
         
     if ctx.options.param_collector: 
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_collector.c')
