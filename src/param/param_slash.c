@@ -68,13 +68,15 @@ static void param_completer(struct slash *slash, char * token) {
 	param_t *prefix = NULL;
 	size_t tokenlen = strlen(token);
 
-	int iterator(param_t * param) {
+	param_t * param;
+	param_list_iterator i = {};
+	while ((param = param_list_iterate(&i)) != NULL) {
 
 		if (tokenlen > strlen(param->name))
-			return 1;
+			continue;
 
 		if (param->readonly == PARAM_HIDDEN)
-			return 1;
+			continue;
 
 		if (strncmp(token, param->name, slash_min(strlen(param->name), tokenlen)) == 0) {
 
@@ -100,10 +102,7 @@ static void param_completer(struct slash *slash, char * token) {
 
 		}
 
-		return 1;
-
 	}
-	param_list_foreach(iterator);
 
 	if (!matches) {
 		slash_bell(slash);

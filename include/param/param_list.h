@@ -12,11 +12,17 @@
 
 #define PARAM_LIST_LOCAL	255
 
+typedef struct param_list_iterator_s {
+	int phase;							// Hybrid iterator has multiple phases (0 == Static, 1 == Dynamic List)
+	param_t * element;
+} param_list_iterator;
+
+param_t * param_list_iterate(param_list_iterator * iterator);
+
 int param_list_add(param_t * item);
 param_t * param_list_find_id(int node, int id);
 param_t * param_list_find_name(int node, char * name);
 void param_list_print(char * token);
-void param_list_foreach(int (*iterator)(param_t * rparam));
 
 param_t * param_list_create_remote(int id, int node, int type, int refresh, int size, char * name, int namelen);
 void param_list_free(param_t * param);

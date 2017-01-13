@@ -22,9 +22,9 @@
 #define BASIS_FILTER() \
 	/* Basis filter */ \
 	if (param->refresh == 0) \
-		return 1; \
+		continue; \
 	if (param->storage_type != PARAM_STORAGE_REMOTE) \
-		return 1; \
+		continue; \
 
 csp_thread_return_t param_collector_task(void *pvParameters)
 {
@@ -36,7 +36,9 @@ csp_thread_return_t param_collector_task(void *pvParameters)
 		uint8_t nodes[MAX_NODES];
 		uint8_t nodes_count = 0;
 
-		int iterator_nodes(param_t * param) {
+		param_t * param;
+		param_list_iterator i = {};
+		while ((param = param_list_iterate(&i)) != NULL) {
 
 			/* Basis filter */
 			BASIS_FILTER();
@@ -44,17 +46,16 @@ csp_thread_return_t param_collector_task(void *pvParameters)
 			/* Search for node in list */
 			for (int i = 0; i < nodes_count; i++) {
 				if (nodes[i] == param->node)
-					return 1;
+					continue;
 			}
 
 			/* If not found, add to list */
 			if (nodes_count < MAX_NODES)
 				nodes[nodes_count++] = param->node;
 
-			return 1;
+			continue;
 
 		}
-		param_list_foreach(iterator_nodes);
 
 		/* If no nodes was found, return now */
 		if (nodes_count == 0)
@@ -67,14 +68,16 @@ csp_thread_return_t param_collector_task(void *pvParameters)
 			param_t * params[MAX_PARAMS];
 			int params_count = 0;
 
-			int iterator_collect(param_t * param) {
+			param_t * param;
+			param_list_iterator iterator = {};
+			while ((param = param_list_iterate(&iterator)) != NULL) {
 
 				/* Basis filter */
 				BASIS_FILTER();
 
 				/* Node filter */
 				if (param->node != nodes[i])
-					return 1;
+					continue;
 
 				unsigned int updated_slot = param->value_updated / param->refresh;
 				unsigned int current_slot = now / param->refresh;
@@ -93,9 +96,7 @@ csp_thread_return_t param_collector_task(void *pvParameters)
 
 				//printf("Sleep %d sleep_min %d\n", sleep, sleep_min);
 
-				return 1;
 			}
-			param_list_foreach(iterator_collect);
 
 			if (params_count == 0)
 				continue;

@@ -6,6 +6,8 @@
  */
 
 #include <stdio.h>
+#include <sys/queue.h>
+
 #include <csp/arch/csp_malloc.h>
 #include <csp/csp_endian.h>
 #include <param/param.h>
@@ -13,12 +15,6 @@
 #include <param/param_server.h>
 
 #include "param_string.h"
-
-/**
- * GNU Linker symbols. These will be autogenerate by GCC when using
- * __attribute__((section("param"))
- */
-extern param_t __start_param, __stop_param;
 
 /**
  * The storage size (i.e. how closely two param_t structs are packed in memory)
@@ -30,33 +26,54 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 #define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set[1] - (intptr_t) &param_size_set[0])
 #endif
 
-/* Convenient macro to loop over the parameter list */
-#define param_foreach(_c) \
-	for (_c = &__start_param; \
-	     _c < &__stop_param; \
-	     _c = (param_t *)(intptr_t)((char *)_c + PARAM_STORAGE_SIZE))
+static SLIST_HEAD(param_list_head_s, param_s) param_list_head = {};
 
-static param_t * list_begin = NULL;
-static param_t * list_end = NULL;
+param_t * param_list_iterate(param_list_iterator * iterator) {
 
-int param_list_add(param_t * item) {
+	/**
+	 * GNU Linker symbols. These will be autogenerate by GCC when using
+	 * __attribute__((section("param"))
+	 */
+	extern param_t __start_param, __stop_param;
 
-	if (param_list_find_id(item->node, item->id) != NULL)
-		return -1;
-
-	if (list_begin == NULL) {
-		list_begin = item;
+	/* First element */
+	if (iterator->element == NULL) {
+		iterator->element = &__start_param;
+		return iterator->element;
 	}
 
-	if (list_end != NULL)
-		list_end->next = item;
+	/* Static phase */
+	if (iterator->phase == 0) {
 
-	list_end = item;
+		/* Increment in static memory */
+		iterator->element = (param_t *)(intptr_t)((char *)iterator->element + PARAM_STORAGE_SIZE);
 
-	item->next = NULL;
+		/* Check if we are still within the bounds of the static memory area */
+		if (iterator->element < &__stop_param)
+			return iterator->element;
 
+		/* Otherwise, switch to dynamic phase */
+		iterator->phase = 1;
+		iterator->element = SLIST_FIRST(&param_list_head);
+		return iterator->element;
+	}
+
+	/* Dynamic phase */
+	if (iterator->phase == 1) {
+		iterator->element = SLIST_NEXT(iterator->element, next);
+		return iterator->element;
+	}
+
+	return NULL;
+
+}
+
+
+int param_list_add(param_t * item) {
+	if (param_list_find_id(item->node, item->id) != NULL)
+		return -1;
+	SLIST_INSERT_HEAD(&param_list_head, item, next);
 	return 0;
-
 }
 
 param_t * param_list_find_id(int node, int id)
@@ -67,19 +84,20 @@ param_t * param_list_find_id(int node, int id)
 		node = PARAM_LIST_LOCAL;
 
 	param_t * found = NULL;
-	int iterator_list_find(param_t * param) {
+	param_t * param;
+	param_list_iterator i = {};
+	while ((param = param_list_iterate(&i)) != NULL) {
 
 		if (param->node != node)
-			return 1;
+			continue;
 
 		if (param->id == id) {
 			found = param;
-			return 0;
+			break;
 		}
 
-		return 1;
+		continue;
 	}
-	param_list_foreach(iterator_list_find);
 
 	return found;
 }
@@ -92,42 +110,29 @@ param_t * param_list_find_name(int node, char * name)
 		node = PARAM_LIST_LOCAL;
 
 	param_t * found = NULL;
-	int iterator(param_t * param) {
+	param_t * param;
+	param_list_iterator i = {};
+	while ((param = param_list_iterate(&i)) != NULL) {
 
 		if (param->node != node)
-			return 1;
+			continue;
 
 		if (strcmp(param->name, name) == 0) {
 			found = param;
-			return 0;
+			break;
 		}
 
-		return 1;
+		continue;
 	}
-	param_list_foreach(iterator);
 
 	return found;
 }
 
 void param_list_print(char * token) {
-	int iterator(param_t * param) {
-		param_print(param);
-		return 1;
-	}
-	param_list_foreach(iterator);
-}
-
-void param_list_foreach(int (*iterator)(param_t * param)) {
 	param_t * param;
-	param_foreach(param) {
-		if (iterator(param) == 0)
-			return;
-	}
-	param = list_begin;
-	while(param != NULL) {
-		if (iterator(param) == 0)
-			return;
-		param = param->next;
+	param_list_iterator i = {};
+	while ((param = param_list_iterate(&i)) != NULL) {
+		param_print(param);
 	}
 }
 
@@ -248,20 +253,22 @@ void param_list_from_string(FILE *stream, int node_override) {
 }
 
 void param_list_to_string(FILE * stream, int node_filter, int remote_only) {
-	int add_rparam(param_t * param) {
+
+	param_t * param;
+	param_list_iterator i = {};
+	while ((param = param_list_iterate(&i)) != NULL) {
+
 		if ((node_filter >= 0) && (param->node != node_filter))
-			return 1;
+			continue;
 
 		if ((remote_only) && (param->storage_type != PARAM_STORAGE_REMOTE))
-			return 1;
+			continue;
 
 		int node = param->node;
 		if (node == PARAM_LIST_LOCAL)
 			node = csp_get_address();
 
 		fprintf(stream, "%s|%u:%u?%u#%u[%d]\n", param->name, param->id, node, param->type, param->refresh, param->size);
-		return 1;
 	}
 
-	param_list_foreach(add_rparam);
 }

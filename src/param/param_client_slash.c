@@ -38,14 +38,14 @@ static int param_client_slash_push(struct slash *slash)
 	param_t * params[100];
 	int params_count = 0;
 
-	int add_to_queue(param_t * param) {
+	param_t * param;
+	param_list_iterator i = {};
+	while ((param = param_list_iterate(&i)) != NULL) {
 		if (param->node == node && param->value_pending == 1) {
 			if (params_count < 100)
 				params[params_count++] = param;
 		}
-		return 1;
 	}
-	param_list_foreach(add_to_queue);
 
 	if (params_count == 0)
 		return SLASH_SUCCESS;
@@ -82,9 +82,12 @@ static int param_client_slash_pull(struct slash *slash)
 		response_size = 0;
 	}
 
-	int add_to_queue(param_t * param) {
+	param_t * param;
+	param_list_iterator i = {};
+	while ((param = param_list_iterate(&i)) != NULL) {
+
 		if (param->node != node)
-			return 1;
+			continue;
 
 		int param_packed_size = sizeof(uint16_t) + param_size(param);
 		if (response_size + param_packed_size >= PARAM_SERVER_MTU) {
@@ -93,9 +96,7 @@ static int param_client_slash_pull(struct slash *slash)
 
 		params[params_count++] = param;
 		response_size += param_packed_size;
-		return 1;
 	}
-	param_list_foreach(add_to_queue);
 
 	if (params_count == 0)
 		return SLASH_SUCCESS;

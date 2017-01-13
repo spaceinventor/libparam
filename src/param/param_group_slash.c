@@ -13,7 +13,7 @@
 static int groups(struct slash *slash)
 {
 	param_group_t * group;
-	group_iterator_t i = {};
+	param_group_iterator i = {};
 	while((group = param_group_iterate(&i)) != NULL) {
 		printf("Group %s", group->name);
 		if (group->interval > 0)

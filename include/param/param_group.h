@@ -28,10 +28,10 @@ typedef struct param_group_s {
 
 } param_group_t;
 
-typedef struct group_iterator_s {
+typedef struct param_group_iterator_s {
 	int phase;							// Hybrid iterator has multiple phases (0 == Static, 1 == Dynamic List)
 	param_group_t * element;
-} group_iterator_t;
+} param_group_iterator;
 
 #define PARAM_GROUP_STATIC_PARAMS(_name, _params) \
 	__attribute__((section("groups"))) \
@@ -44,9 +44,9 @@ typedef struct group_iterator_s {
 		.count = sizeof(_params) / sizeof(_params[0]), \
 	};
 
-param_group_t * param_group_find_name(char * name);
+param_group_t * param_group_iterate(param_group_iterator * iterator);
 param_group_t * param_group_create(char * name, int max_count);
-param_group_t * param_group_iterate(group_iterator_t * iterator);
-void param_group_add_param(param_group_t *group, param_t *param);
+param_group_t * param_group_find_name(char * name);
+void param_group_param_add(param_group_t *group, param_t *param);
 
 #endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_GROUP_H_ */

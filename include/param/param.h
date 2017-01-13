@@ -9,6 +9,7 @@
 #define SRC_PARAM_PARAM_H_
 
 #include <stdint.h>
+#include <sys/queue.h>
 #include <vmem/vmem.h>
 
 /**
@@ -82,8 +83,7 @@ typedef struct param_s {
 	char *name;
 	char *unit;
 
-	/* Used for linked list */
-	struct param_s * next;
+	SLIST_ENTRY(param_s) next;	// single linked list
 
 	param_log_t * log;
 

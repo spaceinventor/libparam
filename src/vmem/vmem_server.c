@@ -170,7 +170,9 @@ void vmem_server_handler(csp_conn_t * conn)
 
 static void rparam_list_handler(csp_conn_t * conn)
 {
-	int iterator(param_t * param) {
+	param_t * param;
+	param_list_iterator i = {};
+	while ((param = param_list_iterate(&i)) != NULL) {
 		csp_packet_t * packet = csp_buffer_get(256);
 		rparam_transfer_t * rparam = (void *) packet->data;
 		int node = param->node;
@@ -183,11 +185,9 @@ static void rparam_list_handler(csp_conn_t * conn)
 		packet->length = offsetof(rparam_transfer_t, name) + MIN(strlen(param->name), 25);
 		if (!csp_send(conn, packet, 1000)) {
 			csp_buffer_free(packet);
-			return 0;
+			break;
 		}
-		return 1;
 	}
-	param_list_foreach(iterator);
 }
 
 csp_thread_return_t vmem_server_task(void *pvParameters)
