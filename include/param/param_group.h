@@ -40,7 +40,7 @@ typedef struct param_group_iterator_s {
 	param_group_t _name##_group = { \
 		.name = #_name, \
 		.vmem = NULL, \
-		.params = _params, \
+		.params = (param_t **) _params, \
 		.count = sizeof(_params) / sizeof(_params[0]), \
 	};
 
