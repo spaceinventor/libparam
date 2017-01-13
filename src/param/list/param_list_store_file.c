@@ -11,6 +11,8 @@
 #include <param/param_server.h>
 #include <slash/slash.h>
 
+#include "param_list.h"
+
 // TODO: Add node filter
 // TODO: Add remote only
 

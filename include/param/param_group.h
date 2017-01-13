@@ -20,7 +20,7 @@ typedef struct param_group_s {
 	uint8_t count;						// Number of params in group
 	vmem_t *vmem;						// Set vmem to NULL for direct RAM access
 
-	param_t const* *params;				// List of params (could exist in flash or ram)
+	param_t **params;				// List of params (could exist in flash or ram)
 	uint8_t storage_dynamic;			// 0 = static, 1 = dynamic
 	uint32_t storage_max_count;			// Maximum number of parameters in list (used for dynamic only)
 
