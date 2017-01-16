@@ -13,6 +13,7 @@
 #include <param/param_server.h>
 #include <param/param_list.h>
 
+#include "param_log.h"
 #include "param_serializer.h"
 
 static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
@@ -59,14 +60,27 @@ static void param_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 
 	//csp_hex_dump("set handler", packet->data, packet->length);
 
+	/* Vairable fields */
 	int count = 0;
 	while(count < packet->length) {
-		int ret = param_deserialize_single((char *) packet->data + count);
-		if (ret == 0) {
+
+		uint16_t id;
+		memcpy(&id, &packet->data[count], sizeof(id));
+		count += sizeof(id);
+		id = csp_ntoh16(id);
+
+		int node = id >> 11;
+		if (node == csp_get_address())
+			node = PARAM_LIST_LOCAL;
+
+		param_t * param = param_list_find_id(node, id & 0x7FF);
+		if (param == NULL) {
 			csp_buffer_free(packet);
 			return;
 		}
-		count += ret;
+
+		count += param_deserialize_to_param(&packet->data[count], param);
+
 	}
 
 	/* Send ack */
@@ -77,6 +91,66 @@ static void param_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 
 	if (!csp_send(conn, packet, 0))
 		csp_buffer_free(packet);
+
+}
+
+static void param_log_handler(csp_conn_t * conn, csp_packet_t * packet)
+{
+
+	csp_hex_dump("log handler", packet->data, packet->length);
+
+	int i = 0;
+	while(i < packet->length) {
+
+		/* Node */
+		uint8_t node = packet->data[i++];
+
+		/* Timestamp */
+		uint32_t timestamp;
+		memcpy(&timestamp, &packet->data[i], sizeof(timestamp));
+		i += sizeof(timestamp);
+		timestamp = csp_ntoh32(timestamp);
+
+		/* Number of parameters (with that node and timestamp) */
+		uint8_t count = packet->data[i++];
+
+		/* Loop over parameters */
+		int j = 0;
+		while(j < count) {
+
+			uint16_t id;
+			memcpy(&id, &packet->data[i], sizeof(id));
+			i += sizeof(id);
+			id = csp_ntoh16(id);
+
+			param_t * param = param_list_find_id(node, id & 0x7FF);
+			if ((param == NULL) || (param->storage_type != PARAM_STORAGE_REMOTE) || (param->value_get == NULL)) {
+				/** TODO: Possibly use segment length, instead of parameter count, making it possible to skip a segment */
+				printf("Invalid param \n");
+				csp_buffer_free(packet);
+				return;
+			}
+
+
+			i += param_deserialize_to_var(param->type, param->size, &packet->data[i], param->value_get);
+
+			/**
+			 * TODO: value updated is used by collector (refresh interval)
+			 * So maybe it should not be used for logging, because the remote timestamp could be invalid
+			 * The timestamp could be used for the param_log call instead.
+			 */
+			param->value_updated = timestamp;
+			if (param->value_pending == 2)
+				param->value_pending = 0;
+
+			/**
+			 * TODO: Param log assumes ordered input
+			 */
+			param_log(param, param->value_get, timestamp);
+
+		}
+
+	}
 
 }
 
@@ -113,6 +187,10 @@ csp_thread_return_t param_server_task(void *pvParameters)
 
 			case PARAM_PORT_SET:
 				param_set_handler(conn, packet);
+				break;
+
+			case PARAM_PORT_LOG:
+				param_log_handler(conn, packet);
 				break;
 
 			default:

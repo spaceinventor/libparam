@@ -78,7 +78,7 @@ void param_get_data(param_t * param, void * outbuf, int len)
 			return; \
 		} \
 		/* Log */ \
-		param_log(param, &value); \
+		param_log(param, &value, 0); \
 		\
 		/* Aligned access directly to RAM */ \
 		if (param->storage_type == PARAM_STORAGE_RAM) { \

@@ -197,28 +197,6 @@ int param_serialize_from_var(param_type_e type, int size, void * in, char * out)
 
 }
 
-int param_deserialize_single(char * inbuf) {
-
-	int count = 0;
-
-	uint16_t id;
-	memcpy(&id, inbuf, sizeof(id));
-	count += sizeof(id);
-	id = csp_ntoh16(id);
-
-	int node = id >> 11;
-	if (node == csp_get_address())
-		node = PARAM_LIST_LOCAL;
-	param_t * param = param_list_find_id(node, id & 0x7FF);
-	if (param == NULL)
-		return 0;
-
-	count += param_deserialize_to_param(inbuf + count, param);
-
-	return count;
-
-}
-
 int param_serialize_single(param_t * param, char * outbuf, int len)
 {
 	if (param == NULL)
@@ -238,4 +216,3 @@ int param_serialize_single(param_t * param, char * outbuf, int len)
 
 	return size;
 }
-

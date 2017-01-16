@@ -8,7 +8,9 @@
 #ifndef SRC_PARAM_PARAM_SERIALIZER_H_
 #define SRC_PARAM_PARAM_SERIALIZER_H_
 
-int param_serialize_from_str(param_type_e type, char * str, void * out, int strlen);
+#include <param/param.h>
+#include <csp/csp.h>
+
 int param_serialize_from_param(param_t * param, char * out);
 int param_serialize_from_var(param_type_e type, int size, void * in, char * out);
 
@@ -17,9 +19,7 @@ int param_deserialize_to_param(void * in, param_t * param);
 
 int param_deserialize_single(char * inbuf);
 int param_serialize_single(param_t * param, char * outbuf, int len);
-int param_serialize_single_fromstr(uint16_t id, param_type_e type, char * in, char * outbuf, int len);
-int param_serialize(param_t * param[], int count, char * outbuf, int len);
-int param_serialize_id(uint16_t param_id[], int count, char * outbuf, int len);
 
+int param_deserialize_from_packet(csp_packet_t * packet);
 
 #endif /* SRC_PARAM_PARAM_SERIALIZER_H_ */

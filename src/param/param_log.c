@@ -12,7 +12,7 @@
 
 #include <csp/csp.h>
 
-void param_log(param_t * param, void * new_value) {
+void param_log(param_t * param, void * new_value, uint32_t timestamp) {
 
 	if (param->log == NULL)
 		return;

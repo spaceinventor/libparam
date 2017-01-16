@@ -15,7 +15,13 @@
 #define PARAM_PORT_GET	10
 #define PARAM_PORT_SET	11
 #define PARAM_PORT_LIST	12
+#define PARAM_PORT_LOG	13
 csp_thread_return_t param_server_task(void *pvParameters);
+
+typedef struct {
+	uint8_t version;
+	uint8_t type;
+} __attribute__((packed)) param_packet_t;
 
 typedef struct {
 	uint16_t id;
