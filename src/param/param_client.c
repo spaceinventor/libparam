@@ -197,3 +197,54 @@ int param_push(param_t * params[], int count, int verbose, int host, int timeout
 	return 0;
 }
 
+int param_copy_single(param_t * param, int count, int verbose, int host) {
+	param_t * params[1] = { param };
+	return param_copy(params, 1, 0, host);
+}
+
+int param_copy(param_t * params[], int count, int verbose, int host) {
+
+	csp_packet_t * packet = csp_buffer_get(256);
+	if (packet == NULL)
+		return -1;
+
+	packet->length = 0;
+	for (int i = 0; i < count; i++) {
+
+		if (packet->length + sizeof(uint16_t) + param_size(params[i]) > PARAM_SERVER_MTU) {
+			printf("Request cropped: > MTU\n");
+			break;
+		}
+
+		/* Parameter id */
+		uint16_t id = csp_hton16((params[i]->node << 11) | (params[i]->id & 0x7FF));
+		memcpy(packet->data + packet->length, &id, sizeof(uint16_t));
+		packet->length += sizeof(uint16_t);
+
+		packet->length += param_serialize_from_param(params[i], (char *) packet->data + packet->length);
+
+	}
+
+	/* If there were no parameters to be set */
+	if (packet->length == 0) {
+		csp_buffer_free(packet);
+		return 0;
+	}
+
+	csp_hex_dump("copy", packet->data, packet->length);
+
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_LOG, 0, CSP_O_CRC32);
+	if (conn == NULL) {
+		csp_buffer_free(packet);
+		return -1;
+	}
+
+	if (!csp_send(conn, packet, 0)) {
+		csp_close(conn);
+		csp_buffer_free(packet);
+		return -1;
+	}
+
+	csp_close(conn);
+
+}

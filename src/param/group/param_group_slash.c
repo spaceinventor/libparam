@@ -6,9 +6,13 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <slash/slash.h>
 
+#include <vmem/vmem.h>
+
 #include <param/param_group.h>
+#include "param_group.h"
 
 static int groups(struct slash *slash)
 {
@@ -27,3 +31,32 @@ static int groups(struct slash *slash)
 	return SLASH_SUCCESS;
 }
 slash_command(groups, groups, NULL, NULL);
+
+static int groups_str(struct slash *slash)
+{
+	param_group_to_string(stdout, "");
+	return SLASH_SUCCESS;
+}
+slash_command_sub(groups, str, groups_str, NULL, NULL);
+
+static int groups_save(struct slash *slash)
+{
+	if (slash->argc != 2)
+		return SLASH_EUSAGE;
+
+	int id = atoi(slash->argv[1]);
+	param_group_store_vmem_save(vmem_index_to_ptr(id));
+	return SLASH_SUCCESS;
+}
+slash_command_sub(groups, save, groups_save, "<vmem_id>", NULL);
+
+static int groups_load(struct slash *slash)
+{
+	if (slash->argc != 2)
+		return SLASH_EUSAGE;
+
+	int id = atoi(slash->argv[1]);
+	param_group_store_vmem_load(vmem_index_to_ptr(id));
+	return SLASH_SUCCESS;
+}
+slash_command_sub(groups, load, groups_load, "<vmem_id>", NULL);
