@@ -61,6 +61,7 @@ def configure(ctx):
             
     if ctx.options.param_group:
         ctx.env.append_unique('FILES_PARAM', 'src/param/group/param_group.c')
+        ctx.env.append_unique('FILES_PARAM', 'src/param/group/param_group_beacon.c')
         if ctx.options.slash_enabled == True:
             ctx.env.append_unique('FILES_PARAM', 'src/param/group/param_group_slash.c')
         if ctx.options.param_store_vmem: 
@@ -81,7 +82,7 @@ def configure(ctx):
             ctx.env.append_unique('FILES_PARAM', 'src/param/param_client_slash.c')
         
     if ctx.options.param_collector: 
-        ctx.env.append_unique('FILES_PARAM', 'src/param/param_collector.c')
+        ctx.env.append_unique('FILES_PARAM', 'src/param/collector/param_collector.c')
         
     ctx.write_config_header('include/libparam.h')
 

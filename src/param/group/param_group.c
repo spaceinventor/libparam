@@ -14,6 +14,7 @@
 
 #include <param/param_list.h>
 #include <param/param_group.h>
+#include <param/param_client.h>
 #include "param_group.h"
 
 /**
@@ -99,9 +100,27 @@ void param_group_param_add(param_group_t *group, param_t *param) {
 	if (group->count >= group->storage_max_count)
 		return;
 
+	/* Only add if unique */
+	for (int i = 0; i < group->count; i++) {
+		if (group->params[i] == param)
+			return;
+	}
+
 	/* Add to list */
 	group->params[group->count++] = param;
 
+}
+
+int param_group_push(param_group_t * group, int host, int timeout) {
+	return param_push(group->params, group->count, 1, host, timeout);
+}
+
+int param_group_pull(param_group_t * group, int host, int timeout) {
+	return param_pull(group->params, group->count, 1, host, timeout);
+}
+
+int param_group_copy(param_group_t * group, int host) {
+	return param_copy(group->params, group->count, 1, host);
 }
 
 void param_group_from_string(FILE *stream) {
