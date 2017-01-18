@@ -16,56 +16,85 @@
 #include "param_log.h"
 #include "param_serializer.h"
 
-static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
+static void param_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 
-	//csp_hex_dump("get handler", packet->data, packet->length);
+	csp_hex_dump("get handler", request->data, request->length);
 
 	/* Get a new response packet */
 	csp_packet_t * response = csp_buffer_get(PARAM_SERVER_MTU);
 	if (response == NULL) {
-		csp_buffer_free(packet);
+		csp_buffer_free(request);
 		return;
 	}
 	response->length = 0;
+	response->data[0] = PARAM_PULL_RESPONSE;
+	response->data[1] = 0;
+	uint8_t * output = &response->data[2];
 
-	/* Loop through parameters */
-	for (int i = 0; i < packet->length / 2; i++) {
+	uint32_t timestamp = 0;
+	uint8_t node = 255;
 
-		/* convert and find parameter */
-		uint16_t id = csp_ntoh16(packet->data16[i]);
-		int node = id >> 11;
-		if (node == csp_get_address())
-			node = PARAM_LIST_LOCAL;
-		param_t * param = param_list_find_id(node, id & 0x7FF);
-		if (param == NULL)
-			continue;
+	uint8_t * input = &request->data[2];
 
-		/* Serialize into response */
-		node = param->node;
-		if (node == PARAM_LIST_LOCAL)
-			node = csp_get_address();
-		id = csp_hton16((node << 11) | (param->id & 0x7FF));
-		memcpy((char *) response->data + response->length, &id, sizeof(uint16_t));
-		response->length += sizeof(uint16_t);
+	printf("Request length %u\n", request->length);
+	while(input < request->data + request->length) {
 
-		char tmp[param_size(param)];
-		param_get(param, tmp);
-		response->length += param_serialize_from_var(param->type, param_size(param), tmp, (char *) response->data + response->length);
-
-		if (response->length >= PARAM_SERVER_MTU)
+		printf("Input offset %u\n", (unsigned int) (input - request->data));
+		switch(*input) {
+		case PARAM_CHUNK_TIME:
+			input += param_deserialize_chunk_timestamp(&timestamp, input);
+			printf("Got timestamp %u\n", (unsigned int) timestamp);
 			break;
+		case PARAM_CHUNK_NODE:
+			input += param_deserialize_chunk_node(&node, input);
+			if (node == csp_get_address())
+				node = PARAM_LIST_LOCAL;
+			printf("Got node %u\n", (unsigned int) node);
+			break;
+		case PARAM_CHUNK_PARAMS: {
+			uint8_t count;
+			input += param_deserialize_chunk_params(&count, input);
+			printf("Number of paramids %u\n", count);
+
+			uint8_t found_count = 0;
+			param_t * found_params[256];
+
+			for (int i = 0; i < count; i++) {
+				uint16_t paramid;
+				input += param_deserialize_chunk_params_next(&paramid, input);
+				printf("Got paramid %u\n", paramid);
+				param_t * param = param_list_find_id(node, paramid);
+				if (param == NULL)
+					continue;
+				printf("Found param %s\n", param->name);
+				found_params[found_count++] = param;
+			}
+
+			output += param_serialize_chunk_param_and_value(found_params, found_count, output);
+
+			break;
+		}
+		default:
+			printf("Invalid type %u\n", *input);
+			csp_buffer_free(request);
+			csp_buffer_free(response);
+			return;
+		}
+
 	}
 
-	/* Now free the request */
-	csp_buffer_free(packet);
+	response->length = output - response->data;
 
-	//csp_hex_dump("get handler", response->data, response->length);
+	/* Now free the request */
+	csp_buffer_free(request);
+
+	csp_hex_dump("get handler", response->data, response->length);
 
 	if (!csp_send(conn, response, 0))
 		csp_buffer_free(response);
 }
 
-static void param_set_handler(csp_conn_t * conn, csp_packet_t * packet)
+static void param_push_request(csp_conn_t * conn, csp_packet_t * packet)
 {
 
 	//csp_hex_dump("set handler", packet->data, packet->length);
@@ -106,7 +135,7 @@ static void param_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 
 }
 
-static void param_log_handler(csp_conn_t * conn, csp_packet_t * packet) {
+static void param_pull_response(csp_conn_t * conn, csp_packet_t * packet) {
 
 	csp_hex_dump("log handler", packet->data, packet->length);
 
@@ -192,18 +221,18 @@ csp_thread_return_t param_server_task(void *pvParameters)
 
 		/* Read packets. Timout is 100 ms */
 		while ((packet = csp_read(conn, 0)) != NULL) {
-			switch (csp_conn_dport(conn)) {
+			switch (packet->data[0]) {
 
-			case PARAM_PORT_GET:
-				param_get_handler(conn, packet);
+			case PARAM_PULL_REQUEST:
+				param_pull_request(conn, packet);
 				break;
 
-			case PARAM_PORT_SET:
-				param_set_handler(conn, packet);
+			case PARAM_PULL_RESPONSE:
+				param_pull_response(conn, packet);
 				break;
 
-			case PARAM_PORT_LOG:
-				param_log_handler(conn, packet);
+			case PARAM_PUSH_REQUEST:
+				param_push_request(conn, packet);
 				break;
 
 			default:

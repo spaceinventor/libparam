@@ -30,7 +30,19 @@ int param_pull(param_t * params[], int count, int verbose, int host, int timeout
 	if (packet == NULL)
 		return -1;
 
-	uint16_t * request = packet->data16;
+	packet->data[0] = PARAM_PULL_REQUEST;
+	packet->data[1] = 0;
+
+	uint8_t * out = &packet->data[2];
+
+	out += param_serialize_chunk_timestamp(1234, out); // TODO
+	out += param_serialize_chunk_node(2, out); // TODO
+	out += param_serialize_chunk_params(params, count, out);
+
+	packet->length = out - packet->data;
+
+#if 0
+	uint16_t * request = &packet->data16[1];
 
 	int response_size = 0;
 
@@ -49,11 +61,12 @@ int param_pull(param_t * params[], int count, int verbose, int host, int timeout
 
 		request[i] = csp_hton16((node << 11) | (params[i]->id & 0x7FF));
 	}
-	packet->length = sizeof(uint16_t) * i;
+	packet->length = sizeof(uint16_t) * i + 2;
+#endif
 
-	//csp_hex_dump("request", packet->data, packet->length);
+	csp_hex_dump("request", packet->data, packet->length);
 
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_GET, 0, CSP_O_CRC32);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
 	if (conn == NULL) {
 		csp_buffer_free(packet);
 		return -1;
@@ -71,9 +84,10 @@ int param_pull(param_t * params[], int count, int verbose, int host, int timeout
 		return -1;
 	}
 
-	//csp_hex_dump("Response", packet->data, packet->length);
+	csp_hex_dump("Response", packet->data, packet->length);
 
-	i = 0;
+#if 0
+	i = 2;
 	while(i < packet->length) {
 
 		/* Get id */
@@ -109,6 +123,7 @@ int param_pull(param_t * params[], int count, int verbose, int host, int timeout
 			param_print(param);
 
 	}
+#endif
 
 	csp_buffer_free(packet);
 	csp_close(conn);
@@ -128,7 +143,10 @@ int param_push(param_t * params[], int count, int verbose, int host, int timeout
 	if (packet == NULL)
 		return -1;
 
-	packet->length = 0;
+	packet->data[0] = PARAM_PUSH_REQUEST;
+	packet->data[1] = 0;
+	packet->length = 2;
+
 	for (int i = 0; i < count; i++) {
 
 		if ((params[i]->value_set == NULL) || (params[i]->value_pending != 1))
@@ -154,9 +172,9 @@ int param_push(param_t * params[], int count, int verbose, int host, int timeout
 		return 0;
 	}
 
-	//csp_hex_dump("request", packet->data, packet->length);
+	csp_hex_dump("request", packet->data, packet->length);
 
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SET, 0, CSP_O_CRC32);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
 	if (conn == NULL) {
 		csp_buffer_free(packet);
 		return -1;
@@ -175,7 +193,7 @@ int param_push(param_t * params[], int count, int verbose, int host, int timeout
 		return -1;
 	}
 
-	//csp_hex_dump("Response", packet->data, packet->length);
+	csp_hex_dump("Response", packet->data, packet->length);
 
 	for (int i = 0; i < count; i++) {
 		if ((params[i]->value_set == NULL) || (params[i]->value_pending == 0))
@@ -235,7 +253,7 @@ int param_copy(param_t * params[], int count, int verbose, int host) {
 
 	csp_hex_dump("copy", packet->data, packet->length);
 
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_LOG, 0, CSP_O_CRC32);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
 	if (conn == NULL) {
 		csp_buffer_free(packet);
 		return -1;
@@ -248,5 +266,6 @@ int param_copy(param_t * params[], int count, int verbose, int host) {
 	}
 
 	csp_close(conn);
+	return 0;
 
 }

@@ -12,16 +12,26 @@
 #include <param/param.h>
 
 #define PARAM_SERVER_MTU 200
-#define PARAM_PORT_GET	10
-#define PARAM_PORT_SET	11
+#define PARAM_PORT_SERVER 10
 #define PARAM_PORT_LIST	12
-#define PARAM_PORT_LOG	13
+
 csp_thread_return_t param_server_task(void *pvParameters);
 
-typedef struct {
-	uint8_t version;
-	uint8_t type;
-} __attribute__((packed)) param_packet_t;
+typedef enum {
+	PARAM_CHUNK_TIME,
+	PARAM_CHUNK_NODE,
+	PARAM_CHUNK_PARAM,
+	PARAM_CHUNK_PARAMS,
+	PARAM_CHUNK_PARAM_AND_VALUE,
+	PARAM_CHUNK_TIME_AND_VALUE,
+} param_server_chunks;
+
+typedef enum {
+	PARAM_PULL_REQUEST = 0,
+	PARAM_PULL_RESPONSE = 1,
+	PARAM_PUSH_REQUEST = 2,
+	PARAM_PUSH_RESPONSE = 3,
+} param_packet_type_e;
 
 typedef struct {
 	uint16_t id;

@@ -10,6 +10,7 @@
 #include <stdint.h>
 
 #include <param/param.h>
+#include <param/param_server.h>
 #include "param_serializer.h"
 #include "param_string.h"
 
@@ -106,4 +107,80 @@ int param_serialize_from_var(param_type_e type, int size, void * in, char * out)
 
 	return count;
 
+}
+
+int param_serialize_chunk_timestamp(uint32_t timestamp, uint8_t * out) {
+	timestamp = csp_hton32(timestamp);
+	out[0] = PARAM_CHUNK_TIME;
+	memcpy(&out[1], &timestamp, sizeof(timestamp));
+	return 1 + sizeof(timestamp);
+}
+
+int param_deserialize_chunk_timestamp(uint32_t * timestamp, uint8_t * in) {
+	memcpy(timestamp, &in[1], sizeof(*timestamp));
+	*timestamp = csp_ntoh32(*timestamp);
+	return 1 + sizeof(*timestamp);
+}
+
+int param_serialize_chunk_node(uint8_t node, uint8_t * out) {
+	out[0] = PARAM_CHUNK_NODE;
+	out[1] = node;
+	return 1 + sizeof(node);
+}
+
+int param_deserialize_chunk_node(uint8_t * node, uint8_t * in) {
+	*node = in[1];
+	return 1 + sizeof(*node);
+}
+
+int param_serialize_chunk_param(param_t * param, uint8_t * out) {
+	out[0] = PARAM_CHUNK_PARAM;
+	uint16_t param_net = csp_hton16(param->id);
+	memcpy(&out[1], &param, sizeof(param_net));
+	return 1 + sizeof(param_net);
+}
+
+int param_serialize_chunk_params(param_t * params[], uint8_t count, uint8_t * out) {
+
+	out[0] = PARAM_CHUNK_PARAMS;
+	out[1] = count;
+
+	int outset = 2;
+	for (int i = i; i < count; i++) {
+		uint16_t param_net = csp_hton16(params[i]->id);
+		memcpy(&out[outset], &param_net, sizeof(param_net));
+		outset += sizeof(param_net);
+	}
+
+	return outset;
+}
+
+int param_deserialize_chunk_params(uint8_t * count, uint8_t * in) {
+	*count = in[1];
+	return 1 + sizeof(*count);
+}
+
+int param_deserialize_chunk_params_next(uint16_t * paramid, uint8_t * in) {
+	memcpy(paramid, in, sizeof(*paramid));
+	*paramid = csp_ntoh16(*paramid);
+	return sizeof(*paramid);
+}
+
+int param_serialize_chunk_param_and_value(param_t * params[], uint8_t count, uint8_t * out) {
+
+	out[0] = PARAM_CHUNK_PARAM_AND_VALUE;
+	out[1] = count;
+
+	int outset = 2;
+	for (int i = i; i < count; i++) {
+		uint16_t param_net = csp_hton16(params[i]->id);
+		memcpy(&out[outset], &param_net, sizeof(param_net));
+		outset += sizeof(param_net);
+
+		char tmp[param_size(params[i])];
+		param_get(params[i], tmp);
+		outset += param_serialize_from_var(params[i]->type, param_size(params[i]), tmp, (char *) &out[outset]);
+	}
+
+	return outset;
 }
