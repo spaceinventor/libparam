@@ -221,7 +221,9 @@ int param_copy(param_t * params[], int count, int verbose, int host) {
 		memcpy(packet->data + packet->length, &id, sizeof(uint16_t));
 		packet->length += sizeof(uint16_t);
 
-		packet->length += param_serialize_from_param(params[i], (char *) packet->data + packet->length);
+		char tmp[param_size(params[i])];
+		param_get(params[i], tmp);
+		packet->length += param_serialize_from_var(params[i]->type, param_size(params[i]), tmp, (char *) packet->data + packet->length);
 
 	}
 

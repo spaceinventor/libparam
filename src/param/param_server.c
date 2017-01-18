@@ -48,7 +48,9 @@ static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 		memcpy((char *) response->data + response->length, &id, sizeof(uint16_t));
 		response->length += sizeof(uint16_t);
 
-		response->length += param_serialize_from_param(param, (char *) response->data + response->length);
+		char tmp[param_size(param)];
+		param_get(param, tmp);
+		response->length += param_serialize_from_var(param->type, param_size(param), tmp, (char *) response->data + response->length);
 
 		if (response->length >= PARAM_SERVER_MTU)
 			break;
@@ -160,6 +162,8 @@ static void param_log_handler(csp_conn_t * conn, csp_packet_t * packet) {
 		}
 
 	}
+
+	csp_buffer_free(packet);
 
 }
 

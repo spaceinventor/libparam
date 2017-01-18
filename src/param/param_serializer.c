@@ -63,52 +63,6 @@ int param_deserialize_to_var(param_type_e type, int size, void * in, void * out)
 
 }
 
-int param_serialize_from_param(param_t * param, char * out)
-{
-
-	int count = 0;
-
-	switch(param->type) {
-
-#define PARAM_SERIALIZE(casename, type, name, swapfct) \
-		case casename: { \
-			type obj = param_get_##name(param); \
-			obj = swapfct(obj); \
-			memcpy(out, &obj, sizeof(type)); \
-			count += sizeof(type); \
-			break; \
-		}
-
-		PARAM_SERIALIZE(PARAM_TYPE_UINT8, uint8_t, uint8, )
-		PARAM_SERIALIZE(PARAM_TYPE_UINT16, uint16_t, uint16, csp_hton16)
-		PARAM_SERIALIZE(PARAM_TYPE_UINT32, uint32_t, uint32, csp_hton32)
-		PARAM_SERIALIZE(PARAM_TYPE_UINT64, uint64_t, uint64, csp_hton64)
-		PARAM_SERIALIZE(PARAM_TYPE_INT8, int8_t, int8, )
-		PARAM_SERIALIZE(PARAM_TYPE_INT16, int16_t, int16, csp_hton16)
-		PARAM_SERIALIZE(PARAM_TYPE_INT32, int32_t, int32, csp_hton32)
-		PARAM_SERIALIZE(PARAM_TYPE_INT64, int64_t, int64, csp_hton64)
-		PARAM_SERIALIZE(PARAM_TYPE_XINT8, uint8_t, uint8, )
-		PARAM_SERIALIZE(PARAM_TYPE_XINT16, uint16_t, uint16, csp_hton16)
-		PARAM_SERIALIZE(PARAM_TYPE_XINT32, uint32_t, uint32, csp_hton32)
-		PARAM_SERIALIZE(PARAM_TYPE_XINT64, uint64_t, uint64, csp_hton64)
-		PARAM_SERIALIZE(PARAM_TYPE_FLOAT, float, float, )
-		PARAM_SERIALIZE(PARAM_TYPE_DOUBLE, double, double, )
-
-		case PARAM_TYPE_VECTOR3:
-		case PARAM_TYPE_STRING:
-		case PARAM_TYPE_DATA:
-			param_get_data(param, out, param->size);
-			count += param->size;
-			break;
-
-
-#undef PARAM_SERIALIZE
-	}
-
-	return count;
-
-}
-
 int param_serialize_from_var(param_type_e type, int size, void * in, char * out)
 {
 

@@ -43,6 +43,39 @@ PARAM_GET(double, double, )
 
 #undef PARAM_GET
 
+void param_get(param_t * param, void * value) {
+	switch(param->type) {
+
+#define PARAM_GET(casename, name, type) \
+	case casename: \
+		*(type *) value = param_get_##name(param); \
+		break; \
+
+	PARAM_GET(PARAM_TYPE_UINT8, uint8, uint8_t)
+	PARAM_GET(PARAM_TYPE_UINT16, uint16, uint16_t)
+	PARAM_GET(PARAM_TYPE_UINT32, uint32, uint32_t)
+	PARAM_GET(PARAM_TYPE_UINT64, uint64, uint64_t)
+	PARAM_GET(PARAM_TYPE_INT8, int8, int8_t)
+	PARAM_GET(PARAM_TYPE_INT16, int16, int16_t)
+	PARAM_GET(PARAM_TYPE_INT32, int32, int32_t)
+	PARAM_GET(PARAM_TYPE_INT64, int64, int64_t)
+	PARAM_GET(PARAM_TYPE_XINT8, uint8, uint8_t)
+	PARAM_GET(PARAM_TYPE_XINT16, uint16, uint16_t)
+	PARAM_GET(PARAM_TYPE_XINT32, uint32, uint32_t)
+	PARAM_GET(PARAM_TYPE_XINT64, uint64, uint64_t)
+	PARAM_GET(PARAM_TYPE_FLOAT, float, float)
+	PARAM_GET(PARAM_TYPE_DOUBLE, double, double)
+	case PARAM_TYPE_STRING:
+		param_get_data(param, value, param->size);
+		break;
+	case PARAM_TYPE_VECTOR3:
+	case PARAM_TYPE_DATA:
+		param_get_data(param, value, param->size);
+		break;
+
+	}
+}
+
 void param_get_data(param_t * param, void * outbuf, int len)
 {
 	switch(param->storage_type) {
