@@ -11,6 +11,7 @@
 
 #include <vmem/vmem.h>
 
+#include <libparam.h>
 #include <param/param_group.h>
 #include "param_group.h"
 
@@ -39,6 +40,8 @@ static int groups_str(struct slash *slash)
 }
 slash_command_sub(groups, str, groups_str, NULL, NULL);
 
+#if defined(PARAM_STORE_VMEM)
+
 static int groups_save(struct slash *slash)
 {
 	if (slash->argc != 2)
@@ -60,3 +63,7 @@ static int groups_load(struct slash *slash)
 	return SLASH_SUCCESS;
 }
 slash_command_sub(groups, load, groups_load, "<vmem_id>", NULL);
+
+#elif defined(PARAM_STORE_FILE)
+
+#endif

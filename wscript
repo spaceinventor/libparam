@@ -84,6 +84,11 @@ def configure(ctx):
     if ctx.options.param_collector: 
         ctx.env.append_unique('FILES_PARAM', 'src/param/collector/param_collector.c')
         
+    if ctx.options.param_store_file:
+        ctx.define('PARAM_STORE_FILE', True)
+    if ctx.options.param_store_vmem:
+        ctx.define('PARAM_STORE_VMEM', True)
+        
     ctx.write_config_header('include/libparam.h')
 
 

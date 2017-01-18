@@ -41,7 +41,15 @@ static void param_get_handler(csp_conn_t * conn, csp_packet_t * packet) {
 			continue;
 
 		/* Serialize into response */
-		response->length += param_serialize_single(param, (char *) response->data + response->length, PARAM_SERVER_MTU - response->length);
+		node = param->node;
+		if (node == PARAM_LIST_LOCAL)
+			node = csp_get_address();
+		id = csp_hton16((node << 11) | (param->id & 0x7FF));
+		memcpy((char *) response->data + response->length, &id, sizeof(uint16_t));
+		response->length += sizeof(uint16_t);
+
+		response->length += param_serialize_from_param(param, (char *) response->data + response->length);
+
 		if (response->length >= PARAM_SERVER_MTU)
 			break;
 	}
@@ -94,8 +102,7 @@ static void param_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 
 }
 
-static void param_log_handler(csp_conn_t * conn, csp_packet_t * packet)
-{
+static void param_log_handler(csp_conn_t * conn, csp_packet_t * packet) {
 
 	csp_hex_dump("log handler", packet->data, packet->length);
 
