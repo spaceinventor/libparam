@@ -87,7 +87,9 @@ static void param_set_handler(csp_conn_t * conn, csp_packet_t * packet)
 			return;
 		}
 
-		count += param_deserialize_to_param(&packet->data[count], param);
+		char tmp[param_size(param)];
+		count += param_deserialize_to_var(param->type, param->size, &packet->data[count], tmp);
+		param_set(param, tmp);
 
 	}
 

@@ -63,49 +63,6 @@ int param_deserialize_to_var(param_type_e type, int size, void * in, void * out)
 
 }
 
-int param_deserialize_to_param(void * in, param_t * param) {
-
-	int count = 0;
-
-	switch(param->type) {
-
-#define PARAM_DESERIALIZE(_case, _type, _name) \
-		case _case: { \
-			_type obj; \
-			count += param_deserialize_to_var(param->type, param->size, in, &obj); \
-			param_set_##_name(param, obj); \
-			break; \
-		}
-
-		PARAM_DESERIALIZE(PARAM_TYPE_UINT8, uint8_t, uint8)
-		PARAM_DESERIALIZE(PARAM_TYPE_UINT16, uint16_t, uint16)
-		PARAM_DESERIALIZE(PARAM_TYPE_UINT32, uint32_t, uint32)
-		PARAM_DESERIALIZE(PARAM_TYPE_UINT64, uint64_t, uint64)
-		PARAM_DESERIALIZE(PARAM_TYPE_INT8, int8_t, uint8)
-		PARAM_DESERIALIZE(PARAM_TYPE_INT16, int16_t, uint16)
-		PARAM_DESERIALIZE(PARAM_TYPE_INT32, int32_t, uint32)
-		PARAM_DESERIALIZE(PARAM_TYPE_INT64, int64_t, uint64)
-		PARAM_DESERIALIZE(PARAM_TYPE_XINT8, uint8_t, uint8)
-		PARAM_DESERIALIZE(PARAM_TYPE_XINT16, uint16_t, uint16)
-		PARAM_DESERIALIZE(PARAM_TYPE_XINT32, uint32_t, uint32)
-		PARAM_DESERIALIZE(PARAM_TYPE_XINT64, uint64_t, uint64)
-		PARAM_DESERIALIZE(PARAM_TYPE_FLOAT, float, float)
-		PARAM_DESERIALIZE(PARAM_TYPE_DOUBLE, double, double)
-
-		case PARAM_TYPE_VECTOR3:
-		case PARAM_TYPE_STRING:
-		case PARAM_TYPE_DATA:
-			param_set_data(param, in, param->size);
-			count += param->size;
-			break;
-
-#undef PARAM_DESERIALIZE
-	}
-
-	return count;
-
-}
-
 int param_serialize_from_param(param_t * param, char * out)
 {
 
