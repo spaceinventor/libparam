@@ -32,10 +32,12 @@ int param_deserialize_chunk_node(uint8_t * node, uint8_t * in);
 
 int param_serialize_chunk_param(param_t * param, uint8_t * out);
 
-int param_serialize_chunk_params(param_t * params[], uint8_t count, uint8_t * out);
-int param_deserialize_chunk_params(uint8_t * count, uint8_t * in);
+int param_serialize_chunk_params_begin(uint8_t ** count, uint8_t * out);
+int param_serialize_chunk_params_next(param_t * param, uint8_t * count, uint8_t * out);
+int param_deserialize_chunk_params_begin(uint8_t * count, uint8_t * in);
 int param_deserialize_chunk_params_next(uint16_t * paramid, uint8_t * in);
 
 int param_serialize_chunk_param_and_value(param_t * params[], uint8_t count, uint8_t * out);
+int param_deserialize_chunk_param_and_value(uint8_t node, uint32_t timestamp, uint8_t * in);
 
 #endif /* SRC_PARAM_PARAM_SERIALIZER_H_ */

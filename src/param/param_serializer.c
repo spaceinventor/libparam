@@ -11,9 +11,11 @@
 
 #include <param/param.h>
 #include <param/param_server.h>
+#include "param_log.h"
 #include "param_serializer.h"
 #include "param_string.h"
 
+#include <csp/arch/csp_time.h>
 #include <csp/csp_endian.h>
 #include <csp/csp.h>
 #include <param/param_list.h>
@@ -140,22 +142,21 @@ int param_serialize_chunk_param(param_t * param, uint8_t * out) {
 	return 1 + sizeof(param_net);
 }
 
-int param_serialize_chunk_params(param_t * params[], uint8_t count, uint8_t * out) {
-
+int param_serialize_chunk_params_begin(uint8_t ** count, uint8_t * out) {
 	out[0] = PARAM_CHUNK_PARAMS;
-	out[1] = count;
-
-	int outset = 2;
-	for (int i = i; i < count; i++) {
-		uint16_t param_net = csp_hton16(params[i]->id);
-		memcpy(&out[outset], &param_net, sizeof(param_net));
-		outset += sizeof(param_net);
-	}
-
-	return outset;
+	out[1] = 0;
+	*count = &out[1];
+	return 2;
 }
 
-int param_deserialize_chunk_params(uint8_t * count, uint8_t * in) {
+int param_serialize_chunk_params_next(param_t * param, uint8_t * count, uint8_t * out) {
+	*count = *count + 1;
+	uint16_t param_net = csp_hton16(param->id);
+	memcpy(out, &param_net, sizeof(param_net));
+	return sizeof(param_net);
+}
+
+int param_deserialize_chunk_params_begin(uint8_t * count, uint8_t * in) {
 	*count = in[1];
 	return 1 + sizeof(*count);
 }
@@ -183,4 +184,44 @@ int param_serialize_chunk_param_and_value(param_t * params[], uint8_t count, uin
 	}
 
 	return outset;
+}
+
+int param_deserialize_chunk_param_and_value(uint8_t node, uint32_t timestamp, uint8_t * in) {
+	int count = in[1];
+
+	int inset = 2;
+	for (int i = 0; i < count; i++) {
+
+		uint16_t id;
+		memcpy(&id, &in[inset], sizeof(id));
+		inset += sizeof(id);
+		id = csp_ntoh16(id);
+
+		param_t * param = param_list_find_id(node, id);
+		if ((param == NULL) || (param->storage_type != PARAM_STORAGE_REMOTE) || (param->value_get == NULL)) {
+			/** TODO: Possibly use segment length, instead of parameter count, making it possible to skip a segment */
+			printf("Invalid param %u:%u\n", id, node);
+			return 1000;
+		}
+
+		printf("Found param %s\n", param->name);
+
+		inset += param_deserialize_to_var(param->type, param->size, &in[inset], param->value_get);
+
+		/**
+		 * TODO: value updated is used by collector (refresh interval)
+		 * So maybe it should not be used for logging, because the remote timestamp could be invalid
+		 * The timestamp could be used for the param_log call instead.
+		 */
+		param->value_updated = timestamp;
+		if (param->value_pending == 2)
+			param->value_pending = 0;
+
+		/**
+		 * TODO: Param log assumes ordered input
+		 */
+		param_log(param, param->value_get, timestamp);
+
+	}
+	return inset;
 }

@@ -5,6 +5,7 @@
  *      Author: johan
  */
 
+#include <stdio.h>
 #include <csp/csp.h>
 #include <csp/arch/csp_thread.h>
 #include <csp/arch/csp_clock.h>
@@ -38,7 +39,7 @@ csp_thread_return_t param_group_beacon_task(void *pvParameters) {
 			if (current_slot > last_beacon_slot) {
 				printf("sending beacon %s last %u now %u, slot %u < %u\n", group->name, (unsigned int) group->last_beacon, (unsigned int) now, last_beacon_slot, current_slot);
 				group->last_beacon = now;
-				param_group_copy(group, group->node);
+				//csp_packet_t * request = param_pull_request(group->params, group->count, -1);
 			}
 
 			int sleep = (current_slot * group->interval) + group->interval - now;

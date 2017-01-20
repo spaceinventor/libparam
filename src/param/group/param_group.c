@@ -119,10 +119,6 @@ int param_group_pull(param_group_t * group, int host, int timeout) {
 	return param_pull(group->params, group->count, 1, host, timeout);
 }
 
-int param_group_copy(param_group_t * group, int host) {
-	return param_copy(group->params, group->count, 1, host);
-}
-
 void param_group_from_string(FILE *stream) {
 
 	char line[100];
