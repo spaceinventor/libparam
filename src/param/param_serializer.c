@@ -201,11 +201,12 @@ int param_deserialize_chunk_param_and_value(uint8_t node, uint32_t timestamp, ui
 		if ((param == NULL) || (param->storage_type != PARAM_STORAGE_REMOTE) || (param->value_get == NULL)) {
 			/** TODO: Possibly use segment length, instead of parameter count, making it possible to skip a segment */
 			printf("Invalid param %u:%u\n", id, node);
-			return 1000;
+			return 1000; // TODO proper error handling
 		}
 
 		printf("Found param %s\n", param->name);
 
+		/* TODO: use real set function */
 		inset += param_deserialize_to_var(param->type, param->size, &in[inset], param->value_get);
 
 		/**
