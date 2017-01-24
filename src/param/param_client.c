@@ -46,8 +46,6 @@ csp_packet_t * param_pull_request(param_t * params[], int count, int host) {
 
 		/* Check if node and host is the same */
 		int node_param = params[i]->node;
-		if (node_param == host)
-			node_param = 255;
 
 		/* Check if we need to change node */
 		if (node != node_param) {

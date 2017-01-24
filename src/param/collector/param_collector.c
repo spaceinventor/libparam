@@ -59,7 +59,7 @@ csp_thread_return_t param_collector_task(void *pvParameters)
 
 		/* If no nodes was found, return now */
 		if (nodes_count == 0)
-			return;
+			continue;
 
 		int sleep_min = DEFAULT_SLEEP;
 

@@ -33,16 +33,16 @@ csp_thread_return_t param_group_beacon_task(void *pvParameters) {
 			if (group->interval == 0)
 				continue;
 
-			printf("Group %s\n", group->name);
+			//printf("Group %s\n", group->name);
 
 			unsigned int last_beacon_slot = group->last_beacon / group->interval;
 			unsigned int current_slot = now / group->interval;
 
 			if (current_slot > last_beacon_slot) {
-				printf("sending beacon %s last %u now %u, slot %u < %u\n", group->name, (unsigned int) group->last_beacon, (unsigned int) now, last_beacon_slot, current_slot);
+				//printf("sending beacon %s last %u now %u, slot %u < %u\n", group->name, (unsigned int) group->last_beacon, (unsigned int) now, last_beacon_slot, current_slot);
 				group->last_beacon = now;
 				csp_packet_t * packet = param_pull_request(group->params, group->count, -1);
-				csp_hex_dump("Pull request", packet->data, packet->length);
+				//csp_hex_dump("Pull request", packet->data, packet->length);
 				csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, group->node, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
 				param_serve_pull_request(conn, packet);
 				csp_close(conn);
@@ -56,7 +56,7 @@ csp_thread_return_t param_group_beacon_task(void *pvParameters) {
 
 		}
 
-		printf("Sleep %u\n", sleep_min);
+		//printf("Sleep %u\n", sleep_min);
 
 		csp_sleep_ms(sleep_min);
 
