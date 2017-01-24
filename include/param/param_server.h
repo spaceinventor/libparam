@@ -41,6 +41,6 @@ typedef struct {
 } __attribute__((packed)) rparam_transfer_t;
 
 void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request);
-void param_serve_pull_response(csp_conn_t * conn, csp_packet_t * packet);
+void param_serve_pull_response(csp_conn_t * conn, csp_packet_t * packet, int verbose);
 
 #endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_SERVER_H_ */

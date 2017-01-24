@@ -52,7 +52,6 @@ csp_packet_t * param_pull_request(param_t * params[], int count, int host) {
 		/* Check if we need to change node */
 		if (node != node_param) {
 			node = node_param;
-			printf("Set node %u\n", params[i]->node);
 			output += param_serialize_chunk_node(params[i]->node, output);
 			count_output = NULL;
 		}
@@ -60,12 +59,10 @@ csp_packet_t * param_pull_request(param_t * params[], int count, int host) {
 		/* Start a new params chunk */
 		if (count_output == NULL) {
 			output += param_serialize_chunk_params_begin(&count_output, output);
-			printf("params begin\n");
 		}
 
 		/* Add additional parameters to chunk */
 		output += param_serialize_chunk_params_next(params[i], count_output, output);
-		printf("Set param %s count %u\n", params[i]->name, *count_output);
 
 	}
 
@@ -86,7 +83,7 @@ int param_pull(param_t * params[], int count, int verbose, int host, int timeout
 	if (packet == NULL)
 		return -1;
 
-	csp_hex_dump("request", packet->data, packet->length);
+	//csp_hex_dump("request", packet->data, packet->length);
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
 	if (conn == NULL) {
@@ -106,9 +103,9 @@ int param_pull(param_t * params[], int count, int verbose, int host, int timeout
 		return -1;
 	}
 
-	csp_hex_dump("Response", packet->data, packet->length);
+	//csp_hex_dump("Response", packet->data, packet->length);
 
-	param_serve_pull_response(conn, packet);
+	param_serve_pull_response(conn, packet, verbose);
 	csp_close(conn);
 
 	return 0;
@@ -138,7 +135,7 @@ int param_push(param_t * params[], int count, int verbose, int host, int timeout
 		return 0;
 	}
 
-	csp_hex_dump("request", packet->data, packet->length);
+	//csp_hex_dump("request", packet->data, packet->length);
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
 	if (conn == NULL) {
@@ -159,7 +156,7 @@ int param_push(param_t * params[], int count, int verbose, int host, int timeout
 		return -1;
 	}
 
-	csp_hex_dump("Response", packet->data, packet->length);
+	//csp_hex_dump("Response", packet->data, packet->length);
 
 	for (int i = 0; i < count; i++) {
 		if ((params[i]->value_set == NULL) || (params[i]->value_pending == 0))

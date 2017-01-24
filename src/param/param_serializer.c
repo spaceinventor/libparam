@@ -211,7 +211,7 @@ int param_serialize_chunk_param_and_value(param_t * params[], uint8_t count, uin
 	return outset;
 }
 
-int param_deserialize_chunk_param_and_value(uint8_t node, uint32_t timestamp, uint8_t * in) {
+int param_deserialize_chunk_param_and_value(uint8_t node, uint32_t timestamp, int verbose, uint8_t * in) {
 	int count = in[1];
 
 	int inset = 2;
@@ -228,8 +228,6 @@ int param_deserialize_chunk_param_and_value(uint8_t node, uint32_t timestamp, ui
 			printf("Invalid param %u:%u\n", id, node);
 			return 1000; // TODO proper error handling
 		}
-
-		printf("Found param %s\n", param->name);
 
 		if (param->storage_type == PARAM_STORAGE_REMOTE) {
 
@@ -249,6 +247,9 @@ int param_deserialize_chunk_param_and_value(uint8_t node, uint32_t timestamp, ui
 			param_set(param, &in[inset]);
 			inset += param_size(param);
 		}
+
+		if (verbose)
+			param_print(param);
 
 		/**
 		 * TODO: Param log assumes ordered input

@@ -19,7 +19,7 @@
 
 void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 
-	csp_hex_dump("get handler", request->data, request->length);
+	//csp_hex_dump("get handler", request->data, request->length);
 
 	/* Get a new response packet */
 	csp_packet_t * response = csp_buffer_get(PARAM_SERVER_MTU);
@@ -37,27 +37,21 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 
 	uint8_t * input = &request->data[2];
 
-	printf("Request length %u\n", request->length);
 	while(input < request->data + request->length) {
-
-		printf("Input offset %u\n", (unsigned int) (input - request->data));
 		switch(*input) {
 		case PARAM_CHUNK_TIME:
 			input += param_deserialize_chunk_timestamp(&timestamp, input);
-			printf("Got timestamp %u\n", (unsigned int) timestamp);
 			output += param_serialize_chunk_timestamp(timestamp, output);
 			break;
 		case PARAM_CHUNK_NODE:
 			input += param_deserialize_chunk_node(&node, input);
 			if (node == csp_get_address())
 				node = PARAM_LIST_LOCAL;
-			printf("Got node %u\n", (unsigned int) node);
 			output += param_serialize_chunk_node(node, output);
 			break;
 		case PARAM_CHUNK_PARAMS: {
 			uint8_t count;
 			input += param_deserialize_chunk_params_begin(&count, input);
-			printf("Number of paramids %u\n", count);
 
 			uint8_t found_count = 0;
 			param_t * found_params[256];
@@ -65,11 +59,9 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 			for (int i = 0; i < count; i++) {
 				uint16_t paramid;
 				input += param_deserialize_chunk_params_next(&paramid, input);
-				printf("Got paramid %u\n", paramid);
 				param_t * param = param_list_find_id(node, paramid);
 				if (param == NULL)
 					continue;
-				printf("Found param %s\n", param->name);
 				found_params[found_count++] = param;
 			}
 
@@ -91,33 +83,30 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 	/* Now free the request */
 	csp_buffer_free(request);
 
-	csp_hex_dump("get handler", response->data, response->length);
+	//csp_hex_dump("get handler", response->data, response->length);
 
 	if (!csp_send(conn, response, 0))
 		csp_buffer_free(response);
 }
 
-void param_serve_pull_response(csp_conn_t * conn, csp_packet_t * packet) {
+void param_serve_pull_response(csp_conn_t * conn, csp_packet_t * packet, int verbose) {
 
-	csp_hex_dump("pull response", packet->data, packet->length);
+	//csp_hex_dump("pull response", packet->data, packet->length);
 
 	uint32_t timestamp = csp_get_ms();
 	uint8_t node = csp_conn_src(conn);
-	uint8_t * input = &packet->data[2];
 
-	printf("Request length %u\n", packet->length);
+	uint8_t * input = &packet->data[2];
 	while(input < packet->data + packet->length) {
 		switch(*input) {
 			case PARAM_CHUNK_TIME:
 				input += param_deserialize_chunk_timestamp(&timestamp, input);
-				printf("Got timestamp %u\n", (unsigned int) timestamp);
 				break;
 			case PARAM_CHUNK_NODE:
 				input += param_deserialize_chunk_node(&node, input);
-				printf("Got node %u\n", (unsigned int) node);
 				break;
 			case PARAM_CHUNK_PARAM_AND_VALUE: {
-				input += param_deserialize_chunk_param_and_value(node, timestamp, input);
+				input += param_deserialize_chunk_param_and_value(node, timestamp, verbose, input);
 				break;
 			}
 			default:
@@ -134,25 +123,22 @@ void param_serve_pull_response(csp_conn_t * conn, csp_packet_t * packet) {
 static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
 {
 
-	csp_hex_dump("set handler", packet->data, packet->length);
+	//csp_hex_dump("set handler", packet->data, packet->length);
 
 	uint32_t timestamp = csp_get_ms();
 	uint8_t node = 255;
 
 	uint8_t * input = &packet->data[2];
-	printf("Request length %u\n", packet->length);
 	while(input < packet->data + packet->length) {
 		switch(*input) {
 			case PARAM_CHUNK_TIME:
 				input += param_deserialize_chunk_timestamp(&timestamp, input);
-				printf("Got timestamp %u\n", (unsigned int) timestamp);
 				break;
 			case PARAM_CHUNK_NODE:
 				input += param_deserialize_chunk_node(&node, input);
-				printf("Got node %u\n", (unsigned int) node);
 				break;
 			case PARAM_CHUNK_PARAM_AND_VALUE: {
-				input += param_deserialize_chunk_param_and_value(node, timestamp, input);
+				input += param_deserialize_chunk_param_and_value(node, timestamp, 0, input);
 				break;
 			}
 			default:
@@ -166,7 +152,7 @@ static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
 	memcpy(packet->data, "ok", 2);
 	packet->length = 2;
 
-	csp_hex_dump("set handler", packet->data, packet->length);
+	//csp_hex_dump("set handler", packet->data, packet->length);
 
 	if (!csp_send(conn, packet, 0))
 		csp_buffer_free(packet);
@@ -205,7 +191,7 @@ csp_thread_return_t param_server_task(void *pvParameters)
 				break;
 
 			case PARAM_PULL_RESPONSE:
-				param_serve_pull_response(conn, packet);
+				param_serve_pull_response(conn, packet, 0);
 				break;
 
 			case PARAM_PUSH_REQUEST:
