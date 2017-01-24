@@ -150,7 +150,7 @@ void param_group_from_string(FILE *stream) {
 			group = param_group_create(name, 100);
 			group->interval = interval;
 			group->node = node;
-			printf("Created group %s\n", group->name);
+			//printf("Created group %s\n", group->name);
 		}
 
 		/* Parameter */
@@ -174,7 +174,7 @@ void param_group_from_string(FILE *stream) {
 
 			/* Add parameter to group */
 			param_group_param_add(group, param);
-			printf("Added param %s\n", param->name);
+			//printf("Added param %s\n", param->name);
 
 		}
 	}

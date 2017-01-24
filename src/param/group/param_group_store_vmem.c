@@ -23,7 +23,7 @@ void param_group_store_vmem_save(vmem_t * vmem) {
 	fclose(stream);
 
 	vmem_memcpy((void *) vmem->vaddr, buf, vmem->size);
-	csp_hex_dump("hk grp", buf, vmem->size);
+	//csp_hex_dump("hk grp", buf, vmem->size);
 	free(buf);
 }
 
@@ -34,7 +34,7 @@ void param_group_store_vmem_load(vmem_t * vmem) {
 		return;
 
 	vmem_memcpy(buf, (void *) vmem->vaddr, vmem->size);
-	csp_hex_dump("hk grp", buf, strlen(buf));
+	//csp_hex_dump("hk grp", buf, strlen(buf));
 
 	FILE *stream = fmemopen(buf, strlen(buf), "r");
 	param_group_from_string(stream);
