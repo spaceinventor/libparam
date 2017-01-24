@@ -11,6 +11,7 @@
 #include <csp/arch/csp_clock.h>
 #include <csp/arch/csp_time.h>
 
+#include <param/param_server.h>
 #include <param/param_group.h>
 
 #define DEFAULT_SLEEP 10000 // [ms]
@@ -39,7 +40,9 @@ csp_thread_return_t param_group_beacon_task(void *pvParameters) {
 			if (current_slot > last_beacon_slot) {
 				printf("sending beacon %s last %u now %u, slot %u < %u\n", group->name, (unsigned int) group->last_beacon, (unsigned int) now, last_beacon_slot, current_slot);
 				group->last_beacon = now;
-				//csp_packet_t * request = param_pull_request(group->params, group->count, -1);
+				csp_packet_t * request = param_pull_request(group->params, group->count, -1);
+				if (csp_sendto(CSP_PRIO_HIGH, group->node, PARAM_PORT_SERVER, 0, CSP_O_CRC32, packet, 0) != CSP_ERR_NONE)
+					csp_buffer_free(packet);
 			}
 
 			int sleep = (current_slot * group->interval) + group->interval - now;
