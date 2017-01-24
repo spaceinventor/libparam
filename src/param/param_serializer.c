@@ -244,8 +244,9 @@ int param_deserialize_chunk_param_and_value(uint8_t node, uint32_t timestamp, in
 
 		/* Local set */
 		} else {
-			param_set(param, &in[inset]);
-			inset += param_size(param);
+			char tmp[param_size(param)];
+			inset += param_deserialize_to_var(param->type, param->size, &in[inset], tmp);
+			param_set(param, tmp);
 		}
 
 		if (verbose)

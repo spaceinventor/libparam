@@ -164,7 +164,7 @@ static void param_serve(csp_conn_t * conn, csp_packet_t * packet) {
 			break;
 
 		case PARAM_PULL_RESPONSE:
-			param_serve_pull_response(conn, packet, 0);
+			param_serve_pull_response(conn, packet, 1);
 			break;
 
 		case PARAM_PUSH_REQUEST:
@@ -206,6 +206,8 @@ csp_thread_return_t param_server_task(void *pvParameters)
 
 			case PARAM_PORT_SERVER:
 				param_serve(conn, packet);
+				break;
+
 			default:
 				/* Let the service handler reply pings, buffer use, etc. */
 				csp_service_handler(conn, packet);
