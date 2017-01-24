@@ -136,9 +136,9 @@ void param_group_from_string(FILE *stream) {
 
 			/* Scan line */
 			char name[11];
-			int interval, node, port;
-			int scanned = sscanf(line, "+%10[^#]#%u@%u:%u%*s", name, &interval, &node, &port);
-			if (scanned != 4)
+			int interval, node;
+			int scanned = sscanf(line, "+%10[^#]#%u@%u%*s", name, &interval, &node);
+			if (scanned != 3)
 				continue;
 
 			/* Search for existing group with that name */
@@ -150,7 +150,6 @@ void param_group_from_string(FILE *stream) {
 			group = param_group_create(name, 100);
 			group->interval = interval;
 			group->node = node;
-			group->port = port;
 			printf("Created group %s\n", group->name);
 		}
 
@@ -190,7 +189,7 @@ void param_group_to_string(FILE * stream, char * group_name) {
 		if (group->storage_dynamic == 0)
 			continue;
 
-		fprintf(stream, "+%s#%u@%u:%u\n", group->name, (unsigned int) group->interval, (unsigned int) group->node, (unsigned int) group->port);
+		fprintf(stream, "+%s#%u@%u\n", group->name, (unsigned int) group->interval, (unsigned int) group->node);
 
 		for (int i = 0; i < group->count; i++) {
 			param_t * param = group->params[i];

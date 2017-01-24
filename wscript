@@ -66,6 +66,8 @@ def configure(ctx):
             ctx.env.append_unique('FILES_PARAM', 'src/param/group/param_group_slash.c')
         if ctx.options.param_store_vmem: 
             ctx.env.append_unique('FILES_PARAM', 'src/param/group/param_group_store_vmem.c')
+        if ctx.options.param_store_file: 
+            ctx.env.append_unique('FILES_PARAM', 'src/param/group/param_group_store_file.c')
     
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_log.c')
     

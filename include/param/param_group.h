@@ -23,7 +23,6 @@ typedef struct param_group_s {
 
 	uint32_t interval;					// Used for beacon
 	uint8_t node;						// Used for beacon
-	uint8_t port;						// Used for beacon
 	uint32_t last_beacon;				// Used for beacon
 
 	SLIST_ENTRY(param_group_s) next;	// single linked list
@@ -57,5 +56,7 @@ int param_group_copy(param_group_t * group, int host);
 
 void param_group_store_vmem_save(vmem_t * vmem);
 void param_group_store_vmem_load(vmem_t * vmem);
+void param_group_store_file_save(char * filename);
+void param_group_store_file_load(char * filename);
 
 #endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_GROUP_H_ */

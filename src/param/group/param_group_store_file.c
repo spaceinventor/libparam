@@ -1,5 +1,5 @@
 /*
- * param_list_store_file.c
+ * param_group_store_file.c
  *
  *  Created on: Nov 12, 2016
  *      Author: johan
@@ -11,31 +11,24 @@
 #include <param/param_server.h>
 #include <slash/slash.h>
 
-#include "param_list.h"
+#include "param_group.h"
 
-// TODO: Add node filter
-// TODO: Add remote only
-
-void param_list_store_file_save(char * filename) {
+void param_group_store_file_save(char * filename) {
 
 	FILE * store = fopen(filename, "w+");
 	if (store == NULL)
 		return;
-
-	param_list_to_string(store, -1, 1);
-
+	param_group_to_string(store, NULL);
 	fclose(store);
 
 }
 
-void param_list_store_file_load(char * filename) {
+void param_group_store_file_load(char * filename) {
 
 	FILE * stream = fopen(filename, "r");
 	if (stream == NULL)
 		return;
-
-	param_list_from_string(stream, -1);
-
+	param_group_from_string(stream);
 	fclose(stream);
 
 }
