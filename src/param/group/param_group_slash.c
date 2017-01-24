@@ -53,7 +53,7 @@ static int group_save(struct slash *slash)
 }
 slash_command_sub(group, save, group_save, "<vmem_id>", NULL);
 
-static int groups_load(struct slash *slash)
+static int group_load(struct slash *slash)
 {
 	if (slash->argc != 2)
 		return SLASH_EUSAGE;
