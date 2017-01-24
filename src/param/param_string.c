@@ -209,9 +209,9 @@ void param_print(param_t * param)
 
 	/* Node/ID */
 	if (param->storage_type == PARAM_STORAGE_REMOTE) {
-		printf(" %2u:%-3u", param->node, param->id);
+		printf(" %3u:%-2u", param->id, param->node);
 	} else {
-		printf("  L:%-3u", param->id);
+		printf(" %3u:L", param->id);
 	}
 
 	/* Name */
