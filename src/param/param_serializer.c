@@ -167,20 +167,45 @@ int param_deserialize_chunk_params_next(uint16_t * paramid, uint8_t * in) {
 	return sizeof(*paramid);
 }
 
-int param_serialize_chunk_param_and_value(param_t * params[], uint8_t count, uint8_t * out) {
+int param_serialize_chunk_param_and_value(param_t * params[], uint8_t count, uint8_t * out, int pending_only) {
 
 	out[0] = PARAM_CHUNK_PARAM_AND_VALUE;
-	out[1] = count;
+	out[1] = 0;
 
 	int outset = 2;
 	for (int i = i; i < count; i++) {
+
+		/* Filter:
+		 * When sending pending parameters (push) we wish to skip non pending parameters */
+		if (pending_only == 1) {
+			if ((params[i]->value_set == NULL) || (params[i]->value_pending != 1))
+				continue;
+		}
+
+		if (outset + sizeof(uint16_t) + param_size(params[i]) > PARAM_SERVER_MTU) {
+			printf("Request cropped: > MTU\n");
+			break;
+		}
+
+		/* ID */
 		uint16_t param_net = csp_hton16(params[i]->id);
 		memcpy(&out[outset], &param_net, sizeof(param_net));
 		outset += sizeof(param_net);
 
-		char tmp[param_size(params[i])];
-		param_get(params[i], tmp);
-		outset += param_serialize_from_var(params[i]->type, param_size(params[i]), tmp, (char *) &out[outset]);
+		/* Get actual value */
+		if (pending_only == 0) {
+			char tmp[param_size(params[i])];
+			param_get(params[i], tmp);
+			outset += param_serialize_from_var(params[i]->type, param_size(params[i]), tmp, (char *) &out[outset]);
+
+		/* Get pending value */
+		} else {
+			outset += param_serialize_from_var(params[i]->type, param_size(params[i]), params[i]->value_set, (char *) &out[outset]);
+		}
+
+		/* Increment parameter count */
+		out[1] += 1;
+
 	}
 
 	return outset;
@@ -198,7 +223,7 @@ int param_deserialize_chunk_param_and_value(uint8_t node, uint32_t timestamp, ui
 		id = csp_ntoh16(id);
 
 		param_t * param = param_list_find_id(node, id);
-		if ((param == NULL) || (param->storage_type != PARAM_STORAGE_REMOTE) || (param->value_get == NULL)) {
+		if (param == NULL) {
 			/** TODO: Possibly use segment length, instead of parameter count, making it possible to skip a segment */
 			printf("Invalid param %u:%u\n", id, node);
 			return 1000; // TODO proper error handling
@@ -206,22 +231,29 @@ int param_deserialize_chunk_param_and_value(uint8_t node, uint32_t timestamp, ui
 
 		printf("Found param %s\n", param->name);
 
-		/* TODO: use real set function */
-		inset += param_deserialize_to_var(param->type, param->size, &in[inset], param->value_get);
+		if (param->storage_type == PARAM_STORAGE_REMOTE) {
 
-		/**
-		 * TODO: value updated is used by collector (refresh interval)
-		 * So maybe it should not be used for logging, because the remote timestamp could be invalid
-		 * The timestamp could be used for the param_log call instead.
-		 */
-		param->value_updated = timestamp;
-		if (param->value_pending == 2)
-			param->value_pending = 0;
+			inset += param_deserialize_to_var(param->type, param->size, &in[inset], param->value_get);
+
+			/**
+			 * TODO: value updated is used by collector (refresh interval)
+			 * So maybe it should not be used for logging, because the remote timestamp could be invalid
+			 * The timestamp could be used for the param_log call instead.
+			 */
+			param->value_updated = timestamp;
+			if (param->value_pending == 2)
+				param->value_pending = 0;
+
+		/* Local set */
+		} else {
+			param_set(param, &in[inset]);
+			inset += param_size(param);
+		}
 
 		/**
 		 * TODO: Param log assumes ordered input
 		 */
-		param_log(param, param->value_get, timestamp);
+		//param_log(param, param->value_get, timestamp);
 
 	}
 	return inset;

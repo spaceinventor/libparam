@@ -73,7 +73,7 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 				found_params[found_count++] = param;
 			}
 
-			output += param_serialize_chunk_param_and_value(found_params, found_count, output);
+			output += param_serialize_chunk_param_and_value(found_params, found_count, output, 0);
 
 			break;
 		}
@@ -134,38 +134,39 @@ void param_serve_pull_response(csp_conn_t * conn, csp_packet_t * packet) {
 static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
 {
 
-	//csp_hex_dump("set handler", packet->data, packet->length);
+	csp_hex_dump("set handler", packet->data, packet->length);
 
-	/* Vairable fields */
-	int count = 0;
-	while(count < packet->length) {
+	uint32_t timestamp = csp_get_ms();
+	uint8_t node = 255;
 
-		uint16_t id;
-		memcpy(&id, &packet->data[count], sizeof(id));
-		count += sizeof(id);
-		id = csp_ntoh16(id);
-
-		int node = id >> 11;
-		if (node == csp_get_address())
-			node = PARAM_LIST_LOCAL;
-
-		param_t * param = param_list_find_id(node, id & 0x7FF);
-		if (param == NULL) {
-			csp_buffer_free(packet);
-			return;
+	uint8_t * input = &packet->data[2];
+	printf("Request length %u\n", packet->length);
+	while(input < packet->data + packet->length) {
+		switch(*input) {
+			case PARAM_CHUNK_TIME:
+				input += param_deserialize_chunk_timestamp(&timestamp, input);
+				printf("Got timestamp %u\n", (unsigned int) timestamp);
+				break;
+			case PARAM_CHUNK_NODE:
+				input += param_deserialize_chunk_node(&node, input);
+				printf("Got node %u\n", (unsigned int) node);
+				break;
+			case PARAM_CHUNK_PARAM_AND_VALUE: {
+				input += param_deserialize_chunk_param_and_value(node, timestamp, input);
+				break;
+			}
+			default:
+				printf("Invalid type %u\n", *input);
+				csp_buffer_free(packet);
+				return;
 		}
-
-		char tmp[param_size(param)];
-		count += param_deserialize_to_var(param->type, param->size, &packet->data[count], tmp);
-		param_set(param, tmp);
-
 	}
 
 	/* Send ack */
 	memcpy(packet->data, "ok", 2);
 	packet->length = 2;
 
-	//csp_hex_dump("set handler", packet->data, packet->length);
+	csp_hex_dump("set handler", packet->data, packet->length);
 
 	if (!csp_send(conn, packet, 0))
 		csp_buffer_free(packet);

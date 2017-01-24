@@ -128,26 +128,9 @@ int param_push(param_t * params[], int count, int verbose, int host, int timeout
 
 	packet->data[0] = PARAM_PUSH_REQUEST;
 	packet->data[1] = 0;
-	packet->length = 2;
-
-	for (int i = 0; i < count; i++) {
-
-		if ((params[i]->value_set == NULL) || (params[i]->value_pending != 1))
-			continue;
-
-		if (packet->length + sizeof(uint16_t) + param_size(params[i]) > PARAM_SERVER_MTU) {
-			printf("Request cropped: > MTU\n");
-			break;
-		}
-
-		/* Parameter id */
-		uint16_t id = csp_hton16((params[i]->node << 11) | (params[i]->id & 0x7FF));
-		memcpy(packet->data + packet->length, &id, sizeof(uint16_t));
-		packet->length += sizeof(uint16_t);
-
-		packet->length += param_serialize_from_var(params[i]->type, params[i]->size, params[i]->value_set, (char *) packet->data + packet->length);
-
-	}
+	uint8_t * output = &packet->data[2];
+	output += param_serialize_chunk_param_and_value(params, count, output, 1);
+	packet->length = output - packet->data;
 
 	/* If there were no parameters to be set */
 	if (packet->length == 0) {
