@@ -42,8 +42,10 @@ csp_thread_return_t param_group_beacon_task(void *pvParameters) {
 				printf("sending beacon %s last %u now %u, slot %u < %u\n", group->name, (unsigned int) group->last_beacon, (unsigned int) now, last_beacon_slot, current_slot);
 				group->last_beacon = now;
 				csp_packet_t * packet = param_pull_request(group->params, group->count, -1);
-				if (csp_sendto(CSP_PRIO_HIGH, group->node, PARAM_PORT_SERVER, 0, CSP_O_CRC32, packet, 0) != CSP_ERR_NONE)
-					csp_buffer_free(packet);
+				csp_hex_dump("Pull request", packet->data, packet->length);
+				csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, group->node, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
+				param_serve_pull_request(conn, packet);
+				csp_close(conn);
 			}
 
 			int sleep = (current_slot * group->interval) + group->interval - now;

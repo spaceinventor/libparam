@@ -45,8 +45,6 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 			break;
 		case PARAM_CHUNK_NODE:
 			input += param_deserialize_chunk_node(&node, input);
-			if (node == csp_get_address())
-				node = PARAM_LIST_LOCAL;
 			output += param_serialize_chunk_node(node, output);
 			break;
 		case PARAM_CHUNK_PARAMS: {

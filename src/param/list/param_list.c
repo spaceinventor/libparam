@@ -83,6 +83,8 @@ param_t * param_list_find_id(int node, int id)
 		node = PARAM_LIST_LOCAL;
 	if (node >= 0x1F)
 		node = PARAM_LIST_LOCAL;
+	if (node == csp_get_address())
+		node = PARAM_LIST_LOCAL;
 
 	param_t * found = NULL;
 	param_t * param;
