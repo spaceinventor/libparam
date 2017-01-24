@@ -159,6 +159,26 @@ static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
 
 }
 
+static void param_serve(csp_conn_t * conn, csp_packet_t * packet) {
+	switch(packet->data[0]) {
+		case PARAM_PULL_REQUEST:
+			param_serve_pull_request(conn, packet);
+			break;
+
+		case PARAM_PULL_RESPONSE:
+			param_serve_pull_response(conn, packet, 0);
+			break;
+
+		case PARAM_PUSH_REQUEST:
+			param_serve_push(conn, packet);
+			break;
+
+		default:
+			printf("Unknown parameter request\n");
+			break;
+	}
+}
+
 csp_thread_return_t param_server_task(void *pvParameters)
 {
 
@@ -184,20 +204,10 @@ csp_thread_return_t param_server_task(void *pvParameters)
 
 		/* Read packets. Timout is 100 ms */
 		while ((packet = csp_read(conn, 0)) != NULL) {
-			switch (packet->data[0]) {
+			switch (csp_conn_dport(conn)) {
 
-			case PARAM_PULL_REQUEST:
-				param_serve_pull_request(conn, packet);
-				break;
-
-			case PARAM_PULL_RESPONSE:
-				param_serve_pull_response(conn, packet, 0);
-				break;
-
-			case PARAM_PUSH_REQUEST:
-				param_serve_push(conn, packet);
-				break;
-
+			case PARAM_PORT_SERVER:
+				param_serve(conn, packet);
 			default:
 				/* Let the service handler reply pings, buffer use, etc. */
 				csp_service_handler(conn, packet);
