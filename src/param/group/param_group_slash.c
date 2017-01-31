@@ -20,6 +20,10 @@ static int group(struct slash *slash)
 	param_group_t * group;
 	param_group_iterator i = {};
 	while((group = param_group_iterate(&i)) != NULL) {
+
+		if ((slash->argc >= 2) && (strcmp(slash->argv[1], group->name) != 0))
+			continue;
+
 		printf("Group %s", group->name);
 		if (group->interval > 0)
 			printf(" interval: %u, %u", (unsigned int) group->interval, group->node);
@@ -31,7 +35,7 @@ static int group(struct slash *slash)
 	}
 	return SLASH_SUCCESS;
 }
-slash_command(group, group, NULL, NULL);
+slash_command(group, group, "[group_name]", NULL);
 
 static int group_str(struct slash *slash)
 {
@@ -81,3 +85,18 @@ static int param_group_store_file_load_slash(struct slash *slash)
 slash_command_sub(group, load, param_group_store_file_load_slash, NULL, NULL);
 
 #endif
+
+static int group_pull_slash(struct slash *slash)
+{
+	if (slash->argc < 2)
+		return SLASH_EUSAGE;
+
+	param_group_t * group = param_group_find_name(slash->argv[1]);
+	if (group == NULL)
+		return SLASH_EINVAL;
+
+	param_group_pull(group, 2, 2000);
+
+	return SLASH_SUCCESS;
+}
+slash_command_sub(group, pull, group_pull_slash, "<group_name> [node] [timeout]", NULL);
