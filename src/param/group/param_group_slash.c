@@ -95,6 +95,7 @@ static int group_pull_slash(struct slash *slash)
 	if (group == NULL)
 		return SLASH_EINVAL;
 
+	/** Todo: Take node and timeout as arguments... */
 	param_group_pull(group, 2, 2000);
 
 	return SLASH_SUCCESS;
