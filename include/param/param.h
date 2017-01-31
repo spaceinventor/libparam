@@ -145,7 +145,7 @@ typedef struct param_s {
 		.log = _log, \
 	}
 
-#define PARAM_DEFINE_STRUCT_RAM(fieldname, _id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _physaddr) \
+#define PARAM_DEFINE_STRUCT_RAM(fieldname, _id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _physaddr, _log) \
 	.fieldname = { \
 		.storage_type = PARAM_STORAGE_RAM, \
 		.node = PARAM_LIST_LOCAL, \
@@ -157,10 +157,11 @@ typedef struct param_s {
 		.unit = _unit, \
 		.callback = _callback, \
 		.physaddr = _physaddr, \
+		.log = _log, \
 	}
 
 
-#define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _vmem_name, _addr) \
+#define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _vmem_name, _addr, _log) \
 	__attribute__((section("param"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
@@ -176,9 +177,10 @@ typedef struct param_s {
 		.unit = _unit, \
 		.addr = _addr, \
 		.vmem = &vmem_##_vmem_name##_instance, \
+		.log = _log, \
 	}
 
-#define PARAM_DEFINE_STRUCT_VMEM(fieldname, _id, _type, _size, _min, _max, _readonly, _callback, _unit, _vmem_name, _addr) \
+#define PARAM_DEFINE_STRUCT_VMEM(fieldname, _id, _type, _size, _min, _max, _readonly, _callback, _unit, _vmem_name, _addr, _log) \
 	.fieldname = { \
 		.storage_type = PARAM_STORAGE_VMEM, \
 		.node = PARAM_LIST_LOCAL, \
@@ -191,6 +193,7 @@ typedef struct param_s {
 		.unit = _unit, \
 		.addr = _addr, \
 		.vmem = &vmem_##_vmem_name##_instance, \
+		.log = _log, \
 	}
 
 #define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _size, _value_get, _value_set) \

@@ -138,8 +138,10 @@ void param_group_from_string(FILE *stream) {
 			char name[11];
 			int interval, node;
 			int scanned = sscanf(line, "+%10[^#]#%u@%u%*s", name, &interval, &node);
-			if (scanned != 3)
+			if (scanned != 3) {
+				printf("Invalid line: %s\n", line);
 				continue;
+			}
 
 			/* Search for existing group with that name */
 			group = param_group_find_name(name);
