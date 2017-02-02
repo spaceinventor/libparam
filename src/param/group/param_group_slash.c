@@ -95,9 +95,39 @@ static int group_pull_slash(struct slash *slash)
 	if (group == NULL)
 		return SLASH_EINVAL;
 
-	/** Todo: Take node and timeout as arguments... */
-	param_group_pull(group, 2, 2000);
+	unsigned int node = csp_get_address();
+	unsigned int timeout = 1000;
+
+	if (slash->argc >= 3)
+		node = atoi(slash->argv[2]);
+	if (slash->argc >= 4)
+		timeout = atoi(slash->argv[3]);
+
+	param_group_pull(group, node, timeout);
 
 	return SLASH_SUCCESS;
 }
 slash_command_sub(group, pull, group_pull_slash, "<group_name> [node] [timeout]", NULL);
+
+static int group_push_slash(struct slash *slash)
+{
+	if (slash->argc < 2)
+		return SLASH_EUSAGE;
+
+	param_group_t * group = param_group_find_name(slash->argv[1]);
+	if (group == NULL)
+		return SLASH_EINVAL;
+
+	unsigned int node = csp_get_address();
+	unsigned int timeout = 1000;
+
+	if (slash->argc >= 3)
+		node = atoi(slash->argv[2]);
+	if (slash->argc >= 4)
+		timeout = atoi(slash->argv[3]);
+
+	param_group_push(group, node, timeout);
+
+	return SLASH_SUCCESS;
+}
+slash_command_sub(group, push, group_push_slash, "<group_name> [node] [timeout]", NULL);
