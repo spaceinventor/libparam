@@ -20,6 +20,7 @@ enum vmem_types{
 	VMEM_TYPE_FRAM_SECURE = 3,
 	VMEM_TYPE_FLASH = 4,
 	VMEM_TYPE_DRIVER = 5,
+	VMEM_TYPE_FLASH_QSPI = 6,
 };
 
 typedef const struct vmem_s {
