@@ -100,14 +100,14 @@ def build(ctx):
         includes = 'include',
         export_includes = 'include',
         target = 'vmem',
-        use = ctx.env.USE_VMEM + ['slash', 'param'])
+        use = ctx.env.USE_VMEM + ['slash', 'param', 'productconf_h'])
     
     ctx.objects(
         source = ctx.env.FILES_PARAM,
         includes = 'include', 
         export_includes = 'include',
         target = 'param',
-        use = 'csp slash')
+        use = 'csp slash productconf_h')
 
 def dist(ctx):
     ctx.base_name = 'lib' + APPNAME + '-' + VERSION
