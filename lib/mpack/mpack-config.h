@@ -166,7 +166,7 @@
  * @ref MPACK_DEBUG. (This is why @c NDEBUG is not used.)
  */
 #if !defined(MPACK_DEBUG) && (defined(DEBUG) || defined(_DEBUG))
-#define MPACK_DEBUG 1
+#define MPACK_DEBUG 0
 #endif
 
 /**
@@ -181,7 +181,7 @@
  * This is on by default if it is not defined.
  */
 #if !defined(MPACK_STRINGS)
-#define MPACK_STRINGS 0
+#define MPACK_STRINGS 1
 #endif
 
 /**

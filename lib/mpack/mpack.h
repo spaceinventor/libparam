@@ -700,7 +700,7 @@ size_t mpack_strlen(const char* s);
 
 
 /* Debug logging */
-#if 1
+#if 0
     #define mpack_log(...) printf(__VA_ARGS__);
 #else
     #define mpack_log(...) ((void)0)
@@ -3024,6 +3024,8 @@ void mpack_discard(mpack_reader_t* reader);
  * @name Debugging Functions
  * @{
  */
+
+void mpack_print_element(mpack_reader_t* reader, size_t depth, FILE* file);
 
 /**
  * Converts a blob of MessagePack to pseudo-JSON for debugging purposes

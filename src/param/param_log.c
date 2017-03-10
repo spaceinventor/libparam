@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <param/param.h>
+#include <param/param_list.h>
 #include <param_config.h>
 #include "param_serializer.h"
 #include "param_string.h"
@@ -96,7 +97,9 @@ void param_log(param_t * param, void * new_value, uint32_t timestamp) {
 
 	printf("Change detected, logging now\n");
 
-	mpack_write_u32(&writer, new_value);
+	mpack_write_u16(&writer, param->id);
+	mpack_write_i8(&writer, param->node);
+	mpack_write_u32(&writer, *(uint32_t *)new_value);
 
 	csp_hex_dump("workpage", workpage, log_page_size);
 
@@ -128,6 +131,10 @@ void param_log_init(vmem_t * _log_vmem, int _log_page_size) {
 	uint32_t plid_valid_cnt = 0;
 
 	param_log_page_t * scanbuf = malloc(log_page_size);
+	int scanbuf_offset = offsetof(param_log_page_t, data);
+	int scanbuf_data_len = log_page_size - scanbuf_offset;
+
+
 	unsigned int i = 0;
 	for (void *page = log_vmem->vaddr; page < log_vmem->vaddr + log_vmem->size; page += log_page_size, i++) {
 		wdt_restart(WDT);
@@ -145,17 +152,29 @@ void param_log_init(vmem_t * _log_vmem, int _log_page_size) {
 		plid_valid_cnt++;
 		printf("Page %u@%u\n", (unsigned int) scanbuf->plid, i);
 
-		/* Deserialize */
-		//int j = 0;
-		//j += param_deserialize_chunk_param_and_value(csp_get_address(), 0, 1, scanbuf->data);
+	    mpack_reader_t reader;
+	    mpack_reader_init_data(&reader, (char *) scanbuf + scanbuf_offset, scanbuf_data_len);
 
+	    size_t remaining;
+	    while((remaining = mpack_reader_remaining(&reader, NULL) > 0)) {
 
-		//mpack_tree_t tree;
-		//mpack_tree_init(&tree, (char *) scanbuf->data, log_page_size - offsetof(param_log_page_t, data));
-		//mpack_node_t * node = mpack_tree_root(&tree);
-		mpack_print((char *) scanbuf->data, log_page_size - offsetof(param_log_page_t, data));
+	    	uint16_t id = mpack_expect_u16(&reader);
+			uint8_t node = mpack_expect_i8(&reader);
 
+			if (mpack_reader_error(&reader) != mpack_ok) {
+				puts(mpack_error_to_string(mpack_reader_error(&reader)));
+				break;
+			}
 
+			param_t * param = param_list_find_id(node, id);
+			if (param == NULL)
+				break;
+
+			printf("%s = %u\n", param->name, (unsigned int) mpack_expect_u32(&reader));
+	    }
+
+	    if (mpack_reader_destroy(&reader) != mpack_ok)
+	        printf("mpack parsing error %s\n", mpack_error_to_string(mpack_reader_error(&reader)));
 
 	}
 	printf("plid low %u@%u, high %u@%u\n", (unsigned int) plid_low, (unsigned int) plid_low_at, (unsigned int) plid_high, (unsigned int) plid_high_at);
@@ -163,7 +182,7 @@ void param_log_init(vmem_t * _log_vmem, int _log_page_size) {
 
 	param_set_uint32(&pl_cnt, plid_valid_cnt);
 	param_set_uint32(&pl_out, plid_low_at);
-	param_set_uint32(&pl_in, plid_high_at);
+	param_set_uint32(&pl_in, plid_high_at + 1);
 
 	/* End timing */
 	printf("Duration %u\n", (unsigned int) xTaskGetTickCount() - tstart);

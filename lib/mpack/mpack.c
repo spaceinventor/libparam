@@ -2697,7 +2697,7 @@ void mpack_done_type(mpack_reader_t* reader, mpack_type_t type) {
 #endif
 
 #if MPACK_STDIO
-static void mpack_print_element(mpack_reader_t* reader, size_t depth, FILE* file) {
+void mpack_print_element(mpack_reader_t* reader, size_t depth, FILE* file) {
     mpack_tag_t val = mpack_read_tag(reader);
     if (mpack_reader_error(reader) != mpack_ok)
         return;
