@@ -51,6 +51,8 @@ def configure(ctx):
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_string.c')
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_serializer.c')
     
+    ctx.env.append_unique('FILES_PARAM', 'lib/mpack/mpack.c')
+        
     ctx.env.append_unique('FILES_PARAM', 'src/param/list/param_list.c')
     if ctx.options.slash_enabled == True:
         ctx.env.append_unique('FILES_PARAM', 'src/param/list/param_list_slash.c')
@@ -104,8 +106,8 @@ def build(ctx):
     
     ctx.objects(
         source = ctx.env.FILES_PARAM,
-        includes = 'include', 
-        export_includes = 'include',
+        includes = ['include', 'lib'], 
+        export_includes = ['include', 'lib'],
         target = 'param',
         use = 'csp slash productconf_h')
 
