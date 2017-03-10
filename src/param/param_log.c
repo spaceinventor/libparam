@@ -6,6 +6,10 @@
  */
 
 #include <stdio.h>
+
+#include <FreeRTOS.h>
+#include <task.h>
+
 #include <param/param.h>
 #include <param/param_list.h>
 #include <param_config.h>
@@ -20,12 +24,12 @@
 #include <vmem_config.h>
 
 #include <csp/csp.h>
+#include <csp/arch/csp_clock.h>
 
 #include <param/param_log.h>
 
 VMEM_DEFINE_FRAM(log, "log", VMEM_CONF_LOG_FRAM, VMEM_CONF_LOG_SIZE, VMEM_CONF_LOG_ADDR)
 
-PARAM_DEFINE_STATIC_VMEM(PARAM_LOG_OFFSET + 2, pl_cnt, PARAM_TYPE_UINT32, -1, 0, UINT32_MAX, PARAM_READONLY_FALSE, NULL, "", log, 0x08, NULL);
 PARAM_DEFINE_STATIC_VMEM(PARAM_LOG_OFFSET + 3, pl_in, PARAM_TYPE_UINT32, -1, 0, UINT32_MAX, PARAM_READONLY_FALSE, NULL, "", log, 0x0C, NULL);
 PARAM_DEFINE_STATIC_VMEM(PARAM_LOG_OFFSET + 4, pl_out, PARAM_TYPE_UINT32, -1, 0, UINT32_MAX, PARAM_READONLY_FALSE, NULL, "", log, 0x10, NULL);
 PARAM_DEFINE_STATIC_VMEM(PARAM_LOG_OFFSET + 5, plid_next, PARAM_TYPE_UINT32, -1, 0, UINT32_MAX, PARAM_READONLY_FALSE, NULL, "", log, 0x14, NULL);
@@ -38,9 +42,19 @@ static param_log_page_t * workpage = NULL;
 
 static void param_log_setup_workpage(void) {
 
+	/* Allocate working memory */
 	if (workpage == NULL)
 		workpage = malloc(log_page_size);
+	memset(workpage, 0, log_page_size);
 
+	/* Write param log id */
+	workpage->plid = param_get_uint32(&plid_next);
+	param_set_uint32(&plid_next, param_get_uint32(&plid_next) + 1);
+
+	/* Write start time for this page */
+	workpage->t_from = clock_get_time64() / 1E9;
+
+	/* Setup MPACK */
 	mpack_writer_init(&writer, (char *) workpage->data, log_page_size - offsetof(param_log_page_t, data));
 
 }
@@ -56,22 +70,21 @@ static void param_log_flush_workpage(void) {
 		pageaddr = 0;
 	}
 
-	workpage->plid = param_get_uint32(&plid_next);
+	/* Write end time for this page */
+	workpage->t_to = clock_get_time64() / 1E9;
 
 	printf("Flushing to page %u at vaddr %p\n", (unsigned int) pageid, pageaddr);
 	vmem_memcpy(pageaddr, workpage, log_page_size);
 
-	/* Increment plid and logIn */
-	param_set_uint32(&plid_next, param_get_uint32(&plid_next) + 1);
-	param_set_uint32(&pl_in, param_get_uint32(&pl_in) + 1);
-	param_set_uint32(&pl_cnt, param_get_uint32(&pl_cnt) + 1);
+	/* Save new input page id */
+	param_set_uint32(&pl_in, pageid + 1);
 
 	param_log_setup_workpage();
 
 }
 
 
-void param_log(param_t * param, void * new_value, uint32_t timestamp) {
+void param_log(param_t * param, void * new_value) {
 
 	if (param->log == NULL)
 		return;
@@ -87,16 +100,12 @@ void param_log(param_t * param, void * new_value, uint32_t timestamp) {
 	char old_value[param_size(param)];
 	param_get_data(param, old_value, param_size(param));
 
-	//csp_hex_dump("old", old_value, param_size(param));
-	//csp_hex_dump("new", new_value, param_size(param));
-
-	if (memcmp(old_value, new_value, param_size(param)) == 0) {
-		printf("No change\n");
+	if (memcmp(old_value, new_value, param_size(param)) == 0)
 		return;
-	}
 
 	printf("Change detected, logging now\n");
 
+	mpack_write_i64(&writer, clock_get_time64());
 	mpack_write_u16(&writer, param->id);
 	mpack_write_i8(&writer, param->node);
 	mpack_write_u32(&writer, *(uint32_t *)new_value);
@@ -108,16 +117,13 @@ void param_log(param_t * param, void * new_value, uint32_t timestamp) {
 
 }
 
-#include <wdt.h>
-#include <FreeRTOS.h>
-#include <task.h>
-
 void param_log_init(vmem_t * _log_vmem, int _log_page_size) {
 	log_vmem = _log_vmem;
 	log_page_size = _log_page_size;
-
-	/* Init working page */
 	param_log_setup_workpage();
+}
+
+void param_log_scan(void) {
 
 	/* Time scanning */
 	unsigned int tstart = xTaskGetTickCount();
@@ -134,10 +140,8 @@ void param_log_init(vmem_t * _log_vmem, int _log_page_size) {
 	int scanbuf_offset = offsetof(param_log_page_t, data);
 	int scanbuf_data_len = log_page_size - scanbuf_offset;
 
-
 	unsigned int i = 0;
 	for (void *page = log_vmem->vaddr; page < log_vmem->vaddr + log_vmem->size; page += log_page_size, i++) {
-		wdt_restart(WDT);
 		vmem_memcpy(scanbuf, page, log_page_size);
 		if (scanbuf->plid == 0xFFFFFFFF)
 			break;
@@ -150,37 +154,51 @@ void param_log_init(vmem_t * _log_vmem, int _log_page_size) {
 			plid_low_at = i;
 		}
 		plid_valid_cnt++;
-		printf("Page %u@%u\n", (unsigned int) scanbuf->plid, i);
 
-	    mpack_reader_t reader;
-	    mpack_reader_init_data(&reader, (char *) scanbuf + scanbuf_offset, scanbuf_data_len);
+		printf("Page %u@%u from: %u to %u\n", (unsigned int) scanbuf->plid, i, (unsigned int) (scanbuf->t_from / 1E9), (unsigned int) (scanbuf->t_to / 1E9));
 
-	    size_t remaining;
-	    while((remaining = mpack_reader_remaining(&reader, NULL) > 0)) {
+		mpack_reader_t reader;
+		mpack_reader_init_data(&reader, (char *) scanbuf + scanbuf_offset, scanbuf_data_len);
 
-	    	uint16_t id = mpack_expect_u16(&reader);
+		size_t remaining;
+		while((remaining = mpack_reader_remaining(&reader, NULL) > 0)) {
+
+			/* Parse time */
+			uint64_t timestamp_ns = mpack_expect_u64(&reader);
+			uint32_t time_s = timestamp_ns / 1000000000ULL;
+			uint32_t time_ns = timestamp_ns % 1000000000ULL;
+
+			/* Parse parameter */
+			uint16_t id = mpack_expect_u16(&reader);
 			uint8_t node = mpack_expect_i8(&reader);
 
+			/* Check for parsing errors */
 			if (mpack_reader_error(&reader) != mpack_ok) {
-				puts(mpack_error_to_string(mpack_reader_error(&reader)));
+				if (mpack_reader_error(&reader) != mpack_error_type)
+					puts(mpack_error_to_string(mpack_reader_error(&reader)));
 				break;
 			}
 
+			/* Read value */
+			uint32_t val = mpack_expect_u32(&reader);
+
+
+			/* Find parameter */
 			param_t * param = param_list_find_id(node, id);
 			if (param == NULL)
-				break;
+				continue;
 
-			printf("%s = %u\n", param->name, (unsigned int) mpack_expect_u32(&reader));
-	    }
+			printf("%s = %lu @ %lu.%lu\n", param->name, val, time_s, time_ns);
 
-	    if (mpack_reader_destroy(&reader) != mpack_ok)
-	        printf("mpack parsing error %s\n", mpack_error_to_string(mpack_reader_error(&reader)));
+		}
+
+		if (mpack_reader_destroy(&reader) != mpack_ok)
+			printf("mpack parsing error %s\n", mpack_error_to_string(mpack_reader_error(&reader)));
 
 	}
 	printf("plid low %u@%u, high %u@%u\n", (unsigned int) plid_low, (unsigned int) plid_low_at, (unsigned int) plid_high, (unsigned int) plid_high_at);
 	free(scanbuf);
 
-	param_set_uint32(&pl_cnt, plid_valid_cnt);
 	param_set_uint32(&pl_out, plid_low_at);
 	param_set_uint32(&pl_in, plid_high_at + 1);
 

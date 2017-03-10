@@ -72,6 +72,7 @@ def configure(ctx):
             ctx.env.append_unique('FILES_PARAM', 'src/param/group/param_group_store_file.c')
     
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_log.c')
+    ctx.env.append_unique('FILES_PARAM', 'src/param/param_log_slash.c')
     
     if ctx.options.slash_enabled == True:
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_slash.c')
