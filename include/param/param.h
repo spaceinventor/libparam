@@ -176,7 +176,7 @@ typedef struct param_s {
 		.callback = _callback, \
 		.unit = _unit, \
 		.addr = _addr, \
-		.vmem = &vmem_##_vmem_name##_instance, \
+		.vmem = &vmem_##_vmem_name, \
 		.log = _log, \
 	}
 
@@ -192,7 +192,7 @@ typedef struct param_s {
 		.callback = _callback, \
 		.unit = _unit, \
 		.addr = _addr, \
-		.vmem = &vmem_##_vmem_name##_instance, \
+		.vmem = &vmem_##_vmem_name, \
 		.log = _log, \
 	}
 

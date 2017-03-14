@@ -22,7 +22,10 @@ typedef struct {
 	static vmem_ram_driver_t vmem_##name_in##_driver = { \
 		.physaddr = vmem_##name_in##_heap, \
 	}; \
-	static vmem_t vmem_##name_in##_instance __attribute__ ((section("vmem"), used)) = { \
+	__attribute__((section("vmem"))) \
+	__attribute__((aligned(1))) \
+	__attribute__((used)) \
+	vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_RAM, \
 		.name = strname, \
 		.size = size_in, \
@@ -30,7 +33,6 @@ typedef struct {
 		.write = vmem_ram_write, \
 		.driver = &vmem_##name_in##_driver, \
 		.vaddr = vmem_##name_in##_heap, \
-	}; \
-	vmem_t * vmem_##name_in = &vmem_##name_in##_instance;
+	};
 
 #endif /* SRC_PARAM_VMEM_RAM_H_ */

@@ -18,7 +18,10 @@ typedef struct {
 	static vmem_fram_driver_t vmem_##name_in##_driver = { \
 		.fram_addr = fram_addr_in, \
 	}; \
-	static vmem_t vmem_##name_in##_instance __attribute__ ((section("vmem"), used)) = { \
+	__attribute__((section("vmem"))) \
+	__attribute__((aligned(1))) \
+	__attribute__((used)) \
+	vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_FRAM, \
 		.name = strname, \
 		.size = size_in, \
@@ -26,8 +29,7 @@ typedef struct {
 		.write = vmem_fram_write, \
 		.driver = &vmem_##name_in##_driver, \
 		.vaddr = (void *) _vaddr, \
-	}; \
-	vmem_t * vmem_##name_in = &vmem_##name_in##_instance;
+	};
 
 void vmem_fram_read(vmem_t * vmem, uint32_t addr, void * dataout, int len);
 void vmem_fram_write(vmem_t * vmem, uint32_t addr, void * datain, int len);

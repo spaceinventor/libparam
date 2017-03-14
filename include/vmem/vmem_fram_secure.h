@@ -31,7 +31,10 @@ typedef const struct {
 		.fram_backup_addr = fram_backup_addr_in, \
 		.fallback_fct = _fallback_fct, \
 	}; \
-	vmem_t vmem_##name_in##_instance __attribute__ ((section("vmem"), used)) = { \
+	__attribute__((section("vmem"))) \
+	__attribute__((aligned(1))) \
+	__attribute__((used)) \
+	vmem_t vmem_##name_in= { \
 		.type = VMEM_TYPE_FRAM_SECURE, \
 		.name = strname, \
 		.size = size_in, \
@@ -39,7 +42,6 @@ typedef const struct {
 		.write = vmem_fram_secure_write, \
 		.driver = &vmem_##name_in##_driver, \
 		.vaddr = (void *) _vaddr, \
-	}; \
-	vmem_t * vmem_##name_in = &vmem_##name_in##_instance;
+	};
 
 #endif /* SRC_PARAM_VMEM_FRAM_SECURE_H_ */
