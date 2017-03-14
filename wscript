@@ -21,6 +21,7 @@ def options(ctx):
     gr.add_option('--param-store-file', action='store_true')
     gr.add_option('--param-store-vmem', action='store_true')
     gr.add_option('--param-collector', action='store_true')
+    gr.add_option('--param-log', action='store_true')
     
     gr.add_option('--param-group', action='store_true')
     
@@ -51,8 +52,6 @@ def configure(ctx):
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_string.c')
     ctx.env.append_unique('FILES_PARAM', 'src/param/param_serializer.c')
     
-    ctx.env.append_unique('FILES_PARAM', 'lib/mpack/mpack.c')
-        
     ctx.env.append_unique('FILES_PARAM', 'src/param/list/param_list.c')
     if ctx.options.slash_enabled == True:
         ctx.env.append_unique('FILES_PARAM', 'src/param/list/param_list_slash.c')
@@ -71,8 +70,10 @@ def configure(ctx):
         if ctx.options.param_store_file: 
             ctx.env.append_unique('FILES_PARAM', 'src/param/group/param_group_store_file.c')
     
-    ctx.env.append_unique('FILES_PARAM', 'src/param/param_log.c')
-    ctx.env.append_unique('FILES_PARAM', 'src/param/param_log_slash.c')
+    if ctx.options.param_log:
+        ctx.env.append_unique('FILES_PARAM', 'src/param/param_log.c')
+        ctx.env.append_unique('FILES_PARAM', 'src/param/param_log_slash.c')
+        ctx.env.append_unique('FILES_PARAM', 'lib/mpack/mpack.c')
     
     if ctx.options.slash_enabled == True:
         ctx.env.append_unique('FILES_PARAM', 'src/param/param_slash.c')
@@ -88,12 +89,11 @@ def configure(ctx):
         
     if ctx.options.param_collector: 
         ctx.env.append_unique('FILES_PARAM', 'src/param/collector/param_collector.c')
-        
-    if ctx.options.param_store_file:
-        ctx.define('PARAM_STORE_FILE', True)
-    if ctx.options.param_store_vmem:
-        ctx.define('PARAM_STORE_VMEM', True)
-        
+
+    # Set some defines used for calling functions or not
+    ctx.define_cond('PARAM_STORE_FILE', ctx.options.param_store_file)
+    ctx.define_cond('PARAM_STORE_VMEM', ctx.options.param_store_vmem)
+    ctx.define_cond('PARAM_STORE_LOG', ctx.options.param_log)
     ctx.write_config_header('include/libparam.h')
 
 

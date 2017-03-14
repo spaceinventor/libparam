@@ -3,6 +3,7 @@
 #include <param/param.h>
 #include "param_string.h"
 #include "param_log.h"
+#include <libparam.h>
 
 #include <csp/csp.h>
 #include <csp/csp_endian.h>
@@ -92,6 +93,10 @@ void param_get_data(param_t * param, void * outbuf, int len)
 		return;
 	}
 }
+
+#ifndef PARAM_LOG
+#define param_log(...)
+#endif
 
 #define PARAM_SET(_type, name_in, _swapfct) \
 	void __param_set_##name_in(param_t * param, _type value, bool do_callback); \
