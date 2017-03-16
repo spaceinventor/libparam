@@ -19,13 +19,13 @@ typedef struct {
 
 #define VMEM_DEFINE_STATIC_RAM(name_in, strname, size_in) \
 	uint8_t vmem_##name_in##_heap[size_in] = {}; \
-	static vmem_ram_driver_t vmem_##name_in##_driver = { \
+	static const vmem_ram_driver_t vmem_##name_in##_driver = { \
 		.physaddr = vmem_##name_in##_heap, \
 	}; \
 	__attribute__((section("vmem"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
-	vmem_t vmem_##name_in = { \
+	const vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_RAM, \
 		.name = strname, \
 		.size = size_in, \

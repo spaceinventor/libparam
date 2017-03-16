@@ -23,10 +23,10 @@ enum vmem_types{
 	VMEM_TYPE_FLASH_QSPI = 6,
 };
 
-typedef const struct vmem_s {
+typedef struct vmem_s {
 	int type;
-	void (*read)(const struct vmem_s * vmem, uint32_t addr, void * dataout, int len);
-	void (*write)(const struct vmem_s * vmem, uint32_t addr, void * datain, int len);
+	void (*read)(struct vmem_s * vmem, uint32_t addr, void * dataout, int len);
+	void (*write)(struct vmem_s * vmem, uint32_t addr, void * datain, int len);
 	void * vaddr;
 	int size;
 	const char *name;

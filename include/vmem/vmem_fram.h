@@ -15,13 +15,13 @@ typedef struct {
 } vmem_fram_driver_t;
 
 #define VMEM_DEFINE_FRAM(name_in, strname, fram_addr_in, size_in, _vaddr) \
-	static vmem_fram_driver_t vmem_##name_in##_driver = { \
+	static const vmem_fram_driver_t vmem_##name_in##_driver = { \
 		.fram_addr = fram_addr_in, \
 	}; \
 	__attribute__((section("vmem"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
-	vmem_t vmem_##name_in = { \
+	const vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_FRAM, \
 		.name = strname, \
 		.size = size_in, \
