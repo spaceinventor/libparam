@@ -70,9 +70,9 @@ csp_packet_t * param_pull_request(param_t * params[], int count, int host) {
 	return packet;
 }
 
-int param_pull_single(param_t * param, int host, int timeout) {
+int param_pull_single(param_t * param, int verbose, int host, int timeout) {
 	param_t * params[1] = { param };
-	return param_pull(params, 1, 0, host, timeout);
+	return param_pull(params, 1, verbose, host, timeout);
 }
 
 int param_pull(param_t * params[], int count, int verbose, int host, int timeout) {
@@ -110,9 +110,9 @@ int param_pull(param_t * params[], int count, int verbose, int host, int timeout
 
 }
 
-int param_push_single(param_t * param, int host, int timeout) {
+int param_push_single(param_t * param, int verbose, int host, int timeout) {
 	param_t * params[1] = { param };
-	return param_push(params, 1, 0, host, timeout);
+	return param_push(params, 1, verbose, host, timeout);
 }
 
 int param_push(param_t * params[], int count, int verbose, int host, int timeout) {

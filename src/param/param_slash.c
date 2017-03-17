@@ -129,7 +129,7 @@ static int get(struct slash *slash)
 	}
 
 	if (host != -1) {
-		param_pull_single(param, host, 1000);
+		param_pull_single(param, 1, host, 1000);
 	}
 
 	param_print(param);
@@ -159,10 +159,8 @@ static int set(struct slash *slash)
 	param_set(param, valuebuf);
 
 	if (host != -1) {
-		param_push_single(param, host, 1000);
+		param_push_single(param, 1, host, 1000);
 	}
-
-	param_print(param);
 
 	return SLASH_SUCCESS;
 }

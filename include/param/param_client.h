@@ -11,9 +11,9 @@
 #include <csp/csp.h>
 #include <param/param.h>
 
-int param_push_single(param_t * param, int host, int timeout);
+int param_push_single(param_t * param, int verbose, int host, int timeout);
 int param_push(param_t * params[], int count, int verbose, int host, int timeout);
-int param_pull_single(param_t * param, int host, int timeout);
+int param_pull_single(param_t * param, int verbose, int host, int timeout);
 int param_pull(param_t * params[], int count, int verbose, int host, int timeout);
 csp_packet_t * param_pull_request(param_t * params[], int count, int host);
 
