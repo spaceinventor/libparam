@@ -35,7 +35,10 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 	 * GNU Linker symbols. These will be autogenerate by GCC when using
 	 * __attribute__((section("param"))
 	 */
-	extern param_t __start_param, __stop_param;
+	__attribute__((weak)) extern param_t __start_param;
+	__attribute__((weak)) extern param_t __stop_param;
+	if ((&__start_param == NULL) || (&__stop_param == NULL))
+		return NULL;
 
 	/* First element */
 	if (iterator->element == NULL) {
