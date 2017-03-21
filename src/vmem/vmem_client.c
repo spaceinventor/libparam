@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <csp/arch/csp_malloc.h>
+#include <csp/arch/csp_time.h>
 #include <csp/csp_endian.h>
 
 #include <vmem/vmem_server.h>
@@ -14,6 +15,8 @@
 
 void vmem_download(int node, int timeout, uint32_t address, uint32_t length, char * dataout)
 {
+	uint32_t time_begin = csp_get_ms();
+
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP | CSP_O_CRC32);
 	if (conn == NULL)
@@ -41,11 +44,13 @@ void vmem_download(int node, int timeout, uint32_t address, uint32_t length, cha
 
 		//csp_hex_dump("Download", packet->data, packet->length);
 
+		if (dotcount % 32 == 0)
+			printf("  ");
 		printf(".");
 		fflush(stdout);
 		dotcount++;
 		if (dotcount % 32 == 0)
-			printf(" - %u\n", count);
+			printf(" - %.0f K\n", (count / 1024.0));
 
 		/* Put data */
 		memcpy((void *) ((intptr_t) dataout + count), packet->data, packet->length);
@@ -56,13 +61,21 @@ void vmem_download(int node, int timeout, uint32_t address, uint32_t length, cha
 		csp_buffer_free(packet);
 	}
 
-	printf(" - %u\n", count);
+	printf(" - %.0f K\n", (count / 1024.0));
 
 	csp_close(conn);
+
+	uint32_t time_total = csp_get_ms() - time_begin;
+
+	printf("  Downloaded %u bytes in %.03f s at %u Bps\n", length, time_total / 1000.0, (unsigned int) (length / ((float)time_total / 1000.0)) );
+
+
 }
 
 void vmem_upload(int node, int timeout, uint32_t address, char * datain, uint32_t length)
 {
+	uint32_t time_begin = csp_get_ms();
+
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP | CSP_O_CRC32);
 	if (conn == NULL)
@@ -87,11 +100,13 @@ void vmem_upload(int node, int timeout, uint32_t address, char * datain, uint32_
 	int dotcount = 0;
 	while(count < length) {
 
+		if (dotcount % 32 == 0)
+			printf("  ");
 		printf(".");
 		fflush(stdout);
 		dotcount++;
 		if (dotcount % 32 == 0)
-			printf(" - %u\n", count);
+			printf(" - %.0f K\n", (count / 1024.0));
 
 		/* Prepare packet */
 		csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
@@ -110,9 +125,13 @@ void vmem_upload(int node, int timeout, uint32_t address, char * datain, uint32_
 
 	}
 
-	printf(" - %u\n", count);
+	printf(" - %.0f K\n", (count / 1024.0));
 
 	csp_close(conn);
+
+	uint32_t time_total = csp_get_ms() - time_begin;
+
+	printf("  Uploaded %u bytes in %.03f s at %u Bps\n", length, time_total / 1000.0, (unsigned int) (length / ((float)time_total / 1000.0)) );
 
 }
 
