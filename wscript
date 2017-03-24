@@ -8,7 +8,11 @@ top = '.'
 out = 'build'
 
 def options(ctx):
+
     gr = ctx.add_option_group('libparam options')
+    
+    gr.add_option('--slash-enabled', action='store_true')
+    
     gr.add_option('--vmem', action='store_true')
     gr.add_option('--vmem-fram', action='store_true')
     gr.add_option('--vmem-server', action='store_true')
