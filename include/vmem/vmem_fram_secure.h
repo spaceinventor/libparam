@@ -11,8 +11,8 @@
 #include <vmem/vmem.h>
 
 void vmem_fram_secure_init(vmem_t * vmem);
-void vmem_fram_secure_read(vmem_t * vmem, uint32_t addr, void * dataout, int len);
-void vmem_fram_secure_write(vmem_t * vmem, uint32_t addr, void * datain, int len);
+void vmem_fram_secure_read(const vmem_t * vmem, uint32_t addr, void * dataout, int len);
+void vmem_fram_secure_write(const vmem_t * vmem, uint32_t addr, void * datain, int len);
 int vmem_fram_secure_backup(vmem_t * vmem);
 int vmem_fram_secure_restore(vmem_t * vmem);
 

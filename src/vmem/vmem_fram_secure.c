@@ -104,13 +104,13 @@ int vmem_fram_secure_restore(vmem_t * vmem)
 	return 0;
 }
 
-void vmem_fram_secure_read(vmem_t * vmem, uint32_t addr, void * dataout, int len)
+void vmem_fram_secure_read(const vmem_t * vmem, uint32_t addr, void * dataout, int len)
 {
 	vmem_fram_secure_driver_t * driver = vmem->driver;
 	memcpy(dataout, driver->data + addr, len);
 }
 
-void vmem_fram_secure_write(vmem_t * vmem, uint32_t addr, void * datain, int len)
+void vmem_fram_secure_write(const vmem_t * vmem, uint32_t addr, void * datain, int len)
 {
 	vmem_fram_secure_driver_t * driver = vmem->driver;
 	memcpy(driver->data + addr, datain, len);

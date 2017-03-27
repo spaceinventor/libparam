@@ -31,8 +31,8 @@ typedef struct {
 		.vaddr = (void *) _vaddr, \
 	};
 
-void vmem_fram_read(vmem_t * vmem, uint32_t addr, void * dataout, int len);
-void vmem_fram_write(vmem_t * vmem, uint32_t addr, void * datain, int len);
+void vmem_fram_read(const vmem_t * vmem, uint32_t addr, void * dataout, int len);
+void vmem_fram_write(const vmem_t * vmem, uint32_t addr, void * datain, int len);
 
 
 #endif /* SRC_PARAM_VMEM_FRAM_H_ */
