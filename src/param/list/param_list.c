@@ -233,8 +233,8 @@ param_t * param_list_create_remote(int id, int node, int type, int refresh, int 
 
 void param_list_from_string(FILE *stream, int node_override) {
 
-	char line[100];
-	char name[25];
+	char line[100] = {};
+	char name[25] = {};
 	int id, node, type, refresh, size;
 	while(fgets(line, 100, stream) != NULL) {
 
