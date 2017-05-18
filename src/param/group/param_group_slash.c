@@ -30,7 +30,7 @@ static int group(struct slash *slash)
 		printf("\n");
 
 		for (int i = 0; i < group->count; i++) {
-			param_print(group->params[i]);
+			param_print(group->params[i], NULL, 0, 2);
 		}
 	}
 	return SLASH_SUCCESS;
@@ -95,15 +95,31 @@ static int group_pull_slash(struct slash *slash)
 	if (group == NULL)
 		return SLASH_EINVAL;
 
-	int node = -1;
 	unsigned int timeout = 1000;
 
-	if (slash->argc >= 3)
-		node = atoi(slash->argv[2]);
+	int hostarr[10];
+	int hostarr_cnt = 0;
+	if (slash->argc >= 3) {
+
+		char * saveptr;
+		char * token;
+		token = strtok_r(slash->argv[2], ",", &saveptr);
+		while(token != NULL) {
+			sscanf(token, "%d", &hostarr[hostarr_cnt++]);
+			token = strtok_r(NULL, ",", &saveptr);
+		};
+
+	}
 	if (slash->argc >= 4)
 		timeout = atoi(slash->argv[3]);
 
-	param_group_pull(group, node, timeout);
+	for(int i = 0; i < hostarr_cnt; i++)
+		param_group_pull(group, hostarr[i], timeout);
+
+	param_print_header(hostarr, hostarr_cnt);
+	for(int i = 0; i < group->count; i++) {
+		param_print(group->params[i], hostarr, hostarr_cnt, 0);
+	}
 
 	return SLASH_SUCCESS;
 }

@@ -134,7 +134,7 @@ int param_group_pull(param_group_t * group, int host, int timeout) {
 			}
 		}
 
-		return param_pull(pull_params, pull_params_count, 1, host, timeout);
+		return param_pull(pull_params, pull_params_count, 0, host, timeout);
 
 	}
 
@@ -147,7 +147,7 @@ int param_group_pull(param_group_t * group, int host, int timeout) {
 		if (node != group->params[i]->node) {
 
 			if (j > 0) {
-				param_pull(&group->params[i-j], j, 1, node, timeout);
+				param_pull(&group->params[i-j], j, 0, node, timeout);
 			}
 
 			node = group->params[i]->node;
@@ -160,7 +160,7 @@ int param_group_pull(param_group_t * group, int host, int timeout) {
 	}
 
 	if (j > 0) {
-		param_pull(&group->params[i-j], j, 1, node, timeout);
+		param_pull(&group->params[i-j], j, 0, node, timeout);
 	}
 
 	return 0;

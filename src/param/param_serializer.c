@@ -250,7 +250,7 @@ int param_deserialize_chunk_param_and_value(uint8_t node, uint32_t timestamp, in
 		}
 
 		if (verbose)
-			param_print(param);
+			param_print(param, NULL, 0, 0);
 
 		/**
 		 * TODO: Param log assumes ordered input

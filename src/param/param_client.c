@@ -166,7 +166,7 @@ int param_push(param_t * params[], int count, int verbose, int host, int timeout
 		}
 
 		if (verbose)
-			param_print(params[i]);
+			param_print(params[i], NULL, 0, 2);
 
 	}
 

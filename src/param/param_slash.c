@@ -113,7 +113,7 @@ static void param_completer(struct slash *slash, char * token) {
 				slash_printf(slash, "\n");
 
 			/* Print param */
-			param_print(param);
+			param_print(param, NULL, 0, 2);
 
 		}
 
@@ -147,7 +147,7 @@ static int get(struct slash *slash)
 		param_pull_single(param, 0, host, 1000);
 	}
 
-	param_print(param);
+	param_print(param, NULL, 0, 2);
 
 	return SLASH_SUCCESS;
 }
@@ -177,7 +177,7 @@ static int set(struct slash *slash)
 		param_push_single(param, 0, host, 1000);
 	}
 
-	param_print(param);
+	param_print(param, NULL, 0, 2);
 
 	return SLASH_SUCCESS;
 }

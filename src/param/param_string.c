@@ -10,6 +10,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <param/param.h>
+#include <param/param_list.h>
 #include "param_string.h"
 
 #ifndef MIN
@@ -36,7 +37,7 @@ void param_value_str(param_t *param, char * out, int len)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT16, "0x%X", unsigned short, uint16)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT32, "0x%X", unsigned int, uint32)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT64, "0x%lX", unsigned long, uint64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_FLOAT, "%f", float, float)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_FLOAT, "%.04f", float, float)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DOUBLE, "%f", double, double)
 
 	case PARAM_TYPE_DATA: {
@@ -202,7 +203,55 @@ void param_type_str(param_type_e type, char * out, int len)
 	}
 }
 
-void param_print(param_t * param)
+static void param_print_value(param_t * param) {
+
+	if (param == NULL) {
+		printf(" = %-10s", "");
+		return;
+	}
+
+	char value_str[41] = {};
+	if (param->storage_type == PARAM_STORAGE_REMOTE) {
+
+		if ((param->value_get != NULL) && ((param->value_updated > 0) || (param->value_pending == 2))) {
+			param_value_str(param, value_str, 40);
+			printf(" = %-10s", value_str);
+
+			if (param->value_pending == 2)
+				printf("*");
+
+		} else {
+			printf(" - %-10s", "");
+		}
+
+	} else if (param->storage_type == PARAM_STORAGE_TEMPLATE) {
+		printf(" template");
+	} else {
+
+		param_value_str(param, value_str, 40);
+		printf(" = %-10s", value_str);
+
+	}
+}
+
+void param_print_header(int nodes[], int nodes_count) {
+	if ((nodes_count == 0) || (nodes == NULL))
+		return;
+
+	printf("\n");
+
+	printf("        name                ");
+	for(int i = 0; i < nodes_count; i++)
+		printf(" %-12d", nodes[i]);
+	printf("\n");
+
+	printf("        ------------------- ");
+	for(int i = 0; i < nodes_count; i++)
+		printf(" ----------- ", nodes[i]);
+	printf("\n");
+}
+
+void param_print(param_t * param, int nodes[], int nodes_count, int verbose)
 {
 	if (param == NULL)
 		return;
@@ -219,48 +268,43 @@ void param_print(param_t * param)
 	/* Name */
 	printf(" %-20s", param->name);
 
-	/* value */
-	char value_str[41] = {};
-
-	if (param->storage_type == PARAM_STORAGE_REMOTE) {
-
-		if ((param->value_get != NULL) && ((param->value_updated > 0) || (param->value_pending == 2))) {
-			param_value_str(param, value_str, 40);
-			printf(" = %s", value_str);
-
-			if (param->value_pending == 2)
-				printf("*");
-
+	/* Value table */
+	if (nodes_count > 0 && nodes != NULL) {
+		for(int i = 0; i < nodes_count; i++) {
+			param_t * specific_param = param_list_find_id(nodes[i], param->id);
+			param_print_value(specific_param);
 		}
-	} else if (param->storage_type == PARAM_STORAGE_TEMPLATE) {
-		printf(" template");
+
+	/* Single value */
 	} else {
-
-		param_value_str(param, value_str, 40);
-		printf(" = %s", value_str);
-
+		param_print_value(param);
 	}
 
 	/* Unit */
-	if (param->unit != NULL && strlen(param->unit))
-		printf(" %s", param->unit);
+	if (verbose >= 1) {
+		if (param->unit != NULL && strlen(param->unit))
+			printf(" %s", param->unit);
+	}
 
-	/* Type */
-	char type_str[11] = {};
-	param_type_str(param->type, type_str, 10);
-	printf(" %s", type_str);
+	if (verbose >= 2) {
+		/* Type */
+		char type_str[11] = {};
+		param_type_str(param->type, type_str, 10);
+		printf(" %s", type_str);
 
-	/* Size */
-	if (param->size > 0 && param->size != 255)
-		printf("[%u]", param->size);
+		/* Size */
+		if (param->size > 0 && param->size != 255)
+			printf("[%u]", param->size);
 
-	/* Refresh */
-	if (param->refresh > 0)
-		printf(" refresh %u ms", param->refresh);
+		/* Refresh */
+		if (param->refresh > 0)
+			printf(" refresh %u ms", param->refresh);
+	}
 
 	if (param->storage_type == PARAM_STORAGE_REMOTE) {
 		if ((param->value_set != NULL) && (param->value_pending == 1)) {
 			printf(" Pending:");
+			char value_str[41] = {};
 			param_var_str(param->type, param->size, param->value_set, value_str, 40);
 			printf(" => %s", value_str);
 		}
