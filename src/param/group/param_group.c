@@ -117,9 +117,25 @@ int param_group_push(param_group_t * group, int host, int timeout) {
 
 int param_group_pull(param_group_t * group, int host, int timeout) {
 
+	param_t * pull_params[group->count];
+	int pull_params_count = 0;
+
 	/* If a host is set explicitly, send all params to a single node */
 	if (host >= 0) {
-		return param_pull(group->params, group->count, 1, host, timeout);
+
+		/* Convert templates in group */
+		for (int i = 0; i < group->count; i++) {
+
+			/* Templates */
+			if (group->params[i]->node == (uint8_t) -2) {
+				pull_params[pull_params_count++] = param_list_template_to_param(group->params[i], host);
+			} else {
+				pull_params[pull_params_count++] = group->params[i];
+			}
+		}
+
+		return param_pull(pull_params, pull_params_count, 1, host, timeout);
+
 	}
 
 	/* Otherwise we must split and send the requests to individual nodes */

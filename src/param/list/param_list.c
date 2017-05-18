@@ -258,9 +258,17 @@ param_t * param_list_create_remote_template(int id, int node, int type, int refr
 }
 
 param_t * param_list_template_to_param(param_t * template, int node) {
-	param_t * param = param_list_create_remote(template->id, node, template->type, 0, template->size, template->name, strlen(template->name));
+
+	/* First check if it's created already */
+	param_t * param = param_list_find_id(node, template->id);
+	if (param)
+		return param;
+
+	/* Create new remote param */
+	param = param_list_create_remote(template->id, node, template->type, 0, template->size, template->name, strlen(template->name));
 	param_list_add(param);
 	return param;
+
 }
 
 param_t * param_list_from_line(char * line) {
