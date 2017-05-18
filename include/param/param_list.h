@@ -25,6 +25,7 @@ param_t * param_list_find_id(int node, int id);
 param_t * param_list_find_name(int node, char * name);
 void param_list_print(char * token);
 
+param_t * param_list_from_line(char * line);
 param_t * param_list_create_remote(int id, int node, int type, int refresh, int size, char * name, int namelen);
 void param_list_destroy(param_t * param);
 

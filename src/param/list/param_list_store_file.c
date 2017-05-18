@@ -34,7 +34,7 @@ void param_list_store_file_load(char * filename) {
 	if (stream == NULL)
 		return;
 
-	param_list_from_string(stream, -1);
+	param_list_from_string(stream);
 
 	fclose(stream);
 

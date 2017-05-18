@@ -95,7 +95,7 @@ static int group_pull_slash(struct slash *slash)
 	if (group == NULL)
 		return SLASH_EINVAL;
 
-	unsigned int node = csp_get_address();
+	int node = -1;
 	unsigned int timeout = 1000;
 
 	if (slash->argc >= 3)

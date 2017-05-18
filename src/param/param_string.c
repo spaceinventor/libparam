@@ -210,6 +210,8 @@ void param_print(param_t * param)
 	/* Node/ID */
 	if (param->storage_type == PARAM_STORAGE_REMOTE) {
 		printf(" %3u:%-2u", param->id, param->node);
+	} else if (param->storage_type == PARAM_STORAGE_TEMPLATE) {
+		printf(" %3u:T ", param->id);
 	} else {
 		printf(" %3u:L ", param->id);
 	}
@@ -230,6 +232,8 @@ void param_print(param_t * param)
 				printf("*");
 
 		}
+	} else if (param->storage_type == PARAM_STORAGE_TEMPLATE) {
+		printf(" template");
 	} else {
 
 		param_value_str(param, value_str, 40);

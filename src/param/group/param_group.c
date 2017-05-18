@@ -76,7 +76,7 @@ param_group_t * param_group_create(char * name, int max_count) {
 	strncpy(group->name, name, 10);
 	group->storage_dynamic = 1;
 	group->storage_max_count = max_count;
-	group->params = calloc(max_count * sizeof(uint16_t), 1);
+	group->params = calloc(max_count * sizeof(intptr_t), 1);
 	SLIST_INSERT_HEAD(&param_group_head, group, next);
 	return group;
 }
@@ -116,7 +116,39 @@ int param_group_push(param_group_t * group, int host, int timeout) {
 }
 
 int param_group_pull(param_group_t * group, int host, int timeout) {
-	return param_pull(group->params, group->count, 1, host, timeout);
+
+	/* If a host is set explicitly, send all params to a single node */
+	if (host >= 0) {
+		return param_pull(group->params, group->count, 1, host, timeout);
+	}
+
+	/* Otherwise we must split and send the requests to individual nodes */
+	int node = -1;
+	int j = 0;
+	int i = 0;
+	while(i < group->count) {
+
+		if (node != group->params[i]->node) {
+
+			if (j > 0) {
+				param_pull(&group->params[i-j], j, 1, node, timeout);
+			}
+
+			node = group->params[i]->node;
+			j=0;
+		}
+
+		i++;
+		j++;
+
+	}
+
+	if (j > 0) {
+		param_pull(&group->params[i-j], j, 1, node, timeout);
+	}
+
+	return 0;
+
 }
 
 void param_group_from_string(FILE *stream) {
@@ -162,21 +194,13 @@ void param_group_from_string(FILE *stream) {
 			if ((group == NULL) || (group->storage_dynamic == 0))
 				continue;
 
-			/* Scan line */
-			char name[26];
-			int id, node;
-			int scanned = sscanf(line, "-%25[^|]|%u:%u%*s", name, &id, &node);
-			if (scanned != 3)
-				continue;
-
-			/* Search for parameter in list */
-			param_t *param = param_list_find_id(node, id);
+			param_t * param = param_list_from_line(&line[1]);
 			if (param == NULL)
 				continue;
 
-			/* Add parameter to group */
-			param_group_param_add(group, param);
-			//printf("Added param %s\n", param->name);
+			if (param) {
+				param_group_param_add(group, param);
+			}
 
 		}
 	}

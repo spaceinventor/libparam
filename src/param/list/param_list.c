@@ -231,37 +231,72 @@ param_t * param_list_create_remote(int id, int node, int type, int refresh, int 
 
 }
 
-void param_list_from_string(FILE *stream, int node_override) {
+param_t * param_list_create_remote_template(int id, int node, int type, int refresh, int size, char * name, int namelen) {
 
-	char line[100] = {};
+	struct param_heap_s {
+		param_t param;
+		char name[namelen+1];
+	} *param_heap = calloc(sizeof(struct param_heap_s), 1);
+
+	param_t * param = &param_heap->param;
+	if (param == NULL) {
+		return NULL;
+	}
+
+	param->storage_type = PARAM_STORAGE_TEMPLATE;
+	param->name = param_heap->name;
+	param->unit = NULL;
+
+	param->id = id;
+	param->node = -2;
+	param->type = type;
+	param->size = size;
+
+	strncpy(param->name, name, namelen);
+	param->name[namelen] = '\0';
+
+	//printf("Created template %s\n", param->name);
+
+	return param;
+
+}
+
+param_t * param_list_from_line(char * line) {
+
 	char name[25] = {};
 	int id, node, type, refresh, size;
 	while(fgets(line, 100, stream) != NULL) {
 
-		size = -1;
-		refresh = 0;
+	int scanned = sscanf(line, "%25[^|]|%u:%d?%u#%u[%d]%*s", name, &id, &node, &type, &refresh, &size);
+	//printf("Scanned %u => %s", scanned, line);
 
-		int scanned = sscanf(line, "%25[^|]|%u:%u?%u#%u[%d]%*s", name, &id, &node, &type, &refresh, &size);
-		//printf("Scanned %u => %s", scanned, line);
-		if (scanned == EOF)
-			break;
+	if (scanned < 4)
+		return NULL;
 
-		if (scanned < 4)
-			continue;
+	if (size == -1) {
+		size = param_typesize(type);
+	}
 
-		if (node_override >= 0)
-			node = node_override;
+	param_t * param = param_list_find_id(id, node);
 
-		if (size == -1) {
-			size = param_typesize(type);
+	if (param == NULL) {
+		if (node == -2) {
+			param = param_list_create_remote_template(id, node, type, refresh, size, name, strlen(name));
+		} else {
+			param = param_list_create_remote(id, node, type, refresh, size, name, strlen(name));
 		}
+		param_list_add(param);
+	}
 
-		param_t * param = param_list_create_remote(id, node, type, refresh, size, name, strlen(name));
-		if (param) {
-			if (param_list_add(param) < 0) {
-				param_list_destroy(param);
-			}
-		}
+	return param;
+
+}
+
+void param_list_from_string(FILE *stream) {
+
+	char line[100] = {};
+	while(fgets(line, 100, stream) != NULL) {
+		param_list_from_line(line);
 	}
 }
 

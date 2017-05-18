@@ -54,6 +54,7 @@ typedef enum {
 	PARAM_STORAGE_RAM,            //! Use local RAM access
 	PARAM_STORAGE_VMEM,           //! Use VMEM read/write functions
 	PARAM_STORAGE_REMOTE,         //! Use remote parameter service
+	PARAM_STORAGE_TEMPLATE,       //! No storage (parameter template)
 } param_storage_type_e;
 
 typedef struct param_log_s {

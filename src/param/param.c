@@ -27,6 +27,8 @@
 			if (param->value_get) \
 				return *(_type *)(param->value_get); \
 			return 0; \
+		case PARAM_STORAGE_TEMPLATE: \
+			return 0; \
 		} \
 		return 0; \
 	}
@@ -90,6 +92,8 @@ void param_get_data(param_t * param, void * outbuf, int len)
 	case PARAM_STORAGE_REMOTE:
 		if (param->value_get)
 			memcpy(outbuf, param->value_get, len);
+		return;
+	case PARAM_STORAGE_TEMPLATE:
 		return;
 	}
 }
@@ -204,6 +208,8 @@ void param_set_data(param_t * param, void * inbuf, int len) {
 		if (param->value_set)
 			memcpy(param->value_set, inbuf, len);
 		param->value_pending = 1;
+		return;
+	case PARAM_STORAGE_TEMPLATE:
 		return;
 	}
 }
