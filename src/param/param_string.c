@@ -9,6 +9,7 @@
 #include <math.h>
 #include <string.h>
 #include <inttypes.h>
+#include <csp/arch/csp_time.h>
 #include <param/param.h>
 #include <param/param_list.h>
 #include "param_string.h"
@@ -215,7 +216,12 @@ static void param_print_value(param_t * param) {
 
 		if ((param->value_get != NULL) && ((param->value_updated > 0) || (param->value_pending == 2))) {
 			param_value_str(param, value_str, 40);
-			printf(" = %-10s", value_str);
+
+			if (csp_get_ms() - param->value_updated > 10000) {
+				printf(" - %-10s", value_str);
+			} else {
+				printf(" = %-10s", value_str);
+			}
 
 			if (param->value_pending == 2)
 				printf("*");
@@ -247,7 +253,7 @@ void param_print_header(int nodes[], int nodes_count) {
 
 	printf("        ------------------- ");
 	for(int i = 0; i < nodes_count; i++)
-		printf(" ----------- ", nodes[i]);
+		printf(" ----------- ");
 	printf("\n");
 }
 
