@@ -91,8 +91,6 @@ param_t * param_list_find_id(int node, int id)
 {
 	if (node == -1)
 		node = PARAM_LIST_LOCAL;
-	if (node >= 0x1F)
-		node = PARAM_LIST_LOCAL;
 	if (node == csp_get_address())
 		node = PARAM_LIST_LOCAL;
 
@@ -101,7 +99,7 @@ param_t * param_list_find_id(int node, int id)
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 
-		if (param->node != node)
+		if (param->node != (uint8_t) node)
 			continue;
 
 		if (param->id == id) {
@@ -119,15 +117,13 @@ param_t * param_list_find_name(int node, char * name)
 {
 	if (node == -1)
 		node = PARAM_LIST_LOCAL;
-	if (node >= 0x1F)
-		node = PARAM_LIST_LOCAL;
 
 	param_t * found = NULL;
 	param_t * param;
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 
-		if (param->node != node)
+		if (param->node != (uint8_t) node)
 			continue;
 
 		if (strcmp(param->name, name) == 0) {
@@ -261,12 +257,16 @@ param_t * param_list_create_remote_template(int id, int node, int type, int refr
 
 }
 
+param_t * param_list_template_to_param(param_t * template, int node) {
+	param_t * param = param_list_create_remote(template->id, node, template->type, 0, template->size, template->name, strlen(template->name));
+	param_list_add(param);
+	return param;
+}
+
 param_t * param_list_from_line(char * line) {
 
 	char name[25] = {};
 	int id, node, type, refresh, size;
-	while(fgets(line, 100, stream) != NULL) {
-
 	int scanned = sscanf(line, "%25[^|]|%u:%d?%u#%u[%d]%*s", name, &id, &node, &type, &refresh, &size);
 	//printf("Scanned %u => %s", scanned, line);
 
@@ -277,7 +277,7 @@ param_t * param_list_from_line(char * line) {
 		size = param_typesize(type);
 	}
 
-	param_t * param = param_list_find_id(id, node);
+	param_t * param = param_list_find_id(node, id);
 
 	if (param == NULL) {
 		if (node == -2) {

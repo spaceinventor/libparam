@@ -57,6 +57,21 @@ void param_slash_parse(char * arg, param_t **param, int *node, int *host) {
 		*param = param_list_find_name(*node, arg);
 	}
 
+	/* If host is set try to serch in templates */
+	if ((*param == NULL) && (*host != -1)) {
+		if (*endptr == '\0') {
+			*param = param_list_find_id(-2, id);
+		} else {
+			*param = param_list_find_name(-2, arg);
+		}
+
+		if (*param) {
+			*param = param_list_template_to_param(*param, *host);
+			*node = *host;
+		}
+
+	}
+
 	return;
 
 }
@@ -129,7 +144,7 @@ static int get(struct slash *slash)
 	}
 
 	if (host != -1) {
-		param_pull_single(param, 1, host, 1000);
+		param_pull_single(param, 0, host, 1000);
 	}
 
 	param_print(param);
@@ -159,8 +174,10 @@ static int set(struct slash *slash)
 	param_set(param, valuebuf);
 
 	if (host != -1) {
-		param_push_single(param, 1, host, 1000);
+		param_push_single(param, 0, host, 1000);
 	}
+
+	param_print(param);
 
 	return SLASH_SUCCESS;
 }
