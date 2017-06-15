@@ -198,8 +198,9 @@ static int vmem_client_slash_unlock(struct slash *slash)
 
 	request = (void *) packet->data;
 	uint32_t result = csp_ntoh32(request->unlock.code);
-
 	printf("Result: %x\n", (unsigned int) result);
+
+	csp_close(conn);
 	return SLASH_SUCCESS;
 
 }

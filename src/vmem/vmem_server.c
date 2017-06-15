@@ -148,6 +148,9 @@ void vmem_server_handler(csp_conn_t * conn)
 			return;
 		}
 
+		/* Update request pointer */
+		request = (void *) packet->data;
+
 		/* Step 4: Validate verification sequence */
 		if (csp_ntoh32(request->unlock.code) == verification_sequence) {
 			fm25w256_unlock_upper();
