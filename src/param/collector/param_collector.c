@@ -44,22 +44,29 @@ csp_thread_return_t param_collector_task(void *pvParameters)
 			BASIS_FILTER();
 
 			/* Search for node in list */
+			int found = 0;
 			for (int i = 0; i < nodes_count; i++) {
-				if (nodes[i] == param->node)
+
+				if (nodes[i] == param->node) {
+					found = 1;
 					continue;
+				}
 			}
 
 			/* If not found, add to list */
-			if (nodes_count < MAX_NODES)
+			if (found == 0 && (nodes_count < MAX_NODES)) {
 				nodes[nodes_count++] = param->node;
+			}
 
 			continue;
 
 		}
 
 		/* If no nodes was found, return now */
-		if (nodes_count == 0)
+		if (nodes_count == 0) {
+			csp_sleep_ms(1000);
 			continue;
+		}
 
 		int sleep_min = DEFAULT_SLEEP;
 
