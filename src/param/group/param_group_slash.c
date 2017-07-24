@@ -101,7 +101,7 @@ static int group_pull_slash(struct slash *slash)
 	int hostarr_cnt = 0;
 	if (slash->argc >= 3) {
 
-		char * saveptr;
+		char * saveptr = NULL;
 		char * token;
 		token = strtok_r(slash->argv[2], ",", &saveptr);
 		while(token != NULL) {
