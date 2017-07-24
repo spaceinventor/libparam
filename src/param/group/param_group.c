@@ -23,8 +23,8 @@
  * defines two param_t structs and saves the storage size in a define.
  */
 #ifndef GROUP_STORAGE_SIZE
-static const param_group_t param_size_set[2] __attribute__((aligned(1)));
-#define GROUP_STORAGE_SIZE ((intptr_t) &param_size_set[1] - (intptr_t) &param_size_set[0])
+static const param_group_t group_size_set[2] __attribute__((aligned(1)));
+#define GROUP_STORAGE_SIZE ((intptr_t) &group_size_set[1] - (intptr_t) &group_size_set[0])
 #endif
 
 static SLIST_HEAD(param_group_head_s, param_group_s) param_group_head = {};
