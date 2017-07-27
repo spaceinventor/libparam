@@ -5,6 +5,10 @@
  *      Author: johan
  */
 
+#include <malloc.h>
+#include <stdio.h>
+#include <string.h>
+
 #include <csp/csp.h>
 
 #include <vmem/vmem.h>

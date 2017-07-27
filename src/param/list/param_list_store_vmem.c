@@ -15,7 +15,6 @@
 #include <vmem/vmem.h>
 
 #include <csp/csp.h>
-#include <slash/slash.h>
 
 void param_list_store_vmem_save(vmem_t * vmem) {
 	char * hk_list = calloc(vmem->size, 1);

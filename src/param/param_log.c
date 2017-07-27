@@ -7,9 +7,6 @@
 
 #include <stdio.h>
 
-#include <FreeRTOS.h>
-#include <task.h>
-
 #include <param/param.h>
 #include <param/param_list.h>
 #include <param_config.h>
@@ -27,6 +24,10 @@
 #include <csp/arch/csp_clock.h>
 
 #include <param/param_log.h>
+
+/**
+ * TODO: Move VMEM and PARAMS out of libparam
+ */
 
 VMEM_DEFINE_FRAM(log, "log", VMEM_CONF_LOG_FRAM, VMEM_CONF_LOG_SIZE, VMEM_CONF_LOG_ADDR)
 
@@ -125,10 +126,6 @@ void param_log_init(vmem_t * _log_vmem, int _log_page_size) {
 
 void param_log_scan(void) {
 
-	/* Time scanning */
-	unsigned int tstart = xTaskGetTickCount();
-	printf("Start %u\n", tstart);
-
 	/* Scan the memory for pages */
 	uint32_t plid_low = UINT32_MAX;
 	uint32_t plid_low_at = 0;
@@ -201,8 +198,5 @@ void param_log_scan(void) {
 
 	param_set_uint32(&pl_out, plid_low_at);
 	param_set_uint32(&pl_in, plid_high_at + 1);
-
-	/* End timing */
-	printf("Duration %u\n", (unsigned int) xTaskGetTickCount() - tstart);
 
 }
