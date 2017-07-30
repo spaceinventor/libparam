@@ -14,12 +14,11 @@ slash_dep = dependency('slash', fallback : ['slash', 'slash_dep'], required: fal
 param_src = files([
 	'src/param/collector/param_collector.c',
 	'src/param/group/param_group_beacon.c',
-	# Todo figure out a check for filesystem present
-	#'src/param/group/param_group_store_file.c',
+	'src/param/group/param_group_store_file.c',
 	'src/param/group/param_group_store_vmem.c',
 	'src/param/group/param_group.c',
 
-	#'src/param/list/param_list_store_file.c',
+	'src/param/list/param_list_store_file.c',
 	'src/param/list/param_list_store_vmem.c',
 	'src/param/list/param_list.c',
 
@@ -47,7 +46,7 @@ if slash_dep.found()
 		'src/param/list/param_list_slash.c',	
 		'src/param/param_client_slash.c',
 		'src/param/param_slash.c',	
-		#'src/vmem/vmem_client_slash_ftp.c',
+		'src/vmem/vmem_client_slash_ftp.c',
 		'src/vmem/vmem_client_slash.c',
 	])
 endif

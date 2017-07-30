@@ -110,7 +110,7 @@ static int vmem_client_slash_upload(struct slash *slash)
 
 	/* Read size */
 	struct stat file_stat;
-	fstat(fd->_fileno, &file_stat);
+	stat(file, &file_stat);
 
 	/* Copy to memory */
 	char * data = malloc(file_stat.st_size);
