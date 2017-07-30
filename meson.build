@@ -1,4 +1,4 @@
-project('libparam', 'c')
+project('param', 'c')
 	
 conf = configuration_data()
 conf.set('PARAM_STORE_FILE', false)
@@ -6,12 +6,12 @@ conf.set('PARAM_STORE_VMEM', false)
 conf.set('PARAM_STORE_LOG', false)
 libparam_h = configure_file(output: 'libparam.h', configuration: conf)
 
-libparam_deps = []
-libparam_deps += meson.get_compiler('c').find_library('m', required : true)
-libparam_deps += dependency('libcsp', fallback : ['csp', 'libcsp_dep'])
+param_deps = []
+param_deps += meson.get_compiler('c').find_library('m', required : true)
+param_deps += dependency('libcsp', fallback : ['csp', 'csp_dep'])
 slash_dep = dependency('slash', fallback : ['slash', 'slash_dep'], required: false)
 
-libparam_sources = files([
+param_src = files([
 	'src/param/collector/param_collector.c',
 	'src/param/group/param_group_beacon.c',
 	# Todo figure out a check for filesystem present
@@ -41,8 +41,8 @@ libparam_sources = files([
 ])
 
 if slash_dep.found()
-	libparam_deps += slash_dep
-	libparam_sources += files([
+	param_deps += slash_dep
+	param_src += files([
 		'src/param/group/param_group_slash.c',	
 		'src/param/list/param_list_slash.c',	
 		'src/param/param_client_slash.c',
@@ -52,18 +52,18 @@ if slash_dep.found()
 	])
 endif
 
-libparam_inc = include_directories('.', 'include')
+param_inc = include_directories('.', 'include')
 
-libparam = static_library('libparam',
-	libparam_sources,
-	include_directories : libparam_inc,
-	dependencies : libparam_deps,
+param = static_library('param',
+	param_src,
+	include_directories : param_inc,
+	dependencies : param_deps,
 	install: true
 	)
 	
-libparam_dep = declare_dependency(
+param_dep = declare_dependency(
 	sources: libparam_h,
-	include_directories : libparam_inc,
-	dependencies : libparam_deps,
-	link_with: libparam,
+	include_directories : param_inc,
+	dependencies : param_deps,
+	link_with: param,
 	)
