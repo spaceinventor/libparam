@@ -13,7 +13,9 @@
 
 #include <vmem/vmem.h>
 #include <vmem/vmem_server.h>
+#if defined(VMEM_FRAM)
 #include <vmem/vmem_fram_secure.h>
+#endif
 
 #include <param/param_list.h>
 
@@ -21,6 +23,7 @@
 #include <param/param_server.h>
 
 #if defined(VMEM_FRAM)
+# TODO Move this out of vmem server and into a separate CSP dispatcher task
 #include <drivers/fm25w256.h>
 
 #endif
