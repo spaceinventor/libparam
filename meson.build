@@ -8,7 +8,7 @@ libparam_h = configure_file(output: 'libparam.h', configuration: conf)
 
 param_deps = []
 param_deps += meson.get_compiler('c').find_library('m', required : true)
-param_deps += dependency('libcsp', fallback : ['csp', 'csp_dep'])
+param_deps += dependency('csp', fallback : ['csp', 'csp_dep'])
 slash_dep = dependency('slash', fallback : ['slash', 'slash_dep'], required: false)
 
 param_src = files([
