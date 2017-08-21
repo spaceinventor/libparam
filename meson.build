@@ -56,7 +56,6 @@ param = static_library('param',
 	param_src,
 	include_directories : param_inc,
 	dependencies : param_deps,
-	install: true
 	)
 	
 param_dep = declare_dependency(
