@@ -173,7 +173,7 @@ int param_serialize_chunk_param_and_value(param_t * params[], uint8_t count, uin
 	out[1] = 0;
 
 	int outset = 2;
-	for (int i = i; i < count; i++) {
+	for (int i = 0; i < count; i++) {
 
 		/* Filter:
 		 * When sending pending parameters (push) we wish to skip non pending parameters */
