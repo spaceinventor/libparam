@@ -129,7 +129,7 @@ typedef struct param_s {
  *
  */
 #define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _physaddr, _log) \
-	__attribute__((section("param"))) \
+	__attribute__((section("param."#_name))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	const param_t _name = { \
@@ -163,7 +163,7 @@ typedef struct param_s {
 
 
 #define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _vmem_name, _addr, _log) \
-	__attribute__((section("param"))) \
+	__attribute__((section("param."#_name))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	const param_t _name = { \
