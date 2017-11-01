@@ -20,7 +20,7 @@
 #include "param_string.h"
 #include "param_slash.h"
 
-void param_slash_parse(char * arg, param_t **param, int *node, int *host) {
+void param_slash_parse(char * arg, param_t **param, int *node, int *host, int *offset) {
 
 	/* Search for the '@' symbol:
 	 * Call strtok twice in order to skip the stuff head of '@' */
@@ -41,6 +41,18 @@ void param_slash_parse(char * arg, param_t **param, int *node, int *host) {
 	token = strtok_r(NULL, ":", &saveptr);
 	if (token != NULL) {
 		sscanf(token, "%d", node);
+		*token = '\0';
+	} else if (*host != -1) {
+		*node = *host;
+	} else {
+		*node = -1;
+	}
+
+	/* Search for the '[' symbol: */
+	strtok_r(arg, "[", &saveptr);
+	token = strtok_r(NULL, "[", &saveptr);
+	if (token != NULL) {
+		sscanf(token, "%d", offset);
 		*token = '\0';
 	} else if (*host != -1) {
 		*node = *host;
@@ -113,7 +125,7 @@ static void param_completer(struct slash *slash, char * token) {
 				slash_printf(slash, "\n");
 
 			/* Print param */
-			param_print(param, NULL, 0, 2);
+			param_print(param, -1, NULL, 0, 2);
 
 		}
 
@@ -136,7 +148,8 @@ static int get(struct slash *slash)
 	param_t * param;
 	int host = -1;
 	int node = -1;
-	param_slash_parse(slash->argv[1], &param, &node, &host);
+	int offset = -1;
+	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
 
 	if (param == NULL) {
 		printf("Parameter %s not found\n", slash->argv[1]);
@@ -147,7 +160,7 @@ static int get(struct slash *slash)
 		param_pull_single(param, 0, host, 1000);
 	}
 
-	param_print(param, NULL, 0, 2);
+	param_print(param, offset, NULL, 0, 2);
 
 	return SLASH_SUCCESS;
 }
@@ -159,9 +172,10 @@ static int set(struct slash *slash)
 		return SLASH_EUSAGE;
 
 	param_t * param;
-	int host;
-	int node;
-	param_slash_parse(slash->argv[1], &param, &node, &host);
+	int host = -1;
+	int node = -1;
+	int offset = 0;
+	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
 
 	if (param == NULL) {
 		printf("Parameter %s not found\n", slash->argv[1]);
@@ -177,7 +191,7 @@ static int set(struct slash *slash)
 		param_push_single(param, 0, host, 1000);
 	}
 
-	param_print(param, NULL, 0, 2);
+	param_print(param, -1, NULL, 0, 2);
 
 	return SLASH_SUCCESS;
 }

@@ -204,7 +204,7 @@ void param_type_str(param_type_e type, char * out, int len)
 	}
 }
 
-static void param_print_value(param_t * param) {
+static void param_print_value(param_t * param, int offset) {
 
 	if (param == NULL) {
 		return;
@@ -217,13 +217,25 @@ static void param_print_value(param_t * param) {
 	printf(" = ");
 
 	unsigned int count = (param->size > 0) ? param->size : 1;
+
+	/* Treat data and strings as single parameters */
 	if (param->type == PARAM_TYPE_DATA || param->type == PARAM_TYPE_STRING)
 		count = 1;
+
+	/* If offset is set, adjust count to only display one value */
+	if (offset >= 0) {
+		count = 1;
+	}
+
+	/* If offset is unset, start at zero and display all values */
+	if (offset < 0) {
+		offset = 0;
+	}
 
 	if (count > 1)
 		printf("[");
 
-	for(int i = 0; i < count; i++) {
+	for(int i = offset; i < offset + count; i++) {
 		char value_str[40];
 		param_value_str(param, i, value_str, 40);
 		printf("%s", value_str);
@@ -253,7 +265,7 @@ void param_print_header(int nodes[], int nodes_count) {
 	printf("\n");
 }
 
-void param_print(param_t * param, int nodes[], int nodes_count, int verbose)
+void param_print(param_t * param, int offset, int nodes[], int nodes_count, int verbose)
 {
 	if (param == NULL)
 		return;
@@ -274,12 +286,12 @@ void param_print(param_t * param, int nodes[], int nodes_count, int verbose)
 	if (nodes_count > 0 && nodes != NULL) {
 		for(int i = 0; i < nodes_count; i++) {
 			param_t * specific_param = param_list_find_id(nodes[i], param->id);
-			param_print_value(specific_param);
+			param_print_value(specific_param, offset);
 		}
 
 	/* Single value */
 	} else {
-		param_print_value(param);
+		param_print_value(param, offset);
 	}
 
 	/* Unit */

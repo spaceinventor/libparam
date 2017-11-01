@@ -30,7 +30,7 @@ static int group(struct slash *slash)
 		printf("\n");
 
 		for (int i = 0; i < group->count; i++) {
-			param_print(group->params[i], NULL, 0, 2);
+			param_print(group->params[i], -1, NULL, 0, 2);
 		}
 	}
 	return SLASH_SUCCESS;
@@ -118,7 +118,7 @@ static int group_pull_slash(struct slash *slash)
 
 	param_print_header(hostarr, hostarr_cnt);
 	for(int i = 0; i < group->count; i++) {
-		param_print(group->params[i], hostarr, hostarr_cnt, 0);
+		param_print(group->params[i], -1, hostarr, hostarr_cnt, 0);
 	}
 
 	return SLASH_SUCCESS;

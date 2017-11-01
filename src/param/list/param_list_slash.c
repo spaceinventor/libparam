@@ -62,8 +62,9 @@ static int list_refresh(struct slash *slash) {
 	param_t * param = NULL;
 	int host = -1;
 	int node = -1;
+	int offset = 0;
 
-	param_slash_parse(slash->argv[1], &param, &node, &host);
+	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
 
 	if (param == NULL)
 		return SLASH_EINVAL;

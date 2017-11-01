@@ -141,7 +141,7 @@ void param_list_print(char * token) {
 	param_t * param;
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
-		param_print(param, NULL, 0, 2);
+		param_print(param, -1, NULL, 0, 2);
 	}
 }
 

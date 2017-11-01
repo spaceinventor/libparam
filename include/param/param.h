@@ -267,7 +267,7 @@ void param_get(param_t * param, void * value);
 
 /* Print and list helpers */
 void param_print_header(int nodes[], int nodes_count);
-void param_print(param_t * param, int nodes[], int nodes_count, int verbose);
+void param_print(param_t * param, int offset, int nodes[], int nodes_count, int verbose);
 void param_list(char * token);
 
 /* Returns the size of a native type */
