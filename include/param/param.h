@@ -239,8 +239,8 @@ PARAM_GET(double, double)
 #define PARAM_SET(type, name) \
 	void param_set_##name(param_t * param, type value); \
 	void param_set_##name##_nocallback(param_t * param, type value); \
-	void param_set_##name##_array(param_t * param, type value, unsigned int i); \
-	void param_set_##name##_array_nocallback(param_t * param, type value, unsigned int i);
+	void param_set_##name##_array(param_t * param, unsigned int i, type value); \
+	void param_set_##name##_array_nocallback(param_t * param, unsigned int i, type value);
 PARAM_SET(uint8_t, uint8)
 PARAM_SET(uint16_t, uint16)
 PARAM_SET(uint32_t, uint32)
@@ -262,7 +262,7 @@ void param_get_data(param_t * param, void * outbuf, int len);
 /* Generic setter function:
  * This function can be used to set data of any type
  */
-void param_set(param_t * param, void * value);
+void param_set(param_t * param, unsigned int offset, void * value);
 void param_get(param_t * param, void * value);
 
 /* Print and list helpers */

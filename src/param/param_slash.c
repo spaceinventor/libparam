@@ -184,8 +184,7 @@ static int set(struct slash *slash)
 
 	char valuebuf[128] __attribute__((aligned(16))) = {};
 	param_str_to_value(param->type, slash->argv[2], valuebuf);
-
-	param_set(param, valuebuf);
+	param_set(param, offset, valuebuf);
 
 	if (host != -1) {
 		param_push_single(param, 0, host, 1000);

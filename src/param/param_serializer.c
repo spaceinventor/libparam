@@ -246,7 +246,7 @@ int param_deserialize_chunk_param_and_value(uint8_t node, uint32_t timestamp, in
 		} else {
 			char tmp[param_size(param)];
 			inset += param_deserialize_to_var(param->type, param->size, &in[inset], tmp);
-			param_set(param, tmp);
+			param_set(param, 0, tmp);
 		}
 
 		if (verbose)

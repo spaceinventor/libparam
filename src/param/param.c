@@ -155,11 +155,11 @@ void param_get_data(param_t * param, void * outbuf, int len)
 	{ \
 		__param_set_##name_in(param, value, false, 0); \
 	} \
-	inline void param_set_##name_in##_array(param_t * param, _type value, unsigned int i) \
+	inline void param_set_##name_in##_array(param_t * param, unsigned int i, _type value) \
 	{ \
 		__param_set_##name_in(param, value, true, i); \
 	} \
-	inline void param_set_##name_in##_array_nocallback(param_t * param, _type value, unsigned int i) \
+	inline void param_set_##name_in##_array_nocallback(param_t * param, unsigned int i, _type value) \
 	{ \
 		__param_set_##name_in(param, value, false, i); \
 	}
@@ -177,12 +177,12 @@ PARAM_SET(double, double, )
 
 #undef PARAM_SET
 
-void param_set(param_t * param, void * value) {
+void param_set(param_t * param, unsigned int offset, void * value) {
 	switch(param->type) {
 
 #define PARAM_SET(casename, name, type) \
 	case casename: \
-		param_set_##name(param, *(type *) value); \
+		param_set_##name##_array(param, offset, *(type *) value); \
 		break; \
 
 	PARAM_SET(PARAM_TYPE_UINT8, uint8, uint8_t)
