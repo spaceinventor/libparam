@@ -245,18 +245,20 @@ int param_typesize(param_type_e type) {
 	case PARAM_TYPE_XINT64: return sizeof(uint64_t); break;
 	case PARAM_TYPE_FLOAT: return sizeof(float); break;
 	case PARAM_TYPE_DOUBLE: return sizeof(double); break;
-	case PARAM_TYPE_STRING: return -1; break;
-	case PARAM_TYPE_DATA: return -1; break;
+	case PARAM_TYPE_STRING: return 1; break;
+	case PARAM_TYPE_DATA: return 1; break;
 	case PARAM_TYPE_VECTOR3: return sizeof(param_type_vector3); break;
 	}
 	return -1;
 }
 
 int param_size(param_t * param) {
-	int size = param_typesize(param->type);
-	if (size == -1) {
-		size = param->size;
+	switch(param->type) {
+	case PARAM_TYPE_STRING:
+	case PARAM_TYPE_DATA:
+		return param->size;
+	default:
+		return param_typesize(param->type);
 	}
-	return size;
 }
 

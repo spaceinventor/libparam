@@ -164,6 +164,8 @@ void param_list_download(int node, int timeout) {
 		int id = csp_ntoh16(new_param->id) & 0x7FF;
 		int type = new_param->type;
 		int size = new_param->size;
+		if (size == 255)
+			size = 1;
 
 		param_t * param = param_list_create_remote(id, node, type, 0, size, new_param->name, strlen);
 		if (param == NULL) {
@@ -171,7 +173,7 @@ void param_list_download(int node, int timeout) {
 			break;
 		}
 
-		printf("Got param: %s size (%u)\n", param->name, param->size);
+		printf("Got param: %s size (%d)\n", param->name, param->size);
 
 		/* Add to list */
 		if (param_list_add(param) != 0)
@@ -194,8 +196,8 @@ param_t * param_list_create_remote(int id, int node, int type, int refresh, int 
 	struct param_heap_s {
 		param_t param;
 		char name[namelen+1];
-		uint8_t value_get[size];
-		uint8_t value_set[size];
+		uint8_t value_get[param_typesize(type) * size];
+		uint8_t value_set[param_typesize(type) * size];
 	} *param_heap = calloc(sizeof(struct param_heap_s), 1);
 
 	param_t * param = &param_heap->param;
@@ -213,6 +215,8 @@ param_t * param_list_create_remote(int id, int node, int type, int refresh, int 
 	param->node = node;
 	param->type = type;
 	param->refresh = refresh;
+	if (size == 1)
+		size = -1;
 	param->size = size;
 
 	strncpy(param->name, name, namelen);
