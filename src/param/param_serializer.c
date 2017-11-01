@@ -195,7 +195,7 @@ int param_serialize_chunk_param_and_value(param_t * params[], uint8_t count, uin
 		/* Get actual value */
 		if (pending_only == 0) {
 			char tmp[param_size(params[i])];
-			param_get(params[i], tmp);
+			param_get(params[i], 0, tmp);
 			outset += param_serialize_from_var(params[i]->type, param_size(params[i]), tmp, (char *) &out[outset]);
 
 		/* Get pending value */

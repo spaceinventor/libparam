@@ -52,12 +52,12 @@ PARAM_GET(double, double, )
 
 #undef PARAM_GET
 
-void param_get(param_t * param, void * value) {
+void param_get(param_t * param, unsigned int offset, void * value) {
 	switch(param->type) {
 
 #define PARAM_GET(casename, name, type) \
 	case casename: \
-		*(type *) value = param_get_##name(param); \
+		*(type *) value = param_get_##name##_array(param, offset); \
 		break; \
 
 	PARAM_GET(PARAM_TYPE_UINT8, uint8, uint8_t)

@@ -263,7 +263,7 @@ void param_get_data(param_t * param, void * outbuf, int len);
  * This function can be used to set data of any type
  */
 void param_set(param_t * param, unsigned int offset, void * value);
-void param_get(param_t * param, void * value);
+void param_get(param_t * param, unsigned int offset, void * value);
 
 /* Print and list helpers */
 void param_print_header(int nodes[], int nodes_count);
