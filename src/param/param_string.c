@@ -18,12 +18,12 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #endif
 
-void param_value_str(param_t *param, char * out, int len)
+void param_value_str(param_t *param, unsigned int i, char * out, int len)
 {
 	switch(param->type) {
 #define PARAM_SWITCH_SNPRINTF(casename, strtype, strcast, name) \
 	case casename: \
-		snprintf(out, len, strtype, (strcast) param_get_##name(param)); \
+		snprintf(out, len, strtype, (strcast) param_get_##name##_array(param, i)); \
 		break;
 
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT8, "%u", unsigned char, uint8)
@@ -207,37 +207,33 @@ void param_type_str(param_type_e type, char * out, int len)
 static void param_print_value(param_t * param) {
 
 	if (param == NULL) {
-		printf(" = %-10s", "");
 		return;
 	}
 
-	char value_str[41] = {};
-	if (param->storage_type == PARAM_STORAGE_REMOTE) {
-
-		if ((param->value_get != NULL) && ((param->value_updated > 0) || (param->value_pending == 2))) {
-			param_value_str(param, value_str, 40);
-
-			if (csp_get_ms() - param->value_updated > 10000) {
-				printf(" - %-10s", value_str);
-			} else {
-				printf(" = %-10s", value_str);
-			}
-
-			if (param->value_pending == 2)
-				printf("*");
-
-		} else {
-			printf(" - %-10s", "");
-		}
-
-	} else if (param->storage_type == PARAM_STORAGE_TEMPLATE) {
-		printf(" template");
-	} else {
-
-		param_value_str(param, value_str, 40);
-		printf(" = %-10s", value_str);
-
+	if (param->storage_type == PARAM_STORAGE_TEMPLATE) {
+		printf(" TPL");
 	}
+
+	printf(" = ");
+
+	unsigned int count = (param->size > 0) ? param->size : 1;
+	if (param->type == PARAM_TYPE_DATA || param->type == PARAM_TYPE_STRING)
+		count = 1;
+
+	if (count > 1)
+		printf("[");
+
+	for(int i = 0; i < count; i++) {
+		char value_str[40];
+		param_value_str(param, i, value_str, 40);
+		printf("%s", value_str);
+		if (i + 1 < count)
+			printf(" ");
+	}
+
+	if (count > 1)
+		printf("]");
+
 }
 
 void param_print_header(int nodes[], int nodes_count) {
