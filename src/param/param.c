@@ -9,15 +9,18 @@
 #include <csp/csp_endian.h>
 
 #define PARAM_GET(_type, _name, _swapfct) \
-	_type param_get_##_name(param_t * param) { \
+	_type param_get_##_name##_array(param_t * param, unsigned int i) { \
+		if (i > param->size) { \
+			return 0; \
+		} \
 		switch(param->storage_type) {\
 		case PARAM_STORAGE_RAM: \
 			if (param->physaddr) \
-				return *(_type *)(param->physaddr); \
+				return *(_type *)(param->physaddr + i * sizeof(_type)); \
 			return 0; \
 		case PARAM_STORAGE_VMEM: { \
 			_type data = 0; \
-			param->vmem->read(param->vmem, param->addr, &data, sizeof(data)); \
+			param->vmem->read(param->vmem, param->addr + i * sizeof(_type), &data, sizeof(data)); \
 			if (param->vmem->big_endian == 1) { \
 				data = _swapfct(data); \
 			} \
@@ -25,12 +28,15 @@
 		} \
 		case PARAM_STORAGE_REMOTE: \
 			if (param->value_get) \
-				return *(_type *)(param->value_get); \
+				return *(_type *)(param->value_get + i * sizeof(_type)); \
 			return 0; \
 		case PARAM_STORAGE_TEMPLATE: \
 			return 0; \
 		} \
 		return 0; \
+	} \
+	_type param_get_##_name(param_t * param) { \
+		return param_get_##_name##_array(param, 0); \
 	}
 
 PARAM_GET(uint8_t, uint8, )
@@ -103,16 +109,17 @@ void param_get_data(param_t * param, void * outbuf, int len)
 #endif
 
 #define PARAM_SET(_type, name_in, _swapfct) \
-	void __param_set_##name_in(param_t * param, _type value, bool do_callback); \
-	void __param_set_##name_in(param_t * param, _type value, bool do_callback) \
-	{ \
+	void __param_set_##name_in(param_t * param, _type value, bool do_callback, unsigned int i) { \
+		if (i > param->size) { \
+			return; \
+		} \
 		if (param->storage_type == PARAM_STORAGE_REMOTE) { \
 			if (param->value_set) { \
-				*(_type *) param->value_set = value; \
+				*(_type *) (param->value_set + i * sizeof(_type)) = value; \
 				param->value_pending = 1; \
 			} \
 			return; \
-		}\
+		} \
 		\
 		/* Check readonly */ \
 		if ((param->readonly == PARAM_READONLY_TRUE) || (param->readonly == PARAM_READONLY_INTERNAL)) { \
@@ -125,14 +132,14 @@ void param_get_data(param_t * param, void * outbuf, int len)
 		/* Aligned access directly to RAM */ \
 		if (param->storage_type == PARAM_STORAGE_RAM) { \
 			if (param->physaddr) \
-			*(_type*)(param->physaddr) = value; \
+				*(_type*)(param->physaddr + i * sizeof(_type)) = value; \
 		} \
 		\
 		/* Otherwise call to vmem */ \
 		if (param->storage_type == PARAM_STORAGE_VMEM) { \
 			if (param->vmem->big_endian == 1) \
 				value = _swapfct(value); \
-			param->vmem->write(param->vmem, param->addr, &value, sizeof(value)); \
+			param->vmem->write(param->vmem, param->addr + i * sizeof(_type), &value, sizeof(_type)); \
 		} \
 		\
 		/* Callback */ \
@@ -142,11 +149,19 @@ void param_get_data(param_t * param, void * outbuf, int len)
 	} \
 	inline void param_set_##name_in(param_t * param, _type value) \
 	{ \
-		__param_set_##name_in(param, value, true); \
+		__param_set_##name_in(param, value, true, 0); \
 	} \
 	inline void param_set_##name_in##_nocallback(param_t * param, _type value) \
 	{ \
-		__param_set_##name_in(param, value, false); \
+		__param_set_##name_in(param, value, false, 0); \
+	} \
+	inline void param_set_##name_in##_array(param_t * param, _type value, unsigned int i) \
+	{ \
+		__param_set_##name_in(param, value, true, i); \
+	} \
+	inline void param_set_##name_in##_array_nocallback(param_t * param, _type value, unsigned int i) \
+	{ \
+		__param_set_##name_in(param, value, false, i); \
 	}
 
 PARAM_SET(uint8_t, uint8, )

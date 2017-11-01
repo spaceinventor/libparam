@@ -132,7 +132,7 @@ typedef struct param_s {
 	__attribute__((section("param"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
-	const param_t _name = { \
+	param_t _name = { \
 		.storage_type = PARAM_STORAGE_RAM, \
 		.node = PARAM_LIST_LOCAL, \
 		.id = _id, \
@@ -166,7 +166,7 @@ typedef struct param_s {
 	__attribute__((section("param"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
-	const param_t _name = { \
+	param_t _name = { \
 		.storage_type = PARAM_STORAGE_VMEM, \
 		.node = PARAM_LIST_LOCAL, \
 		.id = _id, \
@@ -221,7 +221,8 @@ typedef struct param_s {
 
 /* Native getter functions, will return native types */
 #define PARAM_GET(type, name) \
-	type param_get_##name(param_t * param);
+	type param_get_##name(param_t * param); \
+	type param_get_##name##_array(param_t * param, unsigned int i);
 PARAM_GET(uint8_t, uint8)
 PARAM_GET(uint16_t, uint16)
 PARAM_GET(uint32_t, uint32)
@@ -237,7 +238,9 @@ PARAM_GET(double, double)
 /* Native setter functions, these take a native type as argument */
 #define PARAM_SET(type, name) \
 	void param_set_##name(param_t * param, type value); \
-	void param_set_##name##_nocallback(param_t * param, type value);
+	void param_set_##name##_nocallback(param_t * param, type value); \
+	void param_set_##name##_array(param_t * param, type value, unsigned int i); \
+	void param_set_##name##_array_nocallback(param_t * param, type value, unsigned int i);
 PARAM_SET(uint8_t, uint8)
 PARAM_SET(uint16_t, uint16)
 PARAM_SET(uint32_t, uint32)
