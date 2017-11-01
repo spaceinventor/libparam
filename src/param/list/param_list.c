@@ -160,13 +160,10 @@ void param_list_download(int node, int timeout) {
 		rparam_transfer_t * new_param = (void *) packet->data;
 
 		int strlen = packet->length - offsetof(rparam_transfer_t, name);
-		int size = param_typesize(new_param->type);
-		if (size == -1)
-			size = new_param->size;
-
 		int node = csp_ntoh16(new_param->id) >> 11;
 		int id = csp_ntoh16(new_param->id) & 0x7FF;
 		int type = new_param->type;
+		int size = new_param->size;
 
 		param_t * param = param_list_create_remote(id, node, type, 0, size, new_param->name, strlen);
 		if (param == NULL) {
