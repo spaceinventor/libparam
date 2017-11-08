@@ -102,6 +102,55 @@ int param_push_single(param_t * param, int verbose, int host, int timeout) {
 
 int param_push(param_t * params[], int count, int verbose, int host, int timeout) {
 
+
+#if 0
+int param_serialize_chunk_param_and_value(param_t * params[], uint8_t count, uint8_t * out, int pending_only) {
+
+	out[0] = PARAM_CHUNK_PARAM_AND_VALUE;
+	out[1] = 0;
+
+	int outset = 2;
+	for (int i = 0; i < count; i++) {
+
+		/* Filter:
+		 * When sending pending parameters (push) we wish to skip non pending parameters */
+		if (pending_only == 1) {
+			if ((params[i]->value_set == NULL) || (params[i]->value_pending != 1))
+				continue;
+		}
+
+		if (outset + sizeof(uint16_t) + param_size(params[i]) > PARAM_SERVER_MTU) {
+			printf("Request cropped: > MTU\n");
+			break;
+		}
+
+		/* ID */
+		uint16_t param_net = csp_hton16(params[i]->id);
+		memcpy(&out[outset], &param_net, sizeof(param_net));
+		outset += sizeof(param_net);
+
+		/* Get actual value */
+		if (pending_only == 0) {
+			char tmp[param_size(params[i])];
+			param_get(params[i], 0, tmp);
+			outset += param_serialize_from_var(params[i]->type, param_size(params[i]), tmp, (char *) &out[outset]);
+
+		/* Get pending value */
+		} else {
+			outset += param_serialize_from_var(params[i]->type, param_size(params[i]), params[i]->value_set, (char *) &out[outset]);
+		}
+
+		/* Increment parameter count */
+		out[1] += 1;
+
+	}
+
+	return outset;
+}
+
+#endif
+
+#if 0
 	csp_packet_t * packet = csp_buffer_get(256);
 	if (packet == NULL)
 		return -1;
@@ -158,5 +207,6 @@ int param_push(param_t * params[], int count, int verbose, int host, int timeout
 	csp_buffer_free(packet);
 	csp_close(conn);
 
+#endif
 	return 0;
 }
