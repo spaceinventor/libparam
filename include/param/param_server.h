@@ -43,4 +43,17 @@ typedef struct {
 void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request);
 void param_serve_pull_response(csp_conn_t * conn, csp_packet_t * packet, int verbose);
 
+static inline uint16_t param_get_short_id(param_t * param, unsigned int reserved1, unsigned int reserved2) {
+	uint16_t node = (param->node == 255) ? csp_get_address() : param->node;
+	return (node << 11) | ((reserved1 & 1) << 10) | ((reserved2 & 1) << 2) | ((param->id) & 0x1FF);
+}
+
+static inline uint8_t param_parse_short_id_node(uint16_t short_id) {
+	return (short_id >> 11) & 0x1F;
+}
+
+static inline uint16_t param_parse_short_id_paramid(uint16_t short_id) {
+	return short_id & 0x1FF;
+}
+
 #endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_SERVER_H_ */

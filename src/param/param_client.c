@@ -23,10 +23,6 @@
 
 #define MAX_NODES 10
 
-uint16_t param_get_short_id(param_t * param, unsigned int reserved1, unsigned int reserved2) {
-	return ((uint16_t) param->node << 11) | ((reserved1 & 1) << 10) | ((reserved2 & 1) << 2) | ((param->id) & 0x1FF);
-}
-
 csp_packet_t * param_pull_request(param_t * params[], int count, int host) {
 
 	if (count <= 0)

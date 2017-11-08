@@ -14,74 +14,62 @@
 #include <param/param_server.h>
 #include <param/param_list.h>
 
+#include <mpack/mpack.h>
+
 #include "param_log.h"
 #include "param_serializer.h"
 
 void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 
-	//csp_hex_dump("get handler", request->data, request->length);
+	csp_hex_dump("get handler", request->data, request->length);
 
-	/* Get a new response packet */
-	csp_packet_t * response = csp_buffer_get(PARAM_SERVER_MTU);
-	if (response == NULL) {
+	mpack_reader_t reader;
+	mpack_reader_init_data(&reader, (char *) &request->data[2], request->length - 2);
+
+	/* Expect an ext field */
+	mpack_tag_t tag = mpack_read_tag(&reader);
+
+	if (tag.type != mpack_type_ext || tag.v.l > PARAM_SERVER_MTU) {
+		mpack_reader_destroy(&reader);
 		csp_buffer_free(request);
 		return;
 	}
-	response->length = 0;
-	response->data[0] = PARAM_PULL_RESPONSE;
-	response->data[1] = 0;
-	uint8_t * output = &response->data[2];
 
-	uint32_t timestamp = 0;
-	uint8_t node = 255;
+	uint8_t count = 0;
+	param_t * params[100];
 
-	uint8_t * input = &request->data[2];
-
-	while(input < request->data + request->length) {
-		switch(*input) {
-		case PARAM_CHUNK_TIME:
-			input += param_deserialize_chunk_timestamp(&timestamp, input);
-			output += param_serialize_chunk_timestamp(timestamp, output);
-			break;
-		case PARAM_CHUNK_NODE:
-			input += param_deserialize_chunk_node(&node, input);
-			output += param_serialize_chunk_node(node, output);
-			break;
-		case PARAM_CHUNK_PARAMS: {
-			uint8_t count;
-			input += param_deserialize_chunk_params_begin(&count, input);
-
-			uint8_t found_count = 0;
-			param_t * found_params[256];
-
-			for (int i = 0; i < count; i++) {
-				uint16_t paramid;
-				input += param_deserialize_chunk_params_next(&paramid, input);
-				param_t * param = param_list_find_id(node, paramid);
-				if (param == NULL)
-					continue;
-				found_params[found_count++] = param;
-			}
-
-			output += param_serialize_chunk_param_and_value(found_params, found_count, output, 0);
-
-			break;
-		}
-		default:
-			printf("Invalid type %u\n", *input);
-			csp_buffer_free(request);
-			csp_buffer_free(response);
-			return;
-		}
-
+	for(int i = 0; i < tag.v.l / sizeof(uint16_t); i++) {
+		uint16_t short_id;
+		mpack_read_bytes(&reader, (char *) &short_id, sizeof(short_id));
+		param_t * param = param_list_find_id(param_parse_short_id_node(short_id), param_parse_short_id_paramid(short_id));
+		if (param == NULL)
+			continue;
+		params[count++] = param;
 	}
 
-	response->length = output - response->data;
+	/* Reading is done */
+	mpack_reader_destroy(&reader);
 
-	/* Now free the request */
-	csp_buffer_free(request);
+	/* Reuse CSP buffer */
+	csp_packet_t * response = request;
+	response->data[0] = PARAM_PULL_RESPONSE;
+	response->data[1] = 0;
 
-	//csp_hex_dump("get handler", response->data, response->length);
+	mpack_writer_t writer;
+	mpack_writer_init(&writer, (char *) &response->data[2], PARAM_SERVER_MTU - 2);
+
+	/* Pack id's and data */
+	mpack_start_map(&writer, count);
+	for (int i = 0; i < count; i++) {
+		param_serialize_to_mpack_map(params[i], &writer);
+	}
+	mpack_finish_map(&writer);
+
+	mpack_print(writer.buffer, writer.used);
+
+	response->length = writer.used + 2;
+
+	csp_hex_dump("get handler", response->data, response->length);
 
 	if (!csp_send(conn, response, 0))
 		csp_buffer_free(response);
@@ -89,40 +77,39 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 
 void param_serve_pull_response(csp_conn_t * conn, csp_packet_t * packet, int verbose) {
 
-	//csp_hex_dump("pull response", packet->data, packet->length);
+	csp_hex_dump("pull response", packet->data, packet->length);
 
-	uint32_t timestamp = csp_get_ms();
-	uint8_t node = csp_conn_src(conn);
+	mpack_reader_t reader;
+	mpack_reader_init_data(&reader, (char *) &packet->data[2], packet->length - 2);
 
-	uint8_t * input = &packet->data[2];
-	while(input < packet->data + packet->length) {
-		switch(*input) {
-			case PARAM_CHUNK_TIME:
-				input += param_deserialize_chunk_timestamp(&timestamp, input);
-				break;
-			case PARAM_CHUNK_NODE:
-				input += param_deserialize_chunk_node(&node, input);
-				break;
-			case PARAM_CHUNK_PARAM_AND_VALUE: {
-				input += param_deserialize_chunk_param_and_value(node, timestamp, verbose, input);
-				break;
-			}
-			default:
-				printf("Invalid type %u\n", *input);
-				csp_buffer_free(packet);
-				return;
-		}
+	mpack_print(reader.buffer, reader.left);
+
+	/* Expect a map field */
+	unsigned int count = mpack_expect_map(&reader);
+
+	if (count == 0) {
+		mpack_reader_destroy(&reader);
+		csp_buffer_free(packet);
+		return;
 	}
 
-	csp_buffer_free(packet);
+	for(int i = 0; i < count; i++) {
+		param_deserialize_from_mpack_map(&reader);
+	}
 
+	/* Reading is done */
+	mpack_reader_destroy(&reader);
+
+	csp_buffer_free(packet);
 }
 
 static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
 {
 
-	//csp_hex_dump("set handler", packet->data, packet->length);
+	csp_hex_dump("set handler", packet->data, packet->length);
 
+
+#if 0
 	uint32_t timestamp = csp_get_ms();
 	uint8_t node = 255;
 
@@ -146,11 +133,13 @@ static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
 		}
 	}
 
+#endif
+
 	/* Send ack */
 	memcpy(packet->data, "ok", 2);
 	packet->length = 2;
 
-	//csp_hex_dump("set handler", packet->data, packet->length);
+	csp_hex_dump("set handler", packet->data, packet->length);
 
 	if (!csp_send(conn, packet, 0))
 		csp_buffer_free(packet);

@@ -20,6 +20,8 @@
 #include <csp/csp.h>
 #include <param/param_list.h>
 
+#include <mpack/mpack.h>
+
 int param_deserialize_to_var(param_type_e type, int size, void * in, void * out)
 {
 
@@ -109,62 +111,6 @@ int param_serialize_from_var(param_type_e type, int size, void * in, char * out)
 
 	return count;
 
-}
-
-int param_serialize_chunk_timestamp(uint32_t timestamp, uint8_t * out) {
-	timestamp = csp_hton32(timestamp);
-	out[0] = PARAM_CHUNK_TIME;
-	memcpy(&out[1], &timestamp, sizeof(timestamp));
-	return 1 + sizeof(timestamp);
-}
-
-int param_deserialize_chunk_timestamp(uint32_t * timestamp, uint8_t * in) {
-	memcpy(timestamp, &in[1], sizeof(*timestamp));
-	*timestamp = csp_ntoh32(*timestamp);
-	return 1 + sizeof(*timestamp);
-}
-
-int param_serialize_chunk_node(uint8_t node, uint8_t * out) {
-	out[0] = PARAM_CHUNK_NODE;
-	out[1] = node;
-	return 1 + sizeof(node);
-}
-
-int param_deserialize_chunk_node(uint8_t * node, uint8_t * in) {
-	*node = in[1];
-	return 1 + sizeof(*node);
-}
-
-int param_serialize_chunk_param(param_t * param, uint8_t * out) {
-	out[0] = PARAM_CHUNK_PARAM;
-	uint16_t param_net = csp_hton16(param->id);
-	memcpy(&out[1], &param, sizeof(param_net));
-	return 1 + sizeof(param_net);
-}
-
-int param_serialize_chunk_params_begin(uint8_t ** count, uint8_t * out) {
-	out[0] = PARAM_CHUNK_PARAMS;
-	out[1] = 0;
-	*count = &out[1];
-	return 2;
-}
-
-int param_serialize_chunk_params_next(param_t * param, uint8_t * count, uint8_t * out) {
-	*count = *count + 1;
-	uint16_t param_net = csp_hton16(param->id);
-	memcpy(out, &param_net, sizeof(param_net));
-	return sizeof(param_net);
-}
-
-int param_deserialize_chunk_params_begin(uint8_t * count, uint8_t * in) {
-	*count = in[1];
-	return 1 + sizeof(*count);
-}
-
-int param_deserialize_chunk_params_next(uint16_t * paramid, uint8_t * in) {
-	memcpy(paramid, in, sizeof(*paramid));
-	*paramid = csp_ntoh16(*paramid);
-	return sizeof(*paramid);
 }
 
 int param_serialize_chunk_param_and_value(param_t * params[], uint8_t count, uint8_t * out, int pending_only) {
@@ -259,4 +205,100 @@ int param_deserialize_chunk_param_and_value(uint8_t node, uint32_t timestamp, in
 
 	}
 	return inset;
+}
+
+void param_serialize_to_mpack_map(param_t * param, mpack_writer_t * writer) {
+	mpack_write_u16(writer, param_get_short_id(param, 0 , 0));
+
+	switch(param->type) {
+	case PARAM_TYPE_UINT8:		mpack_write_uint(writer, param_get_uint8(param)); break;
+	case PARAM_TYPE_UINT16:		mpack_write_uint(writer, param_get_uint16(param)); break;
+	case PARAM_TYPE_UINT32:		mpack_write_uint(writer, param_get_uint32(param)); break;
+	case PARAM_TYPE_UINT64:		mpack_write_uint(writer, param_get_uint64(param)); break;
+	case PARAM_TYPE_XINT8:		mpack_write_uint(writer, param_get_uint8(param)); break;
+	case PARAM_TYPE_XINT16:		mpack_write_uint(writer, param_get_uint16(param)); break;
+	case PARAM_TYPE_XINT32:		mpack_write_uint(writer, param_get_uint32(param)); break;
+	case PARAM_TYPE_XINT64:		mpack_write_uint(writer, param_get_uint64(param)); break;
+	case PARAM_TYPE_INT8:		mpack_write_int(writer, param_get_int8(param)); break;
+	case PARAM_TYPE_INT16:		mpack_write_int(writer, param_get_int16(param)); break;
+	case PARAM_TYPE_INT32:		mpack_write_int(writer, param_get_int32(param)); break;
+	case PARAM_TYPE_INT64:		mpack_write_int(writer, param_get_int64(param)); break;
+	case PARAM_TYPE_FLOAT:		mpack_write_float(writer, param_get_float(param)); break;
+	case PARAM_TYPE_DOUBLE:		mpack_write_double(writer, param_get_double(param)); break;
+
+	case PARAM_TYPE_STRING:
+		mpack_start_str(writer, param->size);
+		param_get_data(param, writer->buffer + writer->used, param->size);
+		writer->used += param->size;
+		mpack_finish_str(writer);
+		break;
+
+	case PARAM_TYPE_DATA:
+		mpack_start_bin(writer, param->size);
+		param_get_data(param, writer->buffer + writer->used, param->size);
+		writer->used += param->size;
+		mpack_finish_bin(writer);
+		break;
+
+	default:
+	case PARAM_TYPE_VECTOR3:
+		break;
+	}
+
+}
+
+void param_deserialize_from_mpack_map(mpack_reader_t * reader) {
+	uint16_t short_id = mpack_expect_u16(reader);
+	param_t * param = param_list_find_id(param_parse_short_id_node(short_id), param_parse_short_id_paramid(short_id));
+	if (param == NULL)
+		return;
+
+	printf("deserialize %s\n", param->name);
+
+	switch(param->type) {
+	case PARAM_TYPE_UINT8:		param_set_uint8(param, (uint8_t) mpack_expect_uint(reader)); break;
+	case PARAM_TYPE_UINT16:		param_set_uint16(param, (uint16_t) mpack_expect_uint(reader)); break;
+	case PARAM_TYPE_UINT32:		param_set_uint32(param, (uint32_t) mpack_expect_uint(reader)); break;
+	case PARAM_TYPE_UINT64:		param_set_uint64(param, (uint64_t) mpack_expect_uint(reader)); break;
+	case PARAM_TYPE_XINT8:		param_set_uint8(param, (uint8_t) mpack_expect_uint(reader)); break;
+	case PARAM_TYPE_XINT16:		param_set_uint16(param, (uint16_t) mpack_expect_uint(reader)); break;
+	case PARAM_TYPE_XINT32:		param_set_uint32(param, (uint32_t) mpack_expect_uint(reader)); break;
+	case PARAM_TYPE_XINT64:		param_set_uint64(param, (uint64_t) mpack_expect_uint(reader)); break;
+	case PARAM_TYPE_INT8:		param_set_int8(param, (int8_t) mpack_expect_int(reader)); break;
+	case PARAM_TYPE_INT16:		param_set_int16(param, (int16_t) mpack_expect_int(reader)); break;
+	case PARAM_TYPE_INT32:		param_set_int32(param, (int32_t) mpack_expect_int(reader)); break;
+	case PARAM_TYPE_INT64:		param_set_int64(param, (int64_t) mpack_expect_int(reader)); break;
+
+	case PARAM_TYPE_FLOAT:
+		param_set_float(param, mpack_expect_float(reader));
+		break;
+	case PARAM_TYPE_DOUBLE:
+		param_set_double(param, mpack_expect_double(reader));
+		break;
+
+	case PARAM_TYPE_STRING:
+	{
+		int count = mpack_expect_str(reader);
+		param_set_string(param, reader->buffer + reader->pos, count);
+		reader->pos += count;
+        reader->left -= count;
+		mpack_done_str(reader);
+		break;
+	}
+	case PARAM_TYPE_DATA:
+	{
+		int count = mpack_expect_bin(reader);
+		param_set_data(param, reader->buffer + reader->pos, count);
+		reader->pos += count;
+		reader->left -= count;
+		mpack_done_bin(reader);
+		break;
+	}
+
+	default:
+	case PARAM_TYPE_VECTOR3:
+		mpack_discard(reader);
+		break;
+	}
+
 }
