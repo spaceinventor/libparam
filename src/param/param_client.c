@@ -16,10 +16,16 @@
 #include <param/param_server.h>
 #include <param/param_client.h>
 
+#include <mpack/mpack.h>
+
 #include "param_serializer.h"
 #include "param_string.h"
 
 #define MAX_NODES 10
+
+uint16_t param_get_short_id(param_t * param, unsigned int reserved1, unsigned int reserved2) {
+	return ((uint16_t) param->node << 11) | ((reserved1 & 1) << 10) | ((reserved2 & 1) << 2) | ((param->id) & 0x1FF);
+}
 
 csp_packet_t * param_pull_request(param_t * params[], int count, int host) {
 
@@ -35,37 +41,20 @@ csp_packet_t * param_pull_request(param_t * params[], int count, int host) {
 	packet->data[1] = 0;
 	uint8_t * output = &packet->data[2];
 
-	/* State variables for serializer */
-	int node = 255;
-	uint8_t * count_output = NULL;
+	mpack_writer_t writer;
+	mpack_writer_init(&writer, (char *) output, 256 - 2);
 
-	/* Loop over parameters in list:
-	 * We assume that the list is ordered/grouped by node
-	 */
+	/* Pack id's */
+	mpack_start_ext(&writer, 0, count * sizeof(uint16_t));
 	for (int i = 0; i < count; i++) {
-
-		/* Check if node and host is the same */
-		int node_param = params[i]->node;
-
-		/* Check if we need to change node */
-		if (node != node_param) {
-			node = node_param;
-			output += param_serialize_chunk_node(params[i]->node, output);
-			count_output = NULL;
-		}
-
-		/* Start a new params chunk */
-		if (count_output == NULL) {
-			output += param_serialize_chunk_params_begin(&count_output, output);
-		}
-
-		/* Add additional parameters to chunk */
-		output += param_serialize_chunk_params_next(params[i], count_output, output);
-
+		printf("Write %s %x\n", params[i]->name, param_get_short_id(params[i], 0, 0));
+		const uint16_t id = param_get_short_id(params[i], 0, 0);
+		mpack_write_bytes(&writer, (const char *) &id, sizeof(id));
 	}
+	mpack_finish_ext(&writer);
 
 	/* Calculate frame length */
-	packet->length = output - packet->data;
+	packet->length = writer.used + 2;
 
 	return packet;
 }
@@ -81,7 +70,7 @@ int param_pull(param_t * params[], int count, int verbose, int host, int timeout
 	if (packet == NULL)
 		return -1;
 
-	//csp_hex_dump("request", packet->data, packet->length);
+	csp_hex_dump("request", packet->data, packet->length);
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
 	if (conn == NULL) {
@@ -101,7 +90,7 @@ int param_pull(param_t * params[], int count, int verbose, int host, int timeout
 		return -1;
 	}
 
-	//csp_hex_dump("Response", packet->data, packet->length);
+	csp_hex_dump("Response", packet->data, packet->length);
 
 	param_serve_pull_response(conn, packet, verbose);
 	csp_close(conn);

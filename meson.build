@@ -31,6 +31,8 @@ param_src = files([
 	'src/param/param_server.c',
 	'src/param/param_string.c',
 	'src/param/param.c',
+	
+	'lib/mpack/mpack.c',
 
 	'src/vmem/vmem_client.c',
 	'src/vmem/vmem_ram.c',
@@ -50,7 +52,7 @@ if slash_dep.found()
 	])
 endif
 
-param_inc = include_directories('.', 'include')
+param_inc = include_directories('.', 'include', 'lib')
 
 param = static_library('param',
 	param_src,
