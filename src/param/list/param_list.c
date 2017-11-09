@@ -197,7 +197,6 @@ param_t * param_list_create_remote(int id, int node, int type, int refresh, int 
 		param_t param;
 		char name[namelen+1];
 		uint8_t value_get[param_typesize(type) * size];
-		uint8_t value_set[param_typesize(type) * size];
 	} *param_heap = calloc(sizeof(struct param_heap_s), 1);
 
 	param_t * param = &param_heap->param;
@@ -208,7 +207,6 @@ param_t * param_list_create_remote(int id, int node, int type, int refresh, int 
 	param->storage_type = PARAM_STORAGE_REMOTE;
 	param->name = param_heap->name;
 	param->value_get = param_heap->value_get;
-	param->value_set = param_heap->value_set;
 	param->unit = NULL;
 
 	param->id = id;

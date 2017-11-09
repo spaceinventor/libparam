@@ -114,9 +114,8 @@ void param_get_data(param_t * param, void * outbuf, int len)
 			return; \
 		} \
 		if (param->storage_type == PARAM_STORAGE_REMOTE) { \
-			if (param->value_set) { \
-				*(_type *) (param->value_set + i * sizeof(_type)) = value; \
-				param->value_pending = 1; \
+			if (param->value_get) { \
+				*(_type *) (param->value_get + i * sizeof(_type)) = value; \
 			} \
 			return; \
 		} \
@@ -226,7 +225,6 @@ void param_set_data(param_t * param, void * inbuf, int len) {
 	case PARAM_STORAGE_REMOTE:
 		if (param->value_get)
 			memcpy(param->value_get, inbuf, len);
-		param->value_pending = 0;
 		return;
 	case PARAM_STORAGE_TEMPLATE:
 		return;

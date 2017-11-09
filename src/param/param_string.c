@@ -315,15 +315,6 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 			printf(" refresh %u ms", param->refresh);
 	}
 
-	if (param->storage_type == PARAM_STORAGE_REMOTE) {
-		if ((param->value_set != NULL) && (param->value_pending == 1)) {
-			printf(" Pending:");
-			char value_str[41] = {};
-			param_var_str(param->type, param->size, param->value_set, value_str, 40);
-			printf(" => %s", value_str);
-		}
-	}
-
 	printf("\n");
 
 }

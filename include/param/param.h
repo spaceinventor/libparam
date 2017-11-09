@@ -104,10 +104,8 @@ typedef struct param_s {
 		};
 		struct {
 			void * value_get;
-			void * value_set;
 			uint32_t value_remote_timestamp; // Remote timestamp
 			uint32_t value_updated; // Timestamp (used by collector)
-			uint8_t value_pending; // 0 = none, 1 = pending, 2 = acked
 			unsigned int refresh; // Refresh interval in ms
 		};
 	};
