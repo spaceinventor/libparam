@@ -41,7 +41,7 @@ int param_deserialize_chunk_params_next(uint16_t * paramid, uint8_t * in);
 int param_serialize_chunk_param_and_value(param_t * params[], uint8_t count, uint8_t * out, int pending);
 int param_deserialize_chunk_param_and_value(uint8_t node, uint32_t timestamp, int verbose, uint8_t * in);
 
-void param_serialize_to_mpack_map(param_t * param, mpack_writer_t * writer);
+void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer);
 void param_deserialize_from_mpack_map(mpack_reader_t * reader);
 
 #endif /* SRC_PARAM_PARAM_SERIALIZER_H_ */

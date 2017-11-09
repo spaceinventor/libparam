@@ -30,6 +30,7 @@ param_src = files([
 	'src/param/param_serializer.c',
 	'src/param/param_server.c',
 	'src/param/param_string.c',
+	'src/param/param_queue.c',
 	'src/param/param.c',
 	
 	'lib/mpack/mpack.c',

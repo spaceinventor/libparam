@@ -22,7 +22,7 @@
 
 #include <mpack/mpack.h>
 
-void param_serialize_to_mpack_map(param_t * param, mpack_writer_t * writer) {
+void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer) {
 	mpack_write_u16(writer, param_get_short_id(param, 0 , 0));
 
 	// TODO: Implement arrays
