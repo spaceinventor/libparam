@@ -49,6 +49,7 @@ void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * v
 	case PARAM_TYPE_UINT32:
 	case PARAM_TYPE_XINT32:
 		if (value) {
+			printf("Set u32 %u\n", *(uint32_t *) value);
 			mpack_write_uint(writer, *(uint32_t *) value);
 		} else {
 			mpack_write_uint(writer, param_get_uint32(param));

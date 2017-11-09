@@ -96,31 +96,19 @@ int param_pull(param_t * params[], int count, int verbose, int host, int timeout
 
 }
 
-int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
-
-	// TODO: include unique packet id?
-	queue->buffer->data[0] = PARAM_PUSH_REQUEST;
-	queue->buffer->data[1] = 0;
-	queue->buffer->length = queue->writer.used + 2;
-
-	/* If there were no parameters to be set */
-	if (queue->writer.used == 0) {
-		return 0;
-	}
-
-	csp_hex_dump("push", queue->buffer->data, queue->buffer->length);
+static int param_push_request(csp_packet_t *packet, int verbose, int host, int timeout) {
+	csp_hex_dump("push", packet->data, packet->length);
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
 	if (conn == NULL) {
-		csp_buffer_free(queue->buffer);
-		queue->buffer = NULL;
+		csp_buffer_free(packet);
+		packet = NULL;
 		return -1;
 	}
 
-	if (!csp_send(conn, queue->buffer, 0)) {
+	if (!csp_send(conn, packet, 0)) {
 		csp_close(conn);
-		csp_buffer_free(queue->buffer);
-		queue->buffer = NULL;
+		csp_buffer_free(packet);
 		return -1;
 	}
 
@@ -137,9 +125,38 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 
 	csp_buffer_free(response);
 	csp_close(conn);
-
 	return 0;
+}
 
+int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
+
+	if (queue->writer.used == 0)
+		return 0;
+
+	// TODO: include unique packet id?
+	csp_packet_t * packet = csp_buffer_get(256);
+	packet->data[0] = PARAM_PUSH_REQUEST;
+	packet->data[1] = 0;
+
+	memcpy(&packet->data[2], queue->writer.buffer, queue->writer.used);
+
+	packet->length = queue->writer.used + 2;
+	return param_push_request(packet, verbose, host, timeout);
+}
+
+int param_push_single(param_t *param, void *value, int verbose, int host, int timeout) {
+
+	// TODO: include unique packet id?
+	csp_packet_t * packet = csp_buffer_get(256);
+	packet->data[0] = PARAM_PUSH_REQUEST;
+	packet->data[1] = 0;
+
+	mpack_writer_t writer;
+	mpack_writer_init(&writer, (char *) &packet->data[2], 254);
+	param_serialize_to_mpack(param, &writer, value);
+
+	packet->length = writer.used + 2;
+	return param_push_request(packet, verbose, host, timeout);
 }
 
 

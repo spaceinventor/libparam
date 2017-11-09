@@ -13,16 +13,18 @@
 #include <param/param_queue.h>
 #include "param_serializer.h"
 
-param_queue_t * param_queue_create(void) {
-
-	csp_packet_t * buffer = csp_buffer_get(256);
-	if (!buffer)
-		return NULL;
+param_queue_t * param_queue_create(void * buffer, int buffer_length) {
 
 	param_queue_t * queue = malloc(sizeof(param_queue_t));
-	queue->buffer = buffer;
 
-	mpack_writer_init(&queue->writer, (char *) queue->buffer, 256);
+	if (buffer) {
+		queue->buffer = buffer;
+	} else {
+		queue->buffer = malloc(buffer_length);
+	}
+
+	mpack_writer_init(&queue->writer, queue->buffer, buffer_length);
+	printf("writer buffer %p csp buffer %p\n", queue->writer.buffer, queue->buffer);
 
 	return queue;
 }
@@ -30,7 +32,7 @@ param_queue_t * param_queue_create(void) {
 void param_queue_destroy(param_queue_t *queue) {
 	mpack_writer_destroy(&queue->writer);
 	if (queue->buffer)
-		csp_buffer_free(queue->buffer);
+		free(queue->buffer);
 	free(queue);
 }
 

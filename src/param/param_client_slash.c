@@ -22,6 +22,7 @@
 #include "param_serializer.h"
 #include "param_string.h"
 
+#if 0
 static int param_client_slash_push(struct slash *slash)
 {
 	unsigned int node = 0;
@@ -60,6 +61,7 @@ static int param_client_slash_push(struct slash *slash)
 	return SLASH_SUCCESS;
 }
 slash_command(push, param_client_slash_push, "<node> [timeout]", NULL);
+#endif
 
 static int param_client_slash_pull(struct slash *slash)
 {
