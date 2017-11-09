@@ -60,6 +60,6 @@ void param_queue_print(param_queue_t *queue) {
 }
 
 int param_queue_add(param_queue_t *queue, param_t *param, void *value) {
-	param_serialize_to_mpack(param, &queue->writer);
+	param_serialize_to_mpack(param, &queue->writer, value);
 	return 0;
 }

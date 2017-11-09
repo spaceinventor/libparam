@@ -61,7 +61,7 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 	/* Pack id's and data */
 	mpack_start_map(&writer, count);
 	for (int i = 0; i < count; i++) {
-		param_serialize_to_mpack(params[i], &writer);
+		param_serialize_to_mpack(params[i], &writer, NULL);
 	}
 	mpack_finish_map(&writer);
 

@@ -2725,7 +2725,9 @@ void mpack_print_element(mpack_reader_t* reader, size_t depth, FILE* file) {
             break;
 
         case mpack_type_bin:
-            fprintf(file, "<binary data of length %u>", val.v.l);
+			for (int i = 0; i < val.v.l; i++) {
+				fprintf(file, "%02X", (uint8_t) reader->buffer[reader->pos + i]);
+			}
             mpack_skip_bytes(reader, val.v.l);
             mpack_done_bin(reader);
             break;
