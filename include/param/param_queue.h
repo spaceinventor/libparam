@@ -9,8 +9,13 @@
 #define LIB_PARAM_SRC_PARAM_PARAM_QUEUE_H_
 
 #include <param/param.h>
+#include <mpack/mpack.h>
 
-struct param_queue_s;
+struct param_queue_s {
+	csp_packet_t *buffer;
+	mpack_writer_t writer;
+};
+
 typedef struct param_queue_s param_queue_t;
 
 param_queue_t * param_queue_create(void);

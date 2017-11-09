@@ -13,11 +13,6 @@
 #include <param/param_queue.h>
 #include "param_serializer.h"
 
-struct param_queue_s {
-	csp_packet_t *buffer;
-	mpack_writer_t writer;
-};
-
 param_queue_t * param_queue_create(void) {
 
 	csp_packet_t * buffer = csp_buffer_get(256);
@@ -34,7 +29,8 @@ param_queue_t * param_queue_create(void) {
 
 void param_queue_destroy(param_queue_t *queue) {
 	mpack_writer_destroy(&queue->writer);
-	csp_buffer_free(queue->buffer);
+	if (queue->buffer)
+		csp_buffer_free(queue->buffer);
 	free(queue);
 }
 

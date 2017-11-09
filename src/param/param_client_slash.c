@@ -50,10 +50,12 @@ static int param_client_slash_push(struct slash *slash)
 	if (params_count == 0)
 		return SLASH_SUCCESS;
 
+#if 0
 	if (param_push(params, params_count, 1, node, timeout) < 0) {
 		printf("No response\n");
 		return SLASH_EINVAL;
 	}
+#endif
 
 	return SLASH_SUCCESS;
 }

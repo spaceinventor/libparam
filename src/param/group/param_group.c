@@ -111,10 +111,6 @@ void param_group_param_add(param_group_t *group, param_t *param) {
 
 }
 
-int param_group_push(param_group_t * group, int host, int timeout) {
-	return param_push(group->params, group->count, 1, host, timeout);
-}
-
 int param_group_pull(param_group_t * group, int host, int timeout) {
 
 	param_t * pull_params[group->count];

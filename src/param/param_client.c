@@ -15,6 +15,7 @@
 #include <param/param_list.h>
 #include <param/param_server.h>
 #include <param/param_client.h>
+#include <param/param_queue.h>
 
 #include <mpack/mpack.h>
 
@@ -95,6 +96,54 @@ int param_pull(param_t * params[], int count, int verbose, int host, int timeout
 
 }
 
+int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
+
+	// TODO: include unique packet id?
+	queue->buffer->data[0] = PARAM_PUSH_REQUEST;
+	queue->buffer->data[1] = 0;
+	queue->buffer->length = queue->writer.used + 2;
+
+	/* If there were no parameters to be set */
+	if (queue->writer.used == 0) {
+		return 0;
+	}
+
+	csp_hex_dump("push", queue->buffer->data, queue->buffer->length);
+
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
+	if (conn == NULL) {
+		csp_buffer_free(queue->buffer);
+		queue->buffer = NULL;
+		return -1;
+	}
+
+	if (!csp_send(conn, queue->buffer, 0)) {
+		csp_close(conn);
+		csp_buffer_free(queue->buffer);
+		queue->buffer = NULL;
+		return -1;
+	}
+
+	csp_packet_t *response = csp_read(conn, timeout);
+	if (response == NULL) {
+		csp_close(conn);
+		printf("No response\n");
+		return -1;
+	}
+
+	csp_hex_dump("Response", response->data, response->length);
+
+	/* Set status on queue? */
+
+	csp_buffer_free(response);
+	csp_close(conn);
+
+	return 0;
+
+}
+
+
+#if 0
 int param_push_single(param_t * param, int verbose, int host, int timeout) {
 	param_t * params[1] = { param };
 	return param_push(params, 1, verbose, host, timeout);
@@ -210,3 +259,5 @@ int param_serialize_chunk_param_and_value(param_t * params[], uint8_t count, uin
 #endif
 	return 0;
 }
+
+#endif

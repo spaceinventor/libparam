@@ -187,7 +187,7 @@ static int set(struct slash *slash)
 	param_set(param, offset, valuebuf);
 
 	if (host != -1) {
-		param_push_single(param, 0, host, 1000);
+		//param_push_single(param, 0, host, 1000);
 	}
 
 	param_print(param, -1, NULL, 0, 2);

@@ -27,6 +27,8 @@ void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * v
 
 	// TODO: Implement arrays
 
+	printf("param %s value %p\n", param->name, value);
+
 	switch (param->type) {
 	case PARAM_TYPE_UINT8:
 	case PARAM_TYPE_XINT8:
@@ -104,9 +106,9 @@ void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * v
 		break;
 
 	case PARAM_TYPE_STRING: {
-		int len = strlen(value);
-		if (len > param->size)
-			len = param->size;
+		int len = param->size;
+		if (value && strlen(value) < len)
+			len = strlen(value);
 		mpack_start_str(writer, len);
 		if (value) {
 			memcpy(writer->buffer + writer->used, value, len);

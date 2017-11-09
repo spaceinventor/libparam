@@ -41,6 +41,7 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 	for(int i = 0; i < tag.v.l / sizeof(uint16_t); i++) {
 		uint16_t short_id;
 		mpack_read_bytes(&reader, (char *) &short_id, sizeof(short_id));
+		printf("Short id %u\n", short_id);
 		param_t * param = param_list_find_id(param_parse_short_id_node(short_id), param_parse_short_id_paramid(short_id));
 		if (param == NULL)
 			continue;
@@ -50,6 +51,7 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 	/* Reading is done */
 	mpack_reader_destroy(&reader);
 
+	printf("Reuse\n");
 	/* Reuse CSP buffer */
 	csp_packet_t * response = request;
 	response->data[0] = PARAM_PULL_RESPONSE;
@@ -61,6 +63,7 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 	/* Pack id's and data */
 	mpack_start_map(&writer, count);
 	for (int i = 0; i < count; i++) {
+		printf("I %u\n", i);
 		param_serialize_to_mpack(params[i], &writer, NULL);
 	}
 	mpack_finish_map(&writer);
