@@ -97,7 +97,7 @@ void param_serve_pull_response(csp_conn_t * conn, csp_packet_t * packet, int ver
 	}
 
 	for(int i = 0; i < count; i++) {
-		param_deserialize_from_mpack_map(&reader);
+		param_deserialize_from_mpack(&reader);
 	}
 
 	/* Reading is done */
@@ -111,6 +111,19 @@ static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
 
 	csp_hex_dump("set handler", packet->data, packet->length);
 
+	mpack_reader_t reader;
+	mpack_reader_init_data(&reader, (char *) &packet->data[2], packet->length - 2);
+
+	size_t remaining;
+	while((remaining = mpack_reader_remaining(&reader, NULL)) > 0) {
+		param_deserialize_from_mpack(&reader);
+		if (mpack_reader_error(&reader) != mpack_ok)
+			break;
+	}
+
+	if (mpack_reader_destroy(&reader) != mpack_ok) {
+		printf("<mpack parsing error %s>\n", mpack_error_to_string(mpack_reader_error(&reader)));
+	}
 
 #if 0
 	uint32_t timestamp = csp_get_ms();

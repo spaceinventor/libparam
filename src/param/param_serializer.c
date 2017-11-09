@@ -139,7 +139,7 @@ void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * v
 
 }
 
-void param_deserialize_from_mpack_map(mpack_reader_t * reader) {
+void param_deserialize_from_mpack(mpack_reader_t * reader) {
 
 	// TODO: Implement arrays as value
 	unsigned int i = 0;
@@ -150,77 +150,47 @@ void param_deserialize_from_mpack_map(mpack_reader_t * reader) {
 	if (param == NULL)
 		return;
 
-	if (param->storage_type != PARAM_STORAGE_REMOTE) {
-		printf("Error %s is not remote\n", param->name);
-		mpack_discard(reader);
-		return;
-	}
-
-	param->value_pending = 0;
-
 	switch (param->type) {
 	case PARAM_TYPE_UINT8:
-		*(uint8_t*) (param->value_get + i * sizeof(uint8_t)) =
-				(uint8_t) mpack_expect_uint(reader);
-		break;
-	case PARAM_TYPE_UINT16:
-		*(uint16_t*) (param->value_get + i * sizeof(uint16_t)) =
-				(uint16_t) mpack_expect_uint(reader);
-		break;
-	case PARAM_TYPE_UINT32:
-		*(uint32_t*) (param->value_get + i * sizeof(uint32_t)) =
-				(uint32_t) mpack_expect_uint(reader);
-		break;
-	case PARAM_TYPE_UINT64:
-		*(uint64_t*) (param->value_get + i * sizeof(uint64_t)) =
-				(uint64_t) mpack_expect_uint(reader);
-		break;
 	case PARAM_TYPE_XINT8:
-		*(uint8_t*) (param->value_get + i * sizeof(uint8_t)) =
-				(uint8_t) mpack_expect_uint(reader);
-		break;
+		param_set_uint8_array(param, i, (uint8_t) mpack_expect_uint(reader)); break;
+	case PARAM_TYPE_UINT16:
 	case PARAM_TYPE_XINT16:
-		*(uint16_t*) (param->value_get + i * sizeof(uint16_t)) =
-				(uint16_t) mpack_expect_uint(reader);
-		break;
+		param_set_uint16_array(param, i, (uint16_t) mpack_expect_uint(reader)); break;
+	case PARAM_TYPE_UINT32:
 	case PARAM_TYPE_XINT32:
-		*(uint32_t*) (param->value_get + i * sizeof(uint32_t)) =
-				(uint32_t) mpack_expect_uint(reader);
-		break;
+		param_set_uint32_array(param, i, (uint32_t) mpack_expect_uint(reader)); break;
+	case PARAM_TYPE_UINT64:
 	case PARAM_TYPE_XINT64:
-		*(uint64_t*) (param->value_get + i * sizeof(uint64_t)) =
-				(uint64_t) mpack_expect_uint(reader);
-		break;
+		param_set_uint64_array(param, i, mpack_expect_u64(reader)); break;
 	case PARAM_TYPE_INT8:
-		*(int8_t*) (param->value_get + i * sizeof(int8_t)) =
-				(int8_t) mpack_expect_int(reader);
-		break;
+		param_set_int8_array(param, i, (int8_t) mpack_expect_int(reader)); break;
 	case PARAM_TYPE_INT16:
-		*(int16_t*) (param->value_get + i * sizeof(int16_t)) =
-				(int16_t) mpack_expect_int(reader);
-		break;
+		param_set_int16_array(param, i, (int16_t) mpack_expect_int(reader)); break;
 	case PARAM_TYPE_INT32:
-		*(int32_t*) (param->value_get + i * sizeof(int32_t)) =
-				(int32_t) mpack_expect_int(reader);
-		break;
+		param_set_int32_array(param, i, (int32_t) mpack_expect_int(reader)); break;
 	case PARAM_TYPE_INT64:
-		*(int64_t*) (param->value_get + i * sizeof(int64_t)) =
-				(int64_t) mpack_expect_int(reader);
-		break;
+		param_set_int64_array(param, i, mpack_expect_i64(reader)); break;
 	case PARAM_TYPE_FLOAT:
-		*(float*) (param->value_get + i * sizeof(float)) =
-				(float) mpack_expect_float(reader);
-		break;
+		param_set_float_array(param, i, mpack_expect_float(reader)); break;
 	case PARAM_TYPE_DOUBLE:
-		*(double*) (param->value_get + i * sizeof(double)) =
-				(double) mpack_expect_double(reader);
+		param_set_double_array(param, i, mpack_expect_double(reader)); break;
+	case PARAM_TYPE_STRING: {
+		int len = mpack_expect_str(reader);
+		param_set_string(param, &reader->buffer[reader->pos], len);
+		reader->pos += len;
+		reader->left -= len;
+		mpack_done_str(reader);
 		break;
-	case PARAM_TYPE_STRING:
-		mpack_expect_str_buf(reader, param->value_get, param->size);
+	}
+	case PARAM_TYPE_DATA: {
+		int len = mpack_expect_bin(reader);
+		param_set_data(param, &reader->buffer[reader->pos], len);
+		reader->pos += len;
+		reader->left -= len;
+		mpack_done_bin(reader);
 		break;
-	case PARAM_TYPE_DATA:
-		mpack_expect_bin_buf(reader, param->value_get, param->size);
-		break;
+	}
 
 	default:
 	case PARAM_TYPE_VECTOR3:

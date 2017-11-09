@@ -213,8 +213,12 @@ void param_set(param_t * param, unsigned int offset, void * value) {
 void param_set_data(param_t * param, void * inbuf, int len) {
 	switch(param->storage_type) {
 	case PARAM_STORAGE_RAM:
-		if (param->physaddr)
+		if (param->physaddr) {
 			memcpy(param->physaddr, inbuf, len);
+			if ((param->type == PARAM_TYPE_STRING) && (len < param->size)) {
+				((char *) param->physaddr)[len] = '\0';
+			}
+		}
 		return;
 	case PARAM_STORAGE_VMEM:
 		param->vmem->write(param->vmem, param->addr, inbuf, len);
