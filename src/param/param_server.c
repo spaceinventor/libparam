@@ -16,8 +16,6 @@
 #include <param/param_list.h>
 #include <param/param_queue.h>
 
-#include <mpack/mpack.h>
-
 #include "param_log.h"
 #include "param_serializer.h"
 
@@ -34,25 +32,17 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 	response->data[0] = PARAM_PULL_RESPONSE;
 	response->data[1] = 0;
 
-	param_queue_t queue;
-	queue.buffer = (char *) &response->data[2];
-	queue.buffer_size = 256-2;
-	queue.type = PARAM_QUEUE_TYPE_SET;
+	param_queue_t * q_response = param_queue_create(&response->data[2], 256-2, 0, PARAM_QUEUE_TYPE_SET);
+	param_queue_t * q_request = param_queue_create(&request->data[2], 256-2, request->length - 2, PARAM_QUEUE_TYPE_SET);
 
-	mpack_reader_t reader;
-	mpack_reader_init_data(&reader, (char *) &request->data[2], request->length - 2);
-	while(reader.left > 0) {
-		uint16_t short_id = mpack_expect_u16(&reader);
-		if (mpack_reader_error(&reader) != mpack_ok)
-			continue;
-		param_t * param = param_list_find_id(param_parse_short_id_node(short_id), param_parse_short_id_paramid(short_id));
-		if (param == NULL)
-			continue;
-		param_queue_add(&queue, param, NULL);
+	int add_callback(param_queue_t *queue, param_t * param, mpack_reader_t  *reader) {
+		param_queue_add(q_response, param, NULL);
+		return  0;
 	}
+	param_queue_foreach(q_request, add_callback);
 	csp_buffer_free(request);
 
-	response->length = queue.used + 2;
+	response->length = q_response->used + 2;
 	//csp_hex_dump("get handler", response->data, response->length);
 
 	if (!csp_send(conn, response, 0))

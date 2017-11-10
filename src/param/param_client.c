@@ -160,14 +160,14 @@ int param_push_single(param_t *param, void *value, int verbose, int host, int ti
 
 	packet->length = queue->used + 2;
 	packet = param_transaction(packet, host, timeout);
-	param_queue_destroy(queue);
 
 	if (packet == NULL) {
 		printf("No response\n");
+		param_queue_destroy(queue);
 		return -1;
 	}
 
-	param_set(param, 0, value);
+	param_queue_foreach(queue, (param_queue_callback_f) param_deserialize_from_mpack_to_param);
 	csp_buffer_free(packet);
 
 	return 0;
