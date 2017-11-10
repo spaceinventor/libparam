@@ -46,7 +46,6 @@ if slash_dep.found()
 	param_src += files([
 		'src/param/group/param_group_slash.c',	
 		'src/param/list/param_list_slash.c',	
-		'src/param/param_client_slash.c',
 		'src/param/param_slash.c',	
 		'src/vmem/vmem_client_slash_ftp.c',
 		'src/vmem/vmem_client_slash.c',

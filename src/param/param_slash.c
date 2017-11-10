@@ -16,6 +16,7 @@
 #include <param/param.h>
 #include <param/param_list.h>
 #include <param/param_client.h>
+#include <param/param_server.h>
 #include <param/param_queue.h>
 
 #include "param_string.h"
@@ -151,7 +152,7 @@ static int get(struct slash *slash)
 	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
 
 	if (param == NULL) {
-		printf("Parameter %s not found\n", slash->argv[1]);
+		printf("%s not found\n", slash->argv[1]);
 		return SLASH_EINVAL;
 	}
 
@@ -176,10 +177,8 @@ static int set(struct slash *slash)
 	int offset = 0;
 	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
 
-	printf("host %d, node %d\n", host, node);
-
 	if (param == NULL) {
-		printf("Parameter %s not found\n", slash->argv[1]);
+		printf("%s not found\n", slash->argv[1]);
 		return SLASH_EINVAL;
 	}
 
@@ -191,16 +190,13 @@ static int set(struct slash *slash)
 
 		/* If host is specified, set single now */
 		if (host != -1) {
-			printf("Sending now\n");
 			param_push_single(param, valuebuf, 1, host, 1000);
 
 		/* Add to queue */
 		} else {
 			if (!queue) {
-				printf("Created new queue\n");
 				queue = param_queue_create(NULL, 256);
 			}
-			printf("Adding to queue\n");
 			param_queue_add(queue, param, valuebuf);
 			param_queue_print(queue);
 		}
@@ -216,7 +212,7 @@ static int set(struct slash *slash)
 }
 slash_command_completer(set, set, param_completer, "<param> <value>", "Set");
 
-static int param_client_slash_push(struct slash *slash)
+static int push(struct slash *slash)
 {
 	unsigned int node = 0;
 	unsigned int timeout = 100;
@@ -232,9 +228,57 @@ static int param_client_slash_push(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command(push, param_client_slash_push, "<node> [timeout]", NULL);
+slash_command(push, push, "<node> [timeout]", NULL);
 
-static int param_client_slash_clear(struct slash *slash)
+static int pull(struct slash *slash)
+{
+	unsigned int node = 0;
+	unsigned int timeout = 100;
+
+	if (slash->argc < 2)
+		return SLASH_EUSAGE;
+	if (slash->argc >= 2)
+		node = atoi(slash->argv[1]);
+	if (slash->argc >= 3)
+		timeout = atoi(slash->argv[2]);
+
+	/* Clear queue first */
+	param_t * params[100];
+	int params_count = 0;
+	int response_size = 0;
+
+	void send_queue(void) {
+		param_pull(params, params_count, 1, node, timeout);
+		params_count = 0;
+		response_size = 0;
+	}
+
+	param_t * param;
+	param_list_iterator i = {};
+	while ((param = param_list_iterate(&i)) != NULL) {
+
+		if (param->node != node)
+			continue;
+
+		int param_packed_size = sizeof(uint16_t) + param_size(param);
+		if (response_size + param_packed_size >= PARAM_SERVER_MTU) {
+			send_queue();
+		}
+
+		params[params_count++] = param;
+		response_size += param_packed_size;
+	}
+
+	if (params_count == 0)
+		return SLASH_SUCCESS;
+
+	send_queue();
+
+	return SLASH_SUCCESS;
+}
+slash_command(pull, pull, "<node> [timeout]", NULL);
+
+static int clear(struct slash *slash)
 {
 	if (queue)
 		param_queue_destroy(queue);
@@ -242,4 +286,4 @@ static int param_client_slash_clear(struct slash *slash)
 	printf("Queue cleared\n");
 	return SLASH_SUCCESS;
 }
-slash_command(clear, param_client_slash_clear, NULL, NULL);
+slash_command(clear, clear, NULL, NULL);

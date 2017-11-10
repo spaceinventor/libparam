@@ -125,32 +125,6 @@ static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
 		printf("<mpack parsing error %s>\n", mpack_error_to_string(mpack_reader_error(&reader)));
 	}
 
-#if 0
-	uint32_t timestamp = csp_get_ms();
-	uint8_t node = 255;
-
-	uint8_t * input = &packet->data[2];
-	while(input < packet->data + packet->length) {
-		switch(*input) {
-			case PARAM_CHUNK_TIME:
-				input += param_deserialize_chunk_timestamp(&timestamp, input);
-				break;
-			case PARAM_CHUNK_NODE:
-				input += param_deserialize_chunk_node(&node, input);
-				break;
-			case PARAM_CHUNK_PARAM_AND_VALUE: {
-				input += param_deserialize_chunk_param_and_value(node, timestamp, 0, input);
-				break;
-			}
-			default:
-				printf("Invalid type %u\n", *input);
-				csp_buffer_free(packet);
-				return;
-		}
-	}
-
-#endif
-
 	/* Send ack */
 	memcpy(packet->data, "ok", 2);
 	packet->length = 2;
