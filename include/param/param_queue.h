@@ -17,7 +17,8 @@ typedef enum {
 } param_queue_type_e;
 
 struct param_queue_s {
-	char *buffer;
+	char *intbuffer;
+	char *extbuffer;
 	mpack_writer_t writer;
 	param_queue_type_e type;
 };
@@ -28,7 +29,8 @@ param_queue_t * param_queue_create(void * buffer, int buffer_length, param_queue
 void param_queue_destroy(param_queue_t *queue);
 
 void param_queue_print(param_queue_t *queue);
-int param_queue_add(param_queue_t *queue, param_t * param, void * value);
+int param_queue_push(param_queue_t *queue, param_t * param, void * value);
+int param_queue_pop(param_queue_t *queue, param_t * param, void * value);
 
 
 

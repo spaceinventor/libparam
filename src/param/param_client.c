@@ -22,111 +22,106 @@
 #include "param_serializer.h"
 #include "param_string.h"
 
-#define MAX_NODES 10
+csp_packet_t * param_transaction(csp_packet_t *packet, int host, int timeout) {
 
-csp_packet_t * param_pull_request(param_t * params[], int count, int host) {
-
-	if (count <= 0)
-		return NULL;
-
-	csp_packet_t * packet = csp_buffer_get(256);
-	if (packet == NULL)
-		return NULL;
-
-	/* Generate pull request */
-	packet->data[0] = PARAM_PULL_REQUEST;
-	packet->data[1] = 0;
-	uint8_t * output = &packet->data[2];
-
-	mpack_writer_t writer;
-	mpack_writer_init(&writer, (char *) output, 256 - 2);
-
-	/* Pack id's */
-	mpack_start_ext(&writer, 0, count * sizeof(uint16_t));
-	for (int i = 0; i < count; i++) {
-		printf("Write %s %x\n", params[i]->name, param_get_short_id(params[i], 0, 0));
-		const uint16_t id = param_get_short_id(params[i], 0, 0);
-		mpack_write_bytes(&writer, (const char *) &id, sizeof(id));
-	}
-	mpack_finish_ext(&writer);
-
-	/* Calculate frame length */
-	packet->length = writer.used + 2;
-
-	return packet;
-}
-
-int param_pull_single(param_t * param, int verbose, int host, int timeout) {
-	param_t * params[1] = { param };
-	return param_pull(params, 1, verbose, host, timeout);
-}
-
-int param_pull(param_t * params[], int count, int verbose, int host, int timeout) {
-
-	csp_packet_t * packet = param_pull_request(params, count, host);
-	if (packet == NULL)
-		return -1;
-
-	csp_hex_dump("request", packet->data, packet->length);
+	//csp_hex_dump("transaction", packet->data, packet->length);
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
 	if (conn == NULL) {
 		csp_buffer_free(packet);
-		return -1;
+		return NULL;
 	}
 
 	if (!csp_send(conn, packet, 0)) {
 		csp_close(conn);
 		csp_buffer_free(packet);
-		return -1;
+		return NULL;
+	}
+
+	if (timeout == -1) {
+		csp_close(conn);
+		return NULL;
 	}
 
 	packet = csp_read(conn, timeout);
 	if (packet == NULL) {
 		csp_close(conn);
-		return -1;
+		return NULL;
 	}
 
-	csp_hex_dump("Response", packet->data, packet->length);
+	//csp_hex_dump("transaction response", packet->data, packet->length);
 
-	param_serve_pull_response(conn, packet, verbose);
 	csp_close(conn);
-
-	return 0;
-
+	return packet;
 }
 
-static int param_push_request(csp_packet_t *packet, int verbose, int host, int timeout) {
-	csp_hex_dump("push", packet->data, packet->length);
+void param_pull_response(csp_packet_t * response, int verbose) {
+	//csp_hex_dump("pull response", response->data, response->length);
 
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
-	if (conn == NULL) {
-		csp_buffer_free(packet);
-		packet = NULL;
-		return -1;
+	mpack_reader_t reader;
+	mpack_reader_init_data(&reader, (char *) &response->data[2], response->length - 2);
+	while(reader.left > 0) {
+		param_t *param = param_deserialize_from_mpack(&reader);
+		if (param && verbose)
+			param_print(param, -1, NULL, 0, 1);
 	}
+	mpack_reader_destroy(&reader);
+	csp_buffer_free(response);
+}
 
-	if (!csp_send(conn, packet, 0)) {
-		csp_close(conn);
-		csp_buffer_free(packet);
-		return -1;
-	}
 
-	csp_packet_t *response = csp_read(conn, timeout);
-	if (response == NULL) {
-		csp_close(conn);
+int param_pull_queue(param_queue_t *queue, int verbose, int host, int timeout) {
+
+	if (queue->writer.used == 0)
+		return 0;
+
+	// TODO: include unique packet id?
+	csp_packet_t * packet = csp_buffer_get(256);
+	if (packet == NULL)
+		return -2;
+
+	packet->data[0] = PARAM_PULL_REQUEST;
+	packet->data[1] = 0;
+
+	memcpy(&packet->data[2], queue->writer.buffer, queue->writer.used);
+
+	packet->length = queue->writer.used + 2;
+	packet = param_transaction(packet, host, timeout);
+
+	if (packet == NULL) {
 		printf("No response\n");
 		return -1;
 	}
 
-	csp_hex_dump("Response", response->data, response->length);
-
-	/* Set status on queue? */
-
-	csp_buffer_free(response);
-	csp_close(conn);
+	param_pull_response(packet, verbose);
 	return 0;
 }
+
+
+int param_pull_single(param_t *param, int verbose, int host, int timeout) {
+
+	// TODO: include unique packet id?
+	csp_packet_t * packet = csp_buffer_get(256);
+	packet->data[0] = PARAM_PULL_REQUEST;
+	packet->data[1] = 0;
+
+	mpack_writer_t writer;
+	mpack_writer_init(&writer, (char *) &packet->data[2], 254);
+	mpack_write_u16(&writer, param_get_short_id(param, 0, 0));
+	mpack_writer_destroy(&writer);
+
+	packet->length = writer.used + 2;
+	packet = param_transaction(packet, host, timeout);
+
+	if (packet == NULL) {
+		printf("No response\n");
+		return -1;
+	}
+
+	param_pull_response(packet, verbose);
+	return 0;
+}
+
 
 int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 
@@ -135,13 +130,34 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 
 	// TODO: include unique packet id?
 	csp_packet_t * packet = csp_buffer_get(256);
+	if (packet == NULL)
+		return -2;
+
 	packet->data[0] = PARAM_PUSH_REQUEST;
 	packet->data[1] = 0;
 
 	memcpy(&packet->data[2], queue->writer.buffer, queue->writer.used);
 
 	packet->length = queue->writer.used + 2;
-	return param_push_request(packet, verbose, host, timeout);
+	packet = param_transaction(packet, host, timeout);
+
+	if (packet == NULL) {
+		printf("No response\n");
+		return -1;
+	}
+
+	printf("Set OK\n");
+	param_queue_print(queue);
+	csp_buffer_free(packet);
+
+	mpack_reader_t reader;
+	mpack_reader_init_data(&reader, (char *) queue->writer.buffer, queue->writer.used);
+	while(reader.left > 0) {
+		param_deserialize_from_mpack(&reader);
+	}
+	mpack_reader_destroy(&reader);
+
+	return 0;
 }
 
 int param_push_single(param_t *param, void *value, int verbose, int host, int timeout) {
@@ -156,125 +172,18 @@ int param_push_single(param_t *param, void *value, int verbose, int host, int ti
 	param_serialize_to_mpack(param, &writer, value);
 
 	packet->length = writer.used + 2;
-	return param_push_request(packet, verbose, host, timeout);
-}
+	packet = param_transaction(packet, host, timeout);
 
-
-#if 0
-int param_push_single(param_t * param, int verbose, int host, int timeout) {
-	param_t * params[1] = { param };
-	return param_push(params, 1, verbose, host, timeout);
-}
-
-int param_push(param_t * params[], int count, int verbose, int host, int timeout) {
-
-
-#if 0
-int param_serialize_chunk_param_and_value(param_t * params[], uint8_t count, uint8_t * out, int pending_only) {
-
-	out[0] = PARAM_CHUNK_PARAM_AND_VALUE;
-	out[1] = 0;
-
-	int outset = 2;
-	for (int i = 0; i < count; i++) {
-
-		/* Filter:
-		 * When sending pending parameters (push) we wish to skip non pending parameters */
-		if (pending_only == 1) {
-			if ((params[i]->value_set == NULL) || (params[i]->value_pending != 1))
-				continue;
-		}
-
-		if (outset + sizeof(uint16_t) + param_size(params[i]) > PARAM_SERVER_MTU) {
-			printf("Request cropped: > MTU\n");
-			break;
-		}
-
-		/* ID */
-		uint16_t param_net = csp_hton16(params[i]->id);
-		memcpy(&out[outset], &param_net, sizeof(param_net));
-		outset += sizeof(param_net);
-
-		/* Get actual value */
-		if (pending_only == 0) {
-			char tmp[param_size(params[i])];
-			param_get(params[i], 0, tmp);
-			outset += param_serialize_from_var(params[i]->type, param_size(params[i]), tmp, (char *) &out[outset]);
-
-		/* Get pending value */
-		} else {
-			outset += param_serialize_from_var(params[i]->type, param_size(params[i]), params[i]->value_set, (char *) &out[outset]);
-		}
-
-		/* Increment parameter count */
-		out[1] += 1;
-
-	}
-
-	return outset;
-}
-
-#endif
-
-#if 0
-	csp_packet_t * packet = csp_buffer_get(256);
-	if (packet == NULL)
-		return -1;
-
-	packet->data[0] = PARAM_PUSH_REQUEST;
-	packet->data[1] = 0;
-	uint8_t * output = &packet->data[2];
-	output += param_serialize_chunk_param_and_value(params, count, output, 1);
-	packet->length = output - packet->data;
-
-	/* If there were no parameters to be set */
-	if (packet->length == 0) {
-		csp_buffer_free(packet);
-		return 0;
-	}
-
-	//csp_hex_dump("request", packet->data, packet->length);
-
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
-	if (conn == NULL) {
-		csp_buffer_free(packet);
-		return -1;
-	}
-
-	if (!csp_send(conn, packet, 0)) {
-		csp_close(conn);
-		csp_buffer_free(packet);
-		return -1;
-	}
-
-	packet = csp_read(conn, timeout);
 	if (packet == NULL) {
-		csp_close(conn);
-		//printf("No response\n");
+		printf("No response\n");
+		mpack_writer_destroy(&writer);
 		return -1;
 	}
 
-	//csp_hex_dump("Response", packet->data, packet->length);
-
-	for (int i = 0; i < count; i++) {
-		if ((params[i]->value_set == NULL) || (params[i]->value_pending == 0))
-			continue;
-		params[i]->value_pending = 2;
-
-		if (params[i]->value_get) {
-			memcpy(params[i]->value_get, params[i]->value_set, param_size(params[i]));
-		}
-
-		if (verbose)
-			param_print(params[i], -1, NULL, 0, 2);
-
-	}
-
+	param_set(param, 0, value);
 	csp_buffer_free(packet);
-	csp_close(conn);
 
-#endif
+	mpack_writer_destroy(&writer);
 	return 0;
 }
 
-#endif

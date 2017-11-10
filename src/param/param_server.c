@@ -12,7 +12,9 @@
 #include <csp/csp_endian.h>
 #include <param/param.h>
 #include <param/param_server.h>
+#include <param/param_client.h>
 #include <param/param_list.h>
+#include <param/param_queue.h>
 
 #include <mpack/mpack.h>
 
@@ -21,95 +23,47 @@
 
 void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 
-	csp_hex_dump("get handler", request->data, request->length);
+	//csp_hex_dump("get handler", request->data, request->length);
 
-	mpack_reader_t reader;
-	mpack_reader_init_data(&reader, (char *) &request->data[2], request->length - 2);
-
-	/* Expect an ext field */
-	mpack_tag_t tag = mpack_read_tag(&reader);
-
-	if (tag.type != mpack_type_ext || tag.v.l > PARAM_SERVER_MTU) {
-		mpack_reader_destroy(&reader);
+	csp_packet_t * response = csp_buffer_get(256);
+	if (response == NULL) {
 		csp_buffer_free(request);
 		return;
 	}
 
-	uint8_t count = 0;
-	param_t * params[100];
+	response->data[0] = PARAM_PUSH_REQUEST;
+	response->data[1] = 0;
 
-	for(int i = 0; i < tag.v.l / sizeof(uint16_t); i++) {
-		uint16_t short_id;
-		mpack_read_bytes(&reader, (char *) &short_id, sizeof(short_id));
-		printf("Short id %u\n", short_id);
+	param_queue_t queue;
+	queue.extbuffer = (char *) &response->data[2];
+	queue.type = PARAM_QUEUE_TYPE_SET;
+	mpack_writer_init(&queue.writer, queue.extbuffer, 256-2);
+
+	mpack_reader_t reader;
+	mpack_reader_init_data(&reader, (char *) &request->data[2], request->length - 2);
+	while(reader.left > 0) {
+		uint16_t short_id = mpack_expect_u16(&reader);
+		if (mpack_reader_error(&reader) != mpack_ok)
+			continue;
 		param_t * param = param_list_find_id(param_parse_short_id_node(short_id), param_parse_short_id_paramid(short_id));
 		if (param == NULL)
 			continue;
-		params[count++] = param;
+		param_queue_push(&queue, param, NULL);
 	}
-
-	/* Reading is done */
 	mpack_reader_destroy(&reader);
+	csp_buffer_free(request);
 
-	printf("Reuse\n");
-	/* Reuse CSP buffer */
-	csp_packet_t * response = request;
-	response->data[0] = PARAM_PULL_RESPONSE;
-	response->data[1] = 0;
-
-	mpack_writer_t writer;
-	mpack_writer_init(&writer, (char *) &response->data[2], PARAM_SERVER_MTU - 2);
-
-	/* Pack id's and data */
-	mpack_start_map(&writer, count);
-	for (int i = 0; i < count; i++) {
-		printf("I %u\n", i);
-		param_serialize_to_mpack(params[i], &writer, NULL);
-	}
-	mpack_finish_map(&writer);
-
-	mpack_print(writer.buffer, writer.used);
-
-	response->length = writer.used + 2;
-
-	csp_hex_dump("get handler", response->data, response->length);
+	response->length = queue.writer.used + 2;
+	//csp_hex_dump("get handler", response->data, response->length);
 
 	if (!csp_send(conn, response, 0))
 		csp_buffer_free(response);
 }
 
-void param_serve_pull_response(csp_conn_t * conn, csp_packet_t * packet, int verbose) {
-
-	csp_hex_dump("pull response", packet->data, packet->length);
-
-	mpack_reader_t reader;
-	mpack_reader_init_data(&reader, (char *) &packet->data[2], packet->length - 2);
-
-	mpack_print(reader.buffer, reader.left);
-
-	/* Expect a map field */
-	unsigned int count = mpack_expect_map(&reader);
-
-	if (count == 0) {
-		mpack_reader_destroy(&reader);
-		csp_buffer_free(packet);
-		return;
-	}
-
-	for(int i = 0; i < count; i++) {
-		param_deserialize_from_mpack(&reader);
-	}
-
-	/* Reading is done */
-	mpack_reader_destroy(&reader);
-
-	csp_buffer_free(packet);
-}
-
 static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
 {
 
-	csp_hex_dump("set handler", packet->data, packet->length);
+	//csp_hex_dump("set handler", packet->data, packet->length);
 
 	mpack_reader_t reader;
 	mpack_reader_init_data(&reader, (char *) &packet->data[2], packet->length - 2);
@@ -129,7 +83,7 @@ static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
 	memcpy(packet->data, "ok", 2);
 	packet->length = 2;
 
-	csp_hex_dump("set handler", packet->data, packet->length);
+	//csp_hex_dump("set handler", packet->data, packet->length);
 
 	if (!csp_send(conn, packet, 0))
 		csp_buffer_free(packet);
@@ -143,7 +97,7 @@ static void param_serve(csp_conn_t * conn, csp_packet_t * packet) {
 			break;
 
 		case PARAM_PULL_RESPONSE:
-			param_serve_pull_response(conn, packet, 1);
+			param_pull_response(packet, 1);
 			break;
 
 		case PARAM_PUSH_REQUEST:

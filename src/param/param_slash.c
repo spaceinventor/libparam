@@ -158,25 +158,27 @@ static int cmd_get(struct slash *slash)
 	}
 
 	/* Remote parameters are sent to a queue or directly */
+	int result = 0;
 	if (param->storage_type == PARAM_STORAGE_REMOTE) {
 
 
 		if ((node != -1) && (autosend)) {
-			param_pull_single(param, 0, node, 1000);
+			result = param_pull_single(param, 0, node, 1000);
 		} else if (host != -1) {
-			param_pull_single(param, 0, host, 1000);
+			result = param_pull_single(param, 0, host, 1000);
 		} else {
 			if (!queue_get) {
 				queue_get = param_queue_create(NULL, 256, PARAM_QUEUE_TYPE_GET);
 			}
-			param_queue_add(queue_get, param, NULL);
+			result = param_queue_push(queue_get, param, NULL);
 			param_queue_print(queue_get);
 			return SLASH_SUCCESS;
 		}
 
 	}
 
-	param_print(param, offset, NULL, 0, 2);
+	if (result >= 0)
+		param_print(param, offset, NULL, 0, 2);
 
 	return SLASH_SUCCESS;
 }
@@ -202,17 +204,18 @@ static int cmd_set(struct slash *slash)
 	param_str_to_value(param->type, slash->argv[2], valuebuf);
 
 	/* Remote parameters are sent to a queue or directly */
+	int result = 0;
 	if (param->storage_type == PARAM_STORAGE_REMOTE) {
 
 		if ((node != -1) && (autosend)) {
-			param_push_single(param, valuebuf, 1, node, 1000);
+			result = param_push_single(param, valuebuf, 1, node, 1000);
 		} else if (host != -1) {
-			param_push_single(param, valuebuf, 1, host, 1000);
+			result = param_push_single(param, valuebuf, 1, host, 1000);
 		} else {
 			if (!queue_set) {
 				queue_set = param_queue_create(NULL, 256, PARAM_QUEUE_TYPE_SET);
 			}
-			param_queue_add(queue_set, param, valuebuf);
+			result = param_queue_push(queue_set, param, valuebuf);
 			param_queue_print(queue_set);
 		}
 
@@ -221,7 +224,8 @@ static int cmd_set(struct slash *slash)
 		param_set(param, offset, valuebuf);
 	}
 
-	param_print(param, -1, NULL, 0, 2);
+	if (result >= 0)
+		param_print(param, -1, NULL, 0, 2);
 
 	return SLASH_SUCCESS;
 }
@@ -247,51 +251,18 @@ slash_command(push, cmd_push, "<node> [timeout]", NULL);
 
 static int cmd_pull(struct slash *slash)
 {
-	unsigned int node = 0;
+	unsigned int host = 0;
 	unsigned int timeout = 100;
 
 	if (slash->argc < 2)
 		return SLASH_EUSAGE;
 	if (slash->argc >= 2)
-		node = atoi(slash->argv[1]);
+		host = atoi(slash->argv[1]);
 	if (slash->argc >= 3)
 		timeout = atoi(slash->argv[2]);
 
-	param_queue_print(queue_get);
-
-#if 0
-	/* Clear queue first */
-	param_t * params[100];
-	int params_count = 0;
-	int response_size = 0;
-
-	void send_queue(void) {
-		param_pull(params, params_count, 1, node, timeout);
-		params_count = 0;
-		response_size = 0;
-	}
-
-	param_t * param;
-	param_list_iterator i = {};
-	while ((param = param_list_iterate(&i)) != NULL) {
-
-		if (param->node != node)
-			continue;
-
-		int param_packed_size = sizeof(uint16_t) + param_size(param);
-		if (response_size + param_packed_size >= PARAM_SERVER_MTU) {
-			send_queue();
-		}
-
-		params[params_count++] = param;
-		response_size += param_packed_size;
-	}
-
-	if (params_count == 0)
-		return SLASH_SUCCESS;
-
-	send_queue();
-#endif
+	printf("-----------\n");
+	param_pull_queue(queue_get, 1, host, timeout);
 
 	return SLASH_SUCCESS;
 }

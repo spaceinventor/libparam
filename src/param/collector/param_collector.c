@@ -26,6 +26,7 @@
 	if (param->storage_type != PARAM_STORAGE_REMOTE) \
 		continue; \
 
+#if 0
 csp_thread_return_t param_collector_task(void *pvParameters)
 {
 	while(1) {
@@ -116,5 +117,5 @@ csp_thread_return_t param_collector_task(void *pvParameters)
 
 	}
 }
-
+#endif
 

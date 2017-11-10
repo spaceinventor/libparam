@@ -27,7 +27,7 @@ void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * v
 
 	// TODO: Implement arrays
 
-	printf("param %s value %p\n", param->name, value);
+	//printf("param %s value %p\n", param->name, value);
 
 	switch (param->type) {
 	case PARAM_TYPE_UINT8:
@@ -142,7 +142,7 @@ void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * v
 
 }
 
-void param_deserialize_from_mpack(mpack_reader_t * reader) {
+param_t * param_deserialize_from_mpack(mpack_reader_t * reader) {
 
 	// TODO: Implement arrays as value
 	unsigned int i = 0;
@@ -151,7 +151,7 @@ void param_deserialize_from_mpack(mpack_reader_t * reader) {
 	param_t * param = param_list_find_id(param_parse_short_id_node(short_id),
 			param_parse_short_id_paramid(short_id));
 	if (param == NULL)
-		return;
+		return NULL;
 
 	switch (param->type) {
 	case PARAM_TYPE_UINT8:
@@ -200,5 +200,7 @@ void param_deserialize_from_mpack(mpack_reader_t * reader) {
 		mpack_discard(reader);
 		break;
 	}
+
+	return param;
 
 }

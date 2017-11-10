@@ -19,23 +19,22 @@ param_queue_t * param_queue_create(void * buffer, int buffer_length, param_queue
 	param_queue_t * queue = malloc(sizeof(param_queue_t));
 
 	if (buffer) {
-		queue->buffer = buffer;
+		queue->extbuffer = buffer;
+		mpack_writer_init(&queue->writer, queue->extbuffer, buffer_length);
 	} else {
-		queue->buffer = malloc(buffer_length);
+		queue->intbuffer = malloc(buffer_length);
+		mpack_writer_init(&queue->writer, queue->intbuffer, buffer_length);
 	}
 
 	queue->type = type;
-
-	mpack_writer_init(&queue->writer, queue->buffer, buffer_length);
-	printf("writer buffer %p csp buffer %p\n", queue->writer.buffer, queue->buffer);
-
 	return queue;
+
 }
 
 void param_queue_destroy(param_queue_t *queue) {
 	mpack_writer_destroy(&queue->writer);
-	if (queue->buffer)
-		free(queue->buffer);
+	if (queue->intbuffer)
+		free(queue->intbuffer);
 	free(queue);
 }
 
@@ -70,7 +69,7 @@ void param_queue_print(param_queue_t *queue) {
 
 }
 
-int param_queue_add(param_queue_t *queue, param_t *param, void *value) {
+int param_queue_push(param_queue_t *queue, param_t *param, void *value) {
 	if (queue->type == PARAM_QUEUE_TYPE_SET) {
 		param_serialize_to_mpack(param, &queue->writer, value);
 	} else {

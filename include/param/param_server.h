@@ -41,7 +41,6 @@ typedef struct {
 } __attribute__((packed)) rparam_transfer_t;
 
 void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request);
-void param_serve_pull_response(csp_conn_t * conn, csp_packet_t * packet, int verbose);
 
 static inline uint16_t param_get_short_id(param_t * param, unsigned int reserved1, unsigned int reserved2) {
 	uint16_t node = (param->node == 255) ? csp_get_address() : param->node;

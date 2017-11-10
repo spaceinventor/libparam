@@ -111,6 +111,7 @@ void param_group_param_add(param_group_t *group, param_t *param) {
 
 }
 
+#if 0
 int param_group_pull(param_group_t * group, int host, int timeout) {
 
 	param_t * pull_params[group->count];
@@ -162,6 +163,7 @@ int param_group_pull(param_group_t * group, int host, int timeout) {
 	return 0;
 
 }
+#endif
 
 void param_group_from_string(FILE *stream) {
 

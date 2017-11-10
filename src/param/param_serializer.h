@@ -13,6 +13,6 @@
 #include <mpack/mpack.h>
 
 void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * value);
-void param_deserialize_from_mpack(mpack_reader_t * reader);
+param_t * param_deserialize_from_mpack(mpack_reader_t * reader);
 
 #endif /* SRC_PARAM_PARAM_SERIALIZER_H_ */

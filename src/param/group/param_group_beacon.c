@@ -18,6 +18,7 @@
 #define DEFAULT_SLEEP 10000 // [ms]
 #define SLEEP_MIN 100 // [ms]
 
+#if 0
 csp_thread_return_t param_group_beacon_task(void *pvParameters) {
 
 	while(1) {
@@ -63,3 +64,4 @@ csp_thread_return_t param_group_beacon_task(void *pvParameters) {
 	}
 
 }
+#endif

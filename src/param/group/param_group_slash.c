@@ -86,6 +86,7 @@ slash_command_sub(group, load, param_group_store_file_load_slash, NULL, NULL);
 
 #endif
 
+#if 0
 static int group_pull_slash(struct slash *slash)
 {
 	if (slash->argc < 2)
@@ -124,4 +125,4 @@ static int group_pull_slash(struct slash *slash)
 	return SLASH_SUCCESS;
 }
 slash_command_sub(group, pull, group_pull_slash, "<group_name> [node] [timeout]", NULL);
-
+#endif
