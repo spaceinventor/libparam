@@ -17,10 +17,11 @@ typedef enum {
 } param_queue_type_e;
 
 struct param_queue_s {
-	char *intbuffer;
-	char *extbuffer;
-	mpack_writer_t writer;
+	char *buffer;
+	int buffer_internal;
+	int buffer_size;
 	param_queue_type_e type;
+	int used;
 };
 
 typedef struct param_queue_s param_queue_t;

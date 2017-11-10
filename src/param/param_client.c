@@ -74,7 +74,7 @@ void param_pull_response(csp_packet_t * response, int verbose) {
 
 int param_pull_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 
-	if (queue->writer.used == 0)
+	if ((queue == NULL) || (queue->used == 0))
 		return 0;
 
 	// TODO: include unique packet id?
@@ -85,9 +85,9 @@ int param_pull_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 	packet->data[0] = PARAM_PULL_REQUEST;
 	packet->data[1] = 0;
 
-	memcpy(&packet->data[2], queue->writer.buffer, queue->writer.used);
+	memcpy(&packet->data[2], queue->buffer, queue->used);
 
-	packet->length = queue->writer.used + 2;
+	packet->length = queue->used + 2;
 	packet = param_transaction(packet, host, timeout);
 
 	if (packet == NULL) {
@@ -127,7 +127,7 @@ int param_pull_single(param_t *param, int verbose, int host, int timeout) {
 
 int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 
-	if (queue->writer.used == 0)
+	if (queue->used == 0)
 		return 0;
 
 	// TODO: include unique packet id?
@@ -138,9 +138,9 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 	packet->data[0] = PARAM_PUSH_REQUEST;
 	packet->data[1] = 0;
 
-	memcpy(&packet->data[2], queue->writer.buffer, queue->writer.used);
+	memcpy(&packet->data[2], queue->buffer, queue->used);
 
-	packet->length = queue->writer.used + 2;
+	packet->length = queue->used + 2;
 	packet = param_transaction(packet, host, timeout);
 
 	if (packet == NULL) {
@@ -153,7 +153,7 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 	csp_buffer_free(packet);
 
 	mpack_reader_t reader;
-	mpack_reader_init_data(&reader, (char *) queue->writer.buffer, queue->writer.used);
+	mpack_reader_init_data(&reader, (char *) queue->buffer, queue->used);
 	while(reader.left > 0) {
 		param_deserialize_from_mpack(&reader);
 	}

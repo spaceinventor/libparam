@@ -215,8 +215,9 @@ static int cmd_set(struct slash *slash)
 			if (!queue_set) {
 				queue_set = param_queue_create(NULL, 256, PARAM_QUEUE_TYPE_SET);
 			}
-			result = param_queue_push(queue_set, param, valuebuf);
+			param_queue_push(queue_set, param, valuebuf);
 			param_queue_print(queue_set);
+			result = -1; // Do not print result
 		}
 
 	/* For local parameters, set immediately */
@@ -261,7 +262,7 @@ static int cmd_pull(struct slash *slash)
 	if (slash->argc >= 3)
 		timeout = atoi(slash->argv[2]);
 
-	printf("-----------\n");
+	printf("\n");
 	param_pull_queue(queue_get, 1, host, timeout);
 
 	return SLASH_SUCCESS;

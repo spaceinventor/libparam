@@ -31,13 +31,13 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 		return;
 	}
 
-	response->data[0] = PARAM_PUSH_REQUEST;
+	response->data[0] = PARAM_PULL_RESPONSE;
 	response->data[1] = 0;
 
 	param_queue_t queue;
-	queue.extbuffer = (char *) &response->data[2];
+	queue.buffer = (char *) &response->data[2];
+	queue.buffer_size = 256-2;
 	queue.type = PARAM_QUEUE_TYPE_SET;
-	mpack_writer_init(&queue.writer, queue.extbuffer, 256-2);
 
 	mpack_reader_t reader;
 	mpack_reader_init_data(&reader, (char *) &request->data[2], request->length - 2);
@@ -50,10 +50,9 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 			continue;
 		param_queue_push(&queue, param, NULL);
 	}
-	mpack_reader_destroy(&reader);
 	csp_buffer_free(request);
 
-	response->length = queue.writer.used + 2;
+	response->length = queue.used + 2;
 	//csp_hex_dump("get handler", response->data, response->length);
 
 	if (!csp_send(conn, response, 0))
@@ -70,14 +69,10 @@ static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
 
 	while(reader.left > 0) {
 		param_deserialize_from_mpack(&reader);
-		if (mpack_reader_error(&reader) != mpack_ok)
-			break;
-	}
-
-	if (mpack_reader_destroy(&reader) != mpack_ok) {
-		printf("parser error\n");
-		csp_buffer_free(packet);
-		return;
+		if (mpack_reader_error(&reader) != mpack_ok) {
+			csp_buffer_free(packet);
+			return;
+		}
 	}
 
 	/* Send ack */

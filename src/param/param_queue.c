@@ -14,34 +14,36 @@
 #include <param/param_list.h>
 #include "param_serializer.h"
 
-param_queue_t * param_queue_create(void * buffer, int buffer_length, param_queue_type_e type) {
+param_queue_t * param_queue_create(void * buffer, int buffer_size, param_queue_type_e type) {
 
 	param_queue_t * queue = malloc(sizeof(param_queue_t));
 
 	if (buffer) {
-		queue->extbuffer = buffer;
-		mpack_writer_init(&queue->writer, queue->extbuffer, buffer_length);
+		queue->buffer = buffer;
+		queue->buffer_internal = 0;
 	} else {
-		queue->intbuffer = malloc(buffer_length);
-		mpack_writer_init(&queue->writer, queue->intbuffer, buffer_length);
+		queue->buffer = malloc(buffer_size);
+		queue->buffer_internal = 1;
 	}
 
+	queue->buffer_size = buffer_size;
 	queue->type = type;
+	queue->used = 0;
+
 	return queue;
 
 }
 
 void param_queue_destroy(param_queue_t *queue) {
-	mpack_writer_destroy(&queue->writer);
-	if (queue->intbuffer)
-		free(queue->intbuffer);
+	if (queue->buffer_internal)
+		free(queue->buffer);
 	free(queue);
 }
 
 void param_queue_print(param_queue_t *queue) {
 
 	mpack_reader_t reader;
-	mpack_reader_init_data(&reader, queue->writer.buffer, queue->writer.used);
+	mpack_reader_init_data(&reader, queue->buffer, queue->used);
 
 	size_t remaining;
 	while((remaining = mpack_reader_remaining(&reader, NULL)) > 0) {
@@ -70,10 +72,14 @@ void param_queue_print(param_queue_t *queue) {
 }
 
 int param_queue_push(param_queue_t *queue, param_t *param, void *value) {
+	mpack_writer_t writer;
+	mpack_writer_init(&writer, queue->buffer, queue->buffer_size);
+	writer.used = queue->used;
 	if (queue->type == PARAM_QUEUE_TYPE_SET) {
-		param_serialize_to_mpack(param, &queue->writer, value);
+		param_serialize_to_mpack(param, &writer, value);
 	} else {
-		mpack_write_u16(&queue->writer, param_get_short_id(param, 0, 0));
+		mpack_write_u16(&writer, param_get_short_id(param, 0, 0));
 	}
+	queue->used = writer.used;
 	return 0;
 }
