@@ -48,7 +48,7 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 		param_t * param = param_list_find_id(param_parse_short_id_node(short_id), param_parse_short_id_paramid(short_id));
 		if (param == NULL)
 			continue;
-		param_queue_push(&queue, param, NULL);
+		param_queue_add(&queue, param, NULL);
 	}
 	csp_buffer_free(request);
 
@@ -61,18 +61,15 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 
 static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
 {
-
 	//csp_hex_dump("set handler", packet->data, packet->length);
 
-	mpack_reader_t reader;
-	mpack_reader_init_data(&reader, (char *) &packet->data[2], packet->length - 2);
+	param_queue_t * queue = param_queue_create(&packet->data[2], packet->length - 2, packet->length - 2, PARAM_QUEUE_TYPE_SET);
+	int result = param_queue_foreach(queue, (param_queue_callback_f) param_deserialize_from_mpack_to_param);
+	param_queue_destroy(queue);
 
-	while(reader.left > 0) {
-		param_deserialize_from_mpack(&reader);
-		if (mpack_reader_error(&reader) != mpack_ok) {
-			csp_buffer_free(packet);
-			return;
-		}
+	if (result != 0) {
+		csp_buffer_free(packet);
+		return;
 	}
 
 	/* Send ack */

@@ -168,9 +168,9 @@ static int cmd_get(struct slash *slash)
 			result = param_pull_single(param, 0, host, 1000);
 		} else {
 			if (!queue_get) {
-				queue_get = param_queue_create(NULL, 256, PARAM_QUEUE_TYPE_GET);
+				queue_get = param_queue_create(NULL, 256, 0, PARAM_QUEUE_TYPE_GET);
 			}
-			result = param_queue_push(queue_get, param, NULL);
+			result = param_queue_add(queue_get, param, NULL);
 			param_queue_print(queue_get);
 			return SLASH_SUCCESS;
 		}
@@ -213,9 +213,9 @@ static int cmd_set(struct slash *slash)
 			result = param_push_single(param, valuebuf, 1, host, 1000);
 		} else {
 			if (!queue_set) {
-				queue_set = param_queue_create(NULL, 256, PARAM_QUEUE_TYPE_SET);
+				queue_set = param_queue_create(NULL, 256, 0, PARAM_QUEUE_TYPE_SET);
 			}
-			param_queue_push(queue_set, param, valuebuf);
+			param_queue_add(queue_set, param, valuebuf);
 			param_queue_print(queue_set);
 			result = -1; // Do not print result
 		}

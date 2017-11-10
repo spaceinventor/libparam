@@ -17,8 +17,6 @@
 #include <param/param_client.h>
 #include <param/param_queue.h>
 
-#include <mpack/mpack.h>
-
 #include "param_serializer.h"
 #include "param_string.h"
 
@@ -56,18 +54,13 @@ csp_packet_t * param_transaction(csp_packet_t *packet, int host, int timeout) {
 }
 
 void param_pull_response(csp_packet_t * response, int verbose) {
-	//csp_hex_dump("pull response", response->data, response->length);
 
-	mpack_reader_t reader;
-	mpack_reader_init_data(&reader, (char *) &response->data[2], response->length - 2);
-	while(reader.left > 0) {
-		param_t *param = param_deserialize_from_mpack(&reader);
-		if (mpack_reader_error(&reader) != mpack_ok)
-			break;
-		if (param && verbose)
-			param_print(param, -1, NULL, 0, 1);
-	}
-	mpack_reader_destroy(&reader);
+	//csp_hex_dump("pull response", response->data, response->length);
+	param_queue_t * queue = param_queue_create(&response->data[2], response->length - 2, response->length - 2, PARAM_QUEUE_TYPE_SET);
+	param_queue_print(queue);
+	param_queue_foreach(queue, (param_queue_callback_f) param_deserialize_from_mpack_to_param);
+	param_queue_destroy(queue);
+
 	csp_buffer_free(response);
 }
 
@@ -107,13 +100,12 @@ int param_pull_single(param_t *param, int verbose, int host, int timeout) {
 	packet->data[0] = PARAM_PULL_REQUEST;
 	packet->data[1] = 0;
 
-	mpack_writer_t writer;
-	mpack_writer_init(&writer, (char *) &packet->data[2], 254);
-	mpack_write_u16(&writer, param_get_short_id(param, 0, 0));
-	mpack_writer_destroy(&writer);
+	param_queue_t * queue = param_queue_create(&packet->data[2], 256 - 2, 0, PARAM_QUEUE_TYPE_GET);
+	param_queue_add(queue, param, NULL);
 
-	packet->length = writer.used + 2;
+	packet->length = queue->used + 2;
 	packet = param_transaction(packet, host, timeout);
+	param_queue_destroy(queue);
 
 	if (packet == NULL) {
 		printf("No response\n");
@@ -127,7 +119,7 @@ int param_pull_single(param_t *param, int verbose, int host, int timeout) {
 
 int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 
-	if (queue->used == 0)
+	if ((queue == NULL) || (queue->used == 0))
 		return 0;
 
 	// TODO: include unique packet id?
@@ -147,17 +139,11 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 		printf("No response\n");
 		return -1;
 	}
+	csp_buffer_free(packet);
 
 	printf("Set OK\n");
 	param_queue_print(queue);
-	csp_buffer_free(packet);
-
-	mpack_reader_t reader;
-	mpack_reader_init_data(&reader, (char *) queue->buffer, queue->used);
-	while(reader.left > 0) {
-		param_deserialize_from_mpack(&reader);
-	}
-	mpack_reader_destroy(&reader);
+	param_queue_foreach(queue, (param_queue_callback_f) param_deserialize_from_mpack_to_param);
 
 	return 0;
 }
@@ -169,23 +155,21 @@ int param_push_single(param_t *param, void *value, int verbose, int host, int ti
 	packet->data[0] = PARAM_PUSH_REQUEST;
 	packet->data[1] = 0;
 
-	mpack_writer_t writer;
-	mpack_writer_init(&writer, (char *) &packet->data[2], 254);
-	param_serialize_to_mpack(param, &writer, value);
+	param_queue_t * queue = param_queue_create(&packet->data[2], 256 - 2, 0, PARAM_QUEUE_TYPE_SET);
+	param_queue_add(queue, param, value);
 
-	packet->length = writer.used + 2;
+	packet->length = queue->used + 2;
 	packet = param_transaction(packet, host, timeout);
+	param_queue_destroy(queue);
 
 	if (packet == NULL) {
 		printf("No response\n");
-		mpack_writer_destroy(&writer);
 		return -1;
 	}
 
 	param_set(param, 0, value);
 	csp_buffer_free(packet);
 
-	mpack_writer_destroy(&writer);
 	return 0;
 }
 
