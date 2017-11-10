@@ -62,6 +62,8 @@ void param_pull_response(csp_packet_t * response, int verbose) {
 	mpack_reader_init_data(&reader, (char *) &response->data[2], response->length - 2);
 	while(reader.left > 0) {
 		param_t *param = param_deserialize_from_mpack(&reader);
+		if (mpack_reader_error(&reader) != mpack_ok)
+			break;
 		if (param && verbose)
 			param_print(param, -1, NULL, 0, 1);
 	}

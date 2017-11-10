@@ -68,15 +68,16 @@ static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
 	mpack_reader_t reader;
 	mpack_reader_init_data(&reader, (char *) &packet->data[2], packet->length - 2);
 
-	size_t remaining;
-	while((remaining = mpack_reader_remaining(&reader, NULL)) > 0) {
+	while(reader.left > 0) {
 		param_deserialize_from_mpack(&reader);
 		if (mpack_reader_error(&reader) != mpack_ok)
 			break;
 	}
 
 	if (mpack_reader_destroy(&reader) != mpack_ok) {
-		printf("<mpack parsing error %s>\n", mpack_error_to_string(mpack_reader_error(&reader)));
+		printf("parser error\n");
+		csp_buffer_free(packet);
+		return;
 	}
 
 	/* Send ack */
