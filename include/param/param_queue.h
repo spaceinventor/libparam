@@ -11,14 +11,20 @@
 #include <param/param.h>
 #include <mpack/mpack.h>
 
+typedef enum {
+	PARAM_QUEUE_TYPE_GET,
+	PARAM_QUEUE_TYPE_SET,
+} param_queue_type_e;
+
 struct param_queue_s {
 	char *buffer;
 	mpack_writer_t writer;
+	param_queue_type_e type;
 };
 
 typedef struct param_queue_s param_queue_t;
 
-param_queue_t * param_queue_create(void * buffer, int buffer_length);
+param_queue_t * param_queue_create(void * buffer, int buffer_length, param_queue_type_e type);
 void param_queue_destroy(param_queue_t *queue);
 
 void param_queue_print(param_queue_t *queue);

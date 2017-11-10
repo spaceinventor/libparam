@@ -223,8 +223,12 @@ void param_set_data(param_t * param, void * inbuf, int len) {
 		param->vmem->write(param->vmem, param->addr, inbuf, len);
 		return;
 	case PARAM_STORAGE_REMOTE:
-		if (param->value_get)
+		if (param->value_get) {
 			memcpy(param->value_get, inbuf, len);
+			if ((param->type == PARAM_TYPE_STRING) && (len < param->size)) {
+				((char *) param->value_get)[len] = '\0';
+			}
+		}
 		return;
 	case PARAM_STORAGE_TEMPLATE:
 		return;

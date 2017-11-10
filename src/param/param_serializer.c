@@ -107,14 +107,17 @@ void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * v
 		break;
 
 	case PARAM_TYPE_STRING: {
-		int len = param->size;
-		if (value && strlen(value) < len)
-			len = strlen(value);
-		mpack_start_str(writer, len);
+		int len;
 		if (value) {
-			memcpy(writer->buffer + writer->used, value, len);
+			len = strnlen(value, param->size);
+			mpack_start_str(writer, len);
+			memcpy(writer->buffer + writer->used, (char *) value, len);
 		} else {
-			param_get_data(param, writer->buffer + writer->used, len);
+			char tmp[param->size];
+			param_get_data(param, tmp, param->size);
+			len = strnlen(tmp, param->size);
+			mpack_start_str(writer, len);
+			memcpy(writer->buffer + writer->used, tmp, len);
 		}
 		writer->used += len;
 		mpack_finish_str(writer);
