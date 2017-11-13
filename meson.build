@@ -22,11 +22,7 @@ param_src = files([
 	'src/param/list/param_list.c',
 
 	'src/param/param_client.c',
-	
-#   TODO: Finish log system
-#	'src/param/param_log_slash.c',
-#	'src/param/param_log.c',
-	
+		
 	'src/param/param_serializer.c',
 	'src/param/param_server.c',
 	'src/param/param_string.c',
