@@ -22,7 +22,13 @@ typedef enum {
 	PARAM_PULL_RESPONSE = 1,
 	PARAM_PUSH_REQUEST 	= 2,
 	PARAM_PUSH_RESPONSE = 3,
+	PARAM_PULL_ALL_REQUEST = 4,
 } param_packet_type_e;
+
+/**
+ * Second byte on all packets contains flags
+ */
+#define PARAM_FLAG_END (1 << 7)
 
 /**
  * Parameter server task:

@@ -26,7 +26,7 @@ static void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) 
 	}
 
 	response->data[0] = PARAM_PULL_RESPONSE;
-	response->data[1] = 0;
+	response->data[1] = PARAM_FLAG_END;
 
 	param_queue_t * q_response = param_queue_create(&response->data[2], 256-2, 0, PARAM_QUEUE_TYPE_SET);
 	param_queue_t * q_request = param_queue_create(&request->data[2], 256-2, request->length - 2, PARAM_QUEUE_TYPE_SET);
@@ -60,7 +60,7 @@ static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet, int send_
 
 	/* Send ack */
 	packet->data[0] = PARAM_PUSH_RESPONSE;
-	packet->data[1] = 1;
+	packet->data[1] = PARAM_FLAG_END;
 	packet->length = 2;
 
 	if (!csp_send(conn, packet, 0))

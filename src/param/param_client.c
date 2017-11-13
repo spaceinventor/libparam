@@ -17,49 +17,80 @@
 #include <param/param_client.h>
 #include <param/param_queue.h>
 
-csp_packet_t * param_transaction(csp_packet_t *packet, int host, int timeout) {
+typedef void (*param_transaction_callback_f)(csp_packet_t *response);
 
-	//csp_hex_dump("transaction", packet->data, packet->length);
+static void param_transaction_callback_pull(csp_packet_t *response) {
+	csp_hex_dump("pull response", response->data, response->length);
+	param_queue_t * queue = param_queue_create(&response->data[2], response->length - 2, response->length - 2, PARAM_QUEUE_TYPE_SET);
+	param_queue_print(queue);
+	param_queue_apply(queue);
+	param_queue_destroy(queue);
+	csp_buffer_free(response);
+}
+
+static int param_transaction(csp_packet_t *packet, int host, int timeout, param_transaction_callback_f callback) {
+
+	csp_hex_dump("transaction", packet->data, packet->length);
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
 	if (conn == NULL) {
 		csp_buffer_free(packet);
-		return NULL;
+		return -1;
 	}
 
 	if (!csp_send(conn, packet, 0)) {
 		csp_close(conn);
 		csp_buffer_free(packet);
-		return NULL;
+		return -1;
 	}
 
 	if (timeout == -1) {
 		csp_close(conn);
-		return NULL;
+		return -1;
 	}
 
-	packet = csp_read(conn, timeout);
-	if (packet == NULL) {
-		csp_close(conn);
-		return NULL;
+	while((packet = csp_read(conn, timeout)) != NULL) {
+		if (packet == NULL) {
+			csp_close(conn);
+			return -1;
+		}
+
+		int end = (packet->data[1] == PARAM_FLAG_END);
+
+		if (callback) {
+			callback(packet);
+		} else {
+			csp_buffer_free(packet);
+		}
+
+		if (end) {
+			break;
+		}
+
 	}
 
 	//csp_hex_dump("transaction response", packet->data, packet->length);
 
 	csp_close(conn);
-	return packet;
+	return 0;
 }
 
-void param_pull_response(csp_packet_t * response, int verbose) {
 
-	//csp_hex_dump("pull response", response->data, response->length);
-	param_queue_t * queue = param_queue_create(&response->data[2], response->length - 2, response->length - 2, PARAM_QUEUE_TYPE_SET);
-	param_queue_print(queue);
-	param_queue_apply(queue);
-	param_queue_destroy(queue);
+#if 0
+int param_pull_all(int verbose, int host, int timeout) {
+	csp_packet_t *packet = csp_buffer_get(256);
+	if (packet == NULL)
+		return -2;
+	packet->data[0] = PARAM_PULL_ALL_REQUEST;
+	packet->data[1] = 0;
 
-	csp_buffer_free(response);
+	packet = param_transaction(packet, host, timeout);
+	if (packet == NULL) {
+		printf("No response\n");
+		return -1;
+	}
 }
+#endif
 
 
 int param_pull_queue(param_queue_t *queue, int verbose, int host, int timeout) {
@@ -78,15 +109,8 @@ int param_pull_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 	memcpy(&packet->data[2], queue->buffer, queue->used);
 
 	packet->length = queue->used + 2;
-	packet = param_transaction(packet, host, timeout);
+	return param_transaction(packet, host, timeout, param_transaction_callback_pull);
 
-	if (packet == NULL) {
-		printf("No response\n");
-		return -1;
-	}
-
-	param_pull_response(packet, verbose);
-	return 0;
 }
 
 
@@ -101,16 +125,9 @@ int param_pull_single(param_t *param, int verbose, int host, int timeout) {
 	param_queue_add(queue, param, NULL);
 
 	packet->length = queue->used + 2;
-	packet = param_transaction(packet, host, timeout);
+	int result = param_transaction(packet, host, timeout, param_transaction_callback_pull);
 	param_queue_destroy(queue);
-
-	if (packet == NULL) {
-		printf("No response\n");
-		return -1;
-	}
-
-	param_pull_response(packet, verbose);
-	return 0;
+	return result;
 }
 
 
@@ -130,15 +147,12 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 	memcpy(&packet->data[2], queue->buffer, queue->used);
 
 	packet->length = queue->used + 2;
-	packet = param_transaction(packet, host, timeout);
+	int result = param_transaction(packet, host, timeout, NULL);
 
-	if (packet == NULL) {
-		printf("No response\n");
+	if (result < 0) {
 		return -1;
 	}
-	csp_buffer_free(packet);
 
-	printf("Set OK\n");
 	param_queue_print(queue);
 	param_queue_apply(queue);
 
@@ -156,16 +170,15 @@ int param_push_single(param_t *param, void *value, int verbose, int host, int ti
 	param_queue_add(queue, param, value);
 
 	packet->length = queue->used + 2;
-	packet = param_transaction(packet, host, timeout);
+	int result = param_transaction(packet, host, timeout, NULL);
 
-	if (packet == NULL) {
-		printf("No response\n");
+	if (result < 0) {
 		param_queue_destroy(queue);
 		return -1;
 	}
 
 	param_queue_apply(queue);
-	csp_buffer_free(packet);
+	param_queue_destroy(queue);
 
 	return 0;
 }
