@@ -22,12 +22,13 @@
 #include "param_string.h"
 #include "param_slash.h"
 
-static param_queue_t queue_set = {};
-static param_queue_t queue_get = {};
+static param_queue_t queue_set = { };
+static param_queue_t queue_get = { };
 static int default_node = -1;
 static int autosend = 1;
 
-void param_slash_parse(char * arg, param_t **param, int *node, int *host, int *offset) {
+void param_slash_parse(char * arg, param_t **param, int *node, int *host,
+		int *offset) {
 
 	/* Search for the '@' symbol:
 	 * Call strtok twice in order to skip the stuff head of '@' */
@@ -97,7 +98,7 @@ static void param_completer(struct slash *slash, char * token) {
 	size_t tokenlen = strlen(token);
 
 	param_t * param;
-	param_list_iterator i = {};
+	param_list_iterator i = { };
 	while ((param = param_list_iterate(&i)) != NULL) {
 
 		if (tokenlen > strlen(param->name))
@@ -106,7 +107,8 @@ static void param_completer(struct slash *slash, char * token) {
 		if (param->readonly == PARAM_HIDDEN)
 			continue;
 
-		if (strncmp(token, param->name, slash_min(strlen(param->name), tokenlen)) == 0) {
+		if (strncmp(token, param->name,
+				slash_min(strlen(param->name), tokenlen)) == 0) {
 
 			/* Count matches */
 			matches++;
@@ -116,7 +118,8 @@ static void param_completer(struct slash *slash, char * token) {
 				prefix = param;
 				prefixlen = strlen(prefix->name);
 			} else {
-				size_t new_prefixlen = slash_prefix_length(prefix->name, param->name);
+				size_t new_prefixlen = slash_prefix_length(prefix->name,
+						param->name);
 				if (new_prefixlen < prefixlen)
 					prefixlen = new_prefixlen;
 			}
@@ -141,8 +144,7 @@ static void param_completer(struct slash *slash, char * token) {
 
 }
 
-static int cmd_get(struct slash *slash)
-{
+static int cmd_get(struct slash *slash) {
 	if (slash->argc != 2)
 		return SLASH_EUSAGE;
 
@@ -161,14 +163,14 @@ static int cmd_get(struct slash *slash)
 	int result = 0;
 	if (param->storage_type == PARAM_STORAGE_REMOTE) {
 
-
 		if ((node != -1) && (autosend)) {
 			result = param_pull_single(param, 0, node, 1000);
 		} else if (host != -1) {
 			result = param_pull_single(param, 0, host, 1000);
 		} else {
 			if (!queue_get.buffer) {
-				param_queue_init(&queue_get, malloc(256), 256, 0, PARAM_QUEUE_TYPE_GET);
+				param_queue_init(&queue_get, malloc(256), 256, 0,
+						PARAM_QUEUE_TYPE_GET);
 			}
 			result = param_queue_add(&queue_get, param, NULL);
 			param_queue_print(&queue_get);
@@ -187,8 +189,7 @@ static int cmd_get(struct slash *slash)
 }
 slash_command_completer(get, cmd_get, param_completer, "<param>", "Get");
 
-static int cmd_set(struct slash *slash)
-{
+static int cmd_set(struct slash *slash) {
 	if (slash->argc != 3)
 		return SLASH_EUSAGE;
 
@@ -203,7 +204,7 @@ static int cmd_set(struct slash *slash)
 		return SLASH_EINVAL;
 	}
 
-	char valuebuf[128] __attribute__((aligned(16))) = {};
+	char valuebuf[128] __attribute__((aligned(16))) = { };
 	param_str_to_value(param->type, slash->argv[2], valuebuf);
 
 	/* Remote parameters are sent to a queue or directly */
@@ -216,14 +217,15 @@ static int cmd_set(struct slash *slash)
 			result = param_push_single(param, valuebuf, 1, host, 1000);
 		} else {
 			if (!queue_set.buffer) {
-				param_queue_init(&queue_set, malloc(256), 256, 0, PARAM_QUEUE_TYPE_SET);
+				param_queue_init(&queue_set, malloc(256), 256, 0,
+						PARAM_QUEUE_TYPE_SET);
 			}
 			param_queue_add(&queue_set, param, valuebuf);
 			param_queue_print(&queue_set);
 			result = 2; // Do not print result
 		}
 
-	/* For local parameters, set immediately */
+		/* For local parameters, set immediately */
 	} else {
 		param_set(param, offset, valuebuf);
 	}
@@ -238,10 +240,10 @@ static int cmd_set(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command_completer(set, cmd_set, param_completer, "<param> <value>", "Set");
+slash_command_completer(set, cmd_set, param_completer, "<param> <value>",
+		"Set");
 
-static int cmd_push(struct slash *slash)
-{
+static int cmd_push(struct slash *slash) {
 	unsigned int node = 0;
 	unsigned int timeout = 100;
 
@@ -261,8 +263,7 @@ static int cmd_push(struct slash *slash)
 }
 slash_command(push, cmd_push, "<node> [timeout]", NULL);
 
-static int cmd_pull(struct slash *slash)
-{
+static int cmd_pull(struct slash *slash) {
 	unsigned int host = 0;
 	unsigned int timeout = 100;
 
@@ -273,7 +274,14 @@ static int cmd_pull(struct slash *slash)
 	if (slash->argc >= 3)
 		timeout = atoi(slash->argv[2]);
 
-	if (param_pull_queue(&queue_get, 1, host, timeout)) {
+	int result = -1;
+	if (queue_get.used == 0) {
+		result = param_pull_all(1, host, timeout);
+	} else {
+		result = param_pull_queue(&queue_get, 1, host, timeout);
+	}
+
+	if (result) {
 		printf("No response\n");
 		return SLASH_EIO;
 	}
@@ -282,8 +290,7 @@ static int cmd_pull(struct slash *slash)
 }
 slash_command(pull, cmd_pull, "<node> [timeout]", NULL);
 
-static int cmd_clear(struct slash *slash)
-{
+static int cmd_clear(struct slash *slash) {
 	queue_get.used = 0;
 	queue_set.used = 0;
 	printf("Queue cleared\n");
@@ -291,8 +298,7 @@ static int cmd_clear(struct slash *slash)
 }
 slash_command(clear, cmd_clear, NULL, NULL);
 
-static int cmd_node(struct slash *slash)
-{
+static int cmd_node(struct slash *slash) {
 
 	if (slash->argc < 1) {
 		printf("Default node = %d\n", default_node);
@@ -307,8 +313,7 @@ static int cmd_node(struct slash *slash)
 }
 slash_command(node, cmd_node, "[node]", NULL);
 
-static int cmd_autosend(struct slash *slash)
-{
+static int cmd_autosend(struct slash *slash) {
 
 	if (slash->argc < 1) {
 		printf("autosend = %d\n", autosend);
@@ -323,8 +328,7 @@ static int cmd_autosend(struct slash *slash)
 }
 slash_command(autosend, cmd_autosend, "[1|0]", NULL);
 
-static int cmd_queue(struct slash *slash)
-{
+static int cmd_queue(struct slash *slash) {
 	if (queue_get.used > 0) {
 		printf("Get Queue\n");
 		param_queue_print(&queue_get);

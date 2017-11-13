@@ -30,7 +30,7 @@ static void param_transaction_callback_pull(csp_packet_t *response) {
 
 static int param_transaction(csp_packet_t *packet, int host, int timeout, param_transaction_callback_f callback) {
 
-	//csp_hex_dump("transaction", packet->data, packet->length);
+	csp_hex_dump("transaction", packet->data, packet->length);
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
 	if (conn == NULL) {
@@ -54,6 +54,8 @@ static int param_transaction(csp_packet_t *packet, int host, int timeout, param_
 
 		int end = (packet->data[1] == PARAM_FLAG_END);
 
+		//csp_hex_dump("response", packet->data, packet->length);
+
 		if (callback) {
 			callback(packet);
 		} else {
@@ -61,6 +63,7 @@ static int param_transaction(csp_packet_t *packet, int host, int timeout, param_
 		}
 
 		if (end) {
+			printf("End\n");
 			result = 0;
 			break;
 		}
@@ -72,11 +75,13 @@ static int param_transaction(csp_packet_t *packet, int host, int timeout, param_
 }
 
 int param_pull_all(int verbose, int host, int timeout) {
+
 	csp_packet_t *packet = csp_buffer_get(256);
 	if (packet == NULL)
 		return -2;
 	packet->data[0] = PARAM_PULL_ALL_REQUEST;
 	packet->data[1] = 0;
+	packet->length = 2;
 
 	return param_transaction(packet, host, timeout, param_transaction_callback_pull);
 

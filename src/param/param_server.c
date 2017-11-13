@@ -14,6 +14,48 @@
 #include <param/param.h>
 #include <param/param_queue.h>
 #include <param/param_server.h>
+#include <param/param_list.h>
+
+static void param_serve_pull_all_request(csp_conn_t * conn, csp_packet_t * request) {
+
+	csp_buffer_free(request);
+	csp_packet_t * response = NULL;
+	param_queue_t q_response;
+
+	void allocate(void) {
+		response = csp_buffer_get(256);
+		if (response == NULL)
+			return;
+		param_queue_init(&q_response, &response->data[2], 256-2, 0, PARAM_QUEUE_TYPE_SET);
+	}
+
+	void send(int end) {
+		response->data[0] = PARAM_PULL_RESPONSE;
+		response->data[1] = (end) ? PARAM_FLAG_END : 0;
+		response->length = q_response.used + 2;
+		if (!csp_send(conn, response, 0)) {
+			csp_buffer_free(response);
+			return;
+		}
+	}
+
+	allocate();
+
+	param_t * param;
+	param_list_iterator i = {};
+	while ((param = param_list_iterate(&i)) != NULL) {
+		int result = param_queue_add(&q_response, param, NULL);
+		if (result == 0) {
+			printf("Added %s\n", param->name);
+		} else {
+			send(0);
+			allocate();
+		}
+	}
+
+	send(1);
+
+}
 
 static void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 
@@ -74,6 +116,10 @@ static void param_serve(csp_conn_t * conn, csp_packet_t * packet) {
 	switch(packet->data[0]) {
 		case PARAM_PULL_REQUEST:
 			param_serve_pull_request(conn, packet);
+			break;
+
+		case PARAM_PULL_ALL_REQUEST:
+			param_serve_pull_all_request(conn, packet);
 			break;
 
 		case PARAM_PULL_RESPONSE:

@@ -34,6 +34,15 @@
 int param_pull_single(param_t * param, int verbose, int host, int timeout);
 
 /**
+ * PULL all
+ * @param verbose printout when received
+ * @param host remote csp node
+ * @param timeout in ms
+ * @return 0 = OK, -1 on network error
+ */
+int param_pull_all(int verbose, int host, int timeout);
+
+/**
  * PUSH single:
  *
  * Executes an immediate parameter push of a single value.
