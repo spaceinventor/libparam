@@ -9,7 +9,6 @@
 #define LIB_PARAM_INCLUDE_PARAM_PARAM_SERVER_H_
 
 #include <csp/arch/csp_thread.h>
-#include <param/param.h>
 
 #define PARAM_SERVER_MTU 200
 #define PARAM_PORT_SERVER 10
