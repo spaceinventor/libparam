@@ -72,11 +72,11 @@ int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback) {
 
 }
 
-int param_queue_print_callback(param_queue_t *queue, param_t *param, mpack_reader_t *reader) {
+int param_queue_print_callback(param_queue_t *queue, param_t *param, void *reader) {
 	printf("  %s:%u\t", param->name, param->node);
 	if (queue->type == PARAM_QUEUE_TYPE_SET) {
 		printf(" => ");
-		mpack_print_element(reader, 2, stdout);
+		mpack_print_element((mpack_reader_t *) reader, 2, stdout);
 	}
 	printf("\n");
 	return 0;

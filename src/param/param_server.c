@@ -10,11 +10,10 @@
 #include <csp/arch/csp_thread.h>
 #include <csp/arch/csp_time.h>
 #include <csp/csp_endian.h>
+
 #include <param/param.h>
-#include <param/param_server.h>
-#include <param/param_client.h>
-#include <param/param_list.h>
 #include <param/param_queue.h>
+#include <param/param_server.h>
 
 void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 
@@ -32,7 +31,7 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 	param_queue_t * q_response = param_queue_create(&response->data[2], 256-2, 0, PARAM_QUEUE_TYPE_SET);
 	param_queue_t * q_request = param_queue_create(&request->data[2], 256-2, request->length - 2, PARAM_QUEUE_TYPE_SET);
 
-	int add_callback(param_queue_t *queue, param_t * param, mpack_reader_t  *reader) {
+	int add_callback(param_queue_t *queue, param_t * param, void *reader) {
 		param_queue_add(q_response, param, NULL);
 		return  0;
 	}
@@ -46,7 +45,7 @@ void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 		csp_buffer_free(response);
 }
 
-static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
+static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet, int send_ack)
 {
 	//csp_hex_dump("set handler", packet->data, packet->length);
 
@@ -54,7 +53,7 @@ static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
 	int result = param_queue_apply(queue);
 	param_queue_destroy(queue);
 
-	if (result != 0) {
+	if ((result != 0) || (send_ack == 0)) {
 		csp_buffer_free(packet);
 		return;
 	}
@@ -62,8 +61,6 @@ static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
 	/* Send ack */
 	memcpy(packet->data, "ok", 2);
 	packet->length = 2;
-
-	//csp_hex_dump("set handler", packet->data, packet->length);
 
 	if (!csp_send(conn, packet, 0))
 		csp_buffer_free(packet);
@@ -77,11 +74,11 @@ static void param_serve(csp_conn_t * conn, csp_packet_t * packet) {
 			break;
 
 		case PARAM_PULL_RESPONSE:
-			param_pull_response(packet, 1);
+			param_serve_push(conn, packet, 0);
 			break;
 
 		case PARAM_PUSH_REQUEST:
-			param_serve_push(conn, packet);
+			param_serve_push(conn, packet, 1);
 			break;
 
 		default:

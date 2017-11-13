@@ -9,7 +9,6 @@
 #define LIB_PARAM_SRC_PARAM_PARAM_QUEUE_H_
 
 #include <param/param.h>
-#include <mpack/mpack.h>
 
 typedef enum {
 	PARAM_QUEUE_TYPE_GET,
@@ -34,7 +33,7 @@ int param_queue_apply(param_queue_t *queue);
 
 void param_queue_print(param_queue_t *queue);
 
-typedef int (*param_queue_callback_f)(param_queue_t *queue, param_t * param, mpack_reader_t  *reader);
+typedef int (*param_queue_callback_f)(param_queue_t *queue, param_t * param, void *reader);
 int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback);
 
 #endif /* LIB_PARAM_SRC_PARAM_PARAM_QUEUE_H_ */
