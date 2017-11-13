@@ -17,8 +17,6 @@
 #include <param/param_client.h>
 #include <param/param_queue.h>
 
-#include "param_string.h"
-
 csp_packet_t * param_transaction(csp_packet_t *packet, int host, int timeout) {
 
 	//csp_hex_dump("transaction", packet->data, packet->length);

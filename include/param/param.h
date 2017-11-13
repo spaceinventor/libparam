@@ -263,11 +263,6 @@ void param_get_data(param_t * param, void * outbuf, int len);
 void param_set(param_t * param, unsigned int offset, void * value);
 void param_get(param_t * param, unsigned int offset, void * value);
 
-/* Print and list helpers */
-void param_print_header(int nodes[], int nodes_count);
-void param_print(param_t * param, int offset, int nodes[], int nodes_count, int verbose);
-void param_list(char * token);
-
 /* Returns the size of a native type */
 int param_typesize(param_type_e type);
 int param_size(param_t * param);

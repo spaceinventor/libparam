@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <param/param.h>
-#include "param_string.h"
-#include "param_log.h"
 #include <libparam.h>
 
 #include <csp/csp.h>

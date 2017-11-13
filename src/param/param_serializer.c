@@ -11,9 +11,7 @@
 
 #include <param/param.h>
 #include <param/param_server.h>
-#include "param_log.h"
 #include "param_serializer.h"
-#include "param_string.h"
 
 #include <csp/arch/csp_time.h>
 #include <csp/csp_endian.h>

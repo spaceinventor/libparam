@@ -14,8 +14,8 @@
 #include <param/param_list.h>
 #include <param/param_server.h>
 
-#include "param_list.h"
 #include "../param_string.h"
+#include "param_list.h"
 
 /**
  * The storage size (i.e. how closely two param_t structs are packed in memory)

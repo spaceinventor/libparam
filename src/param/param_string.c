@@ -12,6 +12,7 @@
 #include <csp/arch/csp_time.h>
 #include <param/param.h>
 #include <param/param_list.h>
+
 #include "param_string.h"
 
 #ifndef MIN
@@ -61,53 +62,6 @@ void param_value_str(param_t *param, unsigned int i, char * out, int len)
 		param_type_vector3 vect;
 		param_get_data(param, &vect, sizeof(param_type_vector3));
 		snprintf(out, len, "[%.2f %.2f %.2f] |%.2f|", vect.x, vect.y, vect.z, sqrtf((powf(vect.x, 2) + powf(vect.y, 2) + powf(vect.z, 2))));
-		break;
-	}
-
-#undef PARAM_SWITCH_SNPRINTF
-	}
-}
-
-void param_var_str(param_type_e type, int size, void * in, char * out, int len)
-{
-	switch(type) {
-#define PARAM_SWITCH_SNPRINTF(casename, strtype, strcast, name) \
-	case casename: \
-		snprintf(out, len, strtype, *(strcast *) in); \
-		break;
-
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT8, "%u", unsigned char, uint8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT16, "%u", unsigned short, uint16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT32, "%u", unsigned int, uint32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT64, "%lu", unsigned long, uint64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT8, "%d", signed char, int8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT16, "%d", signed short, int16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT32, "%d", signed int, int32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT64, "%ld", signed long, int64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT8, "0x%X", unsigned char, uint8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT16, "0x%X", unsigned short, uint16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT32, "0x%X", unsigned int, uint32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT64, "0x%lX", unsigned long, uint64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_FLOAT, "%f", float, float)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DOUBLE, "%f", double, double)
-
-	case PARAM_TYPE_DATA: {
-		int written;
-		for (int i = 0; i < size && len >= 2; i++) {
-			written = snprintf(out, len, "%02X", ((unsigned char *)in)[i]);
-			len -= written;
-			out += written;
-		}
-		break;
-	}
-
-	case PARAM_TYPE_STRING:
-		strncpy(out, in, MIN(size, len));
-		break;
-
-	case PARAM_TYPE_VECTOR3: {
-		param_type_vector3 *vect = in;
-		snprintf(out, len, "[%.2f %.2f %.2f] |%.2f|", vect->x, vect->y, vect->z, sqrtf((powf(vect->x, 2) + powf(vect->y, 2) + powf(vect->z, 2))));
 		break;
 	}
 
@@ -246,23 +200,6 @@ static void param_print_value(param_t * param, int offset) {
 	if (count > 1)
 		printf("]");
 
-}
-
-void param_print_header(int nodes[], int nodes_count) {
-	if ((nodes_count == 0) || (nodes == NULL))
-		return;
-
-	printf("\n");
-
-	printf("        name                ");
-	for(int i = 0; i < nodes_count; i++)
-		printf(" %-12d", nodes[i]);
-	printf("\n");
-
-	printf("        ------------------- ");
-	for(int i = 0; i < nodes_count; i++)
-		printf(" ----------- ");
-	printf("\n");
 }
 
 void param_print(param_t * param, int offset, int nodes[], int nodes_count, int verbose)

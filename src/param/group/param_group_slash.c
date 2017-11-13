@@ -13,6 +13,8 @@
 
 #include <libparam.h>
 #include <param/param_group.h>
+
+#include "../param_string.h"
 #include "param_group.h"
 
 static int group(struct slash *slash)
