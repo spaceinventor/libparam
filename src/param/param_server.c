@@ -28,17 +28,19 @@ static void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) 
 	response->data[0] = PARAM_PULL_RESPONSE;
 	response->data[1] = PARAM_FLAG_END;
 
-	param_queue_t * q_response = param_queue_create(&response->data[2], 256-2, 0, PARAM_QUEUE_TYPE_SET);
-	param_queue_t * q_request = param_queue_create(&request->data[2], 256-2, request->length - 2, PARAM_QUEUE_TYPE_SET);
+	param_queue_t q_response;
+	param_queue_init(&q_response, &response->data[2], 256-2, 0, PARAM_QUEUE_TYPE_SET);
+	param_queue_t q_request;
+	param_queue_init(&q_request, &request->data[2], 256-2, request->length - 2, PARAM_QUEUE_TYPE_SET);
 
 	int add_callback(param_queue_t *queue, param_t * param, void *reader) {
-		param_queue_add(q_response, param, NULL);
+		param_queue_add(&q_response, param, NULL);
 		return  0;
 	}
-	param_queue_foreach(q_request, add_callback);
+	param_queue_foreach(&q_request, add_callback);
 	csp_buffer_free(request);
 
-	response->length = q_response->used + 2;
+	response->length = q_response.used + 2;
 	//csp_hex_dump("get handler", response->data, response->length);
 
 	if (!csp_send(conn, response, 0))
@@ -49,9 +51,9 @@ static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet, int send_
 {
 	//csp_hex_dump("set handler", packet->data, packet->length);
 
-	param_queue_t * queue = param_queue_create(&packet->data[2], packet->length - 2, packet->length - 2, PARAM_QUEUE_TYPE_SET);
-	int result = param_queue_apply(queue);
-	param_queue_destroy(queue);
+	param_queue_t queue;
+	param_queue_init(&queue, &packet->data[2], packet->length - 2, packet->length - 2, PARAM_QUEUE_TYPE_SET);
+	int result = param_queue_apply(&queue);
 
 	if ((result != 0) || (send_ack == 0)) {
 		csp_buffer_free(packet);

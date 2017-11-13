@@ -14,30 +14,12 @@
 #include <param/param_list.h>
 #include "param_serializer.h"
 
-param_queue_t * param_queue_create(void * buffer, int buffer_size, int used, param_queue_type_e type) {
-
-	param_queue_t * queue = malloc(sizeof(param_queue_t));
-
-	if (buffer) {
-		queue->buffer = buffer;
-		queue->buffer_internal = 0;
-	} else {
-		queue->buffer = malloc(buffer_size);
-		queue->buffer_internal = 1;
-	}
-
+void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int used, param_queue_type_e type) {
+	queue->buffer = buffer;
 	queue->buffer_size = buffer_size;
 	queue->type = type;
 	queue->used = used;
-
 	return queue;
-
-}
-
-void param_queue_destroy(param_queue_t *queue) {
-	if (queue->buffer_internal)
-		free(queue->buffer);
-	free(queue);
 }
 
 int param_queue_add(param_queue_t *queue, param_t *param, void *value) {

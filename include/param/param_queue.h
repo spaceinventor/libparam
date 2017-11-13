@@ -25,8 +25,7 @@ struct param_queue_s {
 
 typedef struct param_queue_s param_queue_t;
 
-param_queue_t * param_queue_create(void * buffer, int buffer_size, int used, param_queue_type_e type);
-void param_queue_destroy(param_queue_t *queue);
+void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int used, param_queue_type_e type);
 
 int param_queue_add(param_queue_t *queue, param_t * param, void * value);
 int param_queue_apply(param_queue_t *queue);

@@ -22,8 +22,8 @@
 #include "param_string.h"
 #include "param_slash.h"
 
-static param_queue_t * queue_set = NULL;
-static param_queue_t * queue_get = NULL;
+static param_queue_t queue_set = {};
+static param_queue_t queue_get = {};
 static int default_node = -1;
 static int autosend = 1;
 
@@ -167,19 +167,22 @@ static int cmd_get(struct slash *slash)
 		} else if (host != -1) {
 			result = param_pull_single(param, 0, host, 1000);
 		} else {
-			if (!queue_get) {
-				queue_get = param_queue_create(NULL, 256, 0, PARAM_QUEUE_TYPE_GET);
+			if (!queue_get.buffer) {
+				param_queue_init(&queue_get, malloc(256), 256, 0, PARAM_QUEUE_TYPE_GET);
 			}
-			result = param_queue_add(queue_get, param, NULL);
-			param_queue_print(queue_get);
+			result = param_queue_add(&queue_get, param, NULL);
+			param_queue_print(&queue_get);
 			return SLASH_SUCCESS;
 		}
 
 	}
 
-	if (result >= 0)
-		param_print(param, offset, NULL, 0, 2);
+	if (result < 0) {
+		printf("No response\n");
+		return SLASH_EIO;
+	}
 
+	param_print(param, offset, NULL, 0, 2);
 	return SLASH_SUCCESS;
 }
 slash_command_completer(get, cmd_get, param_completer, "<param>", "Get");
@@ -212,12 +215,12 @@ static int cmd_set(struct slash *slash)
 		} else if (host != -1) {
 			result = param_push_single(param, valuebuf, 1, host, 1000);
 		} else {
-			if (!queue_set) {
-				queue_set = param_queue_create(NULL, 256, 0, PARAM_QUEUE_TYPE_SET);
+			if (!queue_set.buffer) {
+				param_queue_init(&queue_set, malloc(256), 256, 0, PARAM_QUEUE_TYPE_SET);
 			}
-			param_queue_add(queue_set, param, valuebuf);
-			param_queue_print(queue_set);
-			result = -1; // Do not print result
+			param_queue_add(&queue_set, param, valuebuf);
+			param_queue_print(&queue_set);
+			result = 2; // Do not print result
 		}
 
 	/* For local parameters, set immediately */
@@ -225,7 +228,12 @@ static int cmd_set(struct slash *slash)
 		param_set(param, offset, valuebuf);
 	}
 
-	if (result >= 0)
+	if (result < 0) {
+		printf("No response\n");
+		return SLASH_EIO;
+	}
+
+	if (result != 2)
 		param_print(param, -1, NULL, 0, 2);
 
 	return SLASH_SUCCESS;
@@ -244,7 +252,10 @@ static int cmd_push(struct slash *slash)
 	if (slash->argc >= 3)
 		timeout = atoi(slash->argv[2]);
 
-	param_push_queue(queue_set, 1, node, timeout);
+	if (param_push_queue(&queue_set, 1, node, timeout) < 0) {
+		printf("No response\n");
+		return SLASH_EIO;
+	}
 
 	return SLASH_SUCCESS;
 }
@@ -262,8 +273,10 @@ static int cmd_pull(struct slash *slash)
 	if (slash->argc >= 3)
 		timeout = atoi(slash->argv[2]);
 
-	printf("\n");
-	param_pull_queue(queue_get, 1, host, timeout);
+	if (param_pull_queue(&queue_get, 1, host, timeout)) {
+		printf("No response\n");
+		return SLASH_EIO;
+	}
 
 	return SLASH_SUCCESS;
 }
@@ -271,15 +284,8 @@ slash_command(pull, cmd_pull, "<node> [timeout]", NULL);
 
 static int cmd_clear(struct slash *slash)
 {
-	if (queue_get) {
-		param_queue_destroy(queue_get);
-		queue_get = NULL;
-	}
-	if (queue_set) {
-		param_queue_destroy(queue_set);
-		queue_set = NULL;
-	}
-
+	queue_get.used = 0;
+	queue_set.used = 0;
 	printf("Queue cleared\n");
 	return SLASH_SUCCESS;
 }
@@ -319,13 +325,13 @@ slash_command(autosend, cmd_autosend, "[1|0]", NULL);
 
 static int cmd_queue(struct slash *slash)
 {
-	if (queue_get) {
+	if (queue_get.used > 0) {
 		printf("Get Queue\n");
-		param_queue_print(queue_get);
+		param_queue_print(&queue_get);
 	}
-	if (queue_set) {
+	if (queue_set.used > 0) {
 		printf("Set Queue\n");
-		param_queue_print(queue_set);
+		param_queue_print(&queue_set);
 	}
 	return SLASH_SUCCESS;
 }
