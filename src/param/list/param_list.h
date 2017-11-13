@@ -11,4 +11,11 @@
 void param_list_from_string(FILE *stream);
 void param_list_to_string(FILE * stream, int node_filter, int remote_only);
 
+typedef struct {
+	uint16_t id;
+	uint8_t type;
+	uint8_t size;
+	char name[];
+} __attribute__((packed)) param_transfer_t;
+
 #endif /* LIB_PARAM_SRC_PARAM_PARAM_LIST_H_ */

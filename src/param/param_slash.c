@@ -24,7 +24,7 @@
 
 static param_queue_t * queue_set = NULL;
 static param_queue_t * queue_get = NULL;
-static int default_node = 1;
+static int default_node = -1;
 static int autosend = 1;
 
 void param_slash_parse(char * arg, param_t **param, int *node, int *host, int *offset) {

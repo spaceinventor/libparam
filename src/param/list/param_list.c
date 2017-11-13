@@ -157,9 +157,9 @@ void param_list_download(int node, int timeout) {
 	while((packet = csp_read(conn, timeout)) != NULL) {
 
 		//csp_hex_dump("Response", packet->data, packet->length);
-		rparam_transfer_t * new_param = (void *) packet->data;
+		param_transfer_t * new_param = (void *) packet->data;
 
-		int strlen = packet->length - offsetof(rparam_transfer_t, name);
+		int strlen = packet->length - offsetof(param_transfer_t, name);
 		int node = csp_ntoh16(new_param->id) >> 11;
 		int id = csp_ntoh16(new_param->id) & 0x7FF;
 		int type = new_param->type;

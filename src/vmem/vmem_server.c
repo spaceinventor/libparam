@@ -18,6 +18,7 @@
 #endif
 
 #include <param/param_list.h>
+#include "../param/list/param_list.h"
 
 #include <libparam.h>
 #include <param/param_server.h>
@@ -180,7 +181,7 @@ static void rparam_list_handler(csp_conn_t * conn)
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 		csp_packet_t * packet = csp_buffer_get(256);
-		rparam_transfer_t * rparam = (void *) packet->data;
+		param_transfer_t * rparam = (void *) packet->data;
 		int node = param->node;
 		if (node == PARAM_LIST_LOCAL)
 			node = csp_get_address();
@@ -188,7 +189,7 @@ static void rparam_list_handler(csp_conn_t * conn)
 		rparam->type = param->type;
 		rparam->size = param->size;
 		strncpy(rparam->name, param->name, 25);
-		packet->length = offsetof(rparam_transfer_t, name) + MIN(strlen(param->name), 25);
+		packet->length = offsetof(param_transfer_t, name) + MIN(strlen(param->name), 25);
 		if (!csp_send(conn, packet, 1000)) {
 			csp_buffer_free(packet);
 			break;

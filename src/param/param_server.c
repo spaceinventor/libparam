@@ -15,7 +15,7 @@
 #include <param/param_queue.h>
 #include <param/param_server.h>
 
-void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
+static void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 
 	//csp_hex_dump("get handler", request->data, request->length);
 
@@ -59,7 +59,8 @@ static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet, int send_
 	}
 
 	/* Send ack */
-	memcpy(packet->data, "ok", 2);
+	packet->data[0] = PARAM_PUSH_RESPONSE;
+	packet->data[1] = 1;
 	packet->length = 2;
 
 	if (!csp_send(conn, packet, 0))
