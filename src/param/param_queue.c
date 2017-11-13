@@ -82,6 +82,10 @@ int param_queue_print_callback(param_queue_t *queue, param_t *param, mpack_reade
 	return 0;
 }
 
+int param_queue_apply(param_queue_t *queue) {
+	return param_queue_foreach(queue, (param_queue_callback_f) param_deserialize_from_mpack_to_param);
+}
+
 void param_queue_print(param_queue_t *queue) {
 	param_queue_foreach(queue, param_queue_print_callback);
 }

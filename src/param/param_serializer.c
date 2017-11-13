@@ -142,69 +142,6 @@ void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * v
 
 }
 
-param_t * param_deserialize_from_mpack(mpack_reader_t * reader) {
-
-	// TODO: Implement arrays as value
-	unsigned int i = 0;
-
-	uint16_t short_id = mpack_expect_u16(reader);
-	param_t * param = param_list_find_id(param_parse_short_id_node(short_id),
-			param_parse_short_id_paramid(short_id));
-	if (param == NULL)
-		return NULL;
-
-	switch (param->type) {
-	case PARAM_TYPE_UINT8:
-	case PARAM_TYPE_XINT8:
-		param_set_uint8_array(param, i, (uint8_t) mpack_expect_uint(reader)); break;
-	case PARAM_TYPE_UINT16:
-	case PARAM_TYPE_XINT16:
-		param_set_uint16_array(param, i, (uint16_t) mpack_expect_uint(reader)); break;
-	case PARAM_TYPE_UINT32:
-	case PARAM_TYPE_XINT32:
-		param_set_uint32_array(param, i, (uint32_t) mpack_expect_uint(reader)); break;
-	case PARAM_TYPE_UINT64:
-	case PARAM_TYPE_XINT64:
-		param_set_uint64_array(param, i, mpack_expect_u64(reader)); break;
-	case PARAM_TYPE_INT8:
-		param_set_int8_array(param, i, (int8_t) mpack_expect_int(reader)); break;
-	case PARAM_TYPE_INT16:
-		param_set_int16_array(param, i, (int16_t) mpack_expect_int(reader)); break;
-	case PARAM_TYPE_INT32:
-		param_set_int32_array(param, i, (int32_t) mpack_expect_int(reader)); break;
-	case PARAM_TYPE_INT64:
-		param_set_int64_array(param, i, mpack_expect_i64(reader)); break;
-	case PARAM_TYPE_FLOAT:
-		param_set_float_array(param, i, mpack_expect_float(reader)); break;
-	case PARAM_TYPE_DOUBLE:
-		param_set_double_array(param, i, mpack_expect_double(reader)); break;
-	case PARAM_TYPE_STRING: {
-		int len = mpack_expect_str(reader);
-		param_set_string(param, &reader->buffer[reader->pos], len);
-		reader->pos += len;
-		reader->left -= len;
-		mpack_done_str(reader);
-		break;
-	}
-	case PARAM_TYPE_DATA: {
-		int len = mpack_expect_bin(reader);
-		param_set_data(param, &reader->buffer[reader->pos], len);
-		reader->pos += len;
-		reader->left -= len;
-		mpack_done_bin(reader);
-		break;
-	}
-
-	default:
-	case PARAM_TYPE_VECTOR3:
-		mpack_discard(reader);
-		break;
-	}
-
-	return param;
-
-}
-
 void param_deserialize_from_mpack_to_param(void * queue, param_t * param, mpack_reader_t * reader) {
 
 	// TODO: Implement arrays as value

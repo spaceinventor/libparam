@@ -16,9 +16,6 @@
 #include <param/param_list.h>
 #include <param/param_queue.h>
 
-#include "param_log.h"
-#include "param_serializer.h"
-
 void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 
 	//csp_hex_dump("get handler", request->data, request->length);
@@ -54,7 +51,7 @@ static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet)
 	//csp_hex_dump("set handler", packet->data, packet->length);
 
 	param_queue_t * queue = param_queue_create(&packet->data[2], packet->length - 2, packet->length - 2, PARAM_QUEUE_TYPE_SET);
-	int result = param_queue_foreach(queue, (param_queue_callback_f) param_deserialize_from_mpack_to_param);
+	int result = param_queue_apply(queue);
 	param_queue_destroy(queue);
 
 	if (result != 0) {

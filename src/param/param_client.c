@@ -17,7 +17,6 @@
 #include <param/param_client.h>
 #include <param/param_queue.h>
 
-#include "param_serializer.h"
 #include "param_string.h"
 
 csp_packet_t * param_transaction(csp_packet_t *packet, int host, int timeout) {
@@ -58,7 +57,7 @@ void param_pull_response(csp_packet_t * response, int verbose) {
 	//csp_hex_dump("pull response", response->data, response->length);
 	param_queue_t * queue = param_queue_create(&response->data[2], response->length - 2, response->length - 2, PARAM_QUEUE_TYPE_SET);
 	param_queue_print(queue);
-	param_queue_foreach(queue, (param_queue_callback_f) param_deserialize_from_mpack_to_param);
+	param_queue_apply(queue);
 	param_queue_destroy(queue);
 
 	csp_buffer_free(response);
@@ -143,7 +142,7 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 
 	printf("Set OK\n");
 	param_queue_print(queue);
-	param_queue_foreach(queue, (param_queue_callback_f) param_deserialize_from_mpack_to_param);
+	param_queue_apply(queue);
 
 	return 0;
 }
@@ -167,7 +166,7 @@ int param_push_single(param_t *param, void *value, int verbose, int host, int ti
 		return -1;
 	}
 
-	param_queue_foreach(queue, (param_queue_callback_f) param_deserialize_from_mpack_to_param);
+	param_queue_apply(queue);
 	csp_buffer_free(packet);
 
 	return 0;
