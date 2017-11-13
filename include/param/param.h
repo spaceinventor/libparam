@@ -57,15 +57,6 @@ typedef enum {
 	PARAM_STORAGE_TEMPLATE,       //! No storage (parameter template)
 } param_storage_type_e;
 
-typedef struct param_log_s {
-	void * phys_addr;
-	unsigned int phys_len;
-	unsigned int in;
-	unsigned int out;
-	unsigned int elm_size;
-	unsigned int elm_count;
-} param_log_t;
-
 /**
  * Parameter description structure
  * Note: this is not packed in order to maximise run-time efficiency
@@ -85,8 +76,6 @@ typedef struct param_s {
 	char *unit;
 
 	SLIST_ENTRY(param_s) next;	// single linked list
-
-	param_log_t * log;
 
 	union {
 		struct {
@@ -141,7 +130,6 @@ typedef struct param_s {
 		.unit = _unit, \
 		.callback = _callback, \
 		.physaddr = _physaddr, \
-		.log = _log, \
 	}
 
 #define PARAM_DEFINE_STRUCT_RAM(fieldname, _id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _physaddr, _log) \
@@ -156,7 +144,6 @@ typedef struct param_s {
 		.unit = _unit, \
 		.callback = _callback, \
 		.physaddr = _physaddr, \
-		.log = _log, \
 	}
 
 
@@ -176,7 +163,6 @@ typedef struct param_s {
 		.unit = _unit, \
 		.addr = _addr, \
 		.vmem = &vmem_##_vmem_name, \
-		.log = _log, \
 	}
 
 #define PARAM_DEFINE_STRUCT_VMEM(fieldname, _id, _type, _size, _min, _max, _readonly, _callback, _unit, _vmem_name, _addr, _log) \
@@ -192,10 +178,10 @@ typedef struct param_s {
 		.unit = _unit, \
 		.addr = _addr, \
 		.vmem = &vmem_##_vmem_name, \
-		.log = _log, \
 	}
 
-#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _size, _value_get, _value_set) \
+#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _size, _value_get) \
+	char __attribute__((aligned(8))) _##_name##_value_get[_size]; \
 	param_t _name = { \
 		.storage_type = PARAM_STORAGE_REMOTE, \
 		.node = _node, \
@@ -204,18 +190,8 @@ typedef struct param_s {
 		.size = _size, \
 		.name = (char *) #_name, \
 		\
-		.value_get = _value_get, \
-		.value_set = _value_set \
+		.value_get = _##_name##_value_get, \
 	};
-
-#define PARAM_DEFINE_STATIC_REMOTE_READONLY(_name, _node, _id, _type, _size) \
-	char __attribute__((aligned(8))) _##_name##_value_get[_size]; \
-	PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _size, _##_name##_value_get, NULL)
-
-#define PARAM_DEFINE_STATIC_REMOTE_READWRITE(_name, _node, _id, _type, _size) \
-	char __attribute__((aligned(8))) _##_name##_value_get[_size]; \
-	char __attribute__((aligned(8))) _##_name##_value_set[_size]; \
-	PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _size, _##_name##_value_get, _##_name##_value_set)
 
 /* Native getter functions, will return native types */
 #define PARAM_GET(type, name) \
