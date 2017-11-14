@@ -16,20 +16,20 @@
 #include <param/param_server.h>
 #include <param/param_list.h>
 
-static void param_serve_pull_all_request(csp_conn_t * conn, csp_packet_t * request) {
+static void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
 
-	csp_buffer_free(request);
 	csp_packet_t * response = NULL;
 	param_queue_t q_response;
 
-	void allocate(void) {
+	int __allocate() {
 		response = csp_buffer_get(PARAM_SERVER_MTU);
 		if (response == NULL)
-			return;
+			return -1;
 		param_queue_init(&q_response, &response->data[2], PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET);
+		return 0;
 	}
 
-	void send(int end) {
+	void __send(int end) {
 		response->data[0] = PARAM_PULL_RESPONSE;
 		response->data[1] = (end) ? PARAM_FLAG_END : 0;
 		response->length = q_response.used + 2;
@@ -39,59 +39,41 @@ static void param_serve_pull_all_request(csp_conn_t * conn, csp_packet_t * reque
 		}
 	}
 
-	allocate();
-
-	param_t * param;
-	param_list_iterator i = {};
-	while ((param = param_list_iterate(&i)) != NULL) {
+	int __add(param_queue_t *queue, param_t * param, void *reader) {
 		int result = param_queue_add(&q_response, param, NULL);
 		if (result != 0) {
 
 			/* Flush */
-			send(0);
-			allocate();
+			__send(0);
+			if (__allocate() < 0)
+				return 0;
 
 			/* Retry on fresh buffer */
 			if (param_queue_add(&q_response, param, NULL) != 0) {
 				printf("warn: param too big for mtu\n");
 			}
 		}
-	}
-
-	send(1);
-
-}
-
-static void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) {
-
-	//csp_hex_dump("get handler", request->data, request->length);
-
-	csp_packet_t * response = csp_buffer_get(PARAM_SERVER_MTU);
-	if (response == NULL) {
-		csp_buffer_free(request);
-		return;
-	}
-
-	response->data[0] = PARAM_PULL_RESPONSE;
-	response->data[1] = PARAM_FLAG_END;
-
-	param_queue_t q_response;
-	param_queue_init(&q_response, &response->data[2], PARAM_SERVER_MTU-2, 0, PARAM_QUEUE_TYPE_SET);
-	param_queue_t q_request;
-	param_queue_init(&q_request, &request->data[2], PARAM_SERVER_MTU-2, request->length - 2, PARAM_QUEUE_TYPE_SET);
-
-	int add_callback(param_queue_t *queue, param_t * param, void *reader) {
-		param_queue_add(&q_response, param, NULL);
 		return  0;
 	}
-	param_queue_foreach(&q_request, add_callback);
-	csp_buffer_free(request);
 
-	response->length = q_response.used + 2;
-	//csp_hex_dump("get handler", response->data, response->length);
+	if (__allocate(&response, &q_response) < 0)
+		return;
 
-	if (!csp_send(conn, response, 0))
-		csp_buffer_free(response);
+	if (request) {
+		param_queue_t q_request;
+		param_queue_init(&q_request, &request->data[2], request->length - 2, request->length - 2, PARAM_QUEUE_TYPE_SET);
+		param_queue_foreach(&q_request, __add);
+		csp_buffer_free(request);
+	} else {
+		param_t * param;
+		param_list_iterator i = {};
+		while ((param = param_list_iterate(&i)) != NULL) {
+			__add(&q_response, param, NULL);
+		}
+	}
+
+	__send(1);
+
 }
 
 static void param_serve_push(csp_conn_t * conn, csp_packet_t * packet, int send_ack)
@@ -124,7 +106,8 @@ static void param_serve(csp_conn_t * conn, csp_packet_t * packet) {
 			break;
 
 		case PARAM_PULL_ALL_REQUEST:
-			param_serve_pull_all_request(conn, packet);
+			csp_buffer_free(packet);
+			param_serve_pull_request(conn, NULL);
 			break;
 
 		case PARAM_PULL_RESPONSE:
