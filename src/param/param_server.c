@@ -23,10 +23,10 @@ static void param_serve_pull_all_request(csp_conn_t * conn, csp_packet_t * reque
 	param_queue_t q_response;
 
 	void allocate(void) {
-		response = csp_buffer_get(256);
+		response = csp_buffer_get(PARAM_SERVER_MTU);
 		if (response == NULL)
 			return;
-		param_queue_init(&q_response, &response->data[2], 256-2, 0, PARAM_QUEUE_TYPE_SET);
+		param_queue_init(&q_response, &response->data[2], PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET);
 	}
 
 	void send(int end) {
@@ -45,11 +45,16 @@ static void param_serve_pull_all_request(csp_conn_t * conn, csp_packet_t * reque
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 		int result = param_queue_add(&q_response, param, NULL);
-		if (result == 0) {
-			printf("Added %s\n", param->name);
-		} else {
+		if (result != 0) {
+
+			/* Flush */
 			send(0);
 			allocate();
+
+			/* Retry on fresh buffer */
+			if (param_queue_add(&q_response, param, NULL) != 0) {
+				printf("warn: param too big for mtu\n");
+			}
 		}
 	}
 
@@ -61,7 +66,7 @@ static void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) 
 
 	//csp_hex_dump("get handler", request->data, request->length);
 
-	csp_packet_t * response = csp_buffer_get(256);
+	csp_packet_t * response = csp_buffer_get(PARAM_SERVER_MTU);
 	if (response == NULL) {
 		csp_buffer_free(request);
 		return;
@@ -71,9 +76,9 @@ static void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) 
 	response->data[1] = PARAM_FLAG_END;
 
 	param_queue_t q_response;
-	param_queue_init(&q_response, &response->data[2], 256-2, 0, PARAM_QUEUE_TYPE_SET);
+	param_queue_init(&q_response, &response->data[2], PARAM_SERVER_MTU-2, 0, PARAM_QUEUE_TYPE_SET);
 	param_queue_t q_request;
-	param_queue_init(&q_request, &request->data[2], 256-2, request->length - 2, PARAM_QUEUE_TYPE_SET);
+	param_queue_init(&q_request, &request->data[2], PARAM_SERVER_MTU-2, request->length - 2, PARAM_QUEUE_TYPE_SET);
 
 	int add_callback(param_queue_t *queue, param_t * param, void *reader) {
 		param_queue_add(&q_response, param, NULL);

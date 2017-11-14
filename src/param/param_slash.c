@@ -169,10 +169,11 @@ static int cmd_get(struct slash *slash) {
 			result = param_pull_single(param, 0, host, 1000);
 		} else {
 			if (!queue_get.buffer) {
-				param_queue_init(&queue_get, malloc(256), 256, 0,
+				param_queue_init(&queue_get, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0,
 						PARAM_QUEUE_TYPE_GET);
 			}
-			result = param_queue_add(&queue_get, param, NULL);
+			if (param_queue_add(&queue_get, param, NULL) < 0)
+				printf("Queue full\n");
 			param_queue_print(&queue_get);
 			return SLASH_SUCCESS;
 		}
@@ -217,12 +218,13 @@ static int cmd_set(struct slash *slash) {
 			result = param_push_single(param, valuebuf, 1, host, 1000);
 		} else {
 			if (!queue_set.buffer) {
-				param_queue_init(&queue_set, malloc(256), 256, 0,
+				param_queue_init(&queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0,
 						PARAM_QUEUE_TYPE_SET);
 			}
-			param_queue_add(&queue_set, param, valuebuf);
+			if (param_queue_add(&queue_set, param, valuebuf) < 0)
+				printf("Queue full\n");
 			param_queue_print(&queue_set);
-			result = 2; // Do not print result
+			return SLASH_SUCCESS;
 		}
 
 		/* For local parameters, set immediately */
@@ -235,8 +237,7 @@ static int cmd_set(struct slash *slash) {
 		return SLASH_EIO;
 	}
 
-	if (result != 2)
-		param_print(param, -1, NULL, 0, 2);
+	param_print(param, -1, NULL, 0, 2);
 
 	return SLASH_SUCCESS;
 }

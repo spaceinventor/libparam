@@ -12,7 +12,7 @@
 #include <csp/csp.h>
 #include <mpack/mpack.h>
 
-void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * value);
+int param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * value);
 param_t * param_deserialize_from_mpack(mpack_reader_t * reader);
 void param_deserialize_from_mpack_to_param(void * queue, param_t * param, mpack_reader_t * reader);
 

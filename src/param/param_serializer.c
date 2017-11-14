@@ -20,12 +20,16 @@
 
 #include <mpack/mpack.h>
 
-void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * value) {
+int param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * value) {
+
+	/* Remember the initial position if we need to abort later due to buffer full */
+	unsigned int init_pos = writer->used;
+
 	mpack_write_u16(writer, param_get_short_id(param, 0, 0));
+	if (mpack_writer_error(writer) != mpack_ok)
+		return -1;
 
 	// TODO: Implement arrays
-
-	//printf("param %s value %p\n", param->name, value);
 
 	switch (param->type) {
 	case PARAM_TYPE_UINT8:
@@ -47,7 +51,6 @@ void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * v
 	case PARAM_TYPE_UINT32:
 	case PARAM_TYPE_XINT32:
 		if (value) {
-			printf("Set u32 %u\n", *(uint32_t *) value);
 			mpack_write_uint(writer, *(uint32_t *) value);
 		} else {
 			mpack_write_uint(writer, param_get_uint32(param));
@@ -108,14 +111,30 @@ void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * v
 		int len;
 		if (value) {
 			len = strnlen(value, param->size);
+
 			mpack_start_str(writer, len);
+
+			if (writer->size - writer->used < len) {
+				writer->error = mpack_error_too_big;
+				break;
+			}
+
 			memcpy(writer->buffer + writer->used, (char *) value, len);
+
 		} else {
 			char tmp[param->size];
 			param_get_data(param, tmp, param->size);
 			len = strnlen(tmp, param->size);
+
 			mpack_start_str(writer, len);
+
+			if (writer->size - writer->used < len) {
+				writer->error = mpack_error_too_big;
+				break;
+			}
+
 			memcpy(writer->buffer + writer->used, tmp, len);
+
 		}
 		writer->used += len;
 		mpack_finish_str(writer);
@@ -123,7 +142,14 @@ void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * v
 	}
 
 	case PARAM_TYPE_DATA:
+
 		mpack_start_bin(writer, param->size);
+
+		if (writer->size - writer->used < param->size) {
+			writer->error = mpack_error_too_big;
+			break;
+		}
+
 		if (value) {
 			memcpy(writer->buffer + writer->used, value, param->size);
 		} else {
@@ -137,6 +163,13 @@ void param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * v
 	case PARAM_TYPE_VECTOR3:
 		break;
 	}
+
+	if (mpack_writer_error(writer) != mpack_ok) {
+		writer->used = init_pos;
+		return -1;
+	}
+
+	return 0;
 
 }
 

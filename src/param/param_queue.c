@@ -19,7 +19,6 @@ void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int
 	queue->buffer_size = buffer_size;
 	queue->type = type;
 	queue->used = used;
-	return queue;
 }
 
 int param_queue_add(param_queue_t *queue, param_t *param, void *value) {
@@ -31,6 +30,8 @@ int param_queue_add(param_queue_t *queue, param_t *param, void *value) {
 	} else {
 		mpack_write_u16(&writer, param_get_short_id(param, 0, 0));
 	}
+	if (mpack_writer_error(&writer) != mpack_ok)
+		return -1;
 	queue->used = writer.used;
 	return 0;
 }
