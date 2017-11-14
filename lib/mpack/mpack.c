@@ -2718,10 +2718,10 @@ void mpack_print_element(mpack_reader_t* reader, size_t depth, FILE* file) {
             break;
 
         case mpack_type_int:
-            fprintf(file, "%" PRIi32, (int) val.v.i);
+            fprintf(file, "%" PRIi32, (long int) val.v.i);
             break;
         case mpack_type_uint:
-            fprintf(file, "%" PRIu32, (unsigned int) val.v.u);
+            fprintf(file, "%" PRIu32, (unsigned long int) val.v.u);
             break;
 
         case mpack_type_bin:
@@ -2733,7 +2733,7 @@ void mpack_print_element(mpack_reader_t* reader, size_t depth, FILE* file) {
             break;
 
         case mpack_type_ext:
-            fprintf(file, "<ext data of type %i and length %u>", val.exttype, val.v.l);
+            fprintf(file, "<ext data of type %i and length %u>", val.exttype, (unsigned int) val.v.l);
             mpack_skip_bytes(reader, val.v.l);
             mpack_done_ext(reader);
             break;
@@ -4522,12 +4522,12 @@ static void mpack_node_print_element(mpack_node_t node, size_t depth, FILE* file
             break;
 
         case mpack_type_bin:
-            fprintf(file, "<binary data of length %u>", data->len);
+            fprintf(file, "<binary data of length %u>", (unsigned int) data->len);
             break;
 
         case mpack_type_ext:
             fprintf(file, "<ext data of type %i and length %u>",
-                    mpack_node_exttype(node), data->len);
+                    mpack_node_exttype(node), (unsigned int) data->len);
             break;
 
         case mpack_type_str:
