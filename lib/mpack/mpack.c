@@ -2757,25 +2757,21 @@ void mpack_print_element(mpack_reader_t* reader, size_t depth, FILE* file) {
             break;
 
         case mpack_type_array:
-            fprintf(file, "[\n");
+            fprintf(file, "[");
             for (size_t i = 0; i < val.v.n; ++i) {
-                for (size_t j = 0; j < depth + 1; ++j)
-                    fprintf(file, "    ");
                 mpack_print_element(reader, depth + 1, file);
                 if (mpack_reader_error(reader) != mpack_ok)
                     return;
                 if (i != val.v.n - 1)
                     putc(',', file);
-                putc('\n', file);
+                putc(' ', file);
             }
-            for (size_t i = 0; i < depth; ++i)
-                fprintf(file, "    ");
             putc(']', file);
             mpack_done_array(reader);
             break;
 
         case mpack_type_map:
-            fprintf(file, "{\n");
+            fprintf(file, "{");
             for (size_t i = 0; i < val.v.n; ++i) {
                 for (size_t j = 0; j < depth + 1; ++j)
                     fprintf(file, "    ");
@@ -2788,7 +2784,7 @@ void mpack_print_element(mpack_reader_t* reader, size_t depth, FILE* file) {
                     return;
                 if (i != val.v.n - 1)
                     putc(',', file);
-                putc('\n', file);
+                putc(' ', file);
             }
             for (size_t i = 0; i < depth; ++i)
                 fprintf(file, "    ");
