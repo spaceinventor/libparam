@@ -20,16 +20,63 @@
 
 #include <mpack/mpack.h>
 
-int param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * value) {
+static inline uint16_t param_get_short_id(param_t * param, unsigned int isarray, unsigned int reserved) {
+	uint16_t node = (param->node == 255) ? csp_get_address() : param->node;
+	return (node << 11) | ((isarray & 0x1) << 10) | ((reserved & 0x1) << 2) | ((param->id) & 0x1FF);
+}
+
+static inline uint8_t param_parse_short_id_flag_isarray(uint16_t short_id) {
+	return (short_id >> 10) & 0x1;
+}
+
+static inline uint8_t param_parse_short_id_node(uint16_t short_id) {
+	return (short_id >> 11) & 0x1F;
+}
+
+static inline uint16_t param_parse_short_id_paramid(uint16_t short_id) {
+	return short_id & 0x1FF;
+}
+
+void param_serialize_id(mpack_writer_t *writer, param_t * param, int offset) {
+	if (offset >= 0) {
+		mpack_write_u16(writer, param_get_short_id(param, 1, 0));
+		char _offset = offset;
+		mpack_write_bytes(writer, &_offset, 1);
+	} else {
+		mpack_write_u16(writer, param_get_short_id(param, 0, 0));
+	}
+}
+
+void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, int *offset) {
+	uint16_t short_id = mpack_expect_u16(reader);
+
+	if (mpack_reader_error(reader) != mpack_ok)
+		return;
+
+	if (param_parse_short_id_flag_isarray(short_id)) {
+		char _offset;
+		mpack_read_bytes(reader, &_offset, 1);
+		*offset = _offset;
+	}
+
+	*id = param_parse_short_id_paramid(short_id);
+	*node = param_parse_short_id_node(short_id);
+
+}
+
+int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * writer, void * value) {
 
 	/* Remember the initial position if we need to abort later due to buffer full */
 	unsigned int init_pos = writer->used;
 
-	mpack_write_u16(writer, param_get_short_id(param, 0, 0));
+	param_serialize_id(writer, param, offset);
+
+	/* todo: support packing entire arrays */
+	if (offset == -1)
+		offset = 0;
+
 	if (mpack_writer_error(writer) != mpack_ok)
 		return -1;
-
-	// TODO: Implement arrays
 
 	switch (param->type) {
 	case PARAM_TYPE_UINT8:
@@ -37,7 +84,7 @@ int param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * va
 		if (value) {
 			mpack_write_uint(writer, *(uint8_t *) value);
 		} else {
-			mpack_write_uint(writer, param_get_uint8(param));
+			mpack_write_uint(writer, param_get_uint8_array(param, offset));
 		}
 		break;
 	case PARAM_TYPE_UINT16:
@@ -45,7 +92,7 @@ int param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * va
 		if (value) {
 			mpack_write_uint(writer, *(uint16_t *) value);
 		} else {
-			mpack_write_uint(writer, param_get_uint16(param));
+			mpack_write_uint(writer, param_get_uint16_array(param, offset));
 		}
 		break;
 	case PARAM_TYPE_UINT32:
@@ -53,7 +100,7 @@ int param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * va
 		if (value) {
 			mpack_write_uint(writer, *(uint32_t *) value);
 		} else {
-			mpack_write_uint(writer, param_get_uint32(param));
+			mpack_write_uint(writer, param_get_uint32_array(param, offset));
 		}
 		break;
 	case PARAM_TYPE_UINT64:
@@ -61,49 +108,49 @@ int param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * va
 		if (value) {
 			mpack_write_uint(writer, *(uint64_t *) value);
 		} else {
-			mpack_write_uint(writer, param_get_uint64(param));
+			mpack_write_uint(writer, param_get_uint64_array(param, offset));
 		}
 		break;
 	case PARAM_TYPE_INT8:
 		if (value) {
 			mpack_write_int(writer, *(int8_t *) value);
 		} else {
-			mpack_write_int(writer, param_get_int8(param));
+			mpack_write_int(writer, param_get_int8_array(param, offset));
 		}
 		break;
 	case PARAM_TYPE_INT16:
 		if (value) {
 			mpack_write_int(writer, *(int16_t *) value);
 		} else {
-			mpack_write_int(writer, param_get_int16(param));
+			mpack_write_int(writer, param_get_int16_array(param, offset));
 		}
 		break;
 	case PARAM_TYPE_INT32:
 		if (value) {
 			mpack_write_int(writer, *(int32_t *) value);
 		} else {
-			mpack_write_int(writer, param_get_int32(param));
+			mpack_write_int(writer, param_get_int32_array(param, offset));
 		}
 		break;
 	case PARAM_TYPE_INT64:
 		if (value) {
 			mpack_write_int(writer, *(int64_t *) value);
 		} else {
-			mpack_write_int(writer, param_get_int64(param));
+			mpack_write_int(writer, param_get_int64_array(param, offset));
 		}
 		break;
 	case PARAM_TYPE_FLOAT:
 		if (value) {
 			mpack_write_float(writer, *(float *) value);
 		} else {
-			mpack_write_float(writer, param_get_float(param));
+			mpack_write_float(writer, param_get_float_array(param, offset));
 		}
 		break;
 	case PARAM_TYPE_DOUBLE:
 		if (value) {
 			mpack_write_double(writer, *(double *) value);
 		} else {
-			mpack_write_double(writer, param_get_double(param));
+			mpack_write_double(writer, param_get_double_array(param, offset));
 		}
 		break;
 
@@ -173,36 +220,36 @@ int param_serialize_to_mpack(param_t * param, mpack_writer_t * writer, void * va
 
 }
 
-void param_deserialize_from_mpack_to_param(void * queue, param_t * param, mpack_reader_t * reader) {
+void param_deserialize_from_mpack_to_param(void * queue, param_t * param, int offset, mpack_reader_t * reader) {
 
-	// TODO: Implement arrays as value
-	unsigned int i = 0;
+	if (offset < 0)
+		offset = 0;
 
 	switch (param->type) {
 	case PARAM_TYPE_UINT8:
 	case PARAM_TYPE_XINT8:
-		param_set_uint8_array(param, i, (uint8_t) mpack_expect_uint(reader)); break;
+		param_set_uint8_array(param, offset, (uint8_t) mpack_expect_uint(reader)); break;
 	case PARAM_TYPE_UINT16:
 	case PARAM_TYPE_XINT16:
-		param_set_uint16_array(param, i, (uint16_t) mpack_expect_uint(reader)); break;
+		param_set_uint16_array(param, offset, (uint16_t) mpack_expect_uint(reader)); break;
 	case PARAM_TYPE_UINT32:
 	case PARAM_TYPE_XINT32:
-		param_set_uint32_array(param, i, (uint32_t) mpack_expect_uint(reader)); break;
+		param_set_uint32_array(param, offset, (uint32_t) mpack_expect_uint(reader)); break;
 	case PARAM_TYPE_UINT64:
 	case PARAM_TYPE_XINT64:
-		param_set_uint64_array(param, i, mpack_expect_u64(reader)); break;
+		param_set_uint64_array(param, offset, mpack_expect_u64(reader)); break;
 	case PARAM_TYPE_INT8:
-		param_set_int8_array(param, i, (int8_t) mpack_expect_int(reader)); break;
+		param_set_int8_array(param, offset, (int8_t) mpack_expect_int(reader)); break;
 	case PARAM_TYPE_INT16:
-		param_set_int16_array(param, i, (int16_t) mpack_expect_int(reader)); break;
+		param_set_int16_array(param, offset, (int16_t) mpack_expect_int(reader)); break;
 	case PARAM_TYPE_INT32:
-		param_set_int32_array(param, i, (int32_t) mpack_expect_int(reader)); break;
+		param_set_int32_array(param, offset, (int32_t) mpack_expect_int(reader)); break;
 	case PARAM_TYPE_INT64:
-		param_set_int64_array(param, i, mpack_expect_i64(reader)); break;
+		param_set_int64_array(param, offset, mpack_expect_i64(reader)); break;
 	case PARAM_TYPE_FLOAT:
-		param_set_float_array(param, i, mpack_expect_float(reader)); break;
+		param_set_float_array(param, offset, mpack_expect_float(reader)); break;
 	case PARAM_TYPE_DOUBLE:
-		param_set_double_array(param, i, mpack_expect_double(reader)); break;
+		param_set_double_array(param, offset, mpack_expect_double(reader)); break;
 	case PARAM_TYPE_STRING: {
 		int len = mpack_expect_str(reader);
 		param_set_string(param, &reader->buffer[reader->pos], len);

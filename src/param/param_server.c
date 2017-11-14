@@ -39,8 +39,8 @@ static void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) 
 		}
 	}
 
-	int __add(param_queue_t *queue, param_t * param, void *reader) {
-		int result = param_queue_add(&q_response, param, NULL);
+	int __add(param_queue_t *queue, param_t * param, int offset, void *reader) {
+		int result = param_queue_add(&q_response, param, offset, NULL);
 		if (result != 0) {
 
 			/* Flush */
@@ -49,7 +49,7 @@ static void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) 
 				return 0;
 
 			/* Retry on fresh buffer */
-			if (param_queue_add(&q_response, param, NULL) != 0) {
+			if (param_queue_add(&q_response, param, offset, NULL) != 0) {
 				printf("warn: param too big for mtu\n");
 			}
 		}
@@ -68,7 +68,7 @@ static void param_serve_pull_request(csp_conn_t * conn, csp_packet_t * request) 
 		param_t * param;
 		param_list_iterator i = {};
 		while ((param = param_list_iterate(&i)) != NULL) {
-			__add(&q_response, param, NULL);
+			__add(&q_response, param, -1, NULL);
 		}
 	}
 

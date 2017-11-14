@@ -164,15 +164,15 @@ static int cmd_get(struct slash *slash) {
 	if (param->storage_type == PARAM_STORAGE_REMOTE) {
 
 		if ((node != -1) && (autosend)) {
-			result = param_pull_single(param, 0, node, 1000);
+			result = param_pull_single(param, offset, 0, node, 1000);
 		} else if (host != -1) {
-			result = param_pull_single(param, 0, host, 1000);
+			result = param_pull_single(param, offset, 0, host, 1000);
 		} else {
 			if (!queue_get.buffer) {
 				param_queue_init(&queue_get, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0,
 						PARAM_QUEUE_TYPE_GET);
 			}
-			if (param_queue_add(&queue_get, param, NULL) < 0)
+			if (param_queue_add(&queue_get, param, offset, NULL) < 0)
 				printf("Queue full\n");
 			param_queue_print(&queue_get);
 			return SLASH_SUCCESS;
@@ -213,15 +213,15 @@ static int cmd_set(struct slash *slash) {
 	if (param->storage_type == PARAM_STORAGE_REMOTE) {
 
 		if ((node != -1) && (autosend)) {
-			result = param_push_single(param, valuebuf, 1, node, 1000);
+			result = param_push_single(param, offset, valuebuf, 1, node, 1000);
 		} else if (host != -1) {
-			result = param_push_single(param, valuebuf, 1, host, 1000);
+			result = param_push_single(param, offset, valuebuf, 1, host, 1000);
 		} else {
 			if (!queue_set.buffer) {
 				param_queue_init(&queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0,
 						PARAM_QUEUE_TYPE_SET);
 			}
-			if (param_queue_add(&queue_set, param, valuebuf) < 0)
+			if (param_queue_add(&queue_set, param, offset, valuebuf) < 0)
 				printf("Queue full\n");
 			param_queue_print(&queue_set);
 			return SLASH_SUCCESS;

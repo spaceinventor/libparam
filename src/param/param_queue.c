@@ -21,14 +21,14 @@ void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int
 	queue->used = used;
 }
 
-int param_queue_add(param_queue_t *queue, param_t *param, void *value) {
+int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value) {
 	mpack_writer_t writer;
 	mpack_writer_init(&writer, queue->buffer, queue->buffer_size);
 	writer.used = queue->used;
 	if (queue->type == PARAM_QUEUE_TYPE_SET) {
-		param_serialize_to_mpack(param, &writer, value);
+		param_serialize_to_mpack(param, offset, &writer, value);
 	} else {
-		mpack_write_u16(&writer, param_get_short_id(param, 0, 0));
+		param_serialize_id(&writer, param, offset);
 	}
 	if (mpack_writer_error(&writer) != mpack_ok)
 		return -1;
@@ -41,22 +41,22 @@ int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback) {
 	mpack_reader_t reader;
 	mpack_reader_init_data(&reader, queue->buffer, queue->used);
 	while(reader.left > 0) {
-	    uint16_t short_id = mpack_expect_u16(&reader);
-	    if (mpack_reader_error(&reader) != mpack_ok)
-	    	return mpack_reader_error(&reader);
-
-	    param_t * param = param_list_find_id(param_parse_short_id_node(short_id), param_parse_short_id_paramid(short_id));
+		int id, node, offset = -1;
+		param_deserialize_id(&reader, &id, &node, &offset);
+	    param_t * param = param_list_find_id(node, id);
 	    if (param)
-	    	callback(queue, param, &reader);
-
+	    	callback(queue, param, offset, &reader);
 	}
 
 	return mpack_ok;
 
 }
 
-int param_queue_print_callback(param_queue_t *queue, param_t *param, void *reader) {
-	printf("  %s:%u\t", param->name, param->node);
+int param_queue_print_callback(param_queue_t *queue, param_t *param, int offset, void *reader) {
+	printf("  %s:%u", param->name, param->node);
+	if (offset >= 0)
+		printf("[%u]", offset);
+	printf("\t");
 	if (queue->type == PARAM_QUEUE_TYPE_SET) {
 		printf(" => ");
 		mpack_print_element((mpack_reader_t *) reader, 2, stdout);

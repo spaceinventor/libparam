@@ -26,12 +26,13 @@
  * Executes an immediate parameter fetch of a single parameter from a remote system.
  *
  * @param param pointer to parameter description
+ * @param array offset (-1 for all)
  * @param verbose printout when received
  * @param host remote csp node
  * @param timeout in ms
  * @return 0 = ok, -1 on network error
  */
-int param_pull_single(param_t * param, int verbose, int host, int timeout);
+int param_pull_single(param_t *param, int offset, int verbose, int host, int timeout);
 
 /**
  * PULL all
@@ -48,13 +49,14 @@ int param_pull_all(int verbose, int host, int timeout);
  * Executes an immediate parameter push of a single value.
  *
  * @param param pointer to parameter description
+ * @param offset array offset
  * @param value pointer to value (must be aligned type)
  * @param verbose printout when received
  * @param host remote csp node
  * @param timeout in ms
  * @return 0 = OK, -1 on network error
  */
-int param_push_single(param_t *param, void *value, int verbose, int host, int timeout);
+int param_push_single(param_t *param, int offset, void *value, int verbose, int host, int timeout);
 
 /**
  * QUEUE PARAMETER API

@@ -81,7 +81,6 @@ int param_pull_all(int verbose, int host, int timeout) {
 	packet->data[0] = PARAM_PULL_ALL_REQUEST;
 	packet->data[1] = 0;
 	packet->length = 2;
-
 	return param_transaction(packet, host, timeout, param_transaction_callback_pull);
 
 }
@@ -107,7 +106,7 @@ int param_pull_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 }
 
 
-int param_pull_single(param_t *param, int verbose, int host, int timeout) {
+int param_pull_single(param_t *param, int offset, int verbose, int host, int timeout) {
 
 	// TODO: include unique packet id?
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
@@ -116,7 +115,7 @@ int param_pull_single(param_t *param, int verbose, int host, int timeout) {
 
 	param_queue_t queue;
 	param_queue_init(&queue, &packet->data[2], PARAM_SERVER_MTU - 2, 0, PARAM_QUEUE_TYPE_GET);
-	param_queue_add(&queue, param, NULL);
+	param_queue_add(&queue, param, offset, NULL);
 
 	packet->length = queue.used + 2;
 	return param_transaction(packet, host, timeout, param_transaction_callback_pull);
@@ -151,7 +150,7 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 	return 0;
 }
 
-int param_push_single(param_t *param, void *value, int verbose, int host, int timeout) {
+int param_push_single(param_t *param, int offset, void *value, int verbose, int host, int timeout) {
 
 	// TODO: include unique packet id?
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
@@ -160,7 +159,7 @@ int param_push_single(param_t *param, void *value, int verbose, int host, int ti
 
 	param_queue_t queue;
 	param_queue_init(&queue, &packet->data[2], PARAM_SERVER_MTU - 2, 0, PARAM_QUEUE_TYPE_SET);
-	param_queue_add(&queue, param, value);
+	param_queue_add(&queue, param, offset, value);
 
 	packet->length = queue.used + 2;
 	int result = param_transaction(packet, host, timeout, NULL);
@@ -169,7 +168,7 @@ int param_push_single(param_t *param, void *value, int verbose, int host, int ti
 		return -1;
 	}
 
-	param_set(param, 0, value);
+	param_set(param, offset, value);
 
 	return 0;
 }
