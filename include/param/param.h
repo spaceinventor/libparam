@@ -89,7 +89,7 @@ typedef struct param_s {
 				};
 			};
 			param_readonly_type_e readonly;
-			void (*callback)(struct param_s * param);
+			void (*callback)(struct param_s * param, int offset);
 		};
 		struct {
 			void * value_get;
@@ -119,7 +119,7 @@ typedef struct param_s {
 	__attribute__((section("param."#_name))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
-	param_t _name = { \
+	param_t param_##_name = { \
 		.storage_type = PARAM_STORAGE_RAM, \
 		.node = PARAM_LIST_LOCAL, \
 		.id = _id, \
