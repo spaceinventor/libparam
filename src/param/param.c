@@ -18,7 +18,11 @@
 			return 0; \
 		case PARAM_STORAGE_VMEM: { \
 			_type data = 0; \
-			param->vmem->read(param->vmem, param->addr + i * sizeof(_type), &data, sizeof(data)); \
+			if (param->array_step > 0) { \
+				param->vmem->read(param->vmem, param->addr + i * param->array_step, &data, sizeof(data)); \
+			} else { \
+				param->vmem->read(param->vmem, param->addr + i * sizeof(_type), &data, sizeof(data)); \
+			} \
 			if (param->vmem->big_endian == 1) { \
 				data = _swapfct(data); \
 			} \
@@ -136,7 +140,11 @@ void param_get_data(param_t * param, void * outbuf, int len)
 		if (param->storage_type == PARAM_STORAGE_VMEM) { \
 			if (param->vmem->big_endian == 1) \
 				value = _swapfct(value); \
-			param->vmem->write(param->vmem, param->addr + i * sizeof(_type), &value, sizeof(_type)); \
+			if (param->array_step > 0) { \
+				param->vmem->write(param->vmem, param->addr + i * param->array_step, &value, sizeof(_type)); \
+			} else { \
+				param->vmem->write(param->vmem, param->addr + i * sizeof(_type), &value, sizeof(_type)); \
+			} \
 		} \
 		\
 		/* Callback */ \
