@@ -5,6 +5,7 @@
  *      Author: johan
  */
 
+#include <stdio.h>
 #include <csp/csp.h>
 #include <mpack/mpack.h>
 

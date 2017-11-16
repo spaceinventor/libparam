@@ -141,7 +141,7 @@ void param_get_data(param_t * param, void * outbuf, int len)
 		\
 		/* Callback */ \
 		if ((do_callback == true) && (param->callback)) { \
-			param->callback(param); \
+			param->callback(param, i); \
 		} \
 	} \
 	inline void param_set_##name_in(param_t * param, _type value) \

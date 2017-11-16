@@ -89,7 +89,7 @@ typedef struct param_s {
 				};
 			};
 			param_readonly_type_e readonly;
-			void (*callback)(struct param_s * param);
+			void (*callback)(struct param_s * param, int offset);
 		};
 		struct {
 			void * value_get;
