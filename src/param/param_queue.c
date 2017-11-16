@@ -12,7 +12,9 @@
 #include <param/param_server.h>
 #include <param/param_queue.h>
 #include <param/param_list.h>
+
 #include "param_serializer.h"
+#include "param_string.h"
 
 void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int used, param_queue_type_e type) {
 	queue->buffer = buffer;
@@ -52,7 +54,11 @@ int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback) {
 
 }
 
-int param_queue_print_callback(param_queue_t *queue, param_t *param, int offset, void *reader) {
+int param_queue_apply(param_queue_t *queue) {
+	return param_queue_foreach(queue, (param_queue_callback_f) param_deserialize_from_mpack_to_param);
+}
+
+static int param_queue_print_callback(param_queue_t *queue, param_t *param, int offset, void *reader) {
 	printf("  %s:%u", param->name, param->node);
 	if (offset >= 0)
 		printf("[%u]", offset);
@@ -65,10 +71,16 @@ int param_queue_print_callback(param_queue_t *queue, param_t *param, int offset,
 	return 0;
 }
 
-int param_queue_apply(param_queue_t *queue) {
-	return param_queue_foreach(queue, (param_queue_callback_f) param_deserialize_from_mpack_to_param);
+static int param_queue_print_local_callback(param_queue_t *queue, param_t *param, int offset, void *reader) {
+	param_print(param, -1, NULL, 0, 0);
+	mpack_discard(reader);
+	return 0;
 }
 
 void param_queue_print(param_queue_t *queue) {
 	param_queue_foreach(queue, param_queue_print_callback);
+}
+
+void param_queue_print_local(param_queue_t *queue) {
+	param_queue_foreach(queue, param_queue_print_local_callback);
 }

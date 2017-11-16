@@ -23,8 +23,8 @@ static void param_transaction_callback_pull(csp_packet_t *response) {
 	//csp_hex_dump("pull response", response->data, response->length);
 	param_queue_t queue;
 	param_queue_init(&queue, &response->data[2], response->length - 2, response->length - 2, PARAM_QUEUE_TYPE_SET);
-	param_queue_print(&queue);
 	param_queue_apply(&queue);
+	param_queue_print_local(&queue);
 	csp_buffer_free(response);
 }
 
