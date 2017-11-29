@@ -286,7 +286,11 @@ void param_deserialize_from_mpack_to_param(void * queue, param_t * param, int of
 			param_set_double_array(param, i, mpack_expect_double(reader)); break;
 		case PARAM_TYPE_STRING: {
 			int len = mpack_expect_str(reader);
-			param_set_string(param, &reader->buffer[reader->pos], len);
+			if (len == 0) {
+				param_set_string(param, "", 1);
+			} else {
+				param_set_string(param, &reader->buffer[reader->pos], len);
+			}
 			reader->pos += len;
 			reader->left -= len;
 			mpack_done_str(reader);

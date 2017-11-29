@@ -174,7 +174,11 @@ static void param_print_value(param_t * param, int offset) {
 	for(int i = offset; i < offset + count; i++) {
 		char value_str[40];
 		param_value_str(param, i, value_str, 40);
-		printf("%s", value_str);
+		if (param->type == PARAM_TYPE_STRING) {
+			printf("\"%s\"", value_str);
+		} else {
+			printf("%s", value_str);
+		}
 		if (i + 1 < count)
 			printf(" ");
 	}

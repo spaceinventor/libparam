@@ -18,9 +18,7 @@
 			} \
 			return data; \
 		} else { \
-			if (param->addr) \
-				return *(_type *)(param->addr + i * param->array_step); \
-			return 0; \
+			return *(_type *)(param->addr + i * param->array_step); \
 		} \
 	} \
 	_type param_get_##_name(param_t * param) { \
@@ -74,8 +72,7 @@ void param_get_data(param_t * param, void * outbuf, int len)
 	if (param->vmem) {
 		param->vmem->read(param->vmem, (uint32_t) (intptr_t) param->addr, outbuf, len);
 	} else {
-		if (param->addr)
-			memcpy(outbuf, param->addr, len);
+		memcpy(outbuf, param->addr, len);
 	}
 }
 
@@ -98,8 +95,7 @@ void param_get_data(param_t * param, void * outbuf, int len)
 			param->vmem->write(param->vmem, (uint32_t) (intptr_t) param->addr + i * param->array_step, &value, sizeof(_type)); \
 		} else { \
 			/* Aligned access directly to RAM */ \
-			if (param->addr) \
-				*(_type*)(param->addr + i * param->array_step) = value; \
+			*(_type*)(param->addr + i * param->array_step) = value; \
 		} \
 		/* Callback */ \
 		if ((do_callback == true) && (param->callback)) { \
@@ -168,16 +164,22 @@ void param_set(param_t * param, unsigned int offset, void * value) {
 	}
 }
 
+void param_set_string(param_t * param, void * inbuf, int len) {
+	param_set_data(param, inbuf, len);
+	/* Termination */
+	if (param->vmem) {
+		param->vmem->write(param->vmem, (uint32_t) (intptr_t) param->addr + len, "", 1);
+	} else {
+		memcpy(param->addr + len , "", 1);
+	}
+}
+
+
 void param_set_data(param_t * param, void * inbuf, int len) {
 	if (param->vmem) {
 		param->vmem->write(param->vmem, (uint32_t) (intptr_t) param->addr, inbuf, len);
 	} else {
-		if (param->addr) {
-			memcpy(param->addr, inbuf, len);
-			if ((param->type == PARAM_TYPE_STRING) && (len < param->array_size)) {
-				((char *) param->addr)[len] = '\0';
-			}
-		}
+		memcpy(param->addr, inbuf, len);
 	}
 }
 
