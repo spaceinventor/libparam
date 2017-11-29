@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <string.h>
 #include <param/param.h>
 #include <libparam.h>
@@ -91,15 +90,12 @@ void param_get_data(param_t * param, void * outbuf, int len)
 		} \
 		/* Check readonly */ \
 		if ((param->readonly == PARAM_READONLY_TRUE) || (param->readonly == PARAM_READONLY_INTERNAL)) { \
-			printf("Tried to set readonly parameter %s\r\n", param->name); \
 			return; \
 		} \
 		if (param->vmem) { \
 			if (param->vmem->big_endian == 1) \
 				value = _swapfct(value); \
-			if (param->array_step > 0) { \
-				param->vmem->write(param->vmem, (uint32_t) (intptr_t) param->addr + i * param->array_step, &value, sizeof(_type)); \
-			} \
+			param->vmem->write(param->vmem, (uint32_t) (intptr_t) param->addr + i * param->array_step, &value, sizeof(_type)); \
 		} else { \
 			/* Aligned access directly to RAM */ \
 			if (param->addr) \
