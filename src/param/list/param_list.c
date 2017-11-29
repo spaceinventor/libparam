@@ -173,7 +173,7 @@ void param_list_download(int node, int timeout) {
 			break;
 		}
 
-		printf("Got param: %s size (%d)\n", param->name, param->array_size);
+		printf("Got param: %s[%d]\n", param->name, param->array_size);
 
 		/* Add to list */
 		if (param_list_add(param) != 0)
@@ -192,6 +192,9 @@ void param_list_destroy(param_t * param) {
 }
 
 param_t * param_list_create_remote(int id, int node, int type, int array_size, char * name, int namelen) {
+
+	if (array_size < 1)
+		array_size = 1;
 
 	struct param_heap_s {
 		param_t param;
@@ -212,9 +215,8 @@ param_t * param_list_create_remote(int id, int node, int type, int array_size, c
 	param->id = id;
 	param->node = node;
 	param->type = type;
-	if (array_size == 1)
-		array_size = -1;
 	param->array_size = array_size;
+	param->array_step = param_typesize(type);
 
 	strncpy(param->name, name, namelen);
 	param->name[namelen] = '\0';

@@ -307,7 +307,6 @@ void param_deserialize_from_mpack_to_param(void * queue, param_t * param, int of
 		}
 
 		if (mpack_reader_error(reader) != mpack_ok) {
-			printf("Reader error\n");
 			return;
 		}
 

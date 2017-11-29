@@ -16,12 +16,6 @@
  * DATATYPES
  */
 
-typedef struct {
-	float x;
-	float y;
-	float z;
-} __attribute__((__packed__)) param_type_vector3;
-
 typedef enum {
 	PARAM_TYPE_UINT8,
 	PARAM_TYPE_UINT16,
@@ -59,21 +53,21 @@ typedef struct param_s {
 	uint16_t id;
 	uint8_t node;
 	param_type_e type;
-	int array_size;
-	int array_step;
+	param_readonly_type_e readonly;
 	char *name;
 	char *unit;
-
-	SLIST_ENTRY(param_s) next;	// single linked list
 
 	/* Storage */
 	void * addr;
 	const struct vmem_s * vmem;
+	int array_size;
+	int array_step;
 
-	param_readonly_type_e readonly;
+	/* Local info */
 	void (*callback)(struct param_s * param, int offset);
-
 	uint32_t timestamp;
+
+	SLIST_ENTRY(param_s) next;	// single linked list
 
 } param_t;
 
