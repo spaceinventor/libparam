@@ -173,7 +173,7 @@ void param_list_download(int node, int timeout) {
 			break;
 		}
 
-		printf("Got param: %s size (%d)\n", param->name, param->size);
+		printf("Got param: %s size (%d)\n", param->name, param->array_size);
 
 		/* Add to list */
 		if (param_list_add(param) != 0)
@@ -191,12 +191,12 @@ void param_list_destroy(param_t * param) {
 	free(param);
 }
 
-param_t * param_list_create_remote(int id, int node, int type, int refresh, int size, char * name, int namelen) {
+param_t * param_list_create_remote(int id, int node, int type, int refresh, int array_size, char * name, int namelen) {
 
 	struct param_heap_s {
 		param_t param;
 		char name[namelen+1];
-		uint8_t value_get[param_typesize(type) * size];
+		uint8_t buffer[param_typesize(type) * array_size];
 	} *param_heap = calloc(sizeof(struct param_heap_s), 1);
 
 	param_t * param = &param_heap->param;
@@ -204,18 +204,17 @@ param_t * param_list_create_remote(int id, int node, int type, int refresh, int 
 		return NULL;
 	}
 
-	param->storage_type = PARAM_STORAGE_REMOTE;
+	param->vmem = NULL;
 	param->name = param_heap->name;
-	param->value_get = param_heap->value_get;
+	param->addr = param_heap->buffer;
 	param->unit = NULL;
 
 	param->id = id;
 	param->node = node;
 	param->type = type;
-	param->refresh = refresh;
-	if (size == 1)
-		size = -1;
-	param->size = size;
+	if (array_size == 1)
+		array_size = -1;
+	param->array_size = array_size;
 
 	strncpy(param->name, name, namelen);
 	param->name[namelen] = '\0';
@@ -226,55 +225,11 @@ param_t * param_list_create_remote(int id, int node, int type, int refresh, int 
 
 }
 
-param_t * param_list_create_remote_template(int id, int node, int type, int refresh, int size, char * name, int namelen) {
-
-	struct param_heap_s {
-		param_t param;
-		char name[namelen+1];
-	} *param_heap = calloc(sizeof(struct param_heap_s), 1);
-
-	param_t * param = &param_heap->param;
-	if (param == NULL) {
-		return NULL;
-	}
-
-	param->storage_type = PARAM_STORAGE_TEMPLATE;
-	param->name = param_heap->name;
-	param->unit = NULL;
-
-	param->id = id;
-	param->node = -2;
-	param->type = type;
-	param->size = size;
-
-	strncpy(param->name, name, namelen);
-	param->name[namelen] = '\0';
-
-	//printf("Created template %s\n", param->name);
-
-	return param;
-
-}
-
-param_t * param_list_template_to_param(param_t * template, int node) {
-
-	/* First check if it's created already */
-	param_t * param = param_list_find_id(node, template->id);
-	if (param)
-		return param;
-
-	/* Create new remote param */
-	param = param_list_create_remote(template->id, node, template->type, 0, template->size, template->name, strlen(template->name));
-	param_list_add(param);
-	return param;
-
-}
-
 param_t * param_list_from_line(char * line) {
 
 	char name[25] = {};
 	int id, node, type, refresh, size;
-	int scanned = sscanf(line, "%25[^|]|%u:%d?%u#%u[%d]%*s", name, &id, &node, &type, &refresh, &size);
+	int scanned = sscanf(line, "%25[^|]|%u:%d?%u[%d]%*s", name, &id, &node, &type, &size);
 	//printf("Scanned %u => %s", scanned, line);
 
 	if (scanned < 4)
@@ -287,11 +242,7 @@ param_t * param_list_from_line(char * line) {
 	param_t * param = param_list_find_id(node, id);
 
 	if (param == NULL) {
-		if (node == -2) {
-			param = param_list_create_remote_template(id, node, type, refresh, size, name, strlen(name));
-		} else {
-			param = param_list_create_remote(id, node, type, refresh, size, name, strlen(name));
-		}
+		param = param_list_create_remote(id, node, type, refresh, size, name, strlen(name));
 		param_list_add(param);
 	}
 
@@ -316,14 +267,14 @@ void param_list_to_string(FILE * stream, int node_filter, int remote_only) {
 		if ((node_filter >= 0) && (param->node != node_filter))
 			continue;
 
-		if ((remote_only) && (param->storage_type != PARAM_STORAGE_REMOTE))
+		if ((remote_only) && (param->node != PARAM_LIST_LOCAL))
 			continue;
 
 		int node = param->node;
 		if (node == PARAM_LIST_LOCAL)
 			node = csp_get_address();
 
-		fprintf(stream, "%s|%u:%u?%u#%u[%d]\n", param->name, param->id, node, param->type, param->refresh, param->size);
+		fprintf(stream, "%s|%u:%u?%u[%d]\n", param->name, param->id, node, param->type, param->array_size);
 	}
 
 }

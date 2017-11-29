@@ -8,34 +8,21 @@
 
 #define PARAM_GET(_type, _name, _swapfct) \
 	_type param_get_##_name##_array(param_t * param, unsigned int i) { \
-		if (i > param->size) { \
+		if (i > param->array_size) { \
 			return 0; \
 		} \
-		switch(param->storage_type) {\
-		case PARAM_STORAGE_RAM: \
-			if (param->physaddr) \
-				return *(_type *)(param->physaddr + i * sizeof(_type)); \
-			return 0; \
-		case PARAM_STORAGE_VMEM: { \
+		if (param->vmem) { \
 			_type data = 0; \
-			if (param->array_step > 0) { \
-				param->vmem->read(param->vmem, param->addr + i * param->array_step, &data, sizeof(data)); \
-			} else { \
-				param->vmem->read(param->vmem, param->addr + i * sizeof(_type), &data, sizeof(data)); \
-			} \
+			param->vmem->read(param->vmem, (uint32_t) param->addr + i * param->array_step, &data, sizeof(data)); \
 			if (param->vmem->big_endian == 1) { \
 				data = _swapfct(data); \
 			} \
 			return data; \
-		} \
-		case PARAM_STORAGE_REMOTE: \
-			if (param->value_get) \
-				return *(_type *)(param->value_get + i * sizeof(_type)); \
-			return 0; \
-		case PARAM_STORAGE_TEMPLATE: \
+		} else { \
+			if (param->addr) \
+				return *(_type *)(param->addr + i * param->array_step); \
 			return 0; \
 		} \
-		return 0; \
 	} \
 	_type param_get_##_name(param_t * param) { \
 		return param_get_##_name##_array(param, 0); \
@@ -77,32 +64,19 @@ void param_get(param_t * param, unsigned int offset, void * value) {
 	PARAM_GET(PARAM_TYPE_FLOAT, float, float)
 	PARAM_GET(PARAM_TYPE_DOUBLE, double, double)
 	case PARAM_TYPE_STRING:
-		param_get_data(param, value, param->size);
-		break;
-	case PARAM_TYPE_VECTOR3:
 	case PARAM_TYPE_DATA:
-		param_get_data(param, value, param->size);
+		param_get_data(param, value, param->array_size);
 		break;
-
 	}
 }
 
 void param_get_data(param_t * param, void * outbuf, int len)
 {
-	switch(param->storage_type) {
-	case PARAM_STORAGE_RAM:
-		if (param->physaddr)
-			memcpy(outbuf, param->physaddr, len);
-		return;
-	case PARAM_STORAGE_VMEM:
-		param->vmem->read(param->vmem, param->addr, outbuf, len);
-		return;
-	case PARAM_STORAGE_REMOTE:
-		if (param->value_get)
-			memcpy(outbuf, param->value_get, len);
-		return;
-	case PARAM_STORAGE_TEMPLATE:
-		return;
+	if (param->vmem) {
+		param->vmem->read(param->vmem, (uint32_t) param->addr, outbuf, len);
+	} else {
+		if (param->addr)
+			memcpy(outbuf, param->addr, len);
 	}
 }
 
@@ -112,41 +86,25 @@ void param_get_data(param_t * param, void * outbuf, int len)
 
 #define PARAM_SET(_type, name_in, _swapfct) \
 	void __param_set_##name_in(param_t * param, _type value, bool do_callback, unsigned int i) { \
-		if (i > param->size) { \
+		if (i > param->array_size) { \
 			return; \
 		} \
-		if (param->storage_type == PARAM_STORAGE_REMOTE) { \
-			if (param->value_get) { \
-				*(_type *) (param->value_get + i * sizeof(_type)) = value; \
-			} \
-			return; \
-		} \
-		\
 		/* Check readonly */ \
 		if ((param->readonly == PARAM_READONLY_TRUE) || (param->readonly == PARAM_READONLY_INTERNAL)) { \
 			printf("Tried to set readonly parameter %s\r\n", param->name); \
 			return; \
 		} \
-		/* Log */ \
-		param_log(param, &value); \
-		\
-		/* Aligned access directly to RAM */ \
-		if (param->storage_type == PARAM_STORAGE_RAM) { \
-			if (param->physaddr) \
-				*(_type*)(param->physaddr + i * sizeof(_type)) = value; \
-		} \
-		\
-		/* Otherwise call to vmem */ \
-		if (param->storage_type == PARAM_STORAGE_VMEM) { \
+		if (param->vmem) { \
+			/* Aligned access directly to RAM */ \
+			if (param->addr) \
+				*(_type*)(param->addr + i * param->array_step) = value; \
+		} else { \
 			if (param->vmem->big_endian == 1) \
 				value = _swapfct(value); \
 			if (param->array_step > 0) { \
-				param->vmem->write(param->vmem, param->addr + i * param->array_step, &value, sizeof(_type)); \
-			} else { \
-				param->vmem->write(param->vmem, param->addr + i * sizeof(_type), &value, sizeof(_type)); \
+				param->vmem->write(param->vmem, (uint32_t) param->addr + i * param->array_step, &value, sizeof(_type)); \
 			} \
 		} \
-		\
 		/* Callback */ \
 		if ((do_callback == true) && (param->callback)) { \
 			param->callback(param, i); \
@@ -207,37 +165,23 @@ void param_set(param_t * param, unsigned int offset, void * value) {
 	case PARAM_TYPE_STRING:
 		param_set_data(param, value, strlen(value) + 1);
 		break;
-	case PARAM_TYPE_VECTOR3:
 	case PARAM_TYPE_DATA:
-		param_set_data(param, value, param->size);
+		param_set_data(param, value, param->array_size);
 		break;
 
 	}
 }
 
 void param_set_data(param_t * param, void * inbuf, int len) {
-	switch(param->storage_type) {
-	case PARAM_STORAGE_RAM:
-		if (param->physaddr) {
-			memcpy(param->physaddr, inbuf, len);
-			if ((param->type == PARAM_TYPE_STRING) && (len < param->size)) {
-				((char *) param->physaddr)[len] = '\0';
+	if (param->vmem) {
+		param->vmem->write(param->vmem, (uint32_t) param->addr, inbuf, len);
+	} else {
+		if (param->addr) {
+			memcpy(param->addr, inbuf, len);
+			if ((param->type == PARAM_TYPE_STRING) && (len < param->array_size)) {
+				((char *) param->addr)[len] = '\0';
 			}
 		}
-		return;
-	case PARAM_STORAGE_VMEM:
-		param->vmem->write(param->vmem, param->addr, inbuf, len);
-		return;
-	case PARAM_STORAGE_REMOTE:
-		if (param->value_get) {
-			memcpy(param->value_get, inbuf, len);
-			if ((param->type == PARAM_TYPE_STRING) && (len < param->size)) {
-				((char *) param->value_get)[len] = '\0';
-			}
-		}
-		return;
-	case PARAM_STORAGE_TEMPLATE:
-		return;
 	}
 }
 
@@ -259,7 +203,6 @@ int param_typesize(param_type_e type) {
 	case PARAM_TYPE_DOUBLE: return sizeof(double); break;
 	case PARAM_TYPE_STRING: return 1; break;
 	case PARAM_TYPE_DATA: return 1; break;
-	case PARAM_TYPE_VECTOR3: return sizeof(param_type_vector3); break;
 	}
 	return -1;
 }
@@ -268,7 +211,7 @@ int param_size(param_t * param) {
 	switch(param->type) {
 	case PARAM_TYPE_STRING:
 	case PARAM_TYPE_DATA:
-		return param->size;
+		return param->array_size;
 	default:
 		return param_typesize(param->type);
 	}

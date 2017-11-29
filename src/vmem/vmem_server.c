@@ -187,7 +187,7 @@ static void rparam_list_handler(csp_conn_t * conn)
 			node = csp_get_address();
 		rparam->id = csp_hton16((node << 11) | (param->id & 0x7FF));
 		rparam->type = param->type;
-		rparam->size = param->size;
+		rparam->size = param->array_size;
 		strncpy(rparam->name, param->name, 25);
 		packet->length = offsetof(param_transfer_t, name) + MIN(strlen(param->name), 25);
 		if (!csp_send(conn, packet, 1000)) {

@@ -39,7 +39,6 @@ typedef enum {
 	PARAM_TYPE_DOUBLE,
 	PARAM_TYPE_STRING,
 	PARAM_TYPE_DATA,
-	PARAM_TYPE_VECTOR3,
 } param_type_e;
 
 typedef enum {
@@ -50,55 +49,32 @@ typedef enum {
 	PARAM_HIDDEN,                 //! Do not display on lists
 } param_readonly_type_e;
 
-typedef enum {
-	PARAM_STORAGE_RAM,            //! Use local RAM access
-	PARAM_STORAGE_VMEM,           //! Use VMEM read/write functions
-	PARAM_STORAGE_REMOTE,         //! Use remote parameter service
-	PARAM_STORAGE_TEMPLATE,       //! No storage (parameter template)
-} param_storage_type_e;
-
 /**
  * Parameter description structure
  * Note: this is not packed in order to maximise run-time efficiency
  */
 typedef struct param_s {
 
-	/* Storage type:
-	 * 0 = RAM, 1 = REMOTE, 2 = VMEM */
-	param_storage_type_e storage_type;
-
 	/* Parameter declaration */
-	uint8_t node;
 	uint16_t id;
+	uint8_t node;
 	param_type_e type;
-	int size;
+	int array_size;
+	int array_step;
 	char *name;
 	char *unit;
-	int array_step;
 
 	SLIST_ENTRY(param_s) next;	// single linked list
 
-	union {
-		struct {
-			union {
-				struct {
-				const struct vmem_s * vmem;
-				int addr;
-				};
-				struct {
-					void * physaddr;
-				};
-			};
-			param_readonly_type_e readonly;
-			void (*callback)(struct param_s * param, int offset);
-		};
-		struct {
-			void * value_get;
-			uint32_t value_remote_timestamp; // Remote timestamp
-			uint32_t value_updated; // Timestamp (used by collector)
-			unsigned int refresh; // Refresh interval in ms
-		};
-	};
+	/* Storage */
+	void * addr;
+	const struct vmem_s * vmem;
+
+	param_readonly_type_e readonly;
+	void (*callback)(struct param_s * param, int offset);
+
+	uint32_t timestamp;
+
 } param_t;
 
 #define PARAM_LIST_LOCAL	255
@@ -116,49 +92,50 @@ typedef struct param_s {
  * The size field is only important for non-native types such as string, data and vector.
  *
  */
-#define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _physaddr, _log) \
+#define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _readonly, _callback, _unit, _physaddr, _log) \
 	__attribute__((section("param."#_name))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
-		.storage_type = PARAM_STORAGE_RAM, \
+		.vmem = NULL, \
 		.node = PARAM_LIST_LOCAL, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
-		.size = _size, \
+		.array_size = _array_count, \
+		.array_step = _array_step, \
 		.readonly = _readonly, \
 		.unit = _unit, \
 		.callback = _callback, \
-		.physaddr = _physaddr, \
+		.addr = _physaddr, \
 	}
 
-#define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _size, _min, _max, _readonly, _callback, _unit, _vmem_name, _addr, _log) \
+#define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _readonly, _callback, _unit, _vmem_name, _vmem_addr, _log) \
 	__attribute__((section("param."#_name))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
-		.storage_type = PARAM_STORAGE_VMEM, \
 		.node = PARAM_LIST_LOCAL, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
-		.size = _size, \
+		.array_size = _array_count, \
+		.array_step = _array_step, \
 		.readonly = _readonly, \
 		.callback = _callback, \
 		.unit = _unit, \
-		.addr = _addr, \
+		.addr = (void *) _vmem_addr, \
 		.vmem = &vmem_##_vmem_name, \
 	}
 
-#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _size, _value_get) \
+#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_size, _value_get) \
 	char __attribute__((aligned(8))) _##_name##_value_get[_size]; \
 	param_t _name = { \
 		.storage_type = PARAM_STORAGE_REMOTE, \
 		.node = _node, \
 		.id = _id, \
 		.type = _type, \
-		.size = _size, \
+		.array_size = _array_size, \
 		.name = (char *) #_name, \
 		\
 		.value_get = _##_name##_value_get, \

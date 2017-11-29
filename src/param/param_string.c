@@ -43,10 +43,10 @@ void param_value_str(param_t *param, unsigned int i, char * out, int len)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DOUBLE, "%f", double, double)
 
 	case PARAM_TYPE_DATA: {
-		char data[param->size];
-		param_get_data(param, data, param->size);
+		char data[param->array_size];
+		param_get_data(param, data, param->array_size);
 		int written;
-		for (int i = 0; i < param->size && len >= 2; i++) {
+		for (int i = 0; i < param->array_size && len >= 2; i++) {
 			written = snprintf(out, len, "%02X", (unsigned char) data[i]);
 			len -= written;
 			out += written;
@@ -55,15 +55,8 @@ void param_value_str(param_t *param, unsigned int i, char * out, int len)
 	}
 
 	case PARAM_TYPE_STRING:
-		param_get_string(param, out, MIN(param->size, len));
+		param_get_string(param, out, MIN(param->array_size, len));
 		break;
-
-	case PARAM_TYPE_VECTOR3: {
-		param_type_vector3 vect;
-		param_get_data(param, &vect, sizeof(param_type_vector3));
-		snprintf(out, len, "[%.2f %.2f %.2f] |%.2f|", vect.x, vect.y, vect.z, sqrtf((powf(vect.x, 2) + powf(vect.y, 2) + powf(vect.z, 2))));
-		break;
-	}
 
 #undef PARAM_SWITCH_SNPRINTF
 	}
@@ -117,12 +110,6 @@ int param_str_to_value(param_type_e type, char * in, void * out)
 		return len;
 	}
 
-	case PARAM_TYPE_VECTOR3: {
-		param_type_vector3 *vect = out;
-		sscanf(in, "%f %f %f", &vect->x, &vect->y, &vect->z);
-		return sizeof(param_type_vector3);
-	}
-
 	}
 
 	return 0;
@@ -153,7 +140,6 @@ void param_type_str(param_type_e type, char * out, int len)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DOUBLE, double)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_STRING, string)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DATA, data)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_VECTOR3, vect3)
 #undef PARAM_SWITCH_SNPRINTF
 	}
 }
@@ -164,13 +150,9 @@ static void param_print_value(param_t * param, int offset) {
 		return;
 	}
 
-	if (param->storage_type == PARAM_STORAGE_TEMPLATE) {
-		printf(" TPL");
-	}
-
 	printf(" = ");
 
-	unsigned int count = (param->size > 0) ? param->size : 1;
+	unsigned int count = (param->array_size > 0) ? param->array_size : 1;
 
 	/* Treat data and strings as single parameters */
 	if (param->type == PARAM_TYPE_DATA || param->type == PARAM_TYPE_STRING)
@@ -208,10 +190,8 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 		return;
 
 	/* Node/ID */
-	if (param->storage_type == PARAM_STORAGE_REMOTE) {
+	if (param->node != PARAM_LIST_LOCAL) {
 		printf(" %3u:%-2u", param->id, param->node);
-	} else if (param->storage_type == PARAM_STORAGE_TEMPLATE) {
-		printf(" %3u:T ", param->id);
 	} else {
 		printf(" %3u:L ", param->id);
 	}
@@ -244,12 +224,9 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 		printf(" %s", type_str);
 
 		/* Size */
-		if (param->size > 0 && param->size != 255)
-			printf("[%u]", param->size);
+		if (param->array_size > 0)
+			printf("[%u]", param->array_size);
 
-		/* Refresh */
-		if (param->refresh > 0)
-			printf(" refresh %u ms", param->refresh);
 	}
 
 	printf("\n");
