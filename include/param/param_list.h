@@ -26,9 +26,7 @@ param_t * param_list_find_name(int node, char * name);
 void param_list_print(char * token);
 
 param_t * param_list_from_line(char * line);
-param_t * param_list_create_remote(int id, int node, int type, int refresh, int size, char * name, int namelen);
-param_t * param_list_create_remote_template(int id, int node, int type, int refresh, int size, char * name, int namelen);
-param_t * param_list_template_to_param(param_t * template, int node);
+param_t * param_list_create_remote(int id, int node, int type, int array_size, char * name, int namelen);
 void param_list_destroy(param_t * param);
 
 void param_list_download(int node, int timeout);

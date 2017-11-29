@@ -71,21 +71,6 @@ void param_slash_parse(char * arg, param_t **param, int *node, int *host,
 		*param = param_list_find_name(*node, arg);
 	}
 
-	/* If host is set try to serch in templates */
-	if ((*param == NULL) && (*host != -1)) {
-		if (*endptr == '\0') {
-			*param = param_list_find_id(-2, id);
-		} else {
-			*param = param_list_find_name(-2, arg);
-		}
-
-		if (*param) {
-			*param = param_list_template_to_param(*param, *host);
-			*node = *host;
-		}
-
-	}
-
 	return;
 
 }
@@ -161,7 +146,7 @@ static int cmd_get(struct slash *slash) {
 
 	/* Remote parameters are sent to a queue or directly */
 	int result = 0;
-	if (param->storage_type == PARAM_STORAGE_REMOTE) {
+	if (param->node != PARAM_LIST_LOCAL) {
 
 		if ((node != -1) && (autosend)) {
 			result = param_pull_single(param, offset, 0, node, 1000);
@@ -210,7 +195,7 @@ static int cmd_set(struct slash *slash) {
 
 	/* Remote parameters are sent to a queue or directly */
 	int result = 0;
-	if (param->storage_type == PARAM_STORAGE_REMOTE) {
+	if (param->node != PARAM_LIST_LOCAL) {
 
 		if ((node != -1) && (autosend)) {
 			result = param_push_single(param, offset, valuebuf, 1, node, 1000);

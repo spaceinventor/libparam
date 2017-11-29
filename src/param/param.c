@@ -13,7 +13,7 @@
 		} \
 		if (param->vmem) { \
 			_type data = 0; \
-			param->vmem->read(param->vmem, (uint32_t) param->addr + i * param->array_step, &data, sizeof(data)); \
+			param->vmem->read(param->vmem, (uint32_t) (intptr_t) param->addr + i * param->array_step, &data, sizeof(data)); \
 			if (param->vmem->big_endian == 1) { \
 				data = _swapfct(data); \
 			} \
@@ -73,7 +73,7 @@ void param_get(param_t * param, unsigned int offset, void * value) {
 void param_get_data(param_t * param, void * outbuf, int len)
 {
 	if (param->vmem) {
-		param->vmem->read(param->vmem, (uint32_t) param->addr, outbuf, len);
+		param->vmem->read(param->vmem, (uint32_t) (intptr_t) param->addr, outbuf, len);
 	} else {
 		if (param->addr)
 			memcpy(outbuf, param->addr, len);
@@ -95,15 +95,15 @@ void param_get_data(param_t * param, void * outbuf, int len)
 			return; \
 		} \
 		if (param->vmem) { \
-			/* Aligned access directly to RAM */ \
-			if (param->addr) \
-				*(_type*)(param->addr + i * param->array_step) = value; \
-		} else { \
 			if (param->vmem->big_endian == 1) \
 				value = _swapfct(value); \
 			if (param->array_step > 0) { \
-				param->vmem->write(param->vmem, (uint32_t) param->addr + i * param->array_step, &value, sizeof(_type)); \
+				param->vmem->write(param->vmem, (uint32_t) (intptr_t) param->addr + i * param->array_step, &value, sizeof(_type)); \
 			} \
+		} else { \
+			/* Aligned access directly to RAM */ \
+			if (param->addr) \
+				*(_type*)(param->addr + i * param->array_step) = value; \
 		} \
 		/* Callback */ \
 		if ((do_callback == true) && (param->callback)) { \
@@ -174,7 +174,7 @@ void param_set(param_t * param, unsigned int offset, void * value) {
 
 void param_set_data(param_t * param, void * inbuf, int len) {
 	if (param->vmem) {
-		param->vmem->write(param->vmem, (uint32_t) param->addr, inbuf, len);
+		param->vmem->write(param->vmem, (uint32_t) (intptr_t) param->addr, inbuf, len);
 	} else {
 		if (param->addr) {
 			memcpy(param->addr, inbuf, len);

@@ -167,7 +167,7 @@ void param_list_download(int node, int timeout) {
 		if (size == 255)
 			size = 1;
 
-		param_t * param = param_list_create_remote(id, node, type, 0, size, new_param->name, strlen);
+		param_t * param = param_list_create_remote(id, node, type, size, new_param->name, strlen);
 		if (param == NULL) {
 			csp_buffer_free(packet);
 			break;
@@ -191,7 +191,7 @@ void param_list_destroy(param_t * param) {
 	free(param);
 }
 
-param_t * param_list_create_remote(int id, int node, int type, int refresh, int array_size, char * name, int namelen) {
+param_t * param_list_create_remote(int id, int node, int type, int array_size, char * name, int namelen) {
 
 	struct param_heap_s {
 		param_t param;
@@ -228,7 +228,7 @@ param_t * param_list_create_remote(int id, int node, int type, int refresh, int 
 param_t * param_list_from_line(char * line) {
 
 	char name[25] = {};
-	int id, node, type, refresh, size;
+	int id, node, type, size;
 	int scanned = sscanf(line, "%25[^|]|%u:%d?%u[%d]%*s", name, &id, &node, &type, &size);
 	//printf("Scanned %u => %s", scanned, line);
 
@@ -242,7 +242,7 @@ param_t * param_list_from_line(char * line) {
 	param_t * param = param_list_find_id(node, id);
 
 	if (param == NULL) {
-		param = param_list_create_remote(id, node, type, refresh, size, name, strlen(name));
+		param = param_list_create_remote(id, node, type, size, name, strlen(name));
 		param_list_add(param);
 	}
 
