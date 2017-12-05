@@ -170,7 +170,6 @@ static int cmd_get(struct slash *slash) {
 		return SLASH_EIO;
 	}
 
-	param_print(param, offset, NULL, 0, 2);
 	return SLASH_SUCCESS;
 }
 slash_command_completer(get, cmd_get, param_completer, "<param>", "Get");
