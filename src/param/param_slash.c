@@ -163,6 +163,8 @@ static int cmd_get(struct slash *slash) {
 			return SLASH_SUCCESS;
 		}
 
+	} else {
+		param_print(param, -1, NULL, 0, 0);
 	}
 
 	if (result < 0) {
