@@ -182,7 +182,7 @@ void param_group_from_string(FILE *stream) {
 
 			/* Scan line */
 			char name[11];
-			int interval, node;
+			unsigned int interval, node;
 			int scanned = sscanf(line, "+%10[^#]#%u@%u%*s", name, &interval, &node);
 			if (scanned != 3) {
 				printf("Invalid line: %s\n", line);

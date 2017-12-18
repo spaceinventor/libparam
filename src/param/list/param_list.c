@@ -230,7 +230,8 @@ param_t * param_list_create_remote(int id, int node, int type, int array_size, c
 param_t * param_list_from_line(char * line) {
 
 	char name[25] = {};
-	int id, node, type, size;
+	unsigned int id, type;
+	int node, size;
 	int scanned = sscanf(line, "%25[^|]|%u:%d?%u[%d]%*s", name, &id, &node, &type, &size);
 	//printf("Scanned %u => %s", scanned, line);
 
