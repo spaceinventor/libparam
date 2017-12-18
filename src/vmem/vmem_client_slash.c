@@ -159,7 +159,7 @@ static int vmem_client_slash_unlock(struct slash *slash)
 	/* Step 2a: Ask user to input sequence */
 	uint32_t user_verification;
 	printf("Type verification sequence (you have <30 seconds): \n");
-	if (scanf("%x", (unsigned int *) &user_verification));
+	if (scanf("%x", (unsigned int *) &user_verification)) {};
 	getchar(); //! Consumes newline
 
 	printf("User input: %x\n", (unsigned int) user_verification);
@@ -174,7 +174,7 @@ static int vmem_client_slash_unlock(struct slash *slash)
 
 	printf("Are you sure [Y/N]?\n");
 	unsigned char sure = 'N';
-	if (scanf("%c", &sure));
+	if (scanf("%c", &sure)) {};
 	if (sure != 'Y') {
 		csp_buffer_free(packet);
 		csp_close(conn);

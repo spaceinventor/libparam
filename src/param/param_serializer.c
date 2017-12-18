@@ -75,7 +75,7 @@ int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * write
 		return -1;
 
 
-	unsigned int count = (param->array_size > 0) ? param->array_size : 1;
+	int count = (param->array_size > 0) ? param->array_size : 1;
 
 	/* Treat data and strings as single parameters */
 	if (param->type == PARAM_TYPE_DATA || param->type == PARAM_TYPE_STRING)
@@ -174,7 +174,7 @@ int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * write
 			break;
 
 		case PARAM_TYPE_STRING: {
-			int len;
+			size_t len;
 			if (value) {
 				len = strnlen(value, param->array_size);
 
@@ -211,15 +211,16 @@ int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * write
 
 			mpack_start_bin(writer, param->array_size);
 
-			if (writer->size - writer->used < param->array_size) {
+			unsigned int size = (param->array_size > 0) ? param->array_size : 1;
+			if (writer->size - writer->used < size) {
 				writer->error = mpack_error_too_big;
 				break;
 			}
 
 			if (value) {
-				memcpy(writer->buffer + writer->used, value, param->array_size);
+				memcpy(writer->buffer + writer->used, value, size);
 			} else {
-				param_get_data(param, writer->buffer + writer->used, param->array_size);
+				param_get_data(param, writer->buffer + writer->used, size);
 			}
 			writer->used += param->array_size;
 			mpack_finish_bin(writer);
@@ -249,7 +250,7 @@ void param_deserialize_from_mpack_to_param(void * queue, param_t * param, int of
 	if (offset < 0)
 		offset = 0;
 
-	uint32_t count = 1;
+	int count = 1;
 
 	/* Inspect for array */
 	mpack_tag_t tag = mpack_peek_tag(reader);

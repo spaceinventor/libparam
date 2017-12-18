@@ -152,7 +152,7 @@ static void param_print_value(param_t * param, int offset) {
 
 	printf(" = ");
 
-	unsigned int count = (param->array_size > 0) ? param->array_size : 1;
+	int count = (param->array_size > 0) ? param->array_size : 1;
 
 	/* Treat data and strings as single parameters */
 	if (param->type == PARAM_TYPE_DATA || param->type == PARAM_TYPE_STRING)
