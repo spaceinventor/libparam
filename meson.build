@@ -50,15 +50,8 @@ endif
 
 param_inc = include_directories('.', 'include', 'lib')
 
-param = static_library('param',
-	param_src,
-	include_directories : param_inc,
-	dependencies : param_deps,
-	)
-	
 param_dep = declare_dependency(
-	sources: libparam_h,
+	sources: [param_src, libparam_h],
 	include_directories : param_inc,
 	dependencies : param_deps,
-	link_with: param,
 	)
