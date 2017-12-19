@@ -122,17 +122,16 @@ typedef struct param_s {
 		.vmem = &vmem_##_vmem_name, \
 	}
 
-#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_size, _value_get) \
-	char __attribute__((aligned(8))) _##_name##_value_get[_size]; \
+#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_size, _array_step, _physaddr) \
 	param_t _name = { \
-		.storage_type = PARAM_STORAGE_REMOTE, \
 		.node = _node, \
 		.id = _id, \
 		.type = _type, \
 		.array_size = _array_size, \
+		.array_step = _array_step, \
 		.name = (char *) #_name, \
 		\
-		.value_get = _##_name##_value_get, \
+		.addr = _physaddr, \
 	};
 
 /* Native getter functions, will return native types */
