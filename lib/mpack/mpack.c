@@ -2718,10 +2718,18 @@ void mpack_print_element(mpack_reader_t* reader, size_t depth, FILE* file) {
             break;
 
         case mpack_type_int:
-            fprintf(file, "%" PRIi32, (long int) val.v.i);
+#ifdef __linux__
+            fprintf(file, "%" PRIi64, val.v.i);
+#else
+            fprintf(file, "%" PRIu32, (unsigned long int) val.v.u);
+#endif
             break;
         case mpack_type_uint:
+#ifdef __linux__
+            fprintf(file, "%" PRIu64, val.v.u);
+#else
             fprintf(file, "%" PRIu32, (unsigned long int) val.v.u);
+#endif
             break;
 
         case mpack_type_bin:
