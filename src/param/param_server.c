@@ -97,7 +97,7 @@ static void param_serve_push(csp_packet_t * packet, int send_ack)
 	packet->data[1] = PARAM_FLAG_END;
 	packet->length = 2;
 
-	if (!csp_sendto_reply(packet, packet, CSP_O_SAME, 0))
+	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
 		csp_buffer_free(packet);
 
 }
