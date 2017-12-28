@@ -31,13 +31,12 @@ typedef enum {
 #define PARAM_FLAG_END (1 << 7)
 
 /**
- * Parameter server task:
+ * Handle incoming parameter requests
  *
- * A single instance should run on all nodes.
+ * These are stateless no task or csp connection needed
  *
- * @param pvParameters not used
- * @return task will never return
+ * @param packet
  */
-csp_thread_return_t param_server_task(void *pvParameters);
+void param_serve(csp_packet_t * packet);
 
 #endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_SERVER_H_ */
