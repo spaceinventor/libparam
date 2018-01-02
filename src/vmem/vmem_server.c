@@ -6,6 +6,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <csp/csp.h>
 #include <csp/csp_endian.h>
 #include <csp/arch/csp_time.h>
@@ -24,8 +25,8 @@
 #include <param/param_server.h>
 
 #if defined(VMEM_FRAM)
-# TODO Move this out of vmem server and into a separate CSP dispatcher task
-#include <drivers/fm25w256.h>
+// TODO Move this out of vmem server and into a separate CSP dispatcher task
+#include <drivers/fram.h>
 
 #endif
 
@@ -157,7 +158,7 @@ void vmem_server_handler(csp_conn_t * conn)
 
 		/* Step 4: Validate verification sequence */
 		if (csp_ntoh32(request->unlock.code) == verification_sequence) {
-			fm25w256_unlock_upper();
+			fram_unlock_upper();
 			request->unlock.code = csp_hton32(0);
 		} else {
 			request->unlock.code = csp_hton32(0xFFFFFFFF);
