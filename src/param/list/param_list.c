@@ -42,7 +42,7 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 	if (iterator->element == NULL) {
 
 		/* Static */
-		if (&__start_param != NULL) {
+		if ((&__start_param != NULL) && (&__start_param != &__stop_param)) {
 			iterator->phase = 0;
 			iterator->element = &__start_param;
 		} else {
@@ -71,6 +71,7 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 
 	/* Dynamic phase */
 	if (iterator->phase == 1) {
+
 		iterator->element = SLIST_NEXT(iterator->element, next);
 		return iterator->element;
 	}
