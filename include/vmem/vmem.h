@@ -27,6 +27,8 @@ typedef struct vmem_s {
 	int type;
 	void (*read)(const struct vmem_s * vmem, uint32_t addr, void * dataout, int len);
 	void (*write)(const struct vmem_s * vmem, uint32_t addr, void * datain, int len);
+	int (*backup)(const struct vmem_s * vmem);
+	int (*restore)(const struct vmem_s * vmem);
 	void * vaddr;
 	int size;
 	const char *name;

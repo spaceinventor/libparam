@@ -14,9 +14,6 @@
 
 #include <vmem/vmem.h>
 #include <vmem/vmem_server.h>
-#if defined(VMEM_FRAM)
-#include <vmem/vmem_fram_secure.h>
-#endif
 
 #include <param/param_list.h>
 #include "../param/list/param_list.h"
@@ -24,11 +21,7 @@
 #include <libparam.h>
 #include <param/param_server.h>
 
-#if defined(VMEM_FRAM)
-// TODO Move this out of vmem server and into a separate CSP dispatcher task
-#include <drivers/fram.h>
-
-#endif
+static int unlocked = 0;
 
 void vmem_server_handler(csp_conn_t * conn)
 {
@@ -111,15 +104,22 @@ void vmem_server_handler(csp_conn_t * conn)
 			return;
 		}
 
-	}
-#if defined(VMEM_FRAM)
-	else if ((request->type == VMEM_SERVER_RESTORE) || (request->type == VMEM_SERVER_BACKUP)) {
+	} else if ((request->type == VMEM_SERVER_RESTORE) || (request->type == VMEM_SERVER_BACKUP)) {
 
+		vmem_t * vmem = vmem_index_to_ptr(request->vmem.vmem_id);
 		int result;
 		if (request->type == VMEM_SERVER_BACKUP) {
-			result = vmem_fram_secure_backup(vmem_index_to_ptr(request->vmem.vmem_id));
+			if (unlocked == 1 && vmem->backup != NULL) {
+				result = vmem->backup(vmem);
+			} else {
+				result = -4;
+			}
 		} else {
-			result = vmem_fram_secure_restore(vmem_index_to_ptr(request->vmem.vmem_id));
+			if (vmem->restore != NULL) {
+				result = vmem->restore(vmem);
+			} else {
+				result = -3;
+			}
 		}
 
 		packet->data[0] = (int8_t) result;
@@ -158,9 +158,10 @@ void vmem_server_handler(csp_conn_t * conn)
 
 		/* Step 4: Validate verification sequence */
 		if (csp_ntoh32(request->unlock.code) == verification_sequence) {
-			fram_unlock_upper();
+			unlocked = 1;
 			request->unlock.code = csp_hton32(0);
 		} else {
+			unlocked = 0;
 			request->unlock.code = csp_hton32(0xFFFFFFFF);
 		}
 
@@ -170,7 +171,6 @@ void vmem_server_handler(csp_conn_t * conn)
 		}
 
 	}
-#endif
 
 }
 

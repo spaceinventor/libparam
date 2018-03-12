@@ -32,6 +32,8 @@ param_src = files([
 	'lib/mpack/mpack.c',
 
 	'src/vmem/vmem_client.c',
+	'src/vmem/vmem_fram.c',
+	'src/vmem/vmem_fram_secure.c',
 	'src/vmem/vmem_ram.c',
 	'src/vmem/vmem_server.c',
 	'src/vmem/vmem.c',
