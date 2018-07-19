@@ -66,7 +66,7 @@ static int param_queue_print_callback(param_queue_t *queue, param_t *param, int 
 	printf("\t");
 	if (queue->type == PARAM_QUEUE_TYPE_SET) {
 		printf(" => ");
-		mpack_print_element((mpack_reader_t *) reader, 2, stdout);
+		//mpack_print_element((mpack_reader_t *) reader, 2, stdout);
 	}
 	printf("\n");
 	return 0;
