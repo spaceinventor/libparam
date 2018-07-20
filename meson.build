@@ -16,8 +16,8 @@ param_src = files([
 	'src/param/group/param_group_store_vmem.c',
 	'src/param/group/param_group.c',
 
-	'src/param/list/param_list_store_file.c',
-	'src/param/list/param_list_store_vmem.c',
+#	'src/param/list/param_list_store_file.c',
+#	'src/param/list/param_list_store_vmem.c',
 	'src/param/list/param_list.c',
 
 	'src/param/param_client.c',

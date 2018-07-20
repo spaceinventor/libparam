@@ -139,8 +139,8 @@ void vmem_server_handler(csp_conn_t * conn)
 		}
 
 		/* Step 2: Generate verification sequence */
-		srand(csp_get_ms());
-		uint32_t verification_sequence = (uint32_t) (rand());
+		unsigned int seed = csp_get_ms();
+		uint32_t verification_sequence = (uint32_t) rand_r(&seed);
 		request->unlock.code = csp_hton32(verification_sequence);
 
 		if (!csp_send(conn, packet, 0)) {
