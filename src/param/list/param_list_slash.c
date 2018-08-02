@@ -43,17 +43,6 @@ static int list_download(struct slash *slash)
 }
 slash_command_sub(list, download, list_download, "<node> [timeout]", NULL);
 
-static int list_str(struct slash *slash) {
-	int node_filter = -1;
-	if (slash->argc >= 2)
-		node_filter = atoi(slash->argv[1]);
-
-	param_list_to_string(stdout, node_filter, 0);
-	return SLASH_SUCCESS;
-}
-
-slash_command_sub(list, str, list_str, "<node_filter>", NULL);
-
 #if defined(PARAM_STORE_VMEM)
 
 static int param_list_store_vmem_save_slash(struct slash *slash)
