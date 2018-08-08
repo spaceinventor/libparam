@@ -1,0 +1,1 @@
+option('slash', type: 'boolean', value: false, description: 'Build slash (yields)', yield: true)

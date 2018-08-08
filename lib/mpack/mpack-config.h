@@ -53,7 +53,7 @@
  * Enables compilation of the dynamic Node API.
  */
 #ifndef MPACK_NODE
-#define MPACK_NODE 1
+#define MPACK_NODE 0
 #endif
 
 /**
@@ -92,7 +92,7 @@
  * reading/writing C files and makes debugging easier.
  */
 #ifndef MPACK_STDIO
-#define MPACK_STDIO 1
+#define MPACK_STDIO 0
 #endif
 
 /**
@@ -139,9 +139,10 @@
  * to grow buffers.
  */
 #if defined(MPACK_STDLIB) && !defined(MPACK_MALLOC)
-#define MPACK_MALLOC malloc
-#define MPACK_REALLOC realloc
-#define MPACK_FREE free
+#include <FreeRTOS.h>
+#define MPACK_MALLOC pvPortMalloc
+#undef MPACK_REALLOC
+#define MPACK_FREE vPortFree
 #endif
 
 /**
@@ -181,7 +182,7 @@
  * This is on by default if it is not defined.
  */
 #if !defined(MPACK_STRINGS)
-#define MPACK_STRINGS 1
+#define MPACK_STRINGS 0
 #endif
 
 /**
