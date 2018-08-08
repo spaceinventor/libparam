@@ -33,7 +33,7 @@ int param_queue_apply(param_queue_t *queue);
 void param_queue_print(param_queue_t *queue);
 void param_queue_print_local(param_queue_t *queue);
 
-typedef int (*param_queue_callback_f)(param_queue_t *queue, param_t * param, int offset, void *reader);
-int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback);
+typedef int (*param_queue_callback_f)(void * context, param_queue_t *queue, param_t * param, int offset, void *reader);
+int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback, void * context);
 
 #endif /* LIB_PARAM_SRC_PARAM_PARAM_QUEUE_H_ */

@@ -16,64 +16,75 @@
 #include <param/param_server.h>
 #include <param/param_list.h>
 
+struct param_serve_context {
+	csp_packet_t * request;
+	csp_packet_t * response;
+	param_queue_t q_response;
+};
+
+static int __allocate(struct param_serve_context *ctx) {
+	ctx->response = csp_buffer_get(PARAM_SERVER_MTU);
+	if (ctx->response == NULL)
+		return -1;
+	param_queue_init(&ctx->q_response, &ctx->response->data[2], PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET);
+	return 0;
+}
+
+static void __send(struct param_serve_context *ctx, int end) {
+	ctx->response->data[0] = PARAM_PULL_RESPONSE;
+	ctx->response->data[1] = (end) ? PARAM_FLAG_END : 0;
+	ctx->response->length = ctx->q_response.used + 2;
+	if (csp_sendto_reply(ctx->request, ctx->response, CSP_O_SAME, 0) != CSP_ERR_NONE) {
+		csp_buffer_free(ctx->response);
+		return;
+	}
+}
+
+static int __add(struct param_serve_context *ctx, param_t * param, int offset, void *reader) {
+
+	int result = param_queue_add(&ctx->q_response, param, offset, NULL);
+	if (result != 0) {
+
+		/* Flush */
+		__send(ctx, 0);
+		if (__allocate(ctx) < 0)
+			return 0;
+
+		/* Retry on fresh buffer */
+		if (param_queue_add(&ctx->q_response, param, offset, NULL) != 0) {
+			printf("warn: param too big for mtu\n");
+		}
+	}
+	return  0;
+}
+
+static int __add_iterator(void * context, param_queue_t *queue, param_t * param, int offset, void *reader) {
+	return __add((struct param_serve_context *) context, param, offset, reader);
+}
+
 static void param_serve_pull_request(csp_packet_t * request, int all) {
 
-	csp_packet_t * response = NULL;
-	param_queue_t q_response;
+	struct param_serve_context ctx;
+	ctx.request = request;
 
-	int __allocate() {
-		response = csp_buffer_get(PARAM_SERVER_MTU);
-		if (response == NULL)
-			return -1;
-		param_queue_init(&q_response, &response->data[2], PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET);
-		return 0;
-	}
-
-	void __send(int end) {
-		response->data[0] = PARAM_PULL_RESPONSE;
-		response->data[1] = (end) ? PARAM_FLAG_END : 0;
-		response->length = q_response.used + 2;
-		if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE) {
-			csp_buffer_free(response);
-			return;
-		}
-	}
-
-	int __add(param_queue_t *queue, param_t * param, int offset, void *reader) {
-		int result = param_queue_add(&q_response, param, offset, NULL);
-		if (result != 0) {
-
-			/* Flush */
-			__send(0);
-			if (__allocate() < 0)
-				return 0;
-
-			/* Retry on fresh buffer */
-			if (param_queue_add(&q_response, param, offset, NULL) != 0) {
-				printf("warn: param too big for mtu\n");
-			}
-		}
-		return  0;
-	}
-
-	if (__allocate(&response, &q_response) < 0) {
+	if (__allocate(&ctx) < 0) {
 		csp_buffer_free(request);
 		return;
 	}
 
 	if (all == 0) {
 		param_queue_t q_request;
-		param_queue_init(&q_request, &request->data[2], request->length - 2, request->length - 2, PARAM_QUEUE_TYPE_SET);
-		param_queue_foreach(&q_request, __add);
+		param_queue_init(&q_request, &ctx.request->data[2], ctx.request->length - 2, ctx.request->length - 2, PARAM_QUEUE_TYPE_SET);
+		param_queue_foreach(&q_request, __add_iterator, &ctx);
 	} else {
 		param_t * param;
 		param_list_iterator i = {};
 		while ((param = param_list_iterate(&i)) != NULL) {
-			__add(&q_response, param, -1, NULL);
+			__add(&ctx, param, -1, NULL);
 		}
 	}
 
-	__send(1);
+	__send(&ctx, 1);
 
 	csp_buffer_free(request);
 

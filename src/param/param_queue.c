@@ -39,7 +39,7 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	return 0;
 }
 
-int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback) {
+int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback, void * context) {
 
 	mpack_reader_t reader;
 	mpack_reader_init_data(&reader, queue->buffer, queue->used);
@@ -47,8 +47,9 @@ int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback) {
 		int id, node, offset = -1;
 		param_deserialize_id(&reader, &id, &node, &offset);
 	    param_t * param = param_list_find_id(node, id);
-	    if (param)
-	    	callback(queue, param, offset, &reader);
+	    if (param) {
+	    	callback(context, queue, param, offset, &reader);
+	    }
 	}
 
 	return mpack_ok;
@@ -56,10 +57,10 @@ int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback) {
 }
 
 int param_queue_apply(param_queue_t *queue) {
-	return param_queue_foreach(queue, (param_queue_callback_f) param_deserialize_from_mpack_to_param);
+	return param_queue_foreach(queue, (param_queue_callback_f) param_deserialize_from_mpack_to_param, NULL);
 }
 
-static int param_queue_print_callback(param_queue_t *queue, param_t *param, int offset, void *reader) {
+static int param_queue_print_callback(void * ctx, param_queue_t *queue, param_t *param, int offset, void *reader) {
 	printf("  %s:%u", param->name, param->node);
 	if (offset >= 0)
 		printf("[%u]", offset);
@@ -72,16 +73,16 @@ static int param_queue_print_callback(param_queue_t *queue, param_t *param, int 
 	return 0;
 }
 
-static int param_queue_print_local_callback(param_queue_t *queue, param_t *param, int offset, void *reader) {
+static int param_queue_print_local_callback(void * ctx, param_queue_t *queue, param_t *param, int offset, void *reader) {
 	param_print(param, -1, NULL, 0, 0);
 	mpack_discard(reader);
 	return 0;
 }
 
 void param_queue_print(param_queue_t *queue) {
-	param_queue_foreach(queue, param_queue_print_callback);
+	param_queue_foreach(queue, param_queue_print_callback, NULL);
 }
 
 void param_queue_print_local(param_queue_t *queue) {
-	param_queue_foreach(queue, param_queue_print_local_callback);
+	param_queue_foreach(queue, param_queue_print_local_callback, NULL);
 }
