@@ -138,11 +138,13 @@
  * set and @ref MPACK_REALLOC is not, @ref MPACK_MALLOC is used with a simple copy
  * to grow buffers.
  */
+#if 0
 #if defined(MPACK_STDLIB) && !defined(MPACK_MALLOC)
 #include <FreeRTOS.h>
 #define MPACK_MALLOC pvPortMalloc
 #undef MPACK_REALLOC
 #define MPACK_FREE vPortFree
+#endif
 #endif
 
 /**
