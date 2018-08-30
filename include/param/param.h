@@ -46,7 +46,7 @@ typedef enum {
 /* Major class flags */
 #define PM_CONF                 (1 << 2) //! c: Actual settings, to be modified by a human (excluding network config)
 #define PM_TELEM                (1 << 3) //! t: Ready-to-use telemetry, converted to human readable.
-#define PM_HW_REGISTER          (1 << 4) //! h: Raw-bit-values in external chips
+#define PM_HWREG                (1 << 4) //! h: Raw-bit-values in external chips
 #define PM_ERRCNT               (1 << 5) //! e: Rarely updated error counters (hopefully)
 #define PM_SYSINFO              (1 << 6) //! i: Boot information, time
 #define PM_SYSCONF              (1 << 7) //! C: Network and time configuration

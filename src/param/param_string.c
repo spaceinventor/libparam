@@ -257,8 +257,8 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 				printf("t");
 			}
 
-			if (mask & PM_HW_REGISTER) {
-				mask &= ~ PM_HW_REGISTER;
+			if (mask & PM_HWREG) {
+				mask &= ~ PM_HWREG;
 				printf("h");
 			}
 
@@ -313,7 +313,7 @@ uint32_t param_maskstr_to_mask(char * str) {
 
 	if (strchr(str, 'c')) mask |= PM_CONF;
 	if (strchr(str, 't')) mask |= PM_TELEM;
-	if (strchr(str, 'h')) mask |= PM_HW_REGISTER;
+	if (strchr(str, 'h')) mask |= PM_HWREG;
 	if (strchr(str, 'e')) mask |= PM_ERRCNT;
 	if (strchr(str, 'i')) mask |= PM_SYSINFO;
 	if (strchr(str, 'C')) mask |= PM_SYSCONF;
