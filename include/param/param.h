@@ -51,7 +51,7 @@ typedef enum {
 #define PM_SYSINFO              (1 << 6) //! i: Boot information, time
 #define PM_SYSCONF              (1 << 7) //! C: Network and time configuration
 #define PM_WDT                  (1 << 8) //! w: Crictical watchdog
-#define PM_DEBUG                (1 >> 9) //! d: Debug flag (enables uart output)
+#define PM_DEBUG                (1 << 9) //! d: Debug flag (enables uart output)
 
 /**
  * Parameter description structure
