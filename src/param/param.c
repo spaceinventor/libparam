@@ -85,10 +85,6 @@ void param_get_data(param_t * param, void * outbuf, int len)
 		if (i > (unsigned int) param->array_size) { \
 			return; \
 		} \
-		/* Check readonly */ \
-		if (param->mask & (PM_READONLY | PM_READONLY_EXTERNAL)) { \
-			return; \
-		} \
 		if (param->vmem) { \
 			if (param->vmem->big_endian == 1) \
 				value = _swapfct(value); \
