@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
 #include <inttypes.h>
 #include <csp/arch/csp_time.h>
 #include <param/param.h>
@@ -231,8 +232,96 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 		if (param->array_size > 0)
 			printf("[%u]", param->array_size);
 
+		if (param->mask > 0) {
+			unsigned int mask = param->mask;
+
+			printf(" ");
+
+			if (mask & PM_READONLY) {
+				mask &= ~ PM_READONLY;
+				printf("r");
+			}
+
+			if (mask & PM_READONLY_EXTERNAL) {
+				mask &= ~ PM_READONLY_EXTERNAL;
+				printf("R");
+			}
+
+			if (mask & PM_CONF) {
+				mask &= ~ PM_CONF;
+				printf("c");
+			}
+
+			if (mask & PM_TELEM) {
+				mask &= ~ PM_TELEM;
+				printf("t");
+			}
+
+			if (mask & PM_HW_REGISTER) {
+				mask &= ~ PM_HW_REGISTER;
+				printf("h");
+			}
+
+			if (mask & PM_ERRCNT) {
+				mask &= ~ PM_ERRCNT;
+				printf("e");
+			}
+
+			if (mask & PM_SYSINFO) {
+				mask &= ~ PM_SYSINFO;
+				printf("i");
+			}
+
+			if (mask & PM_SYSCONF) {
+				mask &= ~ PM_SYSCONF;
+				printf("C");
+			}
+
+			if (mask & PM_WDT) {
+				mask &= ~ PM_WDT;
+				printf("w");
+			}
+
+			if (mask)
+				printf("+%x", mask);
+
+		}
+
+
+
 	}
 
 	printf("\n");
+
+}
+
+uint32_t param_maskstr_to_mask(char * str) {
+
+	if (str == NULL)
+		return 0xFFFFFFFF;
+
+	/* Try to parse as hex number */
+	if (str[0] == '0' && (str[1] == 'X' || str[1] == 'x')) {
+		return (int) strtol(str, NULL, 16);
+	}
+
+	uint32_t mask = 0;
+
+	/* Otherwise, parse as letters */
+	if (strchr(str, 'r')) mask |= PM_READONLY;
+	if (strchr(str, 'R')) mask |= PM_READONLY_EXTERNAL;
+
+	if (strchr(str, 'c')) mask |= PM_CONF;
+	if (strchr(str, 't')) mask |= PM_TELEM;
+	if (strchr(str, 'h')) mask |= PM_HW_REGISTER;
+	if (strchr(str, 'e')) mask |= PM_ERRCNT;
+	if (strchr(str, 'i')) mask |= PM_SYSINFO;
+	if (strchr(str, 'C')) mask |= PM_SYSCONF;
+	if (strchr(str, 'w')) mask |= PM_WDT;
+	if (strchr(str, 'd')) mask |= PM_DEBUG;
+
+	if (strchr(str, 'A')) mask |= 0xFFFFFFFF;
+
+	return mask;
 
 }

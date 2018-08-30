@@ -23,10 +23,11 @@ param_t * param_list_iterate(param_list_iterator * iterator);
 int param_list_add(param_t * item);
 param_t * param_list_find_id(int node, int id);
 param_t * param_list_find_name(int node, char * name);
-void param_list_print(char * token);
+void param_list_print(uint32_t mask);
+uint32_t param_maskstr_to_mask(char * str);
 
 param_t * param_list_from_line(char * line);
-param_t * param_list_create_remote(int id, int node, int type, int array_size, char * name, int namelen);
+param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, int array_size, char * name, int namelen);
 void param_list_destroy(param_t * param);
 
 void param_list_download(int node, int timeout);

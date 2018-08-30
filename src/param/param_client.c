@@ -73,14 +73,15 @@ static int param_transaction(csp_packet_t *packet, int host, int timeout, param_
 	return result;
 }
 
-int param_pull_all(int verbose, int host, int timeout) {
+int param_pull_all(int verbose, int host, uint32_t mask, int timeout) {
 
 	csp_packet_t *packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
 		return -2;
 	packet->data[0] = PARAM_PULL_ALL_REQUEST;
 	packet->data[1] = 0;
-	packet->length = 2;
+	packet->data32[1] = csp_hton32(mask);
+	packet->length = 8;
 	return param_transaction(packet, host, timeout, param_transaction_callback_pull);
 
 }

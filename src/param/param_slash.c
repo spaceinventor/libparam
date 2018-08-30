@@ -89,9 +89,6 @@ static void param_completer(struct slash *slash, char * token) {
 		if (tokenlen > strlen(param->name))
 			continue;
 
-		if (param->readonly == PARAM_HIDDEN)
-			continue;
-
 		if (strncmp(token, param->name,
 				slash_min(strlen(param->name), tokenlen)) == 0) {
 
@@ -253,17 +250,20 @@ slash_command(push, cmd_push, "<node> [timeout]", NULL);
 static int cmd_pull(struct slash *slash) {
 	unsigned int host = 0;
 	unsigned int timeout = 100;
+	uint32_t mask = 0xFFFFFFFF;
 
 	if (slash->argc < 2)
 		return SLASH_EUSAGE;
 	if (slash->argc >= 2)
 		host = atoi(slash->argv[1]);
 	if (slash->argc >= 3)
-		timeout = atoi(slash->argv[2]);
+		mask = param_maskstr_to_mask(slash->argv[2]);
+	if (slash->argc >= 4)
+		timeout = atoi(slash->argv[3]);
 
 	int result = -1;
 	if (queue_get.used == 0) {
-		result = param_pull_all(1, host, timeout);
+		result = param_pull_all(1, host, mask, timeout);
 	} else {
 		result = param_pull_queue(&queue_get, 1, host, timeout);
 	}
@@ -275,7 +275,7 @@ static int cmd_pull(struct slash *slash) {
 
 	return SLASH_SUCCESS;
 }
-slash_command(pull, cmd_pull, "<node> [timeout]", NULL);
+slash_command(pull, cmd_pull, "<node> [mask] [timeout]", NULL);
 
 static int cmd_clear(struct slash *slash) {
 	queue_get.used = 0;

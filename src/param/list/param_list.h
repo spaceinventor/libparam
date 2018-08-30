@@ -12,6 +12,7 @@ typedef struct {
 	uint16_t id;
 	uint8_t type;
 	uint8_t size;
+	uint32_t mask;
 	char name[];
 } __attribute__((packed)) param_transfer_t;
 

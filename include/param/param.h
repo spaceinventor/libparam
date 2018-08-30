@@ -35,13 +35,23 @@ typedef enum {
 	PARAM_TYPE_DATA,
 } param_type_e;
 
-typedef enum {
-	PARAM_READONLY_FALSE,         //! Not readonly
-	PARAM_READONLY_TRUE,          //! Readonly Internal and external
-	PARAM_READONLY_EXTERNAL,      //! Readonly External only
-	PARAM_READONLY_INTERNAL,      //! Readonly Internal only
-	PARAM_HIDDEN,                 //! Do not display on lists
-} param_readonly_type_e;
+/**
+ * Global parameter mask
+ */
+
+/* Readonly flags */
+#define PM_READONLY             (1 << 0) //! r: Readonly by any
+#define PM_READONLY_EXTERNAL    (1 << 1) //! R: Readonly by external
+
+/* Major class flags */
+#define PM_CONF                 (1 << 2) //! c: Actual settings, to be modified by a human (excluding network config)
+#define PM_TELEM                (1 << 3) //! t: Ready-to-use telemetry, converted to human readable.
+#define PM_HW_REGISTER          (1 << 4) //! h: Raw-bit-values in external chips
+#define PM_ERRCNT               (1 << 5) //! e: Rarely updated error counters (hopefully)
+#define PM_SYSINFO              (1 << 6) //! i: Boot information, time
+#define PM_SYSCONF              (1 << 7) //! C: Network and time configuration
+#define PM_WDT                  (1 << 8) //! w: Crictical watchdog
+#define PM_DEBUG                (1 >> 9) //! d: Debug flag (enables uart output)
 
 /**
  * Parameter description structure
@@ -53,7 +63,7 @@ typedef struct param_s {
 	uint16_t id;
 	uint8_t node;
 	param_type_e type;
-	param_readonly_type_e readonly;
+	uint32_t mask;
 	char *name;
 	char *unit;
 
@@ -86,7 +96,7 @@ typedef struct param_s {
  * The size field is only important for non-native types such as string, data and vector.
  *
  */
-#define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _readonly, _callback, _unit, _physaddr, _log) \
+#define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _log) \
 	__attribute__((section("param."#_name))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
@@ -98,13 +108,13 @@ typedef struct param_s {
 		.name = #_name, \
 		.array_size = _array_count, \
 		.array_step = _array_step, \
-		.readonly = _readonly, \
+		.mask = _flags, \
 		.unit = _unit, \
 		.callback = _callback, \
 		.addr = _physaddr, \
 	}
 
-#define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _readonly, _callback, _unit, _vmem_name, _vmem_addr, _log) \
+#define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _log) \
 	__attribute__((section("param."#_name))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
@@ -115,7 +125,7 @@ typedef struct param_s {
 		.name = #_name, \
 		.array_size = _array_count, \
 		.array_step = _array_step, \
-		.readonly = _readonly, \
+		.mask = _flags, \
 		.callback = _callback, \
 		.unit = _unit, \
 		.addr = (void *) _vmem_addr, \

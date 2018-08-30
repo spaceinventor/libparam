@@ -38,10 +38,11 @@ int param_pull_single(param_t *param, int offset, int verbose, int host, int tim
  * PULL all
  * @param verbose printout when received
  * @param host remote csp node
+ * @param mask parameter mask
  * @param timeout in ms
  * @return 0 = OK, -1 on network error
  */
-int param_pull_all(int verbose, int host, int timeout);
+int param_pull_all(int verbose, int host, uint32_t mask, int timeout);
 
 /**
  * PUSH single:

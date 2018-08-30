@@ -138,11 +138,13 @@ param_t * param_list_find_name(int node, char * name)
 	return found;
 }
 
-void param_list_print(char * token) {
+void param_list_print(uint32_t mask) {
 	param_t * param;
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
-		param_print(param, -1, NULL, 0, 2);
+		if (param->mask & mask) {
+			param_print(param, -1, NULL, 0, 2);
+		}
 	}
 }
 
@@ -165,10 +167,11 @@ void param_list_download(int node, int timeout) {
 		int id = csp_ntoh16(new_param->id) & 0x7FF;
 		int type = new_param->type;
 		int size = new_param->size;
+		int mask = csp_ntoh32(new_param->mask);
 		if (size == 255)
 			size = 1;
 
-		param_t * param = param_list_create_remote(id, node, type, size, new_param->name, strlen);
+		param_t * param = param_list_create_remote(id, node, type, mask, size, new_param->name, strlen);
 		if (param == NULL) {
 			csp_buffer_free(packet);
 			break;
@@ -192,7 +195,7 @@ void param_list_destroy(param_t * param) {
 	free(param);
 }
 
-param_t * param_list_create_remote(int id, int node, int type, int array_size, char * name, int namelen) {
+param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, int array_size, char * name, int namelen) {
 
 	if (array_size < 1)
 		array_size = 1;
@@ -216,6 +219,7 @@ param_t * param_list_create_remote(int id, int node, int type, int array_size, c
 	param->id = id;
 	param->node = node;
 	param->type = type;
+	param->mask = mask;
 	param->array_size = array_size;
 	param->array_step = param_typesize(type);
 
@@ -231,9 +235,9 @@ param_t * param_list_create_remote(int id, int node, int type, int array_size, c
 param_t * param_list_from_line(char * line) {
 
 	char name[25] = {};
-	unsigned int id, type;
+	unsigned int id, type, mask;
 	int node, size;
-	int scanned = sscanf(line, "%25[^|]|%u:%d?%u[%d]%*s", name, &id, &node, &type, &size);
+	int scanned = sscanf(line, "%25[^|]|%u:%d?%u[%d]%x%*s", name, &id, &node, &type, &size, &mask);
 	//printf("Scanned %u => %s", scanned, line);
 
 	if (scanned < 4)
@@ -246,7 +250,7 @@ param_t * param_list_from_line(char * line) {
 	param_t * param = param_list_find_id(node, id);
 
 	if (param == NULL) {
-		param = param_list_create_remote(id, node, type, size, name, strlen(name));
+		param = param_list_create_remote(id, node, type, mask, size, name, strlen(name));
 		param_list_add(param);
 	}
 

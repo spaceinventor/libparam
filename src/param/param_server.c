@@ -74,12 +74,15 @@ static void param_serve_pull_request(csp_packet_t * request, int all) {
 
 	if (all == 0) {
 		param_queue_t q_request;
-		param_queue_init(&q_request, &ctx.request->data[2], ctx.request->length - 2, ctx.request->length - 2, PARAM_QUEUE_TYPE_SET);
+		param_queue_init(&q_request, &ctx.request->data[8], ctx.request->length - 2, ctx.request->length - 2, PARAM_QUEUE_TYPE_SET);
 		param_queue_foreach(&q_request, __add_iterator, &ctx);
 	} else {
 		param_t * param;
 		param_list_iterator i = {};
 		while ((param = param_list_iterate(&i)) != NULL) {
+			uint32_t mask = csp_ntoh32(ctx.request->data32[1]);
+			if ((param->mask & mask) == 0)
+				continue;
 			__add(&ctx, param, -1, NULL);
 		}
 	}

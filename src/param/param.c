@@ -86,7 +86,7 @@ void param_get_data(param_t * param, void * outbuf, int len)
 			return; \
 		} \
 		/* Check readonly */ \
-		if ((param->readonly == PARAM_READONLY_TRUE) || (param->readonly == PARAM_READONLY_INTERNAL)) { \
+		if (param->mask & (PM_READONLY | PM_READONLY_EXTERNAL)) { \
 			return; \
 		} \
 		if (param->vmem) { \

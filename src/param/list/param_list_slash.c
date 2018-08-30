@@ -19,10 +19,10 @@
 
 static int list(struct slash *slash)
 {
+	uint32_t mask = 0xFFFFFFFF;
 	if (slash->argc > 1)
-		param_list_print(slash->argv[1]);
-	else
-		param_list_print(NULL);
+		mask = param_maskstr_to_mask(slash->argv[1]);
+	param_list_print(mask);
 	return SLASH_SUCCESS;
 }
 slash_command(list, list, "[str]", "List parameters");
