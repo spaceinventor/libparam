@@ -14,6 +14,27 @@
 #include <param/param_client.h>
 #include <param/param_list.h>
 
+#include "param_collector_config.h"
+
+csp_thread_return_t param_collector_task(void *pvParameters) {
+
+	param_collector_init();
+
+	while(1) {
+
+		csp_sleep_ms(1000);
+
+		for(int i = 0; i < 16; i++) {
+			if (param_collector_config[i].node == 0)
+				break;
+			param_pull_all(0, param_collector_config[i].node, param_collector_config[i].mask, 1000);
+		}
+
+	}
+
+}
+
+#if 0
 #define DEFAULT_SLEEP 10000 // [ms]
 #define SLEEP_MIN 100 // [ms]
 #define MAX_NODES 10
@@ -26,7 +47,6 @@
 	if (param->storage_type != PARAM_STORAGE_REMOTE) \
 		continue; \
 
-#if 0
 csp_thread_return_t param_collector_task(void *pvParameters)
 {
 	while(1) {
