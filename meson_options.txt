@@ -1,1 +1,2 @@
 option('slash', type: 'boolean', value: false, description: 'Build slash (yields)', yield: true)
+option('collector', type: 'boolean', value: false, description: 'Build collector')

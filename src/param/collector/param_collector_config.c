@@ -14,8 +14,13 @@
 
 struct param_collector_config_s param_collector_config[16] = {0};
 
+void param_col_confstr_callback(struct param_s * param, int offset) {
+	printf("Callback\n");
+	param_collector_init();
+}
+
 extern const vmem_t vmem_col;
-PARAM_DEFINE_STATIC_VMEM(PARAMID_COLLECTOR_CNFSTR, col_cnfstr, PARAM_TYPE_STRING, 100, 0,  PM_CONF, NULL, "", col, 0x00, NULL);
+PARAM_DEFINE_STATIC_VMEM(PARAMID_COLLECTOR_CNFSTR, col_cnfstr, PARAM_TYPE_STRING, 100, 0,  PM_CONF, param_col_confstr_callback, "", col, 0x00, NULL);
 
 void param_collector_init(void) {
 	char buf[100];

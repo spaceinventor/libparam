@@ -12,6 +12,7 @@ struct param_collector_config_s {
 	uint8_t node;
 	uint32_t interval;
 	uint32_t mask;
+	uint32_t last_time;
 };
 
 extern struct param_collector_config_s param_collector_config[];
