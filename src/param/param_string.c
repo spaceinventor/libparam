@@ -282,6 +282,11 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 				printf("w");
 			}
 
+			if (mask & PM_DEBUG) {
+				mask &= ~ PM_DEBUG;
+				printf("d");
+			}
+
 			if (mask)
 				printf("+%x", mask);
 
