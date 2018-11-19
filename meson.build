@@ -10,7 +10,6 @@ param_deps = []
 param_deps += dependency('csp', fallback : ['csp', 'csp_dep'])
 
 param_src = files([
-#	'src/param/collector/param_collector.c',
 #	'src/param/group/param_group_beacon.c',
 #	'src/param/group/param_group_store_file.c',
 #	'src/param/group/param_group_store_vmem.c',
@@ -36,8 +35,16 @@ param_src = files([
 	'src/vmem/vmem_fram_secure.c',
 	'src/vmem/vmem_ram.c',
 	'src/vmem/vmem_server.c',
+	'src/vmem/vmem_file.c',
 	'src/vmem/vmem.c',
 ])
+
+if get_option('collector') == true
+	param_src += files([
+		'src/param/collector/param_collector_config.c',
+		'src/param/collector/param_collector.c',
+	])
+endif
 
 if get_option('slash') == true
 	slash_dep = dependency('slash', fallback : ['slash', 'slash_dep'], required: false)

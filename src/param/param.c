@@ -168,6 +168,10 @@ void param_set_string(param_t * param, void * inbuf, int len) {
 	} else {
 		memcpy(param->addr + len , "", 1);
 	}
+	/* Callback */
+	if (param->callback) {
+		param->callback(param, 0);
+	}
 }
 
 
@@ -176,6 +180,10 @@ void param_set_data(param_t * param, void * inbuf, int len) {
 		param->vmem->write(param->vmem, (uint32_t) (intptr_t) param->addr, inbuf, len);
 	} else {
 		memcpy(param->addr, inbuf, len);
+	}
+	/* Callback */
+	if (param->callback) {
+		param->callback(param, 0);
 	}
 }
 

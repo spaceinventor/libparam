@@ -202,8 +202,11 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 
 	struct param_heap_s {
 		param_t param;
+		union {
+			uint64_t alignme;
+			uint8_t buffer[param_typesize(type) * array_size];
+		};
 		char name[namelen+1];
-		uint8_t buffer[param_typesize(type) * array_size];
 	} *param_heap = calloc(sizeof(struct param_heap_s), 1);
 
 	param_t * param = &param_heap->param;
