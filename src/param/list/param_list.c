@@ -235,28 +235,3 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 
 }
 
-param_t * param_list_from_line(char * line) {
-
-	char name[25] = {};
-	unsigned int id, type, mask;
-	int node, size;
-	int scanned = sscanf(line, "%25[^|]|%u:%d?%u[%d]%x%*s", name, &id, &node, &type, &size, &mask);
-	//printf("Scanned %u => %s", scanned, line);
-
-	if (scanned < 4)
-		return NULL;
-
-	if (size == -1) {
-		size = param_typesize(type);
-	}
-
-	param_t * param = param_list_find_id(node, id);
-
-	if (param == NULL) {
-		param = param_list_create_remote(id, node, type, mask, size, name, strlen(name));
-		param_list_add(param);
-	}
-
-	return param;
-
-}

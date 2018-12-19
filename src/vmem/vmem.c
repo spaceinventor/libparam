@@ -19,14 +19,14 @@ void * vmem_memcpy(void * to, void * from, size_t size) {
 
 		/* Write to VMEM */
 		if ((to >= vmem->vaddr) && (to + size <= vmem->vaddr + vmem->size)) {
-			//printf("Write to vmem %s, to %x from %x\n", vmem->name, to, from);
+			printf("Write to vmem %s, to %x from %x\n", vmem->name, to, from);
 			vmem->write(vmem, to - vmem->vaddr, from, size);
 			return NULL;
 		}
 
 		/* Read */
 		if ((from >= vmem->vaddr) && (from + size <= vmem->vaddr + vmem->size)) {
-			//printf("Read from vmem %s\n", vmem->name);
+			printf("Read from vmem %s\n", vmem->name);
 			vmem->read(vmem, from - vmem->vaddr, to, size);
 			return NULL;
 		}

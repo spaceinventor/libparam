@@ -15,18 +15,21 @@
 struct param_collector_config_s param_collector_config[16] = {0};
 
 void param_col_confstr_callback(struct param_s * param, int offset) {
-	printf("Callback\n");
 	param_collector_init();
 }
 
 extern const vmem_t vmem_col;
-PARAM_DEFINE_STATIC_VMEM(PARAMID_COLLECTOR_CNFSTR, col_cnfstr, PARAM_TYPE_STRING, 100, 0,  PM_CONF, param_col_confstr_callback, "", col, 0x00, NULL);
+PARAM_DEFINE_STATIC_VMEM(PARAMID_COLLECTOR_RUN, col_run, PARAM_TYPE_UINT8, 0, sizeof(uint8_t), PM_CONF, NULL, "", col, 0x0, NULL);
+PARAM_DEFINE_STATIC_VMEM(PARAMID_COLLECTOR_CNFSTR, col_cnfstr, PARAM_TYPE_STRING, 100, 0, PM_CONF, param_col_confstr_callback, "", col, 0x01, NULL);
 
 void param_collector_init(void) {
 	char buf[100];
 	param_get_data(&col_cnfstr, buf, 100);
 	int len = strnlen(buf, 100);
 	printf("Init with str: %s, len %u\n", buf, len);
+
+	/* Clear config array */
+	memset(param_collector_config, 0, sizeof(param_collector_config));
 
 	/* Get first token */
 	char *saveptr;

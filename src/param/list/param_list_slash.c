@@ -43,8 +43,6 @@ static int list_download(struct slash *slash)
 }
 slash_command_sub(list, download, list_download, "<node> [timeout]", NULL);
 
-#if defined(PARAM_STORE_VMEM)
-
 static int param_list_store_vmem_save_slash(struct slash *slash)
 {
 	if (slash->argc != 2)
@@ -68,7 +66,7 @@ static int param_list_store_vmem_load_slash(struct slash *slash)
 }
 slash_command_sub(list, load, param_list_store_vmem_load_slash, "<vmem_id>", NULL);
 
-#elif defined(PARAM_STORE_FILE)
+#if 0
 
 // TODO: Add filename, node_filter and remote_only as input
 static int param_list_store_file_save_slash(struct slash *slash)
