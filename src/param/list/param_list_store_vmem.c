@@ -72,7 +72,7 @@ static void param_list_to_string(FILE * stream, int node_filter, int remote_only
 
 }
 
-void param_list_store_vmem_save(vmem_t * vmem) {
+void param_list_store_vmem_save(const vmem_t * vmem) {
 	char * hk_list = calloc(vmem->size, 1);
 
 	FILE *stream = fmemopen(hk_list, vmem->size, "w");
@@ -84,7 +84,7 @@ void param_list_store_vmem_save(vmem_t * vmem) {
 	free(hk_list);
 }
 
-void param_list_store_vmem_load(vmem_t * vmem) {
+void param_list_store_vmem_load(const vmem_t * vmem) {
 
 	char * hk_list = calloc(vmem->size, 1);
 	if (hk_list == NULL)
