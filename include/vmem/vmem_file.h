@@ -29,7 +29,7 @@ void vmem_file_write(const vmem_t * vmem, uint32_t addr, void * datain, int len)
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	const vmem_t vmem_##name_in = { \
-		.type = VMEM_TYPE_RAM, \
+		.type = VMEM_TYPE_FILE, \
 		.name = strname, \
 		.size = size_in, \
 		.read = vmem_file_read, \

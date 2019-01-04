@@ -17,18 +17,19 @@
 #include <param/param_client.h>
 #include <param/param_queue.h>
 
-typedef void (*param_transaction_callback_f)(csp_packet_t *response);
+typedef void (*param_transaction_callback_f)(csp_packet_t *response, int verbose);
 
-static void param_transaction_callback_pull(csp_packet_t *response) {
+static void param_transaction_callback_pull(csp_packet_t *response, int verbose) {
 	//csp_hex_dump("pull response", response->data, response->length);
 	param_queue_t queue;
 	param_queue_init(&queue, &response->data[2], response->length - 2, response->length - 2, PARAM_QUEUE_TYPE_SET);
 	param_queue_apply(&queue);
-	param_queue_print_local(&queue);
+	if (verbose)
+		param_queue_print_local(&queue);
 	csp_buffer_free(response);
 }
 
-static int param_transaction(csp_packet_t *packet, int host, int timeout, param_transaction_callback_f callback) {
+static int param_transaction(csp_packet_t *packet, int host, int timeout, param_transaction_callback_f callback, int verbose) {
 
 	//csp_hex_dump("transaction", packet->data, packet->length);
 
@@ -57,7 +58,7 @@ static int param_transaction(csp_packet_t *packet, int host, int timeout, param_
 		//csp_hex_dump("response", packet->data, packet->length);
 
 		if (callback) {
-			callback(packet);
+			callback(packet, verbose);
 		} else {
 			csp_buffer_free(packet);
 		}
@@ -82,7 +83,7 @@ int param_pull_all(int verbose, int host, uint32_t mask, int timeout) {
 	packet->data[1] = 0;
 	packet->data32[1] = csp_hton32(mask);
 	packet->length = 8;
-	return param_transaction(packet, host, timeout, param_transaction_callback_pull);
+	return param_transaction(packet, host, timeout, param_transaction_callback_pull, verbose);
 
 }
 
@@ -102,7 +103,7 @@ int param_pull_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 	memcpy(&packet->data[2], queue->buffer, queue->used);
 
 	packet->length = queue->used + 2;
-	return param_transaction(packet, host, timeout, param_transaction_callback_pull);
+	return param_transaction(packet, host, timeout, param_transaction_callback_pull, verbose);
 
 }
 
@@ -119,7 +120,7 @@ int param_pull_single(param_t *param, int offset, int verbose, int host, int tim
 	param_queue_add(&queue, param, offset, NULL);
 
 	packet->length = queue.used + 2;
-	return param_transaction(packet, host, timeout, param_transaction_callback_pull);
+	return param_transaction(packet, host, timeout, param_transaction_callback_pull, verbose);
 }
 
 
@@ -139,7 +140,7 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 	memcpy(&packet->data[2], queue->buffer, queue->used);
 
 	packet->length = queue->used + 2;
-	int result = param_transaction(packet, host, timeout, NULL);
+	int result = param_transaction(packet, host, timeout, NULL, verbose);
 
 	if (result < 0) {
 		return -1;
@@ -163,7 +164,7 @@ int param_push_single(param_t *param, int offset, void *value, int verbose, int 
 	param_queue_add(&queue, param, offset, value);
 
 	packet->length = queue.used + 2;
-	int result = param_transaction(packet, host, timeout, NULL);
+	int result = param_transaction(packet, host, timeout, NULL, verbose);
 
 	if (result < 0) {
 		return -1;

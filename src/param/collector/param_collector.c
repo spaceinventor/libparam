@@ -28,13 +28,16 @@ csp_thread_return_t param_collector_task(void *pvParameters) {
 			if (param_collector_config[i].node == 0)
 				break;
 
+			if (param_get_uint8(&col_run) == 0)
+				continue;
+
 			if (csp_get_ms() < param_collector_config[i].last_time + param_collector_config[i].interval) {
 				continue;
 			}
 
 			param_collector_config[i].last_time = csp_get_ms();
 
-			param_pull_all(0, param_collector_config[i].node, param_collector_config[i].mask, 1000);
+			param_pull_all(param_get_uint8(&col_verbose), param_collector_config[i].node, param_collector_config[i].mask, 1000);
 		}
 
 	}
