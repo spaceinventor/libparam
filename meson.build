@@ -10,7 +10,6 @@ param_deps = []
 param_deps += dependency('csp', fallback : ['csp', 'csp_dep'])
 
 param_src = files([
-	'src/param/list/param_list_store_vmem.c',
 	'src/param/list/param_list.c',
 
 	'src/param/param_client.c',
@@ -26,9 +25,15 @@ param_src = files([
 	'src/vmem/vmem_client.c',
 	'src/vmem/vmem_ram.c',
 	'src/vmem/vmem_server.c',
-	'src/vmem/vmem_file.c',
 	'src/vmem/vmem.c',
 ])
+
+if get_option('have_fopen') == true
+	param_src += files([
+		'src/vmem/vmem_file.c',
+		'src/param/list/param_list_store_vmem.c',
+	])
+endif
 
 if get_option('vmem_fram') == true
 	param_src += files([
@@ -57,6 +62,7 @@ if get_option('slash') == true
 		if get_option('have_fopen') == true
 			param_src += files([
 				'src/vmem/vmem_client_slash_ftp.c',
+				'src/param/list/param_list_store_slash.c'
 			])
 		endif
 	endif
