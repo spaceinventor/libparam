@@ -1,2 +1,3 @@
 option('slash', type: 'boolean', value: false, description: 'Build slash (yields)', yield: true)
 option('collector', type: 'boolean', value: false, description: 'Build collector')
+option('have_fopen', type: 'boolean', value: false, description: 'POSIX fopen available')
