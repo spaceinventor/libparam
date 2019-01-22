@@ -162,7 +162,8 @@ static int vmem_client_slash_unlock(struct slash *slash)
 	printf("Type verification sequence (you have <30 seconds): \n");
 
 	char readbuf[9] = {};
-	read(0, readbuf, 8);
+	int bread __attribute__((unused));
+	bread = read(0, readbuf, 8);
 	if (sscanf(readbuf, "%x", (unsigned int *) &user_verification) != 1) {
 		printf("Could not parse input\n");
 		return SLASH_EINVAL;
@@ -180,7 +181,7 @@ static int vmem_client_slash_unlock(struct slash *slash)
 
 	printf("Are you sure [Y/N]?\n");
 
-	read(0, readbuf, 1);
+	bread = read(0, readbuf, 1);
 	if (readbuf[0] != 'Y') {
 		csp_buffer_free(packet);
 		csp_close(conn);
