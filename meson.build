@@ -69,8 +69,13 @@ if get_option('slash') == true
 endif
 param_inc = include_directories('.', 'include', 'lib')
 
-param_dep = declare_dependency(
+param_lib = static_library('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
 	dependencies : param_deps,
-	)
+)
+
+param_dep = declare_dependency(
+	include_directories : param_inc,
+	link_with : param_lib,
+)
