@@ -47,6 +47,7 @@ void vmem_download(int node, int timeout, uint32_t address, uint32_t length, cha
 		if (dotcount % 32 == 0)
 			printf("  ");
 		printf(".");
+		fflush(stdout);
 		dotcount++;
 		if (dotcount % 32 == 0)
 			printf(" - %.0f K\n", (count / 1024.0));
@@ -102,6 +103,7 @@ void vmem_upload(int node, int timeout, uint32_t address, char * datain, uint32_
 		if (dotcount % 32 == 0)
 			printf("  ");
 		printf(".");
+		fflush(stdout);
 		dotcount++;
 		if (dotcount % 32 == 0)
 			printf(" - %.0f K\n", (count / 1024.0));
