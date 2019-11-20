@@ -26,7 +26,7 @@ void * vmem_memcpy(void * to, void * from, size_t size) {
 
 		/* Read */
 		if ((from >= vmem->vaddr) && (from + size <= vmem->vaddr + vmem->size)) {
-			//printf("Read from vmem %s\n", vmem->name);
+			// printf("Read from vmem %s\n", vmem->name);
 			vmem->read(vmem, from - vmem->vaddr, to, size);
 			return NULL;
 		}
