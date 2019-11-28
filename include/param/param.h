@@ -52,6 +52,7 @@ typedef enum {
 #define PM_SYSCONF              (1 << 7) //! C: Network and time configuration
 #define PM_WDT                  (1 << 8) //! w: Crictical watchdog
 #define PM_DEBUG                (1 << 9) //! d: Debug flag (enables uart output)
+#define PM_CALIB               (1 << 10) //! q: Calibration gains and offsets
 
 /**
  * Parameter description structure
