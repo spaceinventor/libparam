@@ -133,6 +133,9 @@ typedef struct param_s {
 	}
 
 #define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_size, _array_step, _physaddr) \
+	__attribute__((section("param"))) \
+	__attribute__((aligned(1))) \
+	__attribute__((used)) \
 	param_t _name = { \
 		.node = _node, \
 		.id = _id, \
