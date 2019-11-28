@@ -142,7 +142,7 @@ void param_list_print(uint32_t mask) {
 	param_t * param;
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
-		if (param->mask & mask) {
+		if ((param->mask & mask) || (mask == 0xFFFFFFFF)) {
 			param_print(param, -1, NULL, 0, 2);
 		}
 	}

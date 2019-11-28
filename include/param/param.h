@@ -133,7 +133,7 @@ typedef struct param_s {
 		.vmem = &vmem_##_vmem_name, \
 	}
 
-#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_size, _array_step, _physaddr) \
+#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_size, _array_step, _flags, _physaddr) \
 	__attribute__((section("param"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
@@ -144,7 +144,7 @@ typedef struct param_s {
 		.array_size = _array_size, \
 		.array_step = _array_step, \
 		.name = (char *) #_name, \
-		\
+		.mask = _flags, \
 		.addr = _physaddr, \
 	};
 
