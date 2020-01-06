@@ -53,5 +53,6 @@ typedef struct {
 
 void vmem_server_handler(csp_conn_t * conn);
 csp_thread_return_t vmem_server_task(void *pvParameters);
+void vmem_stop_server_task();
 
 #endif /* LIB_PARAM_INCLUDE_VMEM_VMEM_SERVER_H_ */
