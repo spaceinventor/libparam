@@ -75,7 +75,5 @@ param_lib = static_library('param',
 	dependencies : param_deps,
 )
 
-param_dep = declare_dependency(
-	include_directories : param_inc,
-	link_whole : param_lib,
-)
+param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib)
+param_dep_whole = declare_dependency(include_directories : param_inc, link_whole : param_lib)

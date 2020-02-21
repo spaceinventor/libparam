@@ -52,6 +52,7 @@ typedef enum {
 #define PM_SYSCONF              (1 << 7) //! C: Network and time configuration
 #define PM_WDT                  (1 << 8) //! w: Crictical watchdog
 #define PM_DEBUG                (1 << 9) //! d: Debug flag (enables uart output)
+#define PM_CALIB               (1 << 10) //! q: Calibration gains and offsets
 
 /**
  * Parameter description structure
@@ -132,7 +133,10 @@ typedef struct param_s {
 		.vmem = &vmem_##_vmem_name, \
 	}
 
-#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_size, _array_step, _physaddr) \
+#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_size, _array_step, _flags, _physaddr) \
+	__attribute__((section("param"))) \
+	__attribute__((aligned(1))) \
+	__attribute__((used)) \
 	param_t _name = { \
 		.node = _node, \
 		.id = _id, \
@@ -140,7 +144,7 @@ typedef struct param_s {
 		.array_size = _array_size, \
 		.array_step = _array_step, \
 		.name = (char *) #_name, \
-		\
+		.mask = _flags, \
 		.addr = _physaddr, \
 	};
 
