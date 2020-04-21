@@ -145,10 +145,12 @@ static int cmd_get(struct slash *slash) {
 	int result = 0;
 	if (param->node != PARAM_LIST_LOCAL) {
 
-		if ((node != -1) && (autosend)) {
-			result = param_pull_single(param, offset, 1, node, 1000);
-		} else if (host != -1) {
-			result = param_pull_single(param, offset, 1, host, 1000);
+		if (autosend) {
+			if (host != -1) {
+				result = param_pull_single(param, offset, 1, host, 1000);
+			} else if (node != -1) {
+				result = param_pull_single(param, offset, 1, node, 1000);
+			}
 		} else {
 			if (!queue_get.buffer) {
 				param_queue_init(&queue_get, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0,
