@@ -7,7 +7,9 @@
 
 #include <stdio.h>
 #include <sys/queue.h>
+#include <malloc.h>
 
+#include <csp/csp.h>
 #include <csp/arch/csp_malloc.h>
 #include <csp/csp_endian.h>
 #include <param/param.h>
