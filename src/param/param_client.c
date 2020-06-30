@@ -92,7 +92,6 @@ int param_pull_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 	if ((queue == NULL) || (queue->used == 0))
 		return 0;
 
-	// TODO: include unique packet id?
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
 		return -2;
@@ -110,7 +109,6 @@ int param_pull_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 
 int param_pull_single(param_t *param, int offset, int verbose, int host, int timeout) {
 
-	// TODO: include unique packet id?
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 	packet->data[0] = PARAM_PULL_REQUEST;
 	packet->data[1] = 0;
@@ -129,7 +127,6 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 	if ((queue == NULL) || (queue->used == 0))
 		return 0;
 
-	// TODO: include unique packet id?
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
 		return -2;
@@ -154,7 +151,6 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 
 int param_push_single(param_t *param, int offset, void *value, int verbose, int host, int timeout) {
 
-	// TODO: include unique packet id?
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 	packet->data[0] = PARAM_PUSH_REQUEST;
 	packet->data[1] = 0;
