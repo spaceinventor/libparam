@@ -44,6 +44,12 @@ void param_value_str(param_t *param, unsigned int i, char * out, int len)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DOUBLE, "%f", double, double)
 
 	case PARAM_TYPE_DATA: {
+
+        /* Prepend data with 0x */
+        snprintf(out, len, "0x");
+        len -= 2;
+        out += 2;
+
 		char data[param->array_size];
 		param_get_data(param, data, param->array_size);
 		int written;
