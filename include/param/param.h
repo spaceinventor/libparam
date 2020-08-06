@@ -9,7 +9,6 @@
 #define SRC_PARAM_PARAM_H_
 
 #include <stdint.h>
-#include <sys/queue.h>
 #include <vmem/vmem.h>
 
 /**
@@ -78,7 +77,10 @@ typedef struct param_s {
 	void (*callback)(struct param_s * param, int offset);
 	uint32_t timestamp;
 
-	SLIST_ENTRY(param_s) next;	// single linked list
+	/* single linked list:
+	 * The weird definition format comes from sys/queue.h SLINST_ENTRY() macro */
+	struct { struct param_s *sle_next; } next;
+
 
 } param_t;
 

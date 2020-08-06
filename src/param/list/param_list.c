@@ -6,7 +6,6 @@
  */
 
 #include <stdio.h>
-#include <sys/queue.h>
 #include <malloc.h>
 
 #include <csp/csp.h>
@@ -18,6 +17,11 @@
 
 #include "../param_string.h"
 #include "param_list.h"
+#include "libparam.h"
+
+#ifdef PARAM_HAVE_SYS_QUEUE
+#include <sys/queue.h>
+#endif
 
 /**
  * The storage size (i.e. how closely two param_t structs are packed in memory)
@@ -29,7 +33,9 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 #define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set[1] - (intptr_t) &param_size_set[0])
 #endif
 
+#ifdef PARAM_HAVE_SYS_QUEUE
 static SLIST_HEAD(param_list_head_s, param_s) param_list_head = {};
+#endif
 
 param_t * param_list_iterate(param_list_iterator * iterator) {
 
@@ -49,7 +55,9 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 			iterator->element = &__start_param;
 		} else {
 			iterator->phase = 1;
+#ifdef PARAM_HAVE_SYS_QUEUE
 			iterator->element = SLIST_FIRST(&param_list_head);
+#endif
 		}
 
 		return iterator->element;
@@ -67,16 +75,20 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 
 		/* Otherwise, switch to dynamic phase */
 		iterator->phase = 1;
+#ifdef PARAM_HAVE_SYS_QUEUE
 		iterator->element = SLIST_FIRST(&param_list_head);
+#endif
 		return iterator->element;
 	}
 
+#ifdef PARAM_HAVE_SYS_QUEUE
 	/* Dynamic phase */
 	if (iterator->phase == 1) {
 
 		iterator->element = SLIST_NEXT(iterator->element, next);
 		return iterator->element;
 	}
+#endif
 
 	return NULL;
 
@@ -86,7 +98,11 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 int param_list_add(param_t * item) {
 	if (param_list_find_id(item->node, item->id) != NULL)
 		return -1;
+#ifdef PARAM_HAVE_SYS_QUEUE
 	SLIST_INSERT_HEAD(&param_list_head, item, next);
+#else
+	return -1;
+#endif
 	return 0;
 }
 
