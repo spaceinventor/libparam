@@ -182,6 +182,8 @@ static void rparam_list_handler(csp_conn_t * conn)
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 		csp_packet_t * packet = csp_buffer_get(256);
+		if (packet == NULL)
+		    break;
 		param_transfer_t * rparam = (void *) packet->data;
 		int node = param->node;
 		if (node == PARAM_LIST_LOCAL)

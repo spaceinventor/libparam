@@ -77,8 +77,10 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 		iterator->phase = 1;
 #ifdef PARAM_HAVE_SYS_QUEUE
 		iterator->element = SLIST_FIRST(&param_list_head);
-#endif
 		return iterator->element;
+#else
+		return NULL;
+#endif
 	}
 
 #ifdef PARAM_HAVE_SYS_QUEUE

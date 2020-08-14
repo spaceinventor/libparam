@@ -4,10 +4,7 @@ conf = configuration_data()
 conf.set('PARAM_STORE_FILE', false)
 conf.set('PARAM_STORE_VMEM', false)
 conf.set('PARAM_STORE_LOG', false)
-
-if meson.get_compiler('c').has_header('sys/queue.h')
-	conf.set('PARAM_HAVE_SYS_QUEUE', true)
-endif
+conf.set('PARAM_HAVE_SYS_QUEUE', get_option('list_dynamic'))
 
 libparam_h = configure_file(output: 'libparam.h', configuration: conf)
 

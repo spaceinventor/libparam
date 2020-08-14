@@ -77,9 +77,11 @@ typedef struct param_s {
 	void (*callback)(struct param_s * param, int offset);
 	uint32_t timestamp;
 
+#ifdef PARAM_HAVE_SYS_QUEUE
 	/* single linked list:
 	 * The weird definition format comes from sys/queue.h SLINST_ENTRY() macro */
 	struct { struct param_s *sle_next; } next;
+#endif
 
 
 } param_t;
