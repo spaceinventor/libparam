@@ -11,6 +11,8 @@
 #include <stdint.h>
 #include <vmem/vmem.h>
 
+#include "libparam.h"
+
 /**
  * DATATYPES
  */
