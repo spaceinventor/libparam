@@ -192,8 +192,8 @@ static void rparam_list_handler(csp_conn_t * conn)
 		rparam->type = param->type;
 		rparam->size = param->array_size;
 		rparam->mask = csp_hton32(param->mask);
-		strncpy(rparam->name, param->name, 25);
-		packet->length = offsetof(param_transfer_t, name) + MIN(strlen(param->name), 25);
+		strncpy(rparam->name, param->name, 35);
+		packet->length = offsetof(param_transfer_t, name) + MIN(strlen(param->name), 35);
 		if (!csp_send(conn, packet, 1000)) {
 			csp_buffer_free(packet);
 			break;
