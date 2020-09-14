@@ -6,6 +6,7 @@
  */
 
 #include <stdio.h>
+#include <inttypes.h>
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
@@ -28,18 +29,18 @@ void param_value_str(param_t *param, unsigned int i, char * out, int len)
 		snprintf(out, len, strtype, (strcast) param_get_##name##_array(param, i)); \
 		break;
 
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT8, "%u", unsigned char, uint8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT16, "%u", unsigned short, uint16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT32, "%u", unsigned int, uint32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT64, "%lu", unsigned long, uint64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT8, "%d", signed char, int8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT16, "%d", signed short, int16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT32, "%d", signed int, int32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT64, "%ld", signed long, int64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT8, "0x%X", unsigned char, uint8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT16, "0x%X", unsigned short, uint16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT32, "0x%X", unsigned int, uint32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT64, "0x%lX", unsigned long, uint64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT8, "%"PRIu8, unsigned char, uint8)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT16, "%"PRIu16, unsigned short, uint16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT32, "%"PRIu32, unsigned long int, uint32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT64, "%"PRIu64, unsigned long long, uint64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT8, "%"PRId8, signed char, int8)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT16, "%"PRId16, signed short, int16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT32, "%"PRId32, signed long int, int32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT64, "%"PRId64, signed long long, int64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT8, "0x%"PRIX8, unsigned char, uint8)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT16, "0x%"PRIX16, unsigned short, uint16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT32, "0x%"PRIX32, unsigned long int, uint32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT64, "0x%"PRIX64, unsigned long long, uint64)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_FLOAT, "%.04f", float, float)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DOUBLE, "%f", double, double)
 
