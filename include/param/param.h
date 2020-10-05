@@ -63,7 +63,7 @@ typedef struct param_s {
 
 	/* Parameter declaration */
 	uint16_t id;
-	uint8_t node;
+	uint16_t node;
 	param_type_e type;
 	uint32_t mask;
 	char *name;

@@ -31,8 +31,7 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 void param_list_destroy(param_t * param);
 void param_print(param_t * param, int offset, int nodes[], int nodes_count, int verbose);
 
-void param_list_download(int node, int timeout);
-
+void param_list_download(int node, int timeout, int list_version);
 
 /* From param_list_store_file.c */
 void param_list_store_file_save(char * filename);
