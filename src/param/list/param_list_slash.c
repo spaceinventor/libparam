@@ -44,4 +44,4 @@ static int list_download(struct slash *slash)
 
     return SLASH_SUCCESS;
 }
-slash_command_sub(list, download, list_download, "<node> [timeout]", NULL);
+slash_command_sub(list, download, list_download, "<node> [timeout] [version]", NULL);
