@@ -184,16 +184,17 @@ static void rparam_list_handler(csp_conn_t * conn)
 		csp_packet_t * packet = csp_buffer_get(256);
 		if (packet == NULL)
 		    break;
-		param_transfer_t * rparam = (void *) packet->data;
+		param_transfer2_t * rparam = (void *) packet->data;
 		int node = param->node;
 		if (node == PARAM_LIST_LOCAL)
 			node = csp_get_address();
-		rparam->id = csp_hton16((node << 11) | (param->id & 0x7FF));
+		rparam->id = csp_hton16(param->id);
+		rparam->node = csp_hton16(node);
 		rparam->type = param->type;
 		rparam->size = param->array_size;
 		rparam->mask = csp_hton32(param->mask);
 		strncpy(rparam->name, param->name, 35);
-		packet->length = offsetof(param_transfer_t, name) + MIN(strlen(param->name), 35);
+		packet->length = offsetof(param_transfer2_t, name) + MIN(strlen(param->name), 35);
 		if (!csp_send(conn, packet, 1000)) {
 			csp_buffer_free(packet);
 			break;
