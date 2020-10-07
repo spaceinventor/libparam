@@ -21,6 +21,11 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #endif
 
+#define __SCN8(x) __INT8 __STRINGIFY(x)
+#define SCNd8       __SCN8(d)
+#define SCNu8       __SCN8(u)
+#define SCNx8       __SCN8(x)
+
 void param_value_str(param_t *param, unsigned int i, char * out, int len)
 {
 	switch(param->type) {
