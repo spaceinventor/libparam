@@ -64,8 +64,6 @@ static int __add_iterator(void * context, param_queue_t *queue, param_t * param,
 
 static void param_serve_pull_request(csp_packet_t * request, int all, int version) {
 
-    printf("Pull request version %d\n", version);
-
 	struct param_serve_context ctx;
 	ctx.request = request;
 
