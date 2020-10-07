@@ -21,11 +21,18 @@ struct param_queue_s {
 	int buffer_size;
 	param_queue_type_e type;
 	int used;
+	int version;
+
+	/* State used by serializer */
+    uint16_t last_node;
+    uint32_t last_timestamp;
+    uint16_t last_timediff_ms;
+
 };
 
 typedef struct param_queue_s param_queue_t;
 
-void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int used, param_queue_type_e type);
+void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int used, param_queue_type_e type, int version);
 
 int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value);
 int param_queue_apply(param_queue_t *queue);

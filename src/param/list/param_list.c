@@ -120,7 +120,7 @@ param_t * param_list_find_id(int node, int id)
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 
-		if (param->node != (uint8_t) node)
+		if (param->node != node)
 			continue;
 
 		if (param->id == id) {
@@ -144,7 +144,7 @@ param_t * param_list_find_name(int node, char * name)
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 
-		if (param->node != (uint8_t) node)
+		if (param->node != node)
 			continue;
 
 		if (strcmp(param->name, name) == 0) {
@@ -179,7 +179,7 @@ void param_list_download(int node, int timeout, int list_version) {
 	csp_packet_t * packet;
 	while((packet = csp_read(conn, timeout)) != NULL) {
 
-		csp_hex_dump("Response", packet->data, packet->length);
+		//csp_hex_dump("Response", packet->data, packet->length);
 
 		int strlen;
 		int addr;
@@ -199,7 +199,7 @@ void param_list_download(int node, int timeout, int list_version) {
             id = csp_ntoh16(new_param->id) & 0x7FF;
             type = new_param->type;
             size = new_param->size;
-            mask = csp_ntoh32(new_param->mask);
+            mask = csp_ntoh32(new_param->mask) | PM_REMOTE;
 
 	    } else {
 
@@ -211,7 +211,7 @@ void param_list_download(int node, int timeout, int list_version) {
             id = csp_ntoh16(new_param->id) & 0x7FF;
             type = new_param->type;
             size = new_param->size;
-            mask = csp_ntoh32(new_param->mask);
+            mask = csp_ntoh32(new_param->mask) | PM_REMOTE;
 
 	    }
 
