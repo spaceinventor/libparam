@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <csp/csp.h>
 #include <mpack/mpack.h>
+#include <mpack/mpack-config.h>
 
 #include <param/param.h>
 #include <param/param_server.h>
@@ -66,7 +67,12 @@ static int param_queue_print_callback(void * ctx, param_queue_t *queue, param_t 
 	printf("  %s:%u", param->name, param->node);
 	if (offset >= 0)
 		printf("[%u]", offset);
+#if MPACK_STDIO
+	printf(" = ");
+	mpack_print_element((mpack_reader_t *) reader, 2, stdout);
+#endif
 	printf("\n");
+
 	return 0;
 }
 
