@@ -214,4 +214,8 @@ void param_get(param_t * param, unsigned int offset, void * value);
 int param_typesize(param_type_e type);
 int param_size(param_t * param);
 
+/* External hooks to get atomic writes */
+extern __attribute__((weak)) void param_enter_critical(void);
+extern __attribute__((weak)) void param_exit_critical(void);
+
 #endif /* SRC_PARAM_PARAM_H_ */

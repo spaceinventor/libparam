@@ -72,12 +72,11 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 	if (all == 0) {
 
 		/* Loop list in request */
-		printf("Non all version %d\n", version);
 		param_queue_t q_request;
+		param_queue_init(&q_request, &ctx.request->data[2], ctx.request->length - 2, ctx.request->length - 2, PARAM_QUEUE_TYPE_SET, version);
 
 		PARAM_QUEUE_FOREACH(param, reader, (&q_request), offset)
 			if (param) {
-				printf("Add param %s offset %d\n", param->name, offset);
 				__add(&ctx, param, offset);
 			}
 		}

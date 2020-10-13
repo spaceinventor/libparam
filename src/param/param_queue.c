@@ -48,12 +48,11 @@ int param_queue_apply(param_queue_t *queue) {
 	int atomic_write = 0;
 	PARAM_QUEUE_FOREACH(param, reader, queue, offset)
 		if (param) {
-			if (param->mask & PM_ATOMIC_WRITE) {
+			if ((param->mask & PM_ATOMIC_WRITE) && (atomic_write == 0)) {
 				atomic_write = 1;
-				printf("Atomic write begin %s[%d]\n", param->name, offset);
-
+				if (param_enter_critical)
+					param_enter_critical();
 			}
-			printf("Apply %s[%d]\n", param->name, offset);
 			param_deserialize_from_mpack_to_param(NULL, queue, param, offset, &reader);
 		} else {
 			return_code = -1;
@@ -61,7 +60,8 @@ int param_queue_apply(param_queue_t *queue) {
 	}
 
 	if (atomic_write) {
-		printf("Atomic write end\n");
+		if (param_exit_critical)
+			param_exit_critical();
 	}
 
 	return return_code;
@@ -69,15 +69,17 @@ int param_queue_apply(param_queue_t *queue) {
 
 void param_queue_print(param_queue_t *queue) {
 	PARAM_QUEUE_FOREACH(param, reader, queue, offset)
-		printf	("  %s:%u", param->name, param->node);
-		if (offset >= 0) {
-			printf("[%u]", offset);
-		}
+		if (param) {
+			printf	("  %s:%u", param->name, param->node);
+			if (offset >= 0) {
+				printf("[%u]", offset);
+			}
 #if MPACK_STDIO
-		printf(" = ");
-		mpack_print_element((mpack_reader_t *) reader, 2, stdout);
+			printf(" = ");
+			mpack_print_element((mpack_reader_t *) reader, 2, stdout);
 #endif
-		printf("\n");
+			printf("\n");
+		}
 	}
 }
 
