@@ -55,6 +55,19 @@ typedef enum {
 #define PM_DEBUG                (1 << 9) //! d: Debug flag (enables uart output)
 #define PM_CALIB               (1 << 10) //! q: Calibration gains and offsets
 
+/* Atomic write:
+ * If this flag is set, the receiver must enter a critical region before writing to
+ * the parameter memory. The critical region will last to the end of the push packet
+ * So putting the atomic parameters at the end of the push request will reduce the time
+ * spent in critical region.
+ */
+#define PM_ATOMIC_WRITE        (1 << 11) //! a: Parameter must be written atomically.
+
+/* Reserved flags:
+ * Lower 16 is parameter system, upper 16 are user flags  */
+#define PM_PARAM_FLAGS        0x0000FFFF //! Lower 16-bits are reserved for parameter system and major class flags
+#define PM_USER_FLAGS         0xFFFF0000 //! Upper 16-bits are reserved for user
+
 /**
  * Parameter description structure
  * Note: this is not packed in order to maximise run-time efficiency
