@@ -21,6 +21,13 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #endif
 
+#ifndef SCNd8
+#define __SCN8(x) __INT8 __STRINGIFY(x)
+#define SCNd8       __SCN8(d)
+#define SCNu8       __SCN8(u)
+#define SCNx8       __SCN8(x)
+#endif
+
 void param_value_str(param_t *param, unsigned int i, char * out, int len)
 {
 	switch(param->type) {
@@ -29,18 +36,18 @@ void param_value_str(param_t *param, unsigned int i, char * out, int len)
 		snprintf(out, len, strtype, (strcast) param_get_##name##_array(param, i)); \
 		break;
 
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT8, "%"PRIu8, unsigned char, uint8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT16, "%"PRIu16, unsigned short, uint16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT32, "%"PRIu32, unsigned long int, uint32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT64, "%"PRIu64, unsigned long long, uint64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT8, "%"PRId8, signed char, int8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT16, "%"PRId16, signed short, int16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT32, "%"PRId32, signed long int, int32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT64, "%"PRId64, signed long long, int64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT8, "0x%"PRIX8, unsigned char, uint8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT16, "0x%"PRIX16, unsigned short, uint16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT32, "0x%"PRIX32, unsigned long int, uint32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT64, "0x%"PRIX64, unsigned long long, uint64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT8, "%"PRIu8, uint8_t, uint8)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT16, "%"PRIu16, uint16_t, uint16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT32, "%"PRIu32, uint32_t, uint32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT64, "%"PRIu64, uint64_t, uint64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT8, "%"PRId8, int8_t, int8)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT16, "%"PRId16, int16_t, int16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT32, "%"PRId32, int32_t, int32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT64, "%"PRId64, int64_t, int64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT8, "0x%"PRIX8, uint8_t, uint8)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT16, "0x%"PRIX16, uint16_t, uint16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT32, "0x%"PRIX32, uint32_t, uint32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT64, "0x%"PRIX64, uint64_t, uint64)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_FLOAT, "%.04f", float, float)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DOUBLE, "%f", double, double)
 
@@ -74,28 +81,28 @@ int param_str_to_value(param_type_e type, char * in, void * out)
 {
 	switch(type) {
 
-#define PARAM_SCANF(casename, strtype, strcast, name, outcast) \
+#define PARAM_SCANF(casename, strtype, cast, name) \
 	case casename: { \
-		strcast obj; \
+	    cast obj; \
 		sscanf(in, strtype, &obj); \
-		*(outcast *) out = (outcast) obj; \
-		return sizeof(outcast); \
+		*(cast *) out = (cast) obj; \
+		return sizeof(cast); \
 	}
 
-	PARAM_SCANF(PARAM_TYPE_UINT8, "%u", unsigned int, uint8, uint8_t)
-	PARAM_SCANF(PARAM_TYPE_UINT16, "%u", unsigned int, uint16, uint16_t)
-	PARAM_SCANF(PARAM_TYPE_UINT32, "%u", unsigned int, uint32, uint32_t)
-	PARAM_SCANF(PARAM_TYPE_UINT64, "%lu", unsigned long, uint64, uint64_t)
-	PARAM_SCANF(PARAM_TYPE_INT8, "%d", int, int8, int8_t)
-	PARAM_SCANF(PARAM_TYPE_INT16, "%d", int, int16, int16_t)
-	PARAM_SCANF(PARAM_TYPE_INT32, "%d", int, int32, int32_t)
-	PARAM_SCANF(PARAM_TYPE_INT64, "%ld", long, int64, int64_t)
-	PARAM_SCANF(PARAM_TYPE_XINT8, "0x%X", unsigned int, uint8, uint8_t)
-	PARAM_SCANF(PARAM_TYPE_XINT16, "0x%X", unsigned int, uint16, uint16_t)
-	PARAM_SCANF(PARAM_TYPE_XINT32, "0x%X", unsigned int, uint32, uint32_t)
-	PARAM_SCANF(PARAM_TYPE_XINT64, "0x%lX", unsigned long, uint64, uint64_t)
-	PARAM_SCANF(PARAM_TYPE_FLOAT, "%f", float, float, float)
-	PARAM_SCANF(PARAM_TYPE_DOUBLE, "%lf", double, double, double)
+	PARAM_SCANF(PARAM_TYPE_UINT8, "%"SCNu8, uint8_t, uint8)
+	PARAM_SCANF(PARAM_TYPE_UINT16, "%"SCNu16, uint16_t, uint16)
+	PARAM_SCANF(PARAM_TYPE_UINT32, "%"SCNu32, uint32_t, uint32)
+	PARAM_SCANF(PARAM_TYPE_UINT64, "%"SCNu64, uint64_t, uint64)
+	PARAM_SCANF(PARAM_TYPE_INT8, "%"SCNd8, int8_t, int8)
+	PARAM_SCANF(PARAM_TYPE_INT16, "%"SCNd16, int16_t, int16)
+	PARAM_SCANF(PARAM_TYPE_INT32, "%"SCNd32, int32_t, int32)
+	PARAM_SCANF(PARAM_TYPE_INT64, "%"SCNd64, int64_t, int64)
+	PARAM_SCANF(PARAM_TYPE_XINT8, "0x%"SCNx8, uint8_t, uint8)
+	PARAM_SCANF(PARAM_TYPE_XINT16, "0x%"SCNx16, uint16_t, uint16)
+	PARAM_SCANF(PARAM_TYPE_XINT32, "0x%"SCNx32, uint32_t, uint32)
+	PARAM_SCANF(PARAM_TYPE_XINT64, "0x%"SCNx64, uint64_t, uint64)
+	PARAM_SCANF(PARAM_TYPE_FLOAT, "%f", float, float)
+	PARAM_SCANF(PARAM_TYPE_DOUBLE, "%lf", double, double)
 #undef PARAM_SCANF
 
 	case PARAM_TYPE_STRING:
@@ -249,8 +256,8 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 				printf("r");
 			}
 
-			if (mask & PM_READONLY_EXTERNAL) {
-				mask &= ~ PM_READONLY_EXTERNAL;
+			if (mask & PM_REMOTE) {
+				mask &= ~ PM_REMOTE;
 				printf("R");
 			}
 
@@ -321,8 +328,7 @@ uint32_t param_maskstr_to_mask(char * str) {
 
 	/* Otherwise, parse as letters */
 	if (strchr(str, 'r')) mask |= PM_READONLY;
-	if (strchr(str, 'R')) mask |= PM_READONLY_EXTERNAL;
-
+	if (strchr(str, 'R')) mask |= PM_REMOTE;
 	if (strchr(str, 'c')) mask |= PM_CONF;
 	if (strchr(str, 't')) mask |= PM_TELEM;
 	if (strchr(str, 'h')) mask |= PM_HWREG;
@@ -331,7 +337,6 @@ uint32_t param_maskstr_to_mask(char * str) {
 	if (strchr(str, 'C')) mask |= PM_SYSCONF;
 	if (strchr(str, 'w')) mask |= PM_WDT;
 	if (strchr(str, 'd')) mask |= PM_DEBUG;
-
 	if (strchr(str, 'A')) mask |= 0xFFFFFFFF;
 
 	return mask;

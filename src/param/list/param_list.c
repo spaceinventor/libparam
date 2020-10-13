@@ -120,7 +120,7 @@ param_t * param_list_find_id(int node, int id)
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 
-		if (param->node != (uint8_t) node)
+		if (param->node != node)
 			continue;
 
 		if (param->id == id) {
@@ -144,7 +144,7 @@ param_t * param_list_find_name(int node, char * name)
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 
-		if (param->node != (uint8_t) node)
+		if (param->node != node)
 			continue;
 
 		if (strcmp(param->name, name) == 0) {
@@ -168,7 +168,7 @@ void param_list_print(uint32_t mask) {
 	}
 }
 
-void param_list_download(int node, int timeout) {
+void param_list_download(int node, int timeout, int list_version) {
 
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_LIST, timeout, CSP_O_RDP | CSP_O_CRC32);
@@ -180,18 +180,45 @@ void param_list_download(int node, int timeout) {
 	while((packet = csp_read(conn, timeout)) != NULL) {
 
 		//csp_hex_dump("Response", packet->data, packet->length);
-		param_transfer_t * new_param = (void *) packet->data;
 
-		int strlen = packet->length - offsetof(param_transfer_t, name);
-		int node = csp_ntoh16(new_param->id) >> 11;
-		int id = csp_ntoh16(new_param->id) & 0x7FF;
-		int type = new_param->type;
-		int size = new_param->size;
-		int mask = csp_ntoh32(new_param->mask);
+		int strlen;
+		int addr;
+		int id;
+		int type;
+		int size;
+		int mask;
+		char * name;
+
+	    if (list_version == 1) {
+
+	        param_transfer_t * new_param = (void *) packet->data;
+
+	        name = new_param->name;
+	        strlen = packet->length - offsetof(param_transfer_t, name);
+	        addr = csp_ntoh16(new_param->id) >> 11;
+            id = csp_ntoh16(new_param->id) & 0x7FF;
+            type = new_param->type;
+            size = new_param->size;
+            mask = csp_ntoh32(new_param->mask) | PM_REMOTE;
+
+	    } else {
+
+	        param_transfer2_t * new_param = (void *) packet->data;
+
+	        name = new_param->name;
+	        strlen = packet->length - offsetof(param_transfer2_t, name);
+            addr = csp_ntoh16(new_param->node);
+            id = csp_ntoh16(new_param->id) & 0x7FF;
+            type = new_param->type;
+            size = new_param->size;
+            mask = csp_ntoh32(new_param->mask) | PM_REMOTE;
+
+	    }
+
 		if (size == 255)
 			size = 1;
 
-		param_t * param = param_list_create_remote(id, node, type, mask, size, new_param->name, strlen);
+		param_t * param = param_list_create_remote(id, addr, type, mask, size, name, strlen);
 		if (param == NULL) {
 			csp_buffer_free(packet);
 			break;

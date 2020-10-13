@@ -37,39 +37,101 @@ static inline uint16_t param_parse_short_id_paramid(uint16_t short_id) {
 	return short_id & 0x1FF;
 }
 
-void param_serialize_id(mpack_writer_t *writer, param_t * param, int offset) {
-	if (offset >= 0) {
-		mpack_write_u16(writer, param_get_short_id(param, 1, 0));
-		char _offset = offset;
-		mpack_write_bytes(writer, &_offset, 1);
-	} else {
-		mpack_write_u16(writer, param_get_short_id(param, 0, 0));
-	}
+void param_serialize_id(mpack_writer_t *writer, param_t * param, int offset, param_queue_t * queue) {
+
+    if (queue->version == 1) {
+
+        if (offset >= 0) {
+            mpack_write_u16(writer, param_get_short_id(param, 1, 0));
+            char _offset = offset;
+            mpack_write_bytes(writer, &_offset, 1);
+        } else {
+            mpack_write_u16(writer, param_get_short_id(param, 0, 0));
+        }
+
+    } else {
+
+        int node = param->node;
+        if (node == PARAM_LIST_LOCAL)
+            node = csp_get_address();
+
+        int array_flag = (offset >= 0) ? 1 : 0;
+        int node_flag = (queue->last_node != node) ? 1 : 0;
+
+        uint16_t header = array_flag << 15 | node_flag << 14 | (param->id & 0x3ff);
+        header = csp_hton16(header);
+        mpack_write_u16(writer, header);
+
+        if (array_flag) {
+            char _offset = offset;
+            mpack_write_bytes(writer, &_offset, 1);
+        }
+
+        if (node_flag) {
+            queue->last_node = node;
+            uint16_t _node = csp_hton16(node);
+            mpack_write_bytes(writer, (char *) &_node, 2);
+        }
+
+    }
+
 }
 
-void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, int *offset) {
-	uint16_t short_id = mpack_expect_u16(reader);
+void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, int *offset, param_queue_t *queue) {
 
-	if (mpack_reader_error(reader) != mpack_ok)
-		return;
+    if (queue->version == 1) {
 
-	if (param_parse_short_id_flag_isarray(short_id)) {
-		char _offset;
-		mpack_read_bytes(reader, &_offset, 1);
-		*offset = _offset;
-	}
+        uint16_t short_id = mpack_expect_u16(reader);
 
-	*id = param_parse_short_id_paramid(short_id);
-	*node = param_parse_short_id_node(short_id);
+        if (mpack_reader_error(reader) != mpack_ok)
+            return;
+
+        if (param_parse_short_id_flag_isarray(short_id)) {
+            char _offset;
+            mpack_read_bytes(reader, &_offset, 1);
+            *offset = _offset;
+        }
+
+        *id = param_parse_short_id_paramid(short_id);
+        *node = param_parse_short_id_node(short_id);
+
+    } else {
+
+        uint16_t header = mpack_expect_u16(reader);
+        if (mpack_reader_error(reader) != mpack_ok)
+            return;
+
+        header = csp_ntoh16(header);
+        int array_flag = header & 0x8000;
+        int node_flag = header & 0x4000;
+        *id = header & 0x3ff;
+
+        if (array_flag) {
+            char _offset;
+            mpack_read_bytes(reader, &_offset, 1);
+            *offset = _offset;
+        }
+
+        if (node_flag) {
+            uint16_t _node;
+            mpack_read_bytes(reader, (char *) &_node, 2);
+            _node = csp_ntoh16(_node);
+            *node = _node;
+            queue->last_node = _node;
+        } else {
+            *node = queue->last_node;
+        }
+
+    }
 
 }
 
-int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * writer, void * value) {
+int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * writer, void * value, param_queue_t * queue) {
 
 	/* Remember the initial position if we need to abort later due to buffer full */
 	unsigned int init_pos = writer->used;
 
-	param_serialize_id(writer, param, offset);
+	param_serialize_id(writer, param, offset, queue);
 
 	if (mpack_writer_error(writer) != mpack_ok)
 		return -1;
@@ -245,7 +307,7 @@ int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * write
 
 }
 
-void param_deserialize_from_mpack_to_param(void * context, void * queue, param_t * param, int offset, mpack_reader_t * reader) {
+void param_deserialize_from_mpack_to_param(void * context, void * queue, param_t * param, int offset, mpack_reader_t * reader, int version) {
 
 	if (offset < 0)
 		offset = 0;

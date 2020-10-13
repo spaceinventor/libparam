@@ -26,6 +26,7 @@ static param_queue_t queue_set = { };
 static param_queue_t queue_get = { };
 static int default_node = -1;
 static int autosend = 1;
+static int paramver = 2;
 
 void param_slash_parse(char * arg, param_t **param, int *node, int *host,
 		int *offset) {
@@ -147,14 +148,13 @@ static int cmd_get(struct slash *slash) {
 
 		if (autosend) {
 			if (host != -1) {
-				result = param_pull_single(param, offset, 1, host, 1000);
+				result = param_pull_single(param, offset, 1, host, 1000, paramver);
 			} else if (node != -1) {
-				result = param_pull_single(param, offset, 1, node, 1000);
+				result = param_pull_single(param, offset, 1, node, 1000, paramver);
 			}
 		} else {
 			if (!queue_get.buffer) {
-				param_queue_init(&queue_get, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0,
-						PARAM_QUEUE_TYPE_GET);
+			    param_queue_init(&queue_get, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_GET, paramver);
 			}
 			if (param_queue_add(&queue_get, param, offset, NULL) < 0)
 				printf("Queue full\n");
@@ -198,13 +198,12 @@ static int cmd_set(struct slash *slash) {
 	if (param->node != PARAM_LIST_LOCAL) {
 
 		if ((node != -1) && (autosend)) {
-			result = param_push_single(param, offset, valuebuf, 1, node, 1000);
+			result = param_push_single(param, offset, valuebuf, 1, node, 1000, paramver);
 		} else if (host != -1) {
-			result = param_push_single(param, offset, valuebuf, 1, host, 1000);
+			result = param_push_single(param, offset, valuebuf, 1, host, 1000, paramver);
 		} else {
 			if (!queue_set.buffer) {
-				param_queue_init(&queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0,
-						PARAM_QUEUE_TYPE_SET);
+    		    param_queue_init(&queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
 			}
 			if (param_queue_add(&queue_set, param, offset, valuebuf) < 0)
 				printf("Queue full\n");
@@ -214,6 +213,7 @@ static int cmd_set(struct slash *slash) {
 
 		/* For local parameters, set immediately */
 	} else {
+	    printf("Param set \n");
 		param_set(param, offset, valuebuf);
 	}
 
@@ -252,20 +252,23 @@ slash_command(push, cmd_push, "<node> [timeout]", NULL);
 static int cmd_pull(struct slash *slash) {
 	unsigned int host = 0;
 	unsigned int timeout = 100;
-	uint32_t mask = 0xFFFFFFFF;
+	uint32_t include_mask = 0xFFFFFFFF;
+	uint32_t exclude_mask = PM_REMOTE | PM_HWREG;
 
 	if (slash->argc < 2)
 		return SLASH_EUSAGE;
 	if (slash->argc >= 2)
 		host = atoi(slash->argv[1]);
 	if (slash->argc >= 3)
-		mask = param_maskstr_to_mask(slash->argv[2]);
+		include_mask = param_maskstr_to_mask(slash->argv[2]);
 	if (slash->argc >= 4)
-		timeout = atoi(slash->argv[3]);
+	    exclude_mask = param_maskstr_to_mask(slash->argv[3]);
+	if (slash->argc >= 5)
+		timeout = atoi(slash->argv[4]);
 
 	int result = -1;
 	if (queue_get.used == 0) {
-		result = param_pull_all(1, host, mask, timeout);
+		result = param_pull_all(1, host, include_mask, exclude_mask, timeout, paramver);
 	} else {
 		result = param_pull_queue(&queue_get, 1, host, timeout);
 	}
@@ -301,6 +304,21 @@ static int cmd_node(struct slash *slash) {
 	return SLASH_SUCCESS;
 }
 slash_command(node, cmd_node, "[node]", NULL);
+
+static int cmd_paramver(struct slash *slash) {
+
+    if (slash->argc < 1) {
+        printf("Parameter client version = %d\n", paramver);
+    }
+
+    if (slash->argc >= 1) {
+        paramver = atoi(slash->argv[1]);
+        printf("Set parameter client version to %d\n", paramver);
+    }
+
+    return SLASH_SUCCESS;
+}
+slash_command(paramver, cmd_paramver, "[1|2]", NULL);
 
 static int cmd_autosend(struct slash *slash) {
 
