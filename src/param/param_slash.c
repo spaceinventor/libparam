@@ -285,6 +285,8 @@ slash_command(pull, cmd_pull, "<node> [mask] [timeout]", NULL);
 static int cmd_clear(struct slash *slash) {
 	queue_get.used = 0;
 	queue_set.used = 0;
+    queue_get.version = paramver;
+    queue_set.version = paramver;
 	printf("Queue cleared\n");
 	return SLASH_SUCCESS;
 }

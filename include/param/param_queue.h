@@ -9,6 +9,8 @@
 #define LIB_PARAM_SRC_PARAM_PARAM_QUEUE_H_
 
 #include <param/param.h>
+#include <param/param_list.h>
+#include <mpack/mpack.h>
 
 typedef enum {
 	PARAM_QUEUE_TYPE_GET,
@@ -24,9 +26,9 @@ struct param_queue_s {
 	int version;
 
 	/* State used by serializer */
-    uint16_t last_node;
-    uint32_t last_timestamp;
-    uint16_t last_timediff_ms;
+	uint16_t last_node;
+	uint32_t last_timestamp;
+	uint16_t last_timediff_ms;
 
 };
 
@@ -42,5 +44,18 @@ void param_queue_print_local(param_queue_t *queue);
 
 typedef int (*param_queue_callback_f)(void * context, param_queue_t *queue, param_t * param, int offset, void *reader);
 int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback, void * context);
+
+
+void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, int *offset, param_queue_t *queue);
+
+#define PARAM_QUEUE_FOREACH(param, reader, queue, offset) \
+	mpack_reader_t reader; \
+	mpack_reader_init_data(&reader, queue->buffer, queue->used); \
+	while(reader.left > 0) { \
+		int id, node, offset = -1; \
+		param_deserialize_id(&reader, &id, &node, &offset, queue); \
+		param_t * param = param_list_find_id(node, id); \
+
+
 
 #endif /* LIB_PARAM_SRC_PARAM_PARAM_QUEUE_H_ */

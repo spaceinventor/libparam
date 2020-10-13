@@ -20,13 +20,31 @@
 typedef void (*param_transaction_callback_f)(csp_packet_t *response, int verbose, int version);
 
 static void param_transaction_callback_pull(csp_packet_t *response, int verbose, int version) {
-	//csp_hex_dump("pull response", response->data, response->length);
+	csp_hex_dump("pull response", response->data, response->length);
 	param_queue_t queue;
 	param_queue_init(&queue, &response->data[2], response->length - 2, response->length - 2, PARAM_QUEUE_TYPE_SET, version);
 	queue.last_node = response->id.src;
+
+	/* Write data to local memory */
 	param_queue_apply(&queue);
-	if (verbose)
-		param_queue_print_local(&queue);
+
+	if (verbose) {
+
+		/* Loop over paramid's in pull response */
+		PARAM_QUEUE_FOREACH(param, reader, (&queue), offset)
+
+			/* We need to discard the data field, to get to next paramid */
+			mpack_discard		(&reader);
+
+			/* Print the local RAM copy of the remote parameter */
+			if (param) {
+				param_print(param, -1, NULL, 0, 0);
+			}
+
+		}
+
+	}
+
 	csp_buffer_free(response);
 }
 
@@ -81,10 +99,10 @@ int param_pull_all(int verbose, int host, uint32_t include_mask, uint32_t exclud
 	if (packet == NULL)
 		return -2;
 	if (version == 2) {
-	    packet->data[0] = PARAM_PULL_ALL_REQUEST_V2;
-    } else {
-        packet->data[0] = PARAM_PULL_ALL_REQUEST;
-    }
+		packet->data[0] = PARAM_PULL_ALL_REQUEST_V2;
+	} else {
+		packet->data[0] = PARAM_PULL_ALL_REQUEST;
+	}
 	packet->data[1] = 0;
 	packet->data32[1] = csp_hton32(include_mask);
 	packet->data32[2] = csp_hton32(exclude_mask);
@@ -102,11 +120,11 @@ int param_pull_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 	if (packet == NULL)
 		return -2;
 
-    if (queue->version == 2) {
-        packet->data[0] = PARAM_PULL_REQUEST_V2;
-    } else {
-        packet->data[0] = PARAM_PULL_REQUEST;
-    }
+	if (queue->version == 2) {
+		packet->data[0] = PARAM_PULL_REQUEST_V2;
+	} else {
+		packet->data[0] = PARAM_PULL_REQUEST;
+	}
 
 	packet->data[1] = 0;
 
@@ -123,14 +141,14 @@ int param_pull_single(param_t *param, int offset, int verbose, int host, int tim
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 
 	if (version == 2) {
-	    packet->data[0] = PARAM_PULL_REQUEST_V2;
+		packet->data[0] = PARAM_PULL_REQUEST_V2;
 	} else {
-	    packet->data[0] = PARAM_PULL_REQUEST;
+		packet->data[0] = PARAM_PULL_REQUEST;
 	}
 	packet->data[1] = 0;
 
 	param_queue_t queue;
-    param_queue_init(&queue, &packet->data[2], PARAM_SERVER_MTU - 2, 0, PARAM_QUEUE_TYPE_GET, version);
+	param_queue_init(&queue, &packet->data[2], PARAM_SERVER_MTU - 2, 0, PARAM_QUEUE_TYPE_GET, version);
 	param_queue_add(&queue, param, offset, NULL);
 
 	packet->length = queue.used + 2;
@@ -147,11 +165,11 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 	if (packet == NULL)
 		return -2;
 
-    if (queue->version == 2) {
-        packet->data[0] = PARAM_PUSH_REQUEST_V2;
-    } else {
-        packet->data[0] = PARAM_PUSH_REQUEST;
-    }
+	if (queue->version == 2) {
+		packet->data[0] = PARAM_PUSH_REQUEST_V2;
+	} else {
+		packet->data[0] = PARAM_PUSH_REQUEST;
+	}
 
 	packet->data[1] = 0;
 
@@ -175,14 +193,14 @@ int param_push_single(param_t *param, int offset, void *value, int verbose, int 
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 
 	if (version == 2) {
-	    packet->data[0] = PARAM_PUSH_REQUEST_V2;
+		packet->data[0] = PARAM_PUSH_REQUEST_V2;
 	} else {
-	    packet->data[0] = PARAM_PUSH_REQUEST;
+		packet->data[0] = PARAM_PUSH_REQUEST;
 	}
 	packet->data[1] = 0;
 
 	param_queue_t queue;
-    param_queue_init(&queue, &packet->data[2], PARAM_SERVER_MTU - 2, 0, PARAM_QUEUE_TYPE_SET, version);
+	param_queue_init(&queue, &packet->data[2], PARAM_SERVER_MTU - 2, 0, PARAM_QUEUE_TYPE_SET, version);
 	param_queue_add(&queue, param, offset, value);
 
 	packet->length = queue.used + 2;

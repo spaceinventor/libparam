@@ -18,7 +18,7 @@
 #include "param_serializer.h"
 #include "param_string.h"
 
-void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int used, param_queue_type_e type, int version) {
+void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int used, param_queue_type_e type, int version) {
 	queue->buffer = buffer;
 	queue->buffer_size = buffer_size;
 	queue->type = type;
@@ -36,56 +36,48 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	} else {
 		param_serialize_id(&writer, param, offset, queue);
 	}
-	if (mpack_writer_error(&writer) != mpack_ok)
+	if (mpack_writer_error(&writer) != mpack_ok) {
 		return -1;
+	}
 	queue->used = writer.used;
 	return 0;
 }
 
-int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback, void * context) {
+int param_queue_apply(param_queue_t *queue) {
+	int return_code = 0;
+	int atomic_write = 0;
+	PARAM_QUEUE_FOREACH(param, reader, queue, offset)
+		if (param) {
+			if (param->mask & PM_ATOMIC_WRITE) {
+				atomic_write = 1;
+				printf("Atomic write begin %s[%d]\n", param->name, offset);
 
-	mpack_reader_t reader;
-	mpack_reader_init_data(&reader, queue->buffer, queue->used);
-	while(reader.left > 0) {
-		int id, node, offset = -1;
-		param_deserialize_id(&reader, &id, &node, &offset, queue);
-	    param_t * param = param_list_find_id(node, id);
-	    if (param) {
-	    	callback(context, queue, param, offset, &reader);
-	    }
+			}
+			printf("Apply %s[%d]\n", param->name, offset);
+			param_deserialize_from_mpack_to_param(NULL, queue, param, offset, &reader);
+		} else {
+			return_code = -1;
+		}
 	}
 
-	return mpack_ok;
+	if (atomic_write) {
+		printf("Atomic write end\n");
+	}
 
-}
-
-int param_queue_apply(param_queue_t *queue) {
-	return param_queue_foreach(queue, (param_queue_callback_f) param_deserialize_from_mpack_to_param, NULL);
-}
-
-static int param_queue_print_callback(void * ctx, param_queue_t *queue, param_t *param, int offset, void *reader) {
-	printf("  %s:%u", param->name, param->node);
-	if (offset >= 0)
-		printf("[%u]", offset);
-#if MPACK_STDIO
-	printf(" = ");
-	mpack_print_element((mpack_reader_t *) reader, 2, stdout);
-#endif
-	printf("\n");
-
-	return 0;
-}
-
-static int param_queue_print_local_callback(void * ctx, param_queue_t *queue, param_t *param, int offset, void *reader) {
-	param_print(param, -1, NULL, 0, 0);
-	mpack_discard(reader);
-	return 0;
+	return return_code;
 }
 
 void param_queue_print(param_queue_t *queue) {
-	param_queue_foreach(queue, param_queue_print_callback, NULL);
+	PARAM_QUEUE_FOREACH(param, reader, queue, offset)
+		printf	("  %s:%u", param->name, param->node);
+		if (offset >= 0) {
+			printf("[%u]", offset);
+		}
+#if MPACK_STDIO
+		printf(" = ");
+		mpack_print_element((mpack_reader_t *) reader, 2, stdout);
+#endif
+		printf("\n");
+	}
 }
 
-void param_queue_print_local(param_queue_t *queue) {
-	param_queue_foreach(queue, param_queue_print_local_callback, NULL);
-}

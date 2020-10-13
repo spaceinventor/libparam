@@ -30,7 +30,7 @@
 
 void param_value_str(param_t *param, unsigned int i, char * out, int len)
 {
-	switch(param->type) {
+	switch (param->type) {
 #define PARAM_SWITCH_SNPRINTF(casename, strtype, strcast, name) \
 	case casename: \
 		snprintf(out, len, strtype, (strcast) param_get_##name##_array(param, i)); \
@@ -53,10 +53,10 @@ void param_value_str(param_t *param, unsigned int i, char * out, int len)
 
 	case PARAM_TYPE_DATA: {
 
-        /* Prepend data with 0x */
-        snprintf(out, len, "0x");
-        len -= 2;
-        out += 2;
+		/* Prepend data with 0x */
+		snprintf(out, len, "0x");
+		len -= 2;
+		out += 2;
 
 		char data[param->array_size];
 		param_get_data(param, data, param->array_size);
@@ -77,13 +77,12 @@ void param_value_str(param_t *param, unsigned int i, char * out, int len)
 	}
 }
 
-int param_str_to_value(param_type_e type, char * in, void * out)
-{
-	switch(type) {
+int param_str_to_value(param_type_e type, char *in, void *out) {
+	switch (type) {
 
 #define PARAM_SCANF(casename, strtype, cast, name) \
 	case casename: { \
-	    cast obj; \
+		cast obj; \
 		sscanf(in, strtype, &obj); \
 		*(cast *) out = (cast) obj; \
 		return sizeof(cast); \
@@ -301,6 +300,11 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 				printf("d");
 			}
 
+			if (mask & PM_ATOMIC_WRITE) {
+				mask &= ~ PM_ATOMIC_WRITE;
+				printf("o");
+			}
+
 			if (mask)
 				printf("+%x", mask);
 
@@ -337,6 +341,7 @@ uint32_t param_maskstr_to_mask(char * str) {
 	if (strchr(str, 'C')) mask |= PM_SYSCONF;
 	if (strchr(str, 'w')) mask |= PM_WDT;
 	if (strchr(str, 'd')) mask |= PM_DEBUG;
+	if (strchr(str, 'o')) mask |= PM_ATOMIC_WRITE;
 	if (strchr(str, 'A')) mask |= 0xFFFFFFFF;
 
 	return mask;

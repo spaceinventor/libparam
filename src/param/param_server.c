@@ -40,7 +40,7 @@ static void __send(struct param_serve_context *ctx, int end) {
 	}
 }
 
-static int __add(struct param_serve_context *ctx, param_t * param, int offset, void *reader) {
+static int __add(struct param_serve_context *ctx, param_t * param, int offset) {
 
 	int result = param_queue_add(&ctx->q_response, param, offset, NULL);
 	if (result != 0) {
@@ -58,10 +58,6 @@ static int __add(struct param_serve_context *ctx, param_t * param, int offset, v
 	return  0;
 }
 
-static int __add_iterator(void * context, param_queue_t *queue, param_t * param, int offset, void *reader) {
-	return __add((struct param_serve_context *) context, param, offset, reader);
-}
-
 static void param_serve_pull_request(csp_packet_t * request, int all, int version) {
 
 	struct param_serve_context ctx;
@@ -74,10 +70,21 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 	}
 
 	if (all == 0) {
+
+		/* Loop list in request */
+		printf("Non all version %d\n", version);
 		param_queue_t q_request;
-        param_queue_init(&q_request, &ctx.request->data[2], ctx.request->length - 2, ctx.request->length - 2, PARAM_QUEUE_TYPE_SET, version);
-		param_queue_foreach(&q_request, __add_iterator, &ctx);
+
+		PARAM_QUEUE_FOREACH(param, reader, (&q_request), offset)
+			if (param) {
+				printf("Add param %s offset %d\n", param->name, offset);
+				__add(&ctx, param, offset);
+			}
+		}
+
 	} else {
+
+		/* Loop the full parameter list */
 		param_t * param;
 		param_list_iterator i = {};
 		while ((param = param_list_iterate(&i)) != NULL) {
@@ -87,16 +94,17 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 			    exclude_mask = csp_ntoh32(ctx.request->data32[2]);
 			}
 
-		    /* If none of the include matches, continue */
+			/* If none of the include matches, continue */
 			if ((param->mask & include_mask) == 0)
 				continue;
 
 			/* In any one of the exclude matches, continue */
 			if ((param->mask & exclude_mask) != 0)
-                continue;
+				continue;
 
-			__add(&ctx, param, -1, NULL);
+			__add(&ctx, param, -1);
 		}
+
 	}
 
 	__send(&ctx, 1);
@@ -140,23 +148,23 @@ void param_serve(csp_packet_t * packet) {
 		case PARAM_PULL_ALL_REQUEST:
 			param_serve_pull_request(packet, 1, 1);
 			break;
-        case PARAM_PULL_ALL_REQUEST_V2:
-            param_serve_pull_request(packet, 1, 2);
-            break;
+		case PARAM_PULL_ALL_REQUEST_V2:
+			param_serve_pull_request(packet, 1, 2);
+			break;
 
 		case PARAM_PULL_RESPONSE:
 			param_serve_push(packet, 0, 1);
 			break;
 		case PARAM_PULL_RESPONSE_V2:
-            param_serve_push(packet, 0, 2);
-            break;
+			param_serve_push(packet, 0, 2);
+			break;
 
 		case PARAM_PUSH_REQUEST:
 			param_serve_push(packet, 1, 1);
 			break;
 		case PARAM_PUSH_REQUEST_V2:
-            param_serve_push(packet, 1, 2);
-            break;
+			param_serve_push(packet, 1, 2);
+			break;
 
 		default:
 			printf("Unknown parameter request\n");
