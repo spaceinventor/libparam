@@ -9,8 +9,9 @@
 #define SRC_PARAM_PARAM_H_
 
 #include <stdint.h>
-#include <sys/queue.h>
 #include <vmem/vmem.h>
+
+#include "libparam.h"
 
 /**
  * DATATYPES
@@ -39,11 +40,8 @@ typedef enum {
  * Global parameter mask
  */
 
-/* Readonly flags */
 #define PM_READONLY             (1 << 0) //! r: Readonly by any
-#define PM_READONLY_EXTERNAL    (1 << 1) //! R: Readonly by external
-
-/* Major class flags */
+#define PM_REMOTE               (1 << 1) //! R: Remote parameter
 #define PM_CONF                 (1 << 2) //! c: Actual settings, to be modified by a human (excluding network config)
 #define PM_TELEM                (1 << 3) //! t: Ready-to-use telemetry, converted to human readable.
 #define PM_HWREG                (1 << 4) //! h: Raw-bit-values in external chips
@@ -62,7 +60,7 @@ typedef struct param_s {
 
 	/* Parameter declaration */
 	uint16_t id;
-	uint8_t node;
+	uint16_t node;
 	param_type_e type;
 	uint32_t mask;
 	char *name;
@@ -78,7 +76,12 @@ typedef struct param_s {
 	void (*callback)(struct param_s * param, int offset);
 	uint32_t timestamp;
 
-	SLIST_ENTRY(param_s) next;	// single linked list
+#ifdef PARAM_HAVE_SYS_QUEUE
+	/* single linked list:
+	 * The weird definition format comes from sys/queue.h SLINST_ENTRY() macro */
+	struct { struct param_s *sle_next; } next;
+#endif
+
 
 } param_t;
 

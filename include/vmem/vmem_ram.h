@@ -35,4 +35,21 @@ typedef struct {
 		.vaddr = vmem_##name_in##_heap, \
 	};
 
+#define VMEM_DEFINE_STATIC_RAM_ADDR(name_in, strname, size_in, mem_addr) \
+    static const vmem_ram_driver_t vmem_##name_in##_driver = { \
+        .physaddr = mem_addr, \
+    }; \
+    __attribute__((section("vmem"))) \
+    __attribute__((aligned(1))) \
+    __attribute__((used)) \
+    const vmem_t vmem_##name_in = { \
+        .type = VMEM_TYPE_RAM, \
+        .name = strname, \
+        .size = size_in, \
+        .read = vmem_ram_read, \
+        .write = vmem_ram_write, \
+        .driver = &vmem_##name_in##_driver, \
+        .vaddr = mem_addr, \
+    };
+
 #endif /* SRC_PARAM_VMEM_RAM_H_ */

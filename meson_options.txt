@@ -2,3 +2,4 @@ option('slash', type: 'boolean', value: false, description: 'Build slash (yields
 option('collector', type: 'boolean', value: false, description: 'Build collector (yields)', yield: true)
 option('vmem_fram', type: 'boolean', value: false, description: 'Build vmem fram')
 option('have_fopen', type: 'boolean', value: false, description: 'POSIX fopen available')
+option('list_dynamic', type: 'boolean', value: false, description: 'Compile support for dynamic param list (requres sys/queue.h)')

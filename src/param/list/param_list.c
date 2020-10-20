@@ -6,8 +6,9 @@
  */
 
 #include <stdio.h>
-#include <sys/queue.h>
+#include <malloc.h>
 
+#include <csp/csp.h>
 #include <csp/arch/csp_malloc.h>
 #include <csp/csp_endian.h>
 #include <param/param.h>
@@ -16,6 +17,11 @@
 
 #include "../param_string.h"
 #include "param_list.h"
+#include "libparam.h"
+
+#ifdef PARAM_HAVE_SYS_QUEUE
+#include <sys/queue.h>
+#endif
 
 /**
  * The storage size (i.e. how closely two param_t structs are packed in memory)
@@ -27,7 +33,9 @@ static const param_t param_size_set[2] __attribute__((aligned(1)));
 #define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set[1] - (intptr_t) &param_size_set[0])
 #endif
 
+#ifdef PARAM_HAVE_SYS_QUEUE
 static SLIST_HEAD(param_list_head_s, param_s) param_list_head = {};
+#endif
 
 param_t * param_list_iterate(param_list_iterator * iterator) {
 
@@ -47,7 +55,9 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 			iterator->element = &__start_param;
 		} else {
 			iterator->phase = 1;
+#ifdef PARAM_HAVE_SYS_QUEUE
 			iterator->element = SLIST_FIRST(&param_list_head);
+#endif
 		}
 
 		return iterator->element;
@@ -65,16 +75,22 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 
 		/* Otherwise, switch to dynamic phase */
 		iterator->phase = 1;
+#ifdef PARAM_HAVE_SYS_QUEUE
 		iterator->element = SLIST_FIRST(&param_list_head);
 		return iterator->element;
+#else
+		return NULL;
+#endif
 	}
 
+#ifdef PARAM_HAVE_SYS_QUEUE
 	/* Dynamic phase */
 	if (iterator->phase == 1) {
 
 		iterator->element = SLIST_NEXT(iterator->element, next);
 		return iterator->element;
 	}
+#endif
 
 	return NULL;
 
@@ -84,7 +100,11 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 int param_list_add(param_t * item) {
 	if (param_list_find_id(item->node, item->id) != NULL)
 		return -1;
+#ifdef PARAM_HAVE_SYS_QUEUE
 	SLIST_INSERT_HEAD(&param_list_head, item, next);
+#else
+	return -1;
+#endif
 	return 0;
 }
 
@@ -100,7 +120,7 @@ param_t * param_list_find_id(int node, int id)
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 
-		if (param->node != (uint8_t) node)
+		if (param->node != node)
 			continue;
 
 		if (param->id == id) {
@@ -124,7 +144,7 @@ param_t * param_list_find_name(int node, char * name)
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 
-		if (param->node != (uint8_t) node)
+		if (param->node != node)
 			continue;
 
 		if (strcmp(param->name, name) == 0) {
@@ -148,7 +168,7 @@ void param_list_print(uint32_t mask) {
 	}
 }
 
-void param_list_download(int node, int timeout) {
+void param_list_download(int node, int timeout, int list_version) {
 
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_LIST, timeout, CSP_O_RDP | CSP_O_CRC32);
@@ -160,18 +180,45 @@ void param_list_download(int node, int timeout) {
 	while((packet = csp_read(conn, timeout)) != NULL) {
 
 		//csp_hex_dump("Response", packet->data, packet->length);
-		param_transfer_t * new_param = (void *) packet->data;
 
-		int strlen = packet->length - offsetof(param_transfer_t, name);
-		int node = csp_ntoh16(new_param->id) >> 11;
-		int id = csp_ntoh16(new_param->id) & 0x7FF;
-		int type = new_param->type;
-		int size = new_param->size;
-		int mask = csp_ntoh32(new_param->mask);
+		int strlen;
+		int addr;
+		int id;
+		int type;
+		int size;
+		int mask;
+		char * name;
+
+	    if (list_version == 1) {
+
+	        param_transfer_t * new_param = (void *) packet->data;
+
+	        name = new_param->name;
+	        strlen = packet->length - offsetof(param_transfer_t, name);
+	        addr = csp_ntoh16(new_param->id) >> 11;
+            id = csp_ntoh16(new_param->id) & 0x7FF;
+            type = new_param->type;
+            size = new_param->size;
+            mask = csp_ntoh32(new_param->mask) | PM_REMOTE;
+
+	    } else {
+
+	        param_transfer2_t * new_param = (void *) packet->data;
+
+	        name = new_param->name;
+	        strlen = packet->length - offsetof(param_transfer2_t, name);
+            addr = csp_ntoh16(new_param->node);
+            id = csp_ntoh16(new_param->id) & 0x7FF;
+            type = new_param->type;
+            size = new_param->size;
+            mask = csp_ntoh32(new_param->mask) | PM_REMOTE;
+
+	    }
+
 		if (size == 255)
 			size = 1;
 
-		param_t * param = param_list_create_remote(id, node, type, mask, size, new_param->name, strlen);
+		param_t * param = param_list_create_remote(id, addr, type, mask, size, name, strlen);
 		if (param == NULL) {
 			csp_buffer_free(packet);
 			break;

@@ -30,19 +30,22 @@
  * @param verbose printout when received
  * @param host remote csp node
  * @param timeout in ms
+ * @param version 1 or 2
  * @return 0 = ok, -1 on network error
  */
-int param_pull_single(param_t *param, int offset, int verbose, int host, int timeout);
+int param_pull_single(param_t *param, int offset, int verbose, int host, int timeout, int version);
 
 /**
  * PULL all
  * @param verbose printout when received
  * @param host remote csp node
- * @param mask parameter mask
+ * @param include_mask parameter mask
+ * @param exclude_mask parameter mask
  * @param timeout in ms
+ * @param version 1 or 2
  * @return 0 = OK, -1 on network error
  */
-int param_pull_all(int verbose, int host, uint32_t mask, int timeout);
+int param_pull_all(int verbose, int host, uint32_t include_mask, uint32_t exclude_mask, int timeout, int version);
 
 /**
  * PUSH single:
@@ -55,9 +58,10 @@ int param_pull_all(int verbose, int host, uint32_t mask, int timeout);
  * @param verbose printout when received
  * @param host remote csp node
  * @param timeout in ms
+ * @param version 1 or 2
  * @return 0 = OK, -1 on network error
  */
-int param_push_single(param_t *param, int offset, void *value, int verbose, int host, int timeout);
+int param_push_single(param_t *param, int offset, void *value, int verbose, int host, int timeout, int version);
 
 /**
  * QUEUE PARAMETER API

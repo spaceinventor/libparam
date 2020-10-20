@@ -4,6 +4,8 @@ conf = configuration_data()
 conf.set('PARAM_STORE_FILE', false)
 conf.set('PARAM_STORE_VMEM', false)
 conf.set('PARAM_STORE_LOG', false)
+conf.set('PARAM_HAVE_SYS_QUEUE', get_option('list_dynamic'))
+
 libparam_h = configure_file(output: 'libparam.h', configuration: conf)
 
 param_deps = []
@@ -67,6 +69,7 @@ if get_option('slash') == true
 		endif
 	endif
 endif
+
 param_inc = include_directories('.', 'include', 'lib')
 
 param_lib = static_library('param',

@@ -17,11 +17,13 @@
 #include "param_serializer.h"
 #include "param_string.h"
 
-void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int used, param_queue_type_e type) {
+void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int used, param_queue_type_e type, int version) {
 	queue->buffer = buffer;
 	queue->buffer_size = buffer_size;
 	queue->type = type;
 	queue->used = used;
+	queue->version = version;
+	queue->last_node = UINT16_MAX;
 }
 
 int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value) {
@@ -29,9 +31,9 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	mpack_writer_init(&writer, queue->buffer, queue->buffer_size);
 	writer.used = queue->used;
 	if (queue->type == PARAM_QUEUE_TYPE_SET) {
-		param_serialize_to_mpack(param, offset, &writer, value);
+		param_serialize_to_mpack(param, offset, &writer, value, queue);
 	} else {
-		param_serialize_id(&writer, param, offset);
+		param_serialize_id(&writer, param, offset, queue);
 	}
 	if (mpack_writer_error(&writer) != mpack_ok)
 		return -1;
@@ -45,7 +47,7 @@ int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback, v
 	mpack_reader_init_data(&reader, queue->buffer, queue->used);
 	while(reader.left > 0) {
 		int id, node, offset = -1;
-		param_deserialize_id(&reader, &id, &node, &offset);
+		param_deserialize_id(&reader, &id, &node, &offset, queue);
 	    param_t * param = param_list_find_id(node, id);
 	    if (param) {
 	    	callback(context, queue, param, offset, &reader);
@@ -64,11 +66,6 @@ static int param_queue_print_callback(void * ctx, param_queue_t *queue, param_t 
 	printf("  %s:%u", param->name, param->node);
 	if (offset >= 0)
 		printf("[%u]", offset);
-	printf("\t");
-	if (queue->type == PARAM_QUEUE_TYPE_SET) {
-		printf(" => ");
-		//mpack_print_element((mpack_reader_t *) reader, 2, stdout);
-	}
 	printf("\n");
 	return 0;
 }
