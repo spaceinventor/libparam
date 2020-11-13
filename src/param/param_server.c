@@ -31,7 +31,11 @@ static int __allocate(struct param_serve_context *ctx) {
 }
 
 static void __send(struct param_serve_context *ctx, int end) {
-	ctx->response->data[0] = PARAM_PULL_RESPONSE;
+	if (ctx->q_response.version == 1) {
+		ctx->response->data[0] = PARAM_PULL_RESPONSE;
+	} else {
+		ctx->response->data[0] = PARAM_PULL_RESPONSE_V2;
+	}
 	ctx->response->data[1] = (end) ? PARAM_FLAG_END : 0;
 	ctx->response->length = ctx->q_response.used + 2;
 	if (csp_sendto_reply(ctx->request, ctx->response, CSP_O_SAME, 0) != CSP_ERR_NONE) {
