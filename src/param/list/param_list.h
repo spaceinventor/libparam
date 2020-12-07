@@ -13,7 +13,7 @@ typedef struct {
 	uint8_t type;
 	uint8_t size;
 	uint32_t mask;
-	char *name;
+	char name[];
 } __attribute__((packed)) param_transfer_t;
 
 typedef struct {
@@ -22,7 +22,7 @@ typedef struct {
     uint8_t type;
     uint8_t size;
     uint32_t mask;
-    char *name;
+    char name[];
 } __attribute__((packed)) param_transfer2_t;
 
 #endif /* LIB_PARAM_SRC_PARAM_PARAM_LIST_H_ */
