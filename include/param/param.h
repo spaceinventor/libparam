@@ -214,6 +214,9 @@ void param_get(param_t * param, unsigned int offset, void * value);
 int param_typesize(param_type_e type);
 int param_size(param_t * param);
 
+/* Copies from one parameter to another */
+void param_copy(param_t * dest, param_t * src);
+
 /* External hooks to get atomic writes */
 extern __attribute__((weak)) void param_enter_critical(void);
 extern __attribute__((weak)) void param_exit_critical(void);

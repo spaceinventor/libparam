@@ -219,3 +219,54 @@ int param_size(param_t * param) {
 	}
 }
 
+void param_copy(param_t * dest, param_t * src) {
+
+	/* Type check */
+	if (dest->type != src->type) {
+		return;
+	}
+
+	switch(dest->type) {
+		case PARAM_TYPE_UINT8:
+		case PARAM_TYPE_INT8:
+		case PARAM_TYPE_XINT8:
+			param_set_uint8(dest, param_get_uint8(src));
+			break;
+		case PARAM_TYPE_UINT16:
+		case PARAM_TYPE_INT16:
+		case PARAM_TYPE_XINT16:
+			param_set_uint16(dest, param_get_uint16(src));
+			break;
+		case PARAM_TYPE_UINT32:
+		case PARAM_TYPE_INT32:
+		case PARAM_TYPE_XINT32:
+			param_set_uint32(dest, param_get_uint32(src));
+			break;
+		case PARAM_TYPE_UINT64:
+		case PARAM_TYPE_INT64:
+		case PARAM_TYPE_XINT64:
+			param_set_uint64(dest, param_get_uint64(src));
+			break;
+		case PARAM_TYPE_FLOAT:
+			param_set_float(dest, param_get_float(src));
+			break;
+		case PARAM_TYPE_DOUBLE:
+			param_set_double(dest, param_get_double(src));
+			break;
+		case PARAM_TYPE_STRING: {
+			char stack_buffer[dest->array_size];
+			param_get_string(src, stack_buffer, dest->array_size);
+			param_set_string(dest, stack_buffer, dest->array_size);
+			break;
+		}
+		case PARAM_TYPE_DATA: {
+			char stack_buffer[dest->array_size];
+			param_get_data(src, stack_buffer, dest->array_size);
+			param_set_data(dest, stack_buffer, dest->array_size);
+			break;
+		}
+	}
+
+}
+
+
