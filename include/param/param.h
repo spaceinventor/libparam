@@ -58,7 +58,7 @@ typedef enum {
  * So putting the atomic parameters at the end of the push request will reduce the time
  * spent in critical region.
  */
-#define PM_ATOMIC_WRITE        (1 << 11) //! a: Parameter must be written atomically.
+#define PM_ATOMIC_WRITE        (1 << 11) //! o: Parameter must be written atomically.
 
 /* Reserved flags:
  * Lower 16 is parameter system, upper 16 are user flags  */
@@ -213,6 +213,9 @@ void param_get(param_t * param, unsigned int offset, void * value);
 /* Returns the size of a native type */
 int param_typesize(param_type_e type);
 int param_size(param_t * param);
+
+/* Copies from one parameter to another */
+void param_copy(param_t * dest, param_t * src);
 
 /* External hooks to get atomic writes */
 extern __attribute__((weak)) void param_enter_critical(void);
