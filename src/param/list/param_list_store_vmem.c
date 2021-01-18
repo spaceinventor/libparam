@@ -18,10 +18,10 @@
 
 param_t * param_list_from_line(char * line) {
 
-	char name[25] = {};
+	char name[35] = {};
 	unsigned int id, type, mask, node;
 	int size;
-	int scanned = sscanf(line, "%u,%u,%25[^,],%u,%d,%x%*s", &node, &id, name, &type, &size, &mask);
+	int scanned = sscanf(line, "%u,%u,%35[^,],%u,%d,%x%*s", &node, &id, name, &type, &size, &mask);
 
 	if (scanned < 4)
 		return NULL;
