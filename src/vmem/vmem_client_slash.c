@@ -125,6 +125,9 @@ static int vmem_client_slash_unlock(struct slash *slash)
 		return SLASH_EINVAL;
 
 	csp_packet_t * packet = csp_buffer_get(sizeof(vmem_request_t));
+	if (packet == NULL)
+		return SLASH_EINVAL;
+
 	vmem_request_t * request = (void *) packet->data;
 	request->version = 1;
 	request->type = VMEM_SERVER_UNLOCK;

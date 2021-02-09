@@ -139,6 +139,8 @@ int param_pull_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 int param_pull_single(param_t *param, int offset, int verbose, int host, int timeout, int version) {
 
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
+	if (packet == NULL)
+		return -1;
 
 	if (version == 2) {
 		packet->data[0] = PARAM_PULL_REQUEST_V2;
@@ -191,6 +193,8 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 int param_push_single(param_t *param, int offset, void *value, int verbose, int host, int timeout, int version) {
 
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
+	if (packet == NULL)
+		return -1;
 
 	if (version == 2) {
 		packet->data[0] = PARAM_PUSH_REQUEST_V2;
