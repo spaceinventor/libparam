@@ -164,6 +164,18 @@ typedef struct param_s {
 		.addr = _physaddr, \
 	};
 
+#define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_size, _array_step, _flags, _physaddr) \
+	param_t _name = { \
+		.node = _node, \
+		.id = _id, \
+		.type = _type, \
+		.array_size = _array_size, \
+		.array_step = _array_step, \
+		.name = (char *) #_name, \
+		.mask = _flags, \
+		.addr = _physaddr, \
+	};
+
 /* Native getter functions, will return native types */
 #define PARAM_GET(type, name) \
 	type param_get_##name(param_t * param); \
