@@ -205,6 +205,11 @@ static void rparam_list_handler(csp_conn_t * conn)
 	}
 }
 
+static bool running;
+void vmem_stop_server_task(){
+    running = false;
+}
+
 csp_thread_return_t vmem_server_task(void *pvParameters)
 {
 
@@ -221,8 +226,10 @@ csp_thread_return_t vmem_server_task(void *pvParameters)
 	/* Pointer to current connection and packet */
 	csp_conn_t *conn;
 
+    running = true;
+
 	/* Process incoming connections */
-	while (1) {
+	while (running) {
 
 		/* Wait for connection, 10000 ms timeout */
 		if ((conn = csp_accept(sock, CSP_MAX_DELAY)) == NULL)
@@ -246,6 +253,8 @@ csp_thread_return_t vmem_server_task(void *pvParameters)
 		csp_close(conn);
 
 	}
+
+    csp_thread_exit();
 
 	return CSP_TASK_RETURN;
 
