@@ -22,6 +22,7 @@ enum vmem_types{
 	VMEM_TYPE_DRIVER = 5,
 	VMEM_TYPE_FLASH_QSPI = 6,
 	VMEM_TYPE_FILE = 7,
+	VMEM_TYPE_FRAM_CACHE = 8,
 };
 
 typedef struct vmem_s {

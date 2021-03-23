@@ -41,6 +41,7 @@ if get_option('vmem_fram') == true
 	param_src += files([
 		'src/vmem/vmem_fram.c',
 		'src/vmem/vmem_fram_secure.c',
+		'src/vmem/vmem_fram_cache.c',
 	])
 endif
 
