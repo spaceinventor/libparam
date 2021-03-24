@@ -10,6 +10,7 @@ libparam_h = configure_file(output: 'libparam.h', configuration: conf)
 
 param_deps = []
 param_deps += dependency('csp', fallback : ['csp', 'csp_dep'])
+param_deps += dependency('libc', fallback: ['picolibc', 'picolibc_dep'], required: false)
 
 param_src = files([
 	'src/param/list/param_list.c',
