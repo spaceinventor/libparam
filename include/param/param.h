@@ -82,6 +82,8 @@ typedef struct param_s {
 	/* Storage */
 	void * addr;
 	const struct vmem_s * vmem;
+	int group_size;
+	int group_step;
 	int array_size;
 	int array_step;
 
@@ -123,6 +125,7 @@ typedef struct param_s {
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
+		.group_size = 1, \
 		.array_size = _array_count, \
 		.array_step = _array_step, \
 		.mask = _flags, \
@@ -140,6 +143,27 @@ typedef struct param_s {
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
+		.group_size = 1, \
+		.array_size = _array_count, \
+		.array_step = _array_step, \
+		.mask = _flags, \
+		.callback = _callback, \
+		.unit = _unit, \
+		.addr = (void *) _vmem_addr, \
+		.vmem = &vmem_##_vmem_name, \
+	}
+
+#define PARAM_DEFINE_STATIC_VMEM_GROUP(_id, _name, _type, _group_size, _group_step, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _log) \
+	__attribute__((section("param"))) \
+	__attribute__((aligned(1))) \
+	__attribute__((used)) \
+	param_t _name = { \
+		.node = PARAM_LIST_LOCAL, \
+		.id = _id, \
+		.type = _type, \
+		.name = #_name, \
+		.group_size = _group_size, \
+		.group_step = _group_step, \
 		.array_size = _array_count, \
 		.array_step = _array_step, \
 		.mask = _flags, \
@@ -157,6 +181,7 @@ typedef struct param_s {
 		.node = _node, \
 		.id = _id, \
 		.type = _type, \
+		.group_size = 1, \
 		.array_size = _array_size, \
 		.array_step = _array_step, \
 		.name = (char *) #_name, \

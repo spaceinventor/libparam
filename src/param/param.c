@@ -5,6 +5,12 @@
 #include <csp/csp.h>
 #include <csp/csp_endian.h>
 
+static intptr_t param_address(param_t *param, unsigned int i) {
+	intptr_t base_addr = (intptr_t)param->addr + (i / param->group_size) * param->array_step;
+	base_addr += (i % param->group_size) * param->group_step;
+	return base_addr;
+}
+
 #define PARAM_GET(_type, _name, _swapfct) \
 	_type param_get_##_name##_array(param_t * param, unsigned int i) { \
 		if (i > (unsigned int) param->array_size) { \
@@ -12,13 +18,13 @@
 		} \
 		if (param->vmem) { \
 			_type data = 0; \
-			param->vmem->read(param->vmem, (uint32_t) (intptr_t) param->addr + i * param->array_step, &data, sizeof(data)); \
+			param->vmem->read(param->vmem, (uint32_t) param_address(param, i), &data, sizeof(data)); \
 			if (param->vmem->big_endian == 1) { \
 				data = _swapfct(data); \
 			} \
 			return data; \
 		} else { \
-			return *(_type *)(param->addr + i * param->array_step); \
+			return *(_type *)(param_address(param, i)); \
 		} \
 	} \
 	_type param_get_##_name(param_t * param) { \
@@ -88,10 +94,10 @@ void param_get_data(param_t * param, void * outbuf, int len)
 		if (param->vmem) { \
 			if (param->vmem->big_endian == 1) \
 				value = _swapfct(value); \
-			param->vmem->write(param->vmem, (uint32_t) (intptr_t) param->addr + i * param->array_step, &value, sizeof(_type)); \
+			param->vmem->write(param->vmem, (uint32_t) param_address(param, i), &value, sizeof(_type)); \
 		} else { \
 			/* Aligned access directly to RAM */ \
-			*(_type*)(param->addr + i * param->array_step) = value; \
+			*(_type*)(param_address(param, i)) = value; \
 		} \
 		/* Callback */ \
 		if ((do_callback == true) && (param->callback)) { \
