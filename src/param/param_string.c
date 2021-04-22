@@ -48,7 +48,7 @@ void param_value_str(param_t *param, unsigned int i, char * out, int len)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT16, "0x%"PRIX16, uint16_t, uint16)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT32, "0x%"PRIX32, uint32_t, uint32)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT64, "0x%"PRIX64, uint64_t, uint64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_FLOAT, "%.04f", float, float)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_FLOAT, "%f", float, float)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DOUBLE, "%f", double, double)
 
 	case PARAM_TYPE_DATA: {
