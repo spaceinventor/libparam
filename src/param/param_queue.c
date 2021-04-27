@@ -55,7 +55,51 @@ int param_queue_apply(param_queue_t *queue) {
 			}
 			param_deserialize_from_mpack_to_param(NULL, queue, param, offset, &reader);
 		} else {
+			// We couldn't find all parameters. Skip this one.
 			return_code = -1;
+
+			mpack_tag_t tag = mpack_read_tag(&reader);
+			if (mpack_reader_error(&reader) != mpack_ok) {
+				break;
+			}
+
+			// TODO: Skip content
+			bool valid = true;
+
+			switch (tag.type) {
+    		case mpack_type_str:
+    		case mpack_type_bin:
+    			if (reader.left >= tag.v.l) {
+	    			mpack_skip_bytes(&reader, tag.v.l);
+	    		} else {
+    				valid = false;
+	    			break;
+	    		}
+
+	    		if (tag.type == mpack_type_str) {
+	    			mpack_done_str(&reader);
+	    		} else if (tag.type == mpack_type_bin) {
+	    			mpack_done_bin(&reader);
+	    		}
+    			break;
+    		case mpack_type_array:
+    			for (int i = 0; i < tag.v.n; i++) {
+					mpack_read_tag(&reader);
+					if (mpack_reader_error(&reader) != mpack_ok) {
+						valid = false;
+						break;
+					}
+    			}
+    			if (valid) {
+	    			mpack_done_array(&reader);
+    			}
+    			break;
+    		case mpack_type_map:
+    			break;
+    		default:
+    			break;
+			}
+
 		}
 	}
 
