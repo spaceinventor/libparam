@@ -36,7 +36,8 @@ void vmem_file_write(const vmem_t * vmem, uint32_t addr, void * datain, int len)
 		return;
 	}
 	int written = fwrite(((vmem_file_driver_t *) vmem->driver)->physaddr, 1, vmem->size, stream);
-	printf("Wrote %d bytes to %s\n", written, ((vmem_file_driver_t *) vmem->driver)->filename);
+	(void) written;
+	//printf("Wrote %d bytes to %s\n", written, ((vmem_file_driver_t *) vmem->driver)->filename);
 	fclose(stream);
 }
 
