@@ -10,7 +10,13 @@ libparam_h = configure_file(output: 'libparam.h', configuration: conf)
 
 param_deps = []
 param_deps += dependency('csp', fallback : ['csp', 'csp_dep'])
-param_deps += dependency('libc', fallback: ['picolibc', 'picolibc_dep'], required: false)
+
+clib = meson.get_compiler('c').find_library('c', required: false)
+if not clib.found()
+	clib = dependency('libc', fallback: ['picolibc', 'picolibc_dep'], required: true)
+endif
+
+param_deps += clib
 
 param_src = files([
 	'src/param/list/param_list.c',
