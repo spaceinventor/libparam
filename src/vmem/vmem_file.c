@@ -17,7 +17,7 @@ void vmem_file_init(const vmem_t * vmem) {
 	if (stream == NULL)
 		return;
 	int read = fread(((vmem_file_driver_t *) vmem->driver)->physaddr, 1, vmem->size, stream);
-	printf("Read %d bytes from %s\n", read, ((vmem_file_driver_t *) vmem->driver)->filename);
+	//printf("Read %d bytes from %s\n", read, ((vmem_file_driver_t *) vmem->driver)->filename);
 	fclose(stream);
 
 }
@@ -36,7 +36,7 @@ void vmem_file_write(const vmem_t * vmem, uint32_t addr, void * datain, int len)
 		return;
 	}
 	int written = fwrite(((vmem_file_driver_t *) vmem->driver)->physaddr, 1, vmem->size, stream);
-	printf("Wrote %d bytes to %s\n", written, ((vmem_file_driver_t *) vmem->driver)->filename);
+	//printf("Wrote %d bytes to %s\n", written, ((vmem_file_driver_t *) vmem->driver)->filename);
 	fclose(stream);
 }
 
