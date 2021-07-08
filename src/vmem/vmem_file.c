@@ -17,6 +17,7 @@ void vmem_file_init(const vmem_t * vmem) {
 	if (stream == NULL)
 		return;
 	int read = fread(((vmem_file_driver_t *) vmem->driver)->physaddr, 1, vmem->size, stream);
+	(void) read;
 	//printf("Read %d bytes from %s\n", read, ((vmem_file_driver_t *) vmem->driver)->filename);
 	fclose(stream);
 
