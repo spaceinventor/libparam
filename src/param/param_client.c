@@ -5,6 +5,8 @@
  *      Author: johan
  */
 
+#include <param/param_client.h>
+
 #include <stdio.h>
 #include <malloc.h>
 #include <inttypes.h>
@@ -14,7 +16,6 @@
 #include <csp/csp_endian.h>
 #include <param/param_list.h>
 #include <param/param_server.h>
-#include <param/param_client.h>
 #include <param/param_queue.h>
 
 typedef void (*param_transaction_callback_f)(csp_packet_t *response, int verbose, int version);
@@ -48,7 +49,7 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 	csp_buffer_free(response);
 }
 
-static int param_transaction(csp_packet_t *packet, int host, int timeout, param_transaction_callback_f callback, int verbose, int version) {
+int param_transaction(csp_packet_t *packet, int host, int timeout, param_transaction_callback_f callback, int verbose, int version) {
 
 	//csp_hex_dump("transaction", packet->data, packet->length);
 

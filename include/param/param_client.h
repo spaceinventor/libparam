@@ -10,6 +10,7 @@
 
 #include <param/param.h>
 #include <param/param_queue.h>
+#include <csp/csp.h>
 
 /**
  * SINGLE PARAMETER API
@@ -86,6 +87,9 @@ int param_push_single(param_t *param, int offset, void *value, int verbose, int 
  */
 int param_pull_queue(param_queue_t *queue, int verbose, int host, int timeout);
 int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout);
+
+typedef void (*param_transaction_callback_f)(csp_packet_t *response, int verbose, int version);
+int param_transaction(csp_packet_t *packet, int host, int timeout, param_transaction_callback_f callback, int verbose, int version);
 
 
 #endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_CLIENT_H_ */

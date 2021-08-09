@@ -22,8 +22,8 @@
 #include "param_string.h"
 #include "param_slash.h"
 
-static param_queue_t queue_set = { };
-static param_queue_t queue_get = { };
+param_queue_t param_queue_set = { };
+param_queue_t param_queue_get = { };
 static int default_node = -1;
 static int autosend = 1;
 static int paramver = 2;
@@ -153,12 +153,12 @@ static int cmd_get(struct slash *slash) {
 				result = param_pull_single(param, offset, 1, node, 1000, paramver);
 			}
 		} else {
-			if (!queue_get.buffer) {
-			    param_queue_init(&queue_get, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_GET, paramver);
+			if (!param_queue_get.buffer) {
+			    param_queue_init(&param_queue_get, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_GET, paramver);
 			}
-			if (param_queue_add(&queue_get, param, offset, NULL) < 0)
+			if (param_queue_add(&param_queue_get, param, offset, NULL) < 0)
 				printf("Queue full\n");
-			param_queue_print(&queue_get);
+			param_queue_print(&param_queue_get);
 			return SLASH_SUCCESS;
 		}
 
@@ -202,12 +202,12 @@ static int cmd_set(struct slash *slash) {
 		} else if (host != -1) {
 			result = param_push_single(param, offset, valuebuf, 1, host, 1000, paramver);
 		} else {
-			if (!queue_set.buffer) {
-    		    param_queue_init(&queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
+			if (!param_queue_set.buffer) {
+    		    param_queue_init(&param_queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
 			}
-			if (param_queue_add(&queue_set, param, offset, valuebuf) < 0)
+			if (param_queue_add(&param_queue_set, param, offset, valuebuf) < 0)
 				printf("Queue full\n");
-			param_queue_print(&queue_set);
+			param_queue_print(&param_queue_set);
 			return SLASH_SUCCESS;
 		}
 
@@ -240,7 +240,7 @@ static int cmd_push(struct slash *slash) {
 	if (slash->argc >= 3)
 		timeout = atoi(slash->argv[2]);
 
-	if (param_push_queue(&queue_set, 1, node, timeout) < 0) {
+	if (param_push_queue(&param_queue_set, 1, node, timeout) < 0) {
 		printf("No response\n");
 		return SLASH_EIO;
 	}
@@ -267,10 +267,10 @@ static int cmd_pull(struct slash *slash) {
 		timeout = atoi(slash->argv[4]);
 
 	int result = -1;
-	if (queue_get.used == 0) {
+	if (param_queue_get.used == 0) {
 		result = param_pull_all(1, host, include_mask, exclude_mask, timeout, paramver);
 	} else {
-		result = param_pull_queue(&queue_get, 1, host, timeout);
+		result = param_pull_queue(&param_queue_get, 1, host, timeout);
 	}
 
 	if (result) {
@@ -283,10 +283,10 @@ static int cmd_pull(struct slash *slash) {
 slash_command(pull, cmd_pull, "<node> [mask] [timeout]", NULL);
 
 static int cmd_clear(struct slash *slash) {
-	queue_get.used = 0;
-	queue_set.used = 0;
-    queue_get.version = paramver;
-    queue_set.version = paramver;
+	param_queue_get.used = 0;
+	param_queue_set.used = 0;
+    param_queue_get.version = paramver;
+    param_queue_set.version = paramver;
 	printf("Queue cleared\n");
 	return SLASH_SUCCESS;
 }
@@ -338,13 +338,13 @@ static int cmd_autosend(struct slash *slash) {
 slash_command(autosend, cmd_autosend, "[1|0]", NULL);
 
 static int cmd_queue(struct slash *slash) {
-	if (queue_get.used > 0) {
+	if (param_queue_get.used > 0) {
 		printf("Get Queue\n");
-		param_queue_print(&queue_get);
+		param_queue_print(&param_queue_get);
 	}
-	if (queue_set.used > 0) {
+	if (param_queue_set.used > 0) {
 		printf("Set Queue\n");
-		param_queue_print(&queue_set);
+		param_queue_print(&param_queue_set);
 	}
 	return SLASH_SUCCESS;
 }
