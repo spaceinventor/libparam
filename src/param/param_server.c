@@ -16,6 +16,8 @@
 #include <param/param_server.h>
 #include <param/param_list.h>
 
+#include "scheduler/param_scheduler.h"
+
 struct param_serve_context {
 	csp_packet_t * request;
 	csp_packet_t * response;
@@ -169,11 +171,29 @@ void param_serve(csp_packet_t * packet) {
 			param_serve_push(packet, 1, 2);
 			break;
 
+		case PARAM_SCHEDULE_PUSH:
+			param_serve_schedule_push(packet);
+			break;
+
+		case PARAM_SCHEDULE_PULL:
+			param_serve_schedule_pull(packet);
+			break;
+
+		case PARAM_SCHEDULE_SHOW_REQUEST:
+			param_serve_schedule_show(packet);
+			break;
+
+		case PARAM_SCHEDULE_LIST_REQUEST:
+			param_serve_schedule_list(packet);
+			break;
+
 		default:
 			printf("Unknown parameter request\n");
 			csp_buffer_free(packet);
 			break;
 	}
+
+
 }
 
 

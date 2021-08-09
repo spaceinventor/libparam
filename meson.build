@@ -31,6 +31,9 @@ param_src = files([
 	'src/param/param_string.c',
 	'src/param/param_queue.c',
 	'src/param/param.c',
+
+	'src/param/scheduler/param_scheduler.c',
+	'src/param/scheduler/param_scheduler_client.c',
 	
 	'lib/mpack/mpack.c',
 
@@ -71,6 +74,7 @@ if get_option('slash') == true
 			'src/param/list/param_list_slash.c',	
 			'src/param/param_slash.c',	
 			'src/vmem/vmem_client_slash.c',
+			'src/param/scheduler/param_scheduler_slash.c',
 		])
 		if get_option('have_fopen') == true
 			param_src += files([
