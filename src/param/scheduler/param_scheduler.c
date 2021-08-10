@@ -5,7 +5,7 @@
  *      Author: Mads
  */
 
-#include "param_scheduler.h"
+#include <param/param_scheduler.h>
 
 #include <stdio.h>
 #include <csp/csp.h>
@@ -17,18 +17,38 @@
 #include <param/param_queue.h>
 #include <param/param_server.h>
 #include <param/param_list.h>
-
+#include <param/param_client.h>
 
 
 param_schedule_t schedule[SCHEDULE_LIST_LENGTH];
 static uint16_t last_id = UINT16_MAX;
 
-static uint16_t schedule_add(param_queue_t *queue, uint32_t time) {
+static void schedule_print(int idx) {
+    if (idx < 0)
+        return;
+
+    printf("Schedule idx %d, id %d for host %d:\n", idx, schedule[idx].id, schedule[idx].host);
+    printf(" Status: Active (%d) - Completed (%d)\n", schedule[idx].active, schedule[idx].completed);
+    if (schedule[idx].active == 1) {
+        if (schedule[idx].timer_type == SCHED_TIMER_TYPE_RELATIVE) {
+            printf(" Scheduled in %d s\n", schedule[idx].time);
+        } else {
+            printf(" Scheduled at UNIX time %d\n", schedule[idx].time);
+        }
+    } else {
+        printf(" Inactive with time = %d and timer_type = %d\n", schedule[idx].time, schedule[idx].timer_type);
+    }
+
+}
+
+static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
+
     /* Find a free entry on the schedule list */
     int counter = 0;
     while(counter < SCHEDULE_LIST_LENGTH) {
         if ( (schedule[counter].active == 0) || (schedule[counter].active == 0xFF) )
             break;
+        counter++;
     }
     if (counter >= SCHEDULE_LIST_LENGTH)
         return UINT16_MAX;
@@ -37,78 +57,160 @@ static uint16_t schedule_add(param_queue_t *queue, uint32_t time) {
     schedule[counter].completed = 0;
 
     last_id++;
-    if (last_id == UINT16_MAX)
-        last_id++;
+    if (last_id == UINT16_MAX){
+        last_id = 0;
+    }
     schedule[counter].id = last_id;
 
-    schedule[counter].time = time;
+    schedule[counter].time = csp_ntoh32(packet->data32[1]);
+    if (schedule[counter].time > 1E9) {
+        schedule[counter].timer_type = SCHED_TIMER_TYPE_UNIX;
+    } else {
+        schedule[counter].timer_type = SCHED_TIMER_TYPE_RELATIVE;
+    }
 
-    schedule[counter].queue = *queue;
+    schedule[counter].host = csp_ntoh16(packet->data16[1]);
+    param_queue_init(&schedule[counter].queue, &packet->data[6], packet->length - 6, packet->length - 6, q_type, 2);
 
-    return last_id;
+    schedule[counter].buffer_ptr = packet;
+
+    return schedule[counter].id;
 }
 
 static int get_schedule_idx(uint16_t id) {
     for (int i = 0; i < SCHEDULE_LIST_LENGTH; i++) {
-        if ( (schedule[i].active == 0) || (schedule[i].active == 0xFF) ){
+        if ( (schedule[i].active == 0) || (schedule[i].active == 0xFF) ) {
             continue;
         }
         if (schedule[i].id == id) {
             return i;
         }
     }
+    return -1;
 }
 
-int param_serve_schedule_push(csp_packet_t *packet) {
-    param_queue_t queue;
-    param_queue_init(&queue, packet->data[6], packet->length - 6, packet->length - 6, PARAM_QUEUE_TYPE_SET, 2);
+int param_serve_schedule_push(csp_packet_t *request) {
+    csp_packet_t * response = csp_buffer_get(0);
+    if (response == NULL) {
+        csp_buffer_free(request);
+        return -1;
+    }
 
-    uint16_t id = schedule_add(&queue, packet->data[2]);
+    csp_packet_t * request_copy = csp_buffer_clone(request);
+    uint16_t id = schedule_add(request_copy, PARAM_QUEUE_TYPE_SET);
 
     /* Send ack with ID */
-	packet->data[0] = PARAM_SCHEDULE_ADD_RESPONSE;
-	packet->data[1] = PARAM_FLAG_END;
-    packet->data16[1] = id;
-	packet->length = 4;
+	response->data[0] = PARAM_SCHEDULE_ADD_RESPONSE;
+	response->data[1] = PARAM_FLAG_END;
+    response->data16[1] = csp_hton16(id);
+	response->length = 4;
 
-	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
-		csp_buffer_free(packet);
+	if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)
+		csp_buffer_free(response);
+
+    csp_buffer_free(request);
+
+    int idx = get_schedule_idx(id);
+    schedule_print(idx);
 
     return 0;
 }
 
-int param_serve_schedule_pull(csp_packet_t *packet) {
-    param_queue_t queue;
-    param_queue_init(&queue, packet->data[6], packet->length - 6, packet->length - 6, PARAM_QUEUE_TYPE_GET, 2);
+int param_serve_schedule_pull(csp_packet_t *request) {
+    csp_packet_t * response = csp_buffer_get(0);
+    if (response == NULL) {
+        csp_buffer_free(request);
+        return -1;
+    }
 
-    uint16_t id = schedule_add(&queue, packet->data[2]);
+    csp_packet_t * request_copy = csp_buffer_clone(request);
+    uint16_t id = schedule_add(request_copy, PARAM_QUEUE_TYPE_GET);
 
     /* Send ack with ID */
-	packet->data[0] = PARAM_SCHEDULE_ADD_RESPONSE;
-	packet->data[1] = PARAM_FLAG_END;
-    packet->data16[1] = id;
-	packet->length = 4;
+	response->data[0] = PARAM_SCHEDULE_ADD_RESPONSE;
+	response->data[1] = PARAM_FLAG_END;
+    response->data16[1] = csp_hton16(id);
+	response->length = 4;
 
-	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
-		csp_buffer_free(packet);
+	if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)
+		csp_buffer_free(response);
+
+    csp_buffer_free(request);
 
     return 0;
 }
-
 
 int param_serve_schedule_show(csp_packet_t *packet) {
-    uint16_t id = packet->data16[1];
+    uint16_t id = csp_ntoh16(packet->data16[1]);
     int idx = get_schedule_idx(id);
+    printf("Searching for id %d, idx: %d\n", id, idx);
+    if (idx < 0) {
+        printf("test 21\n");
+        return -1;
+    }
     
     /* Respond with the requested schedule entry */
 	packet->data[0] = PARAM_SCHEDULE_SHOW_RESPONSE;
 	packet->data[1] = PARAM_FLAG_END;
-    packet->data16[1] = schedule[idx].id;
-    packet->data32[1] = schedule[idx].time;
+    packet->data16[1] = csp_hton16(schedule[idx].id);
+    packet->data32[1] = csp_hton32(schedule[idx].time);
     packet->data[8] = schedule[idx].queue.type;
     
     memcpy(&packet->data[9], &schedule[idx].queue.buffer, schedule[idx].queue.used);
 	packet->length = schedule[idx].queue.used + 9;
+
+    printf("test 22 - queue size: %d\n", schedule[idx].queue.used);
+    param_queue_print(&schedule[idx].queue);
+
+	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
+		csp_buffer_free(packet);
+
+    return 0;
+}
+
+int param_serve_schedule_rm_single(csp_packet_t *packet) {
+    /* Disable the specified schedule id */
+    uint16_t id = csp_ntoh16(packet->data16[1]);
+    int idx = get_schedule_idx(id);
+    if (idx < 0) {
+        return -1;
+        csp_buffer_free(packet);
+    }
+    schedule[idx].active = 0,
+    csp_buffer_free(schedule[idx].buffer_ptr);
+    
+    /* Respond with the id again to verify which ID was disabled */
+	packet->data[0] = PARAM_SCHEDULE_RM_RESPONSE;
+	packet->data[1] = PARAM_FLAG_END;
+    packet->data16[1] = csp_hton16(schedule[idx].id);
+    
+	packet->length = 4;
+
+	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
+		csp_buffer_free(packet);
+
+    return 0;
+}
+
+int param_serve_schedule_rm_all(csp_packet_t *packet) {
+    /* Confirm remove all by checking that id = UINT16_MAX */
+    uint16_t id = csp_ntoh16(packet->data16[1]);
+    if (id != UINT16_MAX) {
+        return -1;
+        csp_buffer_free(packet);
+    }
+    /* Clear the schedule by setting all entries inactive */
+    for (int i = 0; i < SCHEDULE_LIST_LENGTH; i++) {
+        schedule[i].active = 0;
+        csp_buffer_free(schedule[i].buffer_ptr);
+    }
+
+    /* Respond with id = UINT16_MAX again to verify that the schedule was cleared */
+	packet->data[0] = PARAM_SCHEDULE_RM_RESPONSE;
+	packet->data[1] = PARAM_FLAG_END;
+    packet->data16[1] = csp_hton16(UINT16_MAX);
+    
+	packet->length = 4;
 
 	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
 		csp_buffer_free(packet);
@@ -123,8 +225,8 @@ int param_serve_schedule_list(csp_packet_t *packet) {
             continue;
         }
         unsigned int idx = 4+counter*(4+2+2);
-        packet->data32[idx/4] = schedule[i].time;
-        packet->data16[idx/2+2] = schedule[i].id;
+        packet->data32[idx/4] = csp_hton32(schedule[i].time);
+        packet->data16[idx/2+2] = csp_hton16(schedule[i].id);
         packet->data[idx+6] = schedule[i].completed;
         packet->data[idx+7] = schedule[i].queue.type;
         counter++;
@@ -132,11 +234,90 @@ int param_serve_schedule_list(csp_packet_t *packet) {
 
     packet->data[0] = PARAM_SCHEDULE_LIST_RESPONSE;
 	packet->data[1] = PARAM_FLAG_END;
-    packet->data16[1] = counter; // number of entries
+    packet->data16[1] = csp_hton16(counter); // number of entries
 	packet->length = counter*8 + 4;
 
 	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
 		csp_buffer_free(packet);
 
     return 0;
+}
+
+uint32_t last_timestamp = 0;
+
+int param_schedule_server_update(uint32_t timestamp) {
+    int dt;
+    if (last_timestamp == 0) {
+        dt = 1;
+    } else {
+        dt = (int) timestamp - last_timestamp;
+    }
+    if (dt < 0) {
+        return -1;
+    }
+    last_timestamp = timestamp;
+
+    for (int i = 0; i < SCHEDULE_LIST_LENGTH; i++) {
+        if ( (schedule[i].active == 0) || (schedule[i].active = 0xFF) )
+            continue;
+
+        printf("Checking schedule idx %d...\n", i);
+        schedule_print(i);
+
+        if (schedule[i].timer_type == SCHED_TIMER_TYPE_RELATIVE) {
+            for (int j = 0; j < dt; j++) {
+                if (schedule[i].completed != 1) {
+                    schedule[i].time--;
+                    if (schedule[i].time == 0) {
+                        /* Execute the scheduled queue */
+                        if (param_push_queue(&schedule[i].queue, 0, schedule[i].host, 100) == 0) {
+                            schedule[i].completed = 1;
+                        } else {
+                            /* Postpone 10 seconds to retry in case of network errors */
+                            schedule[i].time = 10;
+                            break;
+                        }
+                    }
+                } else {
+                    schedule[i].time++;
+                    if (schedule[i].time >= 86400) {
+                        /* Deactivate completed schedule entries after 24 hrs */
+                        schedule[i].active = 0;
+                        csp_buffer_free(schedule[i].buffer_ptr);
+                        break;
+                    }
+                }
+            }
+        } else {
+            if (schedule[i].completed != 1) {
+                if (schedule[i].time >= (timestamp)) {
+                    /* Execute the scheduled queue */
+                    if (param_push_queue(&schedule[i].queue, 0, schedule[i].host, 100) == 0){
+                        schedule[i].completed = 1;
+                    } else {
+                        /* Postpone 10 seconds to retry in case of network errors */
+                        schedule[i].time += 10;
+                    }
+                }
+            } else {
+                if (schedule[i].time >= (timestamp + 86400)) {
+                    /* Deactivate completed schedule entries after 24 hrs */
+                    schedule[i].active = 0;
+                    csp_buffer_free(schedule[i].buffer_ptr);
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+void param_schedule_server_init(void) {
+    // Allocate the schedule array in FRAM or check if it's already there
+
+    // Initialize any un-initialized schedule entries
+    for (int i = 0; i < SCHEDULE_LIST_LENGTH; i++) {
+        //schedule_print(i);
+        //param_queue_print(&schedule[i].queue);
+    }
 }

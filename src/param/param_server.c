@@ -15,8 +15,7 @@
 #include <param/param_queue.h>
 #include <param/param_server.h>
 #include <param/param_list.h>
-
-#include "scheduler/param_scheduler.h"
+#include <param/param_scheduler.h>
 
 struct param_serve_context {
 	csp_packet_t * request;
@@ -185,6 +184,14 @@ void param_serve(csp_packet_t * packet) {
 
 		case PARAM_SCHEDULE_LIST_REQUEST:
 			param_serve_schedule_list(packet);
+			break;
+
+		case PARAM_SCHEDULE_RM_REQUEST:
+			param_serve_schedule_rm_single(packet);
+			break;
+
+		case PARAM_SCHEDULE_RM_ALL_REQUEST:
+			param_serve_schedule_rm_all(packet);
 			break;
 
 		default:

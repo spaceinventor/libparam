@@ -144,7 +144,7 @@ static int cmd_get(struct slash *slash) {
 
 	/* Remote parameters are sent to a queue or directly */
 	int result = 0;
-	if (param->node != PARAM_LIST_LOCAL) {
+	//if (param->node != PARAM_LIST_LOCAL) {
 
 		if (autosend) {
 			if (host != -1) {
@@ -161,11 +161,11 @@ static int cmd_get(struct slash *slash) {
 			param_queue_print(&param_queue_get);
 			return SLASH_SUCCESS;
 		}
-
+/*
 	} else {
 		param_print(param, -1, NULL, 0, 0);
 	}
-
+*/
 	if (result < 0) {
 		printf("No response\n");
 		return SLASH_EIO;
@@ -195,7 +195,7 @@ static int cmd_set(struct slash *slash) {
 
 	/* Remote parameters are sent to a queue or directly */
 	int result = 0;
-	if (param->node != PARAM_LIST_LOCAL) {
+	//if (param->node != PARAM_LIST_LOCAL) {
 
 		if ((node != -1) && (autosend)) {
 			result = param_push_single(param, offset, valuebuf, 1, node, 1000, paramver);
@@ -212,11 +212,12 @@ static int cmd_set(struct slash *slash) {
 		}
 
 		/* For local parameters, set immediately */
+/*
 	} else {
 	    printf("Param set \n");
 		param_set(param, offset, valuebuf);
 	}
-
+*/
 	if (result < 0) {
 		printf("No response\n");
 		return SLASH_EIO;
@@ -338,6 +339,9 @@ static int cmd_autosend(struct slash *slash) {
 slash_command(autosend, cmd_autosend, "[1|0]", NULL);
 
 static int cmd_queue(struct slash *slash) {
+	if ( (param_queue_get.used == 0) && (param_queue_set.used == 0) ) {
+		printf("Nothing queued\n");
+	}
 	if (param_queue_get.used > 0) {
 		printf("Get Queue\n");
 		param_queue_print(&param_queue_get);
