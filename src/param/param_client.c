@@ -55,17 +55,20 @@ int param_transaction(csp_packet_t *packet, int host, int timeout, param_transac
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
 	if (conn == NULL) {
+		printf("test 1\n");
 		csp_buffer_free(packet);
 		return -1;
 	}
 
 	if (!csp_send(conn, packet, 0)) {
+		printf("test 2\n");
 		csp_close(conn);
 		csp_buffer_free(packet);
 		return -1;
 	}
 
 	if (timeout == -1) {
+		printf("test 3\n");
 		csp_close(conn);
 		return -1;
 	}
@@ -90,6 +93,7 @@ int param_transaction(csp_packet_t *packet, int host, int timeout, param_transac
 
 	}
 
+	printf("test 4\n");
 	csp_close(conn);
 	return result;
 }
@@ -184,8 +188,9 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 	if (result < 0) {
 		return -1;
 	}
-
-	param_queue_print(queue);
+	if (verbose) {
+		param_queue_print(queue);
+	}
 	param_queue_apply(queue);
 
 	return 0;

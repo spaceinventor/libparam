@@ -20,7 +20,9 @@ struct param_schedule_list_s {
 
 typedef struct param_schedule_list_s param_schedule_list_t;
 
-int param_schedule_push(param_queue_t *queue, int verbose, int server, uint32_t time, int timeout);
-int param_schedule_pull(param_queue_t *queue, int verbose, int server, uint32_t time, int timeout);
-int param_show_schedule(int server, uint16_t id, int timeout);
-int param_list_schedule(int server, int timeout);
+int param_schedule_push(param_queue_t *queue, int verbose, int server, uint16_t host, uint32_t time, int timeout);
+int param_schedule_pull(param_queue_t *queue, int verbose, int server, uint16_t host, uint32_t time, int timeout);
+int param_show_schedule(int server, int verbose, uint16_t id, int timeout);
+int param_list_schedule(int server, int verbose, int timeout);
+int param_rm_schedule(int server, int verbose, uint16_t id, int timeout);
+int param_rm_all_schedule(int server, int verbose, int timeout);
