@@ -115,6 +115,8 @@
  *
  * The default is malloc() if @ref MPACK_STDLIB is enabled.
  */
+#define MPACK_MALLOC malloc
+
 /**
  * @def MPACK_FREE
  *
@@ -125,6 +127,8 @@
  * The default is free() if @ref MPACK_MALLOC has not been customized and
  * @ref MPACK_STDLIB is enabled.
  */
+#define MPACK_FREE free
+
 /**
  * @def MPACK_REALLOC
  *
@@ -138,14 +142,8 @@
  * set and @ref MPACK_REALLOC is not, @ref MPACK_MALLOC is used with a simple copy
  * to grow buffers.
  */
-#if 0
-#if defined(MPACK_STDLIB) && !defined(MPACK_MALLOC)
-#include <FreeRTOS.h>
-#define MPACK_MALLOC pvPortMalloc
 #undef MPACK_REALLOC
-#define MPACK_FREE vPortFree
-#endif
-#endif
+
 
 /**
  * @}
