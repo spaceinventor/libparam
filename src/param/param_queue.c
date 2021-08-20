@@ -120,7 +120,9 @@ void param_queue_print(param_queue_t *queue) {
 			}
 #if MPACK_STDIO
 			printf(" = ");
-			mpack_print_element((mpack_reader_t *) reader, 2, stdout);
+			mpack_print_element(&reader, 2, stdout);
+#else
+			mpack_discard(&reader);
 #endif
 			printf("\n");
 		}
