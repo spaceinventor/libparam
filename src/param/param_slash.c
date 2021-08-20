@@ -182,7 +182,7 @@ static int cmd_set(struct slash *slash) {
 	param_t * param;
 	int host = -1;
 	int node = default_node;
-	int offset = 0;
+	int offset = -1;
 	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
 
 	if (param == NULL) {
