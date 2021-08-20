@@ -29,10 +29,10 @@ static void param_transaction_callback_add(csp_packet_t *response, int verbose, 
 
 	//csp_hex_dump("pull response", response->data, response->length);
 	if (verbose) {
-		if (response->data16[1] == UINT16_MAX) {
+		if (csp_ntoh16(response->data16[1]) == UINT16_MAX) {
 			printf("Scheduling queue failed:\n");
 		} else {
-			printf("Queue scheduled with id %d:\n", response->data16[1]);
+			printf("Queue scheduled with id %d:\n", csp_ntoh16(response->data16[1]));
 		}
 	}
 
@@ -145,7 +145,7 @@ int param_show_schedule(int server, int verbose, uint16_t id, int timeout) {
     int result = param_transaction(packet, server, timeout, param_transaction_callback_show, verbose, 2);
 
 	if (result < 0) {
-		printf("test 11\n");
+		printf("Error getting schedule to show\n");
 		return -1;
 	}
 

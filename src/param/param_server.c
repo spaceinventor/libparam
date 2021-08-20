@@ -126,6 +126,7 @@ static void param_serve_push(csp_packet_t * packet, int send_ack, int version)
 	int result = param_queue_apply(&queue);
 
 	if ((result != 0) || (send_ack == 0)) {
+		printf("Param serve push error, result = %d\n", result);
 		csp_buffer_free(packet);
 		return;
 	}
@@ -137,6 +138,8 @@ static void param_serve_push(csp_packet_t * packet, int send_ack, int version)
 
 	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
 		csp_buffer_free(packet);
+
+	printf("Param pushed\n");
 
 }
 

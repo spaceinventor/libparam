@@ -30,11 +30,20 @@ static void schedule_print(int idx) {
     printf("Schedule idx %d, id %d for host %d:\n", idx, schedule[idx].id, schedule[idx].host);
     printf(" Status: Active (%d) - Completed (%d)\n", schedule[idx].active, schedule[idx].completed);
     if (schedule[idx].active == 1) {
-        if (schedule[idx].timer_type == SCHED_TIMER_TYPE_RELATIVE) {
-            printf(" Scheduled in %d s\n", schedule[idx].time);
+        if (schedule[idx].completed == 1) {
+            if (schedule[idx].timer_type == SCHED_TIMER_TYPE_RELATIVE) {
+                printf(" Completed %d s ago\n", schedule[idx].time);
+            } else {
+                printf(" Completed at UNIX time %d\n", schedule[idx].time);
+            }
         } else {
-            printf(" Scheduled at UNIX time %d\n", schedule[idx].time);
+            if (schedule[idx].timer_type == SCHED_TIMER_TYPE_RELATIVE) {
+                printf(" Scheduled in %d s\n", schedule[idx].time);
+            } else {
+                printf(" Scheduled at UNIX time %d\n", schedule[idx].time);
+            }
         }
+
     } else {
         printf(" Inactive with time = %d and timer_type = %d\n", schedule[idx].time, schedule[idx].timer_type);
     }
@@ -60,6 +69,7 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
     if (last_id == UINT16_MAX){
         last_id = 0;
     }
+    printf("schedule added at id: %d\n", last_id);
     schedule[counter].id = last_id;
 
     schedule[counter].time = csp_ntoh32(packet->data32[1]);
@@ -70,7 +80,7 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
     }
 
     schedule[counter].host = csp_ntoh16(packet->data16[1]);
-    param_queue_init(&schedule[counter].queue, &packet->data[6], packet->length - 6, packet->length - 6, q_type, 2);
+    param_queue_init(&schedule[counter].queue, &packet->data[8], packet->length - 8, packet->length - 8, q_type, 2);
 
     schedule[counter].buffer_ptr = packet;
 
@@ -145,7 +155,7 @@ int param_serve_schedule_show(csp_packet_t *packet) {
     int idx = get_schedule_idx(id);
     printf("Searching for id %d, idx: %d\n", id, idx);
     if (idx < 0) {
-        printf("test 21\n");
+        printf("No active schedule with id %d found\n", id);
         return -1;
     }
     
@@ -159,7 +169,7 @@ int param_serve_schedule_show(csp_packet_t *packet) {
     memcpy(&packet->data[9], &schedule[idx].queue.buffer, schedule[idx].queue.used);
 	packet->length = schedule[idx].queue.used + 9;
 
-    printf("test 22 - queue size: %d\n", schedule[idx].queue.used);
+    printf("Queue size: %d\n", schedule[idx].queue.used);
     param_queue_print(&schedule[idx].queue);
 
 	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
@@ -246,6 +256,7 @@ int param_serve_schedule_list(csp_packet_t *packet) {
 uint32_t last_timestamp = 0;
 
 int param_schedule_server_update(uint32_t timestamp) {
+    //printf("Schedule server update started.\n");
     int dt;
     if (last_timestamp == 0) {
         dt = 1;
@@ -258,11 +269,11 @@ int param_schedule_server_update(uint32_t timestamp) {
     last_timestamp = timestamp;
 
     for (int i = 0; i < SCHEDULE_LIST_LENGTH; i++) {
-        if ( (schedule[i].active == 0) || (schedule[i].active = 0xFF) )
+        if ( (schedule[i].active == 0) || (schedule[i].active == 0xFF) )
             continue;
 
-        printf("Checking schedule idx %d...\n", i);
-        schedule_print(i);
+        //printf("Checking schedule idx %d...\n", i);
+        //schedule_print(i);
 
         if (schedule[i].timer_type == SCHED_TIMER_TYPE_RELATIVE) {
             for (int j = 0; j < dt; j++) {
@@ -271,6 +282,7 @@ int param_schedule_server_update(uint32_t timestamp) {
                     if (schedule[i].time == 0) {
                         /* Execute the scheduled queue */
                         if (param_push_queue(&schedule[i].queue, 0, schedule[i].host, 100) == 0) {
+                            param_queue_print(&schedule[i].queue);
                             schedule[i].completed = 1;
                         } else {
                             /* Postpone 10 seconds to retry in case of network errors */
@@ -309,6 +321,7 @@ int param_schedule_server_update(uint32_t timestamp) {
         }
     }
 
+    //printf("Schedule server update completed.\n");
     return 0;
 }
 
