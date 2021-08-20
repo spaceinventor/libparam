@@ -5,6 +5,9 @@ conf.set('PARAM_STORE_FILE', false)
 conf.set('PARAM_STORE_VMEM', false)
 conf.set('PARAM_STORE_LOG', false)
 conf.set('PARAM_HAVE_SYS_QUEUE', get_option('list_dynamic'))
+if get_option('have_fopen') == true
+	conf.set('MPACK_STDIO', 1)
+endif
 
 libparam_h = configure_file(output: 'libparam.h', configuration: conf)
 

@@ -1,3 +1,4 @@
+#include <libparam.h>
 
 /**
  * @file
