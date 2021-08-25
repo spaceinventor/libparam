@@ -120,9 +120,9 @@ static void param_transaction_callback_show(csp_packet_t *response, int verbose,
 
 		/* Show the requested queue */
 		if (csp_ntoh32(response->data32[1]) <= 1E9) {
-			printf("Showing queue id %d scheduled in %d s\n", csp_ntoh16(response->data16[1]), csp_ntoh16(response->data32[1]));
+			printf("Showing queue id %d scheduled in %d s\n", csp_ntoh16(response->data16[1]), csp_ntoh32(response->data32[1]));
 		} else {
-			printf("Showing queue id %d scheduled at UNIX time: %d\n", csp_ntoh16(response->data16[1]), csp_ntoh16(response->data32[1]));
+			printf("Showing queue id %d scheduled at UNIX time: %d\n", csp_ntoh16(response->data16[1]), csp_ntoh32(response->data32[1]));
 		}
 
 		param_queue_print(&queue);
@@ -138,10 +138,11 @@ int param_show_schedule(int server, int verbose, uint16_t id, int timeout) {
 		return -2;
 
 	packet->data[0] = PARAM_SCHEDULE_SHOW_REQUEST;
-
     packet->data[1] = 0;
 
     packet->data16[1] = csp_hton16(id);
+
+	packet->length = 4;
 
     int result = param_transaction(packet, server, timeout, param_transaction_callback_show, verbose, 2);
 
@@ -156,6 +157,7 @@ int param_show_schedule(int server, int verbose, uint16_t id, int timeout) {
 static void param_transaction_callback_list(csp_packet_t *response, int verbose, int version) {
 	//csp_hex_dump("pull response", response->data, response->length);
     if (response->data[0] != PARAM_SCHEDULE_LIST_RESPONSE){
+		//printf("Terminating list callback, wrong reponse ID: %d\n", response->data[0]);
         return;
     }
     
@@ -166,9 +168,9 @@ static void param_transaction_callback_list(csp_packet_t *response, int verbose,
 		for (int i = 0; i < num_scheduled; i++) {
 			unsigned int idx = 4+i*(4+2+2);
 			if (response->data[idx+7] == PARAM_QUEUE_TYPE_SET) {
-				printf("[SET] Queue id %d,", csp_ntoh16(response->data16[idx/2+2]));
+				printf("[SET] Queue id %d, ", csp_ntoh16(response->data16[idx/2+2]));
 			} else {
-				printf("[GET] Queue id %d,", csp_ntoh16(response->data16[idx/2+2]));
+				printf("[GET] Queue id %d, ", csp_ntoh16(response->data16[idx/2+2]));
 			}
 			if (response->data[idx+6] == 1) {
 				if (csp_ntoh32(response->data32[idx/4]) <= 1E9) {
@@ -195,8 +197,9 @@ int param_list_schedule(int server, int verbose, int timeout) {
 		return -2;
 
 	packet->data[0] = PARAM_SCHEDULE_LIST_REQUEST;
-
     packet->data[1] = 0;
+
+	packet->length = 2;
 
     int result = param_transaction(packet, server, timeout, param_transaction_callback_list, verbose, 2);
 

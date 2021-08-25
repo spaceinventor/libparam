@@ -69,7 +69,7 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
     if (last_id == UINT16_MAX){
         last_id = 0;
     }
-    printf("schedule added at id: %d\n", last_id);
+    //printf("schedule added at id: %d\n", last_id);
     schedule[counter].id = last_id;
 
     schedule[counter].time = csp_ntoh32(packet->data32[1]);
@@ -120,8 +120,8 @@ int param_serve_schedule_push(csp_packet_t *request) {
 
     csp_buffer_free(request);
 
-    int idx = get_schedule_idx(id);
-    schedule_print(idx);
+    //int idx = get_schedule_idx(id);
+    //schedule_print(idx);
 
     return 0;
 }
@@ -153,24 +153,35 @@ int param_serve_schedule_pull(csp_packet_t *request) {
 int param_serve_schedule_show(csp_packet_t *packet) {
     uint16_t id = csp_ntoh16(packet->data16[1]);
     int idx = get_schedule_idx(id);
-    printf("Searching for id %d, idx: %d\n", id, idx);
+    //printf("Searching for id %d, idx: %d\n", id, idx);
     if (idx < 0) {
         printf("No active schedule with id %d found\n", id);
         return -1;
     }
     
     /* Respond with the requested schedule entry */
+    //printf("Building show response packet:\n");
 	packet->data[0] = PARAM_SCHEDULE_SHOW_RESPONSE;
+    //printf(" type: %d\n", packet->data[0]);
 	packet->data[1] = PARAM_FLAG_END;
+    //printf(" end flag: %d\n", packet->data[1]);
     packet->data16[1] = csp_hton16(schedule[idx].id);
+    //printf(" schedule id: %d\n", csp_ntoh16(packet->data16[1]));
     packet->data32[1] = csp_hton32(schedule[idx].time);
+    //printf(" schedule time: %u\n", csp_ntoh32(packet->data32[1]));
     packet->data[8] = schedule[idx].queue.type;
+    //printf(" queue type: %u\n", packet->data[8]);
+    //printf(" queue length: %d\n", schedule[idx].queue.used);
+    packet->length = schedule[idx].queue.used + 9;
+    //csp_hex_dump("show response packet to transmit", &packet->data, packet->length);
     
-    memcpy(&packet->data[9], &schedule[idx].queue.buffer, schedule[idx].queue.used);
-	packet->length = schedule[idx].queue.used + 9;
+    memcpy(&packet->data[9], schedule[idx].queue.buffer, schedule[idx].queue.used);
+    //printf(" total packet length: %d\n", packet->length);
 
-    printf("Queue size: %d\n", schedule[idx].queue.used);
-    param_queue_print(&schedule[idx].queue);
+    //printf("Queue size: %d bytes\n", schedule[idx].queue.used);
+    //param_queue_print(&schedule[idx].queue);
+    //csp_hex_dump("queue to transmit", schedule[idx].queue.buffer, schedule[idx].queue.used);
+    //csp_hex_dump("show response packet to transmit (after memcpy)", &packet->data, packet->length);
 
 	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
 		csp_buffer_free(packet);

@@ -93,7 +93,7 @@ int param_transaction(csp_packet_t *packet, int host, int timeout, param_transac
 
 	}
 
-	printf("Successful param transaction\n");
+	//printf("Successful param transaction, result: %d\n", result);
 	csp_close(conn);
 	return result;
 }
