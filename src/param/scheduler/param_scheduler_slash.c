@@ -39,8 +39,9 @@ static int cmd_schedule_push(struct slash *slash) {
         host = atoi(slash->argv[2]);
     if (slash->argc >= 4)
         time = atoi(slash->argv[3]);
-    if (slash->argc >= 5)
+    if (slash->argc >= 5) {
         timeout = atoi(slash->argv[4]);
+	}
 
 	if (param_schedule_push(&param_queue_set, 1, server, host, time, timeout) < 0) {
 		printf("No response\n");
@@ -65,8 +66,9 @@ static int cmd_schedule_pull(struct slash *slash) {
         host = atoi(slash->argv[2]);
     if (slash->argc >= 4)
         time = atoi(slash->argv[3]);
-    if (slash->argc >= 5)
+    if (slash->argc >= 5){
         timeout = atoi(slash->argv[4]);
+	}
 
 	if (param_schedule_push(&param_queue_get, 1, server, host, time, timeout) < 0) {
 		printf("No response\n");
@@ -85,8 +87,9 @@ static int cmd_schedule_list(struct slash *slash) {
 		return SLASH_EUSAGE;
 	if (slash->argc >= 2)
 		server = atoi(slash->argv[1]);
-    if (slash->argc >= 3)
+    if (slash->argc >= 3){
         timeout = atoi(slash->argv[2]);
+	}
 
 	if (param_list_schedule(server, 1, timeout) < 0) {
 		printf("No response\n");
@@ -109,8 +112,9 @@ static int cmd_schedule_show(struct slash *slash) {
 		server = atoi(slash->argv[1]);
     if (slash->argc >= 3)
         id = atoi(slash->argv[2]);
-    if (slash->argc >= 4)
-        timeout = atoi(slash->argv[3]);
+    if (slash->argc >= 4){
+		timeout = atoi(slash->argv[3]);
+	}
 
 	if (param_show_schedule(server, 1, id, timeout) < 0) {
 		printf("No response\n");
@@ -132,8 +136,9 @@ static int cmd_schedule_rm(struct slash *slash) {
 		server = atoi(slash->argv[1]);
     if (slash->argc >= 3)
         id = atoi(slash->argv[2]);
-    if (slash->argc >= 4)
+    if (slash->argc >= 4){
         timeout = atoi(slash->argv[3]);
+	}
 	if (id < -1)
 		return SLASH_EUSAGE;
 

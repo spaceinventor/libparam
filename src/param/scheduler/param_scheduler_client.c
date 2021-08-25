@@ -109,8 +109,9 @@ int param_schedule_pull(param_queue_t *queue, int verbose, int server, uint16_t 
 
 static void param_transaction_callback_show(csp_packet_t *response, int verbose, int version) {
 	//csp_hex_dump("pull response", response->data, response->length);
-    if (response->data[0] != PARAM_SCHEDULE_SHOW_RESPONSE)
+    if (response->data[0] != PARAM_SCHEDULE_SHOW_RESPONSE){
         return;
+	}
     
 	if (verbose) {
 		param_queue_t queue;
@@ -208,8 +209,9 @@ int param_list_schedule(int server, int verbose, int timeout) {
 
 static void param_transaction_callback_rm(csp_packet_t *response, int verbose, int version) {
 	//csp_hex_dump("pull response", response->data, response->length);
-    if (response->data[0] != PARAM_SCHEDULE_RM_RESPONSE)
+    if (response->data[0] != PARAM_SCHEDULE_RM_RESPONSE){
         return;
+	}
     
 	if (verbose) {
 		if (csp_ntoh16(response->data16[1]) == UINT16_MAX) {
