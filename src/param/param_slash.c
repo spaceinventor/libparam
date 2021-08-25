@@ -144,7 +144,7 @@ static int cmd_get(struct slash *slash) {
 
 	/* Remote parameters are sent to a queue or directly */
 	int result = 0;
-	//if (param->node != PARAM_LIST_LOCAL) {
+	if (param->node != PARAM_LIST_LOCAL) {
 
 		if (autosend) {
 			if (host != -1) {
@@ -161,11 +161,19 @@ static int cmd_get(struct slash *slash) {
 			param_queue_print(&param_queue_get);
 			return SLASH_SUCCESS;
 		}
-/*
-	} else {
+
+	} else if (autosend) {
 		param_print(param, -1, NULL, 0, 0);
+	} else {
+		if (!param_queue_get.buffer) {
+			param_queue_init(&param_queue_get, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_GET, paramver);
+		}
+		if (param_queue_add(&param_queue_get, param, offset, NULL) < 0)
+			printf("Queue full\n");
+		param_queue_print(&param_queue_get);
+		return SLASH_SUCCESS;
 	}
-*/
+
 	if (result < 0) {
 		printf("No response\n");
 		return SLASH_EIO;
@@ -195,7 +203,7 @@ static int cmd_set(struct slash *slash) {
 
 	/* Remote parameters are sent to a queue or directly */
 	int result = 0;
-	//if (param->node != PARAM_LIST_LOCAL) {
+	if (param->node != PARAM_LIST_LOCAL) {
 
 		if ((node != -1) && (autosend)) {
 			result = param_push_single(param, offset, valuebuf, 1, node, 1000, paramver);
@@ -203,21 +211,29 @@ static int cmd_set(struct slash *slash) {
 			result = param_push_single(param, offset, valuebuf, 1, host, 1000, paramver);
 		} else {
 			if (!param_queue_set.buffer) {
-    		    param_queue_init(&param_queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
+				param_queue_init(&param_queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
 			}
 			if (param_queue_add(&param_queue_set, param, offset, valuebuf) < 0)
 				printf("Queue full\n");
 			param_queue_print(&param_queue_set);
 			return SLASH_SUCCESS;
 		}
-
-		/* For local parameters, set immediately */
-/*
-	} else {
+		
+	} else if (autosend) {
+		/* For local parameters, set immediately if autosend is enabled */
 	    printf("Param set \n");
 		param_set(param, offset, valuebuf);
+	} else {
+		/* If autosend is off, queue the parameters */
+		if (!param_queue_set.buffer) {
+			param_queue_init(&param_queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
+		}
+		if (param_queue_add(&param_queue_set, param, offset, valuebuf) < 0)
+			printf("Queue full\n");
+		param_queue_print(&param_queue_set);
+		return SLASH_SUCCESS;
 	}
-*/
+
 	if (result < 0) {
 		printf("No response\n");
 		return SLASH_EIO;
