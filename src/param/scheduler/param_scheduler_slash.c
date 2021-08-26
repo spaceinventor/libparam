@@ -127,7 +127,7 @@ slash_command_sub(schedule, show, cmd_schedule_show, "<server> <id> [timeout]", 
 
 static int cmd_schedule_rm(struct slash *slash) {
     unsigned int server = 0;
-    unsigned int id = 0;
+    int id = 0;
 	unsigned int timeout = 100;
 
 	if (slash->argc < 3)

@@ -222,7 +222,7 @@ static void param_transaction_callback_rm(csp_packet_t *response, int verbose, i
 			printf("All scheduled command queues removed.\n");
 		} else {
 			//RM SINGLE RESPONSE
-			printf("Scheduled queue id %d removed.\n", csp_ntoh16(response->data16[1]));
+			printf("Schedule id %d removed.\n", csp_ntoh16(response->data16[1]));
 		}
 	}
     
@@ -240,6 +240,8 @@ int param_rm_schedule(int server, int verbose, uint16_t id, int timeout) {
     packet->data[1] = 0;
 
     packet->data16[1] = csp_hton16(id);
+	
+	packet->length = 4;
 
     int result = param_transaction(packet, server, timeout, param_transaction_callback_rm, verbose, 2);
 
@@ -261,6 +263,8 @@ int param_rm_all_schedule(int server, int verbose, int timeout) {
     packet->data[1] = 0;
 
     packet->data16[1] = csp_hton16(UINT16_MAX);
+
+	packet->length = 4;
 
     int result = param_transaction(packet, server, timeout, param_transaction_callback_rm, verbose, 2);
 
