@@ -23,6 +23,8 @@
 param_schedule_t schedule[SCHEDULE_LIST_LENGTH];
 static uint16_t last_id = UINT16_MAX;
 
+#if 0
+/* Debug schedule print function */
 static void schedule_print(int idx) {
     if (idx < 0)
         return;
@@ -49,6 +51,7 @@ static void schedule_print(int idx) {
     }
 
 }
+#endif
 
 static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
 
@@ -126,6 +129,7 @@ int param_serve_schedule_push(csp_packet_t *request) {
     return 0;
 }
 
+#if 0
 int param_serve_schedule_pull(csp_packet_t *request) {
     csp_packet_t * response = csp_buffer_get(0);
     if (response == NULL) {
@@ -149,34 +153,47 @@ int param_serve_schedule_pull(csp_packet_t *request) {
 
     return 0;
 }
+#endif
 
 int param_serve_schedule_show(csp_packet_t *packet) {
     uint16_t id = csp_ntoh16(packet->data16[1]);
     int idx = get_schedule_idx(id);
+    int status = 0;
     //printf("Searching for id %d, idx: %d\n", id, idx);
     if (idx < 0) {
-        printf("No active schedule with id %d found\n", id);
-        return -1;
+        //printf("No active schedule with id %d found\n", id);
+        status = -1;
     }
     
-    /* Respond with the requested schedule entry */
-    //printf("Building show response packet:\n");
-	packet->data[0] = PARAM_SCHEDULE_SHOW_RESPONSE;
-    //printf(" type: %d\n", packet->data[0]);
-	packet->data[1] = PARAM_FLAG_END;
-    //printf(" end flag: %d\n", packet->data[1]);
-    packet->data16[1] = csp_hton16(schedule[idx].id);
-    //printf(" schedule id: %d\n", csp_ntoh16(packet->data16[1]));
-    packet->data32[1] = csp_hton32(schedule[idx].time);
-    //printf(" schedule time: %u\n", csp_ntoh32(packet->data32[1]));
-    packet->data[8] = schedule[idx].queue.type;
-    //printf(" queue type: %u\n", packet->data[8]);
-    //printf(" queue length: %d\n", schedule[idx].queue.used);
-    packet->length = schedule[idx].queue.used + 9;
-    //csp_hex_dump("show response packet to transmit", &packet->data, packet->length);
-    
-    memcpy(&packet->data[9], schedule[idx].queue.buffer, schedule[idx].queue.used);
-    //printf(" total packet length: %d\n", packet->length);
+    if (status == 0) {
+        /* Respond with the requested schedule entry */
+        //printf("Building show response packet:\n");
+        packet->data[0] = PARAM_SCHEDULE_SHOW_RESPONSE;
+        //printf(" type: %d\n", packet->data[0]);
+        packet->data[1] = PARAM_FLAG_END;
+        //printf(" end flag: %d\n", packet->data[1]);
+        packet->data16[1] = csp_hton16(schedule[idx].id);
+        //printf(" schedule id: %d\n", csp_ntoh16(packet->data16[1]));
+        packet->data32[1] = csp_hton32(schedule[idx].time);
+        //printf(" schedule time: %u\n", csp_ntoh32(packet->data32[1]));
+        packet->data[8] = schedule[idx].queue.type;
+        packet->data[9] = schedule[idx].completed;
+        //printf(" queue type: %u\n", packet->data[8]);
+        //printf(" queue length: %d\n", schedule[idx].queue.used);
+        packet->length = schedule[idx].queue.used + 10;
+        //csp_hex_dump("show response packet to transmit", &packet->data, packet->length);
+        
+        memcpy(&packet->data[10], schedule[idx].queue.buffer, schedule[idx].queue.used);
+        //printf(" total packet length: %d\n", packet->length);
+    } else {
+        /* Respond with an error code */
+        packet->data[0] = PARAM_SCHEDULE_SHOW_RESPONSE;
+        packet->data[1] = PARAM_FLAG_END;
+
+        packet->data16[1] = csp_hton16(UINT16_MAX);
+
+        packet->length = 4;
+    }
 
     //printf("Queue size: %d bytes\n", schedule[idx].queue.used);
     //param_queue_print(&schedule[idx].queue);
@@ -289,7 +306,9 @@ int param_schedule_server_update(uint32_t timestamp) {
         if (schedule[i].timer_type == SCHED_TIMER_TYPE_RELATIVE) {
             for (int j = 0; j < dt; j++) {
                 if (schedule[i].completed != 1) {
-                    schedule[i].time--;
+                    if (schedule[i].time != 0)
+                        schedule[i].time--;
+                    
                     if (schedule[i].time == 0) {
                         /* Execute the scheduled queue */
                         if (param_push_queue(&schedule[i].queue, 0, schedule[i].host, 100) == 0) {

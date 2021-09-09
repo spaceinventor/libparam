@@ -52,6 +52,7 @@ static int cmd_schedule_push(struct slash *slash) {
 }
 slash_command_sub(schedule, push, cmd_schedule_push, "<server> <host> <time> [timeout]", NULL);
 
+#if 0
 static int cmd_schedule_pull(struct slash *slash) {
     unsigned int server = 0;
     unsigned int time = 0;
@@ -78,6 +79,7 @@ static int cmd_schedule_pull(struct slash *slash) {
 	return SLASH_SUCCESS;
 }
 slash_command_sub(schedule, pull, cmd_schedule_pull, "<server> <host> <time> [timeout]", NULL);
+#endif
 
 static int cmd_schedule_list(struct slash *slash) {
     unsigned int server = 0;

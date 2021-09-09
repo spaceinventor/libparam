@@ -32,7 +32,7 @@ static void param_transaction_callback_add(csp_packet_t *response, int verbose, 
 		if (csp_ntoh16(response->data16[1]) == UINT16_MAX) {
 			printf("Scheduling queue failed:\n");
 		} else {
-			printf("Queue scheduled with id %d:\n", csp_ntoh16(response->data16[1]));
+			printf("Queue scheduled with id %u:\n", csp_ntoh16(response->data16[1]));
 		}
 	}
 
@@ -73,6 +73,7 @@ int param_schedule_push(param_queue_t *queue, int verbose, int server, uint16_t 
 	return 0;
 }
 
+#if 0
 int param_schedule_pull(param_queue_t *queue, int verbose, int server, uint16_t host, uint32_t time, int timeout) {
 
 	if ((queue == NULL) || (queue->used == 0))
@@ -106,6 +107,7 @@ int param_schedule_pull(param_queue_t *queue, int verbose, int server, uint16_t 
 
 	return 0;
 }
+#endif
 
 static void param_transaction_callback_show(csp_packet_t *response, int verbose, int version) {
 	//csp_hex_dump("pull response", response->data, response->length);
@@ -114,18 +116,33 @@ static void param_transaction_callback_show(csp_packet_t *response, int verbose,
 	}
     
 	if (verbose) {
-		param_queue_t queue;
-		param_queue_init(&queue, &response->data[9], response->length - 9, response->length - 9, response->data[8], version);
-		//queue.last_node = response->id.src;
-
-		/* Show the requested queue */
-		if (csp_ntoh32(response->data32[1]) <= 1E9) {
-			printf("Showing queue id %d scheduled in %d s\n", csp_ntoh16(response->data16[1]), csp_ntoh32(response->data32[1]));
+		int id = csp_ntoh16(response->data16[1]);
+		if (id == UINT16_MAX) {
+			printf("Requested schedule id not found.\n");
 		} else {
-			printf("Showing queue id %d scheduled at UNIX time: %d\n", csp_ntoh16(response->data16[1]), csp_ntoh32(response->data32[1]));
-		}
+			param_queue_t queue;
+			param_queue_init(&queue, &response->data[10], response->length - 10, response->length - 10, response->data[8], version);
+			int time = csp_ntoh32(response->data32[1]);
+			//queue.last_node = response->id.src;
 
-		param_queue_print(&queue);
+			/* Show the requested queue */
+			printf("Showing queue id %u ", id);
+			if (response->data[9] == 0) { // if not completed
+				if (time <= 1E9) {
+					printf("scheduled in %u s\n", time);
+				} else {
+					printf("scheduled at UNIX time: %u\n", time);
+				}
+			} else {
+				if (time <= 1E9) {
+					printf("completed %u s ago\n", time);
+				} else {
+					printf("completed at UNIX time: %u\n", time);
+				}
+			}
+
+			param_queue_print(&queue);
+		}
 	}
 
 	csp_buffer_free(response);
@@ -147,7 +164,6 @@ int param_show_schedule(int server, int verbose, uint16_t id, int timeout) {
     int result = param_transaction(packet, server, timeout, param_transaction_callback_show, verbose, 2);
 
 	if (result < 0) {
-		printf("Error getting schedule to show\n");
 		return -1;
 	}
 
@@ -157,32 +173,36 @@ int param_show_schedule(int server, int verbose, uint16_t id, int timeout) {
 static void param_transaction_callback_list(csp_packet_t *response, int verbose, int version) {
 	//csp_hex_dump("pull response", response->data, response->length);
     if (response->data[0] != PARAM_SCHEDULE_LIST_RESPONSE){
-		//printf("Terminating list callback, wrong reponse ID: %d\n", response->data[0]);
         return;
     }
     
 	if (verbose) {
 		int num_scheduled = csp_ntoh16(response->data16[1]);
 		/* List the entries */
-		printf("Received list of %d queues:\n", num_scheduled);
-		for (int i = 0; i < num_scheduled; i++) {
-			unsigned int idx = 4+i*(4+2+2);
-			if (response->data[idx+7] == PARAM_QUEUE_TYPE_SET) {
-				printf("[SET] Queue id %d, ", csp_ntoh16(response->data16[idx/2+2]));
-			} else {
-				printf("[GET] Queue id %d, ", csp_ntoh16(response->data16[idx/2+2]));
-			}
-			if (response->data[idx+6] == 1) {
-				if (csp_ntoh32(response->data32[idx/4]) <= 1E9) {
-					printf("completed %d s ago.\n", response->data32[idx/4]);
+		if (num_scheduled == 0) {
+			printf("No scheduled queues\n");
+		} else {
+			printf("Received list of %u queues:\n", num_scheduled);
+			for (int i = 0; i < num_scheduled; i++) {
+				unsigned int idx = 4+i*(4+2+2);
+				unsigned int time = csp_ntoh32(response->data32[idx/4]);
+				if (response->data[idx+7] == PARAM_QUEUE_TYPE_SET) {
+					printf("[SET] Queue id %u, ", csp_ntoh16(response->data16[idx/2+2]));
+				} /*else {
+					printf("[GET] Queue id %u, ", csp_ntoh16(response->data16[idx/2+2]));
+				}*/
+				if (response->data[idx+6] == 1) {
+					if (time <= 1E9) {
+						printf("completed %u s ago.\n", time);
+					} else {
+						printf("completed at UNIX time: %u.\n", time);
+					}
 				} else {
-					printf("completed at UNIX time: %d.\n", response->data32[idx/4]);
-				}
-			} else {
-				if (csp_ntoh32(response->data32[idx/4]) <= 1E9) {
-					printf("scheduled in %d s.\n", csp_ntoh32(response->data32[idx/4]));
-				} else {
-					printf("scheduled at UNIX time: %d\n", csp_ntoh32(response->data32[idx/4]));
+					if (time <= 1E9) {
+						printf("scheduled in %u s.\n", time);
+					} else {
+						printf("scheduled at UNIX time: %u\n", time);
+					}
 				}
 			}
 		}
@@ -222,7 +242,7 @@ static void param_transaction_callback_rm(csp_packet_t *response, int verbose, i
 			printf("All scheduled command queues removed.\n");
 		} else {
 			//RM SINGLE RESPONSE
-			printf("Schedule id %d removed.\n", csp_ntoh16(response->data16[1]));
+			printf("Schedule id %u removed.\n", csp_ntoh16(response->data16[1]));
 		}
 	}
     

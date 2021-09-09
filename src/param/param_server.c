@@ -177,9 +177,11 @@ void param_serve(csp_packet_t * packet) {
 			param_serve_schedule_push(packet);
 			break;
 
+		/*
 		case PARAM_SCHEDULE_PULL:
 			param_serve_schedule_pull(packet);
 			break;
+			*/
 
 		case PARAM_SCHEDULE_SHOW_REQUEST:
 			param_serve_schedule_show(packet);
