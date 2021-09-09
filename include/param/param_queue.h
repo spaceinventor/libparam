@@ -51,7 +51,7 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, int *offse
 #define PARAM_QUEUE_FOREACH(param, reader, queue, offset) \
 	mpack_reader_t reader; \
 	mpack_reader_init_data(&reader, queue->buffer, queue->used); \
-	while(reader.left > 0) { \
+	while(reader.data < reader.end) { \
 		int id, node, offset = -1; \
 		param_deserialize_id(&reader, &id, &node, &offset, queue); \
 		param_t * param = param_list_find_id(node, id); \
