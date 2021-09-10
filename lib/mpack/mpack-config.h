@@ -167,9 +167,8 @@
  * files. Your entire project must be compiled with the same value of
  * @ref MPACK_DEBUG. (This is why @c NDEBUG is not used.)
  */
-#if !defined(MPACK_DEBUG) && (defined(DEBUG) || defined(_DEBUG))
-#define MPACK_DEBUG 0
-#endif
+
+#define MPACK_DEBUG 1
 
 /**
  * @def MPACK_STRINGS
