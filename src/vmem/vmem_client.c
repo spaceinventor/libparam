@@ -6,7 +6,6 @@
  */
 
 #include <stdio.h>
-#include <csp/arch/csp_malloc.h>
 #include <csp/arch/csp_time.h>
 #include <csp/csp_endian.h>
 
