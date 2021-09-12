@@ -116,7 +116,9 @@
  *
  * The default is malloc() if @ref MPACK_STDLIB is enabled.
  */
+#ifdef PARAM_LIST_DYNAMIC
 #define MPACK_MALLOC malloc
+#endif
 
 /**
  * @def MPACK_FREE
@@ -128,7 +130,9 @@
  * The default is free() if @ref MPACK_MALLOC has not been customized and
  * @ref MPACK_STDLIB is enabled.
  */
+#ifdef PARAM_LIST_DYNAMIC
 #define MPACK_FREE free
+#endif
 
 /**
  * @def MPACK_REALLOC
