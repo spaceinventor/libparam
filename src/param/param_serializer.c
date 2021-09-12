@@ -130,7 +130,7 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, int *offse
 int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * writer, void * value, param_queue_t * queue) {
 
 	/* Remember the initial position if we need to abort later due to buffer full */
-	char * init_pos = writer->position;
+	unsigned int init_pos = writer->used;
 
 	param_serialize_id(writer, param, offset, queue);
 
@@ -243,12 +243,12 @@ int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * write
 
 				mpack_start_str(writer, len);
 
-				if (writer->position + len > writer->end) {
+				if (writer->size - writer->used < len) {
 					writer->error = mpack_error_too_big;
 					break;
 				}
 
-				memcpy(writer->position, (char *) value, len);
+				memcpy(writer->buffer + writer->used, (char *) value, len);
 
 			} else {
 				char tmp[param->array_size];
@@ -257,15 +257,15 @@ int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * write
 
 				mpack_start_str(writer, len);
 
-				if (writer->position + len > writer->end) {
+				if (writer->size - writer->used < len) {
 					writer->error = mpack_error_too_big;
 					break;
 				}
 
-				memcpy(writer->position, tmp, len);
+				memcpy(writer->buffer + writer->used, tmp, len);
 
 			}
-			writer->position += len;
+			writer->used += len;
 			mpack_finish_str(writer);
 			break;
 		}
@@ -275,17 +275,17 @@ int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * write
 			mpack_start_bin(writer, param->array_size);
 
 			unsigned int size = (param->array_size > 0) ? param->array_size : 1;
-			if (writer->position + size > writer->end) {
+			if (writer->size - writer->used < size) {
 				writer->error = mpack_error_too_big;
 				break;
 			}
 
 			if (value) {
-				memcpy(writer->position, value, size);
+				memcpy(writer->buffer + writer->used, value, size);
 			} else {
-				param_get_data(param, writer->position, size);
+				param_get_data(param, writer->buffer + writer->used, size);
 			}
-			writer->position += param->array_size;
+			writer->used += param->array_size;
 			mpack_finish_bin(writer);
 			break;
 
@@ -294,7 +294,7 @@ int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * write
 		}
 
 		if (mpack_writer_error(writer) != mpack_ok) {
-			writer->position = init_pos;
+			writer->used = init_pos;
 			return -1;
 		}
 
@@ -353,16 +353,18 @@ void param_deserialize_from_mpack_to_param(void * context, void * queue, param_t
 			if (len == 0) {
 				param_set_string(param, "", 1);
 			} else {
-				param_set_string(param, &reader->data, len);
+				param_set_string(param, &reader->buffer[reader->pos], len);
 			}
-			reader->data += len;
+			reader->pos += len;
+			reader->left -= len;
 			mpack_done_str(reader);
 			break;
 		}
 		case PARAM_TYPE_DATA: {
 			int len = mpack_expect_bin(reader);
-			param_set_data(param, &reader->data, len);
-			reader->data += len;
+			param_set_data(param, &reader->buffer[reader->pos], len);
+			reader->pos += len;
+			reader->left -= len;
 			mpack_done_bin(reader);
 			break;
 		}
