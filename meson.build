@@ -6,6 +6,7 @@ conf.set('PARAM_STORE_VMEM', false)
 conf.set('PARAM_STORE_LOG', false)
 conf.set('PARAM_HAVE_SYS_QUEUE', get_option('list_dynamic'))
 conf.set('PARAM_LIST_DYNAMIC', get_option('list_dynamic'))
+conf.set('PARAM_HAVE_SCHEDULER', get_option('scheduler'))
 if get_option('have_fopen') == true
 	conf.set('MPACK_STDIO', 1)
 endif
@@ -33,9 +34,6 @@ param_src = files([
 	'src/param/param_queue.c',
 	'src/param/param.c',
 
-	'src/param/scheduler/param_scheduler.c',
-	'src/param/scheduler/param_scheduler_client.c',
-	
 	'lib/mpack/mpack.c',
 
 	'src/vmem/vmem_client.c',
@@ -49,6 +47,13 @@ if get_option('have_fopen') == true
 		'src/vmem/vmem_file.c',
 		'src/param/list/param_list_store_vmem.c',
 	])
+endif
+
+if get_option('scheduler') == true
+	param_src += files([
+		'src/param/scheduler/param_scheduler.c',
+		'src/param/scheduler/param_scheduler_client.c',
+	])	
 endif
 
 if get_option('vmem_fram') == true

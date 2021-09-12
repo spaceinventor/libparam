@@ -173,6 +173,8 @@ void param_serve(csp_packet_t * packet) {
 			param_serve_push(packet, 1, 2);
 			break;
 
+#ifdef PARAM_HAVE_SCHEDULER
+
 		case PARAM_SCHEDULE_PUSH:
 			param_serve_schedule_push(packet);
 			break;
@@ -198,6 +200,8 @@ void param_serve(csp_packet_t * packet) {
 		case PARAM_SCHEDULE_RM_ALL_REQUEST:
 			param_serve_schedule_rm_all(packet);
 			break;
+			
+#endif
 
 		default:
 			printf("Unknown parameter request\n");
