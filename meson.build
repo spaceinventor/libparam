@@ -5,6 +5,7 @@ conf.set('PARAM_STORE_FILE', false)
 conf.set('PARAM_STORE_VMEM', false)
 conf.set('PARAM_STORE_LOG', false)
 conf.set('PARAM_HAVE_SYS_QUEUE', get_option('list_dynamic'))
+conf.set('PARAM_LIST_DYNAMIC', get_option('list_dynamic'))
 if get_option('have_fopen') == true
 	conf.set('MPACK_STDIO', 1)
 endif

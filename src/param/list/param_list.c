@@ -6,7 +6,9 @@
  */
 
 #include <stdio.h>
+#ifdef PARAM_LIST_DYNAMIC
 #include <malloc.h>
+#endif
 
 #include <csp/csp.h>
 #include <csp/csp_endian.h>
@@ -237,6 +239,7 @@ void param_list_download(int node, int timeout, int list_version) {
 	csp_close(conn);
 }
 
+#ifdef PARAM_LIST_DYNAMIC
 void param_list_destroy(param_t * param) {
 	free(param);
 }
@@ -280,4 +283,5 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	return param;
 
 }
+#endif
 
