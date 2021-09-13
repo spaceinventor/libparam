@@ -2746,21 +2746,6 @@ void mpack_print_element(mpack_reader_t* reader, size_t depth, FILE* file) {
             mpack_done_ext(reader);
             break;
 
-    mpack_skip_bytes(reader, length - read);
-    return read;
-}
-
-static void mpack_print_element(mpack_reader_t* reader, mpack_print_t* print, size_t depth) {
-    mpack_tag_t val = mpack_read_tag(reader);
-    if (mpack_reader_error(reader) != mpack_ok)
-        return;
-
-    // We read some bytes from bin and ext so we can print its prefix in hex.
-    char buffer[MPACK_PRINT_BYTE_COUNT];
-    size_t count = 0;
-    size_t i, j;
-
-    switch (val.type) {
         case mpack_type_str:
             putc('"', file);
             for (size_t i = 0; i < val.v.l; ++i) {
