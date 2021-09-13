@@ -3810,7 +3810,7 @@ static size_t mpack_print_read_prefix(mpack_reader_t* reader, size_t length, cha
     return read;
 }
 
-static void mpack_print_element(mpack_reader_t* reader, mpack_print_t* print, size_t depth) {
+void mpack_print_element(mpack_reader_t* reader, mpack_print_t* print, size_t depth) {
     mpack_tag_t val = mpack_read_tag(reader);
     if (mpack_reader_error(reader) != mpack_ok)
         return;

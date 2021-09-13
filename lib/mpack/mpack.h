@@ -8194,6 +8194,10 @@ bool mpack_node_map_contains_cstr(mpack_node_t node, const char* cstr);
 MPACK_EXTERN_C_END
 MPACK_SILENCE_WARNINGS_END
 
+
+void mpack_print_element(mpack_reader_t* reader, mpack_print_t* print, size_t depth);
+
+
 #endif
 
 
