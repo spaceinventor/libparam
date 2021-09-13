@@ -80,8 +80,12 @@ if get_option('slash') == true
 			'src/param/list/param_list_slash.c',	
 			'src/param/param_slash.c',	
 			'src/vmem/vmem_client_slash.c',
-			'src/param/scheduler/param_scheduler_slash.c',
 		])
+		if get_option('scheduler') == true
+			param_src += files([
+				'src/param/scheduler/param_scheduler_slash.c',
+			])
+		endif	
 		if get_option('have_fopen') == true
 			param_src += files([
 				'src/vmem/vmem_client_slash_ftp.c',
