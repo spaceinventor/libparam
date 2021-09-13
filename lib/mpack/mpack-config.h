@@ -83,7 +83,11 @@
  * for debugging and in allocation helpers.
  */
 #ifndef MPACK_STDLIB
+#ifdef PARAM_LIST_DYNAMIC
 #define MPACK_STDLIB 1
+#else
+#define MPACK_STDLIB 0
+#endif
 #endif
 
 /**
