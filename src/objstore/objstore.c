@@ -1,6 +1,6 @@
 
 
-#include "objstore.h"
+#include <objstore/objstore.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,7 +10,7 @@
 
 const uint8_t sync_word[4] = {0x5C, 0x0F, 0xFE, 0xE1};
 
-typedef void (*objstore_scan_callback_f)(vmem_t * vmem, int offset, int verbose);
+//typedef int (*objstore_scan_callback_f)(vmem_t * vmem, int offset, int verbose);
 
 #if 0
 objstore_idx_t * obj_first_idx[NUM_OBJ_TYPES];
@@ -82,7 +82,28 @@ objstore_idx_t * objstore_add_index(uint8_t type, uint16_t offset, uint8_t lengt
 }
 #endif
 
-int objstore_alloc(vmem_t * vmem, int length) {
+static int _valid_obj_check(vmem_t * vmem, int offset) {
+    uint8_t data;
+    vmem->read(vmem, offset, &data, 1);
+    int sync_status = 0;
+    if (data == sync_word[0]) {
+        sync_status = 1;
+        for (int j = 1; j < 4; j++) {
+            vmem->read(vmem, offset+j, &data, 1);
+            if (data == sync_word[sync_status]) {
+                sync_status++;
+            } else {
+                return 0;
+            }
+        }
+    } else {
+        return 0;
+    }
+
+    return 1;
+}
+
+int objstore_alloc(vmem_t * vmem, int length, int verbose) {
     uint8_t sync_status = 0;
     int counter = 0;
 
@@ -116,7 +137,9 @@ int objstore_alloc(vmem_t * vmem, int length) {
             sync_status = 0;
             counter++;
             if ( counter == (length+6) ) {
-                printf("Found room for %u bytes plus overhead starting at offset %u\n", length, i-(length+5));
+                if (verbose)
+                    printf("Found room for %u bytes plus overhead starting at offset %u\n", length, i-(length+5));
+                
                 // todo: Lock the allocated piece of memory
                 return i-(length+5);
             }
@@ -127,8 +150,31 @@ int objstore_alloc(vmem_t * vmem, int length) {
 
 }
 
-void objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose) {
+int objstore_read_obj_length(vmem_t * vmem, int offset) {
+    if (_valid_obj_check(vmem, offset) == 0) {
+        return -1;
+    }
+    int length = -1;
+
+    vmem->read(vmem, offset+5, &length, 1);
+
+    return length;
+}
+
+int objstore_read_obj_type(vmem_t * vmem, int offset) {
+    if (_valid_obj_check(vmem, offset) == 0) {
+        return -1;
+    }
+    int type = -1;
+
+    vmem->read(vmem, offset+4, &type, 1);
+
+    return type;
+}
+
+int objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose, void * ctx) {
     uint8_t sync_status = 0;
+    int last_obj_offset = -1;
     
     for (int i = 0; i < vmem->size; i++) {
         uint8_t data;
@@ -147,9 +193,12 @@ void objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose
 
                 if (sync_status == 4) {
 
-                    callback(vmem, i, verbose);
+                    if (callback(vmem, i, verbose, ctx) < 0)
+                        return i;
                     
                     sync_status = 0;
+
+                    last_obj_offset = i;
 
                     uint8_t length;
                     vmem->read(vmem, i+5, &length, 1);
@@ -161,27 +210,13 @@ void objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose
         }
     }
 
+    return last_obj_offset;
+
 }
 
 int objstore_rm_obj(vmem_t * vmem, int offset, int verbose) {
     // check that a valid object is actually present
-    uint8_t data;
-    vmem->read(vmem, offset, &data, 1);
-    int sync_status = 0;
-    if (data == sync_word[0]) {
-        sync_status = 1;
-        for (int j = 1; j < 4; j++) {
-            vmem->read(vmem, offset+j, &data, 1);
-            if (data == sync_word[sync_status]) {
-                sync_status++;
-            } else {
-                if (verbose)
-                    printf("Obj deletion error! No valid object found at offset %u\n", offset);
-                
-                return -1;
-            }
-        }
-    } else {
+    if (_valid_obj_check(vmem, offset) == 0) {
         if (verbose)
             printf("Obj deletion error! No valid object found at offset %u\n", offset);
         
@@ -210,28 +245,15 @@ int objstore_rm_obj(vmem_t * vmem, int offset, int verbose) {
     return 0;
 }
 
-int objstore_read_obj(vmem_t * vmem, int offset, void * data_buf) {
-    // check that a valid object is actually present
-    uint8_t data;
-    vmem->read(vmem, offset, &data, 1);
-    int sync_status = 0;
-    if (data == sync_word[0]) {
-        sync_status = 1;
-        for (int j = 1; j < 4; j++) {
-            vmem->read(vmem, offset+j, &data, 1);
-            if (data == sync_word[sync_status]) {
-                sync_status++;
-            } else {
-                printf("Obj read error! No valid object found at offset %u\n", offset);
-                return -1;
-            }
-        }
-    } else {
-        printf("Obj read error! No valid object found at offset %u\n", offset);
+int objstore_read_obj(vmem_t * vmem, int offset, void * data_buf, int verbose) {
+    if (_valid_obj_check(vmem, offset) == 0) {
+        if (verbose)
+            printf("Obj read error! No valid object found at offset %u\n", offset);
+        
         return -1;
     }
 
-    // data buffer must already be the right size
+    /* Data buffer must be correct size, e.g. by using objstore_read_obj_length */
     const uint8_t length;
     vmem->read(vmem, offset+5, &length, 1);
 
@@ -249,7 +271,7 @@ void objstore_write_obj(vmem_t * vmem, int offset, uint8_t type, uint8_t length,
     // TODO: clear lock
 }
 
-static void test_callback(vmem_t * vmem, int offset, int verbose) {
+static int test_callback(vmem_t * vmem, int offset, int verbose, void * var_in) {
 
     if (verbose) {
         printf("Found sync-word 5C0FFEE1 at offset %u\n", offset);
@@ -262,6 +284,8 @@ static void test_callback(vmem_t * vmem, int offset, int verbose) {
         vmem->read(vmem, offset+5, &length, 1);
         printf(" object length: %u\n", length);
     }
+
+    return 0;
 
 }
 

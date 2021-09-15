@@ -15,7 +15,7 @@
 
 #include <csp/csp.h>
 
-#include "objstore.h"
+#include <objstore/objstore.h>
 
 #include <vmem/vmem.h>
 #include <vmem/vmem_file.h>
@@ -65,7 +65,7 @@ static int cmd_objstore_init(struct slash *slash) {
 }
 slash_command_sub(objstore, init, cmd_objstore_init, "", NULL);
 
-static void objstore_scan_callback(vmem_t * vmem, int offset, int verbose) {
+static int objstore_scan_callback(vmem_t * vmem, int offset, int verbose, void * ctx) {
 
     if (verbose) {
         printf("Found sync-word 5C0FFEE1 at offset %u\n", offset);
@@ -79,13 +79,15 @@ static void objstore_scan_callback(vmem_t * vmem, int offset, int verbose) {
         printf(" object length: %u\n", length);
     }
 
+	return 0;
+
 }
 
 static int cmd_objstore_scan(struct slash *slash) {
 	if (slash->argc >= 1)
 		return SLASH_EUSAGE;
 
-	objstore_scan(&vmem_slashfile, objstore_scan_callback, 1);
+	objstore_scan(&vmem_slashfile, objstore_scan_callback, 1, NULL);
 
 	return SLASH_SUCCESS;
 }

@@ -13,8 +13,8 @@
 #include <vmem/vmem_file.h>
 
 typedef enum {
-    SCHEDULE = 1,
-    PROGRAM = 2,
+    OBJ_TYPE_SCHEDULE = 1,
+    OBJ_TYPE_PROGRAM = 2,
 } objstore_type_e;
 
 #define NUM_OBJ_TYPES 2
@@ -31,11 +31,16 @@ struct objstore_idx_s {
 
 typedef struct objstore_idx_s objstore_idx_t;
 
-typedef void (*objstore_scan_callback_f)(vmem_t * vmem, int offset, int verbose);
-
+typedef int (*objstore_scan_callback_f)(vmem_t * vmem, int offset, int verbose, void * ctx);
 
 void objstore_init(vmem_t * vmem);
-void objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose);
+
+int objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose, void * ctx);
+int objstore_alloc(vmem_t * vmem, int length, int verbose);
+
 void objstore_write_obj(vmem_t * vmem, int offset, uint8_t type, uint8_t length, void * data);
-int objstore_alloc(vmem_t * vmem, int length);
 int objstore_rm_obj(vmem_t * vmem, int offset, int verbose);
+
+int objstore_read_obj_type(vmem_t * vmem, int offset);
+int objstore_read_obj_length(vmem_t * vmem, int offset);
+int objstore_read_obj(vmem_t * vmem, int offset, void * data_buf, int verbose);

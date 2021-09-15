@@ -40,6 +40,9 @@ param_src = files([
 	'src/vmem/vmem_ram.c',
 	'src/vmem/vmem_server.c',
 	'src/vmem/vmem.c',
+
+	'src/objstore/objstore.c',
+	'src/objstore/objstore_slash.c'
 ])
 
 if get_option('have_fopen') == true

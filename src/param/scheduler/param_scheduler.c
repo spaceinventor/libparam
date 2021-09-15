@@ -19,6 +19,9 @@
 #include <param/param_list.h>
 #include <param/param_client.h>
 
+#include <objstore/objstore.h>
+
+VMEM_DEFINE_FILE(schedule, "schedule", "schedule.cnf", 0x1000);
 
 param_schedule_t schedule[SCHEDULE_LIST_LENGTH];
 static uint16_t last_id = UINT16_MAX;
@@ -55,39 +58,44 @@ static void schedule_print(int idx) {
 
 static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
 
-    /* Find a free entry on the schedule list */
-    int counter = 0;
-    while(counter < SCHEDULE_LIST_LENGTH) {
-        if ( (schedule[counter].active == 0) || (schedule[counter].active == 0xFF) )
-            break;
-        counter++;
-    }
-    if (counter >= SCHEDULE_LIST_LENGTH)
-        return UINT16_MAX;
+    /* Construct a temporary schedule structure */
 
-    schedule[counter].active = 1;
-    schedule[counter].completed = 0;
+    int queue_size = packet->length - 8;
+
+    param_schedule_t * temp_schedule = malloc(sizeof(param_schedule_t) + queue_size);
+
+    temp_schedule->active = 1;
+    temp_schedule->completed = 0;
 
     last_id++;
     if (last_id == UINT16_MAX){
         last_id = 0;
     }
     //printf("schedule added at id: %d\n", last_id);
-    schedule[counter].id = last_id;
+    temp_schedule->id = last_id;
 
-    schedule[counter].time = csp_ntoh32(packet->data32[1]);
-    if (schedule[counter].time > 1E9) {
-        schedule[counter].timer_type = SCHED_TIMER_TYPE_UNIX;
+    temp_schedule->time = csp_ntoh32(packet->data32[1]);
+    if (temp_schedule->time > 1E9) {
+        temp_schedule->timer_type = SCHED_TIMER_TYPE_UNIX;
     } else {
-        schedule[counter].timer_type = SCHED_TIMER_TYPE_RELATIVE;
+        temp_schedule->timer_type = SCHED_TIMER_TYPE_RELATIVE;
     }
 
-    schedule[counter].host = csp_ntoh16(packet->data16[1]);
-    param_queue_init(&schedule[counter].queue, &packet->data[8], packet->length - 8, packet->length - 8, q_type, 2);
+    temp_schedule->host = csp_ntoh16(packet->data16[1]);
+    param_queue_init(&temp_schedule->queue, temp_schedule + sizeof(param_schedule_t), packet->length - 8, packet->length - 8, q_type, 2);
 
-    schedule[counter].buffer_ptr = packet;
+    temp_schedule->buffer_ptr = packet;
 
-    return schedule[counter].id;
+    /* Determine schedule size and allocate VMEM */
+    int obj_length = sizeof(param_schedule_t) + queue_size;
+
+    int obj_offset = objstore_alloc(&vmem_schedule, obj_length, 1);
+
+    objstore_write_obj(&vmem_schedule, obj_offset, OBJ_TYPE_SCHEDULE, obj_length, (void*) temp_schedule);
+    
+    csp_buffer_free(packet);
+    free(temp_schedule);
+    return last_id;
 }
 
 static int get_schedule_idx(uint16_t id) {
@@ -155,36 +163,70 @@ int param_serve_schedule_pull(csp_packet_t *request) {
 }
 #endif
 
+static int obj_offset_from_id_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
+    int _id =  *(int*)ctx;
+    printf(" Begin cb function\n");
+
+    int type = objstore_read_obj_type(vmem, offset);
+    if (type != OBJ_TYPE_SCHEDULE)
+        return 0;
+    
+    int length = objstore_read_obj_length(vmem, offset);
+    param_schedule_t * temp_schedule = malloc(length);
+    objstore_read_obj(vmem, offset, (void*) temp_schedule, 0);
+
+    if (temp_schedule->id == _id) {
+        free(temp_schedule);
+        return -1;
+    }
+
+    free(temp_schedule);
+    return 0;
+}
+
+static int obj_offset_from_id(vmem_t * vmem, int id) {
+    printf(" Begin offset_from_id function\n");
+    int offset;
+
+    offset = objstore_scan(vmem, obj_offset_from_id_scancb, 0, (void*) &id);
+
+    return offset;
+}
+
 int param_serve_schedule_show(csp_packet_t *packet) {
+    printf("Starting serve_show function\n");
     uint16_t id = csp_ntoh16(packet->data16[1]);
-    int idx = get_schedule_idx(id);
+    int offset = obj_offset_from_id(&vmem_schedule, id);
     int status = 0;
     //printf("Searching for id %d, idx: %d\n", id, idx);
-    if (idx < 0) {
-        //printf("No active schedule with id %d found\n", id);
+    if (offset < 0) {
+        //printf("No schedule with id %d found\n", id);
         status = -1;
     }
     
     if (status == 0) {
+        printf("Reading schedule object");
+        /* Read the schedule entry */
+        int length = objstore_read_obj_length(&vmem_schedule, offset);
+        param_schedule_t * temp_schedule = malloc(length);
+        objstore_read_obj(&vmem_schedule, offset, (void*) temp_schedule, 0);
+
+        temp_schedule->queue.buffer = (char*) (temp_schedule + sizeof(param_schedule_t));
+
         /* Respond with the requested schedule entry */
-        //printf("Building show response packet:\n");
         packet->data[0] = PARAM_SCHEDULE_SHOW_RESPONSE;
-        //printf(" type: %d\n", packet->data[0]);
         packet->data[1] = PARAM_FLAG_END;
-        //printf(" end flag: %d\n", packet->data[1]);
-        packet->data16[1] = csp_hton16(schedule[idx].id);
-        //printf(" schedule id: %d\n", csp_ntoh16(packet->data16[1]));
-        packet->data32[1] = csp_hton32(schedule[idx].time);
-        //printf(" schedule time: %u\n", csp_ntoh32(packet->data32[1]));
-        packet->data[8] = schedule[idx].queue.type;
-        packet->data[9] = schedule[idx].completed;
-        //printf(" queue type: %u\n", packet->data[8]);
-        //printf(" queue length: %d\n", schedule[idx].queue.used);
-        packet->length = schedule[idx].queue.used + 10;
-        //csp_hex_dump("show response packet to transmit", &packet->data, packet->length);
+
+        packet->data16[1] = csp_hton16(temp_schedule->id);
+        packet->data32[1] = csp_hton32(temp_schedule->time);
+        packet->data[8] = temp_schedule->queue.type;
+        packet->data[9] = temp_schedule->completed;
+
+        packet->length = temp_schedule->queue.used + 10;
         
-        memcpy(&packet->data[10], schedule[idx].queue.buffer, schedule[idx].queue.used);
-        //printf(" total packet length: %d\n", packet->length);
+        memcpy(&packet->data[10], temp_schedule->queue.buffer, temp_schedule->queue.used);
+
+        free(temp_schedule);
     } else {
         /* Respond with an error code */
         packet->data[0] = PARAM_SCHEDULE_SHOW_RESPONSE;
@@ -194,11 +236,6 @@ int param_serve_schedule_show(csp_packet_t *packet) {
 
         packet->length = 4;
     }
-
-    //printf("Queue size: %d bytes\n", schedule[idx].queue.used);
-    //param_queue_print(&schedule[idx].queue);
-    //csp_hex_dump("queue to transmit", schedule[idx].queue.buffer, schedule[idx].queue.used);
-    //csp_hex_dump("show response packet to transmit (after memcpy)", &packet->data, packet->length);
 
 	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
 		csp_buffer_free(packet);
@@ -357,6 +394,8 @@ int param_schedule_server_update(uint32_t timestamp) {
 
 void param_schedule_server_init(void) {
     // Allocate the schedule array in FRAM or check if it's already there
+
+    vmem_file_init(&vmem_schedule);
 
     // Initialize any un-initialized schedule entries
     for (int i = 0; i < SCHEDULE_LIST_LENGTH; i++) {
