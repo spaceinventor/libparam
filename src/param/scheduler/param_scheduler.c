@@ -57,9 +57,7 @@ static void schedule_print(int idx) {
 #endif
 
 static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
-
     /* Construct a temporary schedule structure */
-
     int queue_size = packet->length - 8;
 
     param_schedule_t * temp_schedule = malloc(sizeof(param_schedule_t) + queue_size);
@@ -82,7 +80,8 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
     }
 
     temp_schedule->host = csp_ntoh16(packet->data16[1]);
-    param_queue_init(&temp_schedule->queue, temp_schedule + sizeof(param_schedule_t), packet->length - 8, packet->length - 8, q_type, 2);
+    param_queue_init(&temp_schedule->queue, (char *) temp_schedule + sizeof(param_schedule_t), packet->length - 8, packet->length - 8, q_type, 2);
+    memcpy(temp_schedule->queue.buffer, &packet->data[8], temp_schedule->queue.used);
 
     temp_schedule->buffer_ptr = packet;
 
@@ -91,7 +90,10 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
 
     int obj_offset = objstore_alloc(&vmem_schedule, obj_length, 1);
 
-    objstore_write_obj(&vmem_schedule, obj_offset, OBJ_TYPE_SCHEDULE, obj_length, (void*) temp_schedule);
+    csp_hex_dump("Schedule to write:", temp_schedule, obj_length);
+    csp_hex_dump("Schedule queue buffer:", temp_schedule->queue.buffer, temp_schedule->queue.used);
+
+    objstore_write_obj(&vmem_schedule, obj_offset, (uint8_t) OBJ_TYPE_SCHEDULE, (uint8_t) obj_length, (void*) temp_schedule);
     
     csp_buffer_free(packet);
     free(temp_schedule);
@@ -165,15 +167,21 @@ int param_serve_schedule_pull(csp_packet_t *request) {
 
 static int obj_offset_from_id_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
     int _id =  *(int*)ctx;
-    printf(" Begin cb function\n");
+    //printf(" Begin cb function\n");
 
     int type = objstore_read_obj_type(vmem, offset);
+    //printf(" CB read object type: %d\n", type);
     if (type != OBJ_TYPE_SCHEDULE)
         return 0;
     
     int length = objstore_read_obj_length(vmem, offset);
+    //printf(" CB read object length: %d\n", length);
+    if (length < 0)
+        return 0;
+    
     param_schedule_t * temp_schedule = malloc(length);
     objstore_read_obj(vmem, offset, (void*) temp_schedule, 0);
+    //csp_hex_dump("CB read schedule:", temp_schedule, length);
 
     if (temp_schedule->id == _id) {
         free(temp_schedule);
@@ -185,7 +193,7 @@ static int obj_offset_from_id_scancb(vmem_t * vmem, int offset, int verbose, voi
 }
 
 static int obj_offset_from_id(vmem_t * vmem, int id) {
-    printf(" Begin offset_from_id function\n");
+    //printf(" Begin offset_from_id function\n");
     int offset;
 
     offset = objstore_scan(vmem, obj_offset_from_id_scancb, 0, (void*) &id);
@@ -205,13 +213,15 @@ int param_serve_schedule_show(csp_packet_t *packet) {
     }
     
     if (status == 0) {
-        printf("Reading schedule object");
+        printf("Reading schedule object\n");
         /* Read the schedule entry */
         int length = objstore_read_obj_length(&vmem_schedule, offset);
         param_schedule_t * temp_schedule = malloc(length);
         objstore_read_obj(&vmem_schedule, offset, (void*) temp_schedule, 0);
 
-        temp_schedule->queue.buffer = (char*) (temp_schedule + sizeof(param_schedule_t));
+        temp_schedule->queue.buffer = (char *) ((long int) temp_schedule + (long int) (sizeof(param_schedule_t)));
+
+        csp_hex_dump("test", temp_schedule, length);
 
         /* Respond with the requested schedule entry */
         packet->data[0] = PARAM_SCHEDULE_SHOW_RESPONSE;
@@ -318,7 +328,16 @@ int param_serve_schedule_list(csp_packet_t *packet) {
     return 0;
 }
 
-uint32_t last_timestamp = 0;
+static void meta_obj_update(vmem_t * vmem) {
+    /* Search for scheduler meta object */
+    int offset = objstore_scan(vmem, find_meta_scancb, 0, NULL);
+    if (offset < 0)
+        return;
+    
+    objstore_write_obj(vmem, offset, OBJ_TYPE_SCHEDULER_META, sizeof(last_id), (void *) &last_id);
+}
+
+uint32_t last_timestamp = 0; // TODO: Bundle into meta structure with last_id
 
 int param_schedule_server_update(uint32_t timestamp) {
     //printf("Schedule server update started.\n");
@@ -388,14 +407,41 @@ int param_schedule_server_update(uint32_t timestamp) {
         }
     }
 
+    meta_obj_update(&vmem_schedule);
+
     //printf("Schedule server update completed.\n");
     return 0;
+}
+
+static int find_meta_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
+    int type = objstore_read_obj_type(vmem, offset);
+
+    if (type == OBJ_TYPE_SCHEDULER_META)
+        return -1;
+
+    return 0;
+}
+
+static void meta_obj_init(vmem_t * vmem) {
+    /* Search for scheduler meta object */
+    int offset = objstore_scan(vmem, find_meta_scancb, 0, NULL);
+    
+    // currently only contains the last_id data
+    if (offset < 0) {
+        /* Not found, create it */
+        offset = objstore_alloc(vmem, sizeof(last_id), 0);
+        objstore_write_obj(vmem, offset, OBJ_TYPE_SCHEDULER_META, sizeof(last_id), (void *) &last_id);
+    } else {
+        objstore_read_obj(vmem, offset, (void *) &last_id, 0);
+    }
 }
 
 void param_schedule_server_init(void) {
     // Allocate the schedule array in FRAM or check if it's already there
 
     vmem_file_init(&vmem_schedule);
+
+    meta_obj_init(&vmem_schedule);
 
     // Initialize any un-initialized schedule entries
     for (int i = 0; i < SCHEDULE_LIST_LENGTH; i++) {

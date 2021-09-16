@@ -154,7 +154,7 @@ int objstore_read_obj_length(vmem_t * vmem, int offset) {
     if (_valid_obj_check(vmem, offset) == 0) {
         return -1;
     }
-    int length = -1;
+    uint8_t length;
 
     vmem->read(vmem, offset+5, &length, 1);
 
@@ -165,7 +165,7 @@ int objstore_read_obj_type(vmem_t * vmem, int offset) {
     if (_valid_obj_check(vmem, offset) == 0) {
         return -1;
     }
-    int type = -1;
+    uint8_t type;
 
     vmem->read(vmem, offset+4, &type, 1);
 
@@ -174,7 +174,6 @@ int objstore_read_obj_type(vmem_t * vmem, int offset) {
 
 int objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose, void * ctx) {
     uint8_t sync_status = 0;
-    int last_obj_offset = -1;
     
     for (int i = 0; i < vmem->size; i++) {
         uint8_t data;
@@ -198,8 +197,6 @@ int objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose,
                     
                     sync_status = 0;
 
-                    last_obj_offset = i;
-
                     uint8_t length;
                     vmem->read(vmem, i+5, &length, 1);
                     i += length+5;
@@ -210,7 +207,7 @@ int objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose,
         }
     }
 
-    return last_obj_offset;
+    return -1;
 
 }
 
@@ -271,6 +268,7 @@ void objstore_write_obj(vmem_t * vmem, int offset, uint8_t type, uint8_t length,
     // TODO: clear lock
 }
 
+/*
 static int test_callback(vmem_t * vmem, int offset, int verbose, void * var_in) {
 
     if (verbose) {
@@ -288,6 +286,7 @@ static int test_callback(vmem_t * vmem, int offset, int verbose, void * var_in) 
     return 0;
 
 }
+*/
 
 void objstore_init(vmem_t * vmem) {
 
