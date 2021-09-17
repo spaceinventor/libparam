@@ -27,30 +27,34 @@
 
 static int cmd_schedule_push(struct slash *slash) {
     unsigned int server = 0;
-    unsigned int time = 0;
 	unsigned int host = 0;
+    unsigned int time = 0;
+	unsigned int latency_buffer = 0;
 	unsigned int timeout = 100;
 
-	if (slash->argc < 4)
+	if (slash->argc < 5)
 		return SLASH_EUSAGE;
 	if (slash->argc >= 2)
 		server = atoi(slash->argv[1]);
 	if (slash->argc >= 3)
         host = atoi(slash->argv[2]);
-    if (slash->argc >= 4)
+    if (slash->argc >= 4) {
         time = atoi(slash->argv[3]);
-    if (slash->argc >= 5) {
-        timeout = atoi(slash->argv[4]);
+	}
+	if (slash->argc >= 4)
+        latency_buffer = atoi(slash->argv[3]);
+    if (slash->argc >= 6) {
+        timeout = atoi(slash->argv[5]);
 	}
 
-	if (param_schedule_push(&param_queue_set, 1, server, host, time, timeout) < 0) {
+	if (param_schedule_push(&param_queue_set, 1, server, host, time, latency_buffer, timeout) < 0) {
 		printf("No response\n");
 		return SLASH_EIO;
 	}
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(schedule, push, cmd_schedule_push, "<server> <host> <time> [timeout]", NULL);
+slash_command_sub(schedule, push, cmd_schedule_push, "<server> <host> <time> <latency buffer> [timeout]", NULL);
 
 #if 0
 static int cmd_schedule_pull(struct slash *slash) {
@@ -159,3 +163,35 @@ static int cmd_schedule_rm(struct slash *slash) {
 	return SLASH_SUCCESS;
 }
 slash_command_sub(schedule, rm, cmd_schedule_rm, "<server> <id> [timeout]", NULL);
+
+static int cmd_schedule_reset(struct slash *slash) {
+    unsigned int server = 0;
+    uint32_t timestamp = 0;
+	uint16_t last_id = 0;
+	unsigned int timeout = 100;
+
+	if (slash->argc < 4)
+		return SLASH_EUSAGE;
+	if (slash->argc >= 2)
+		server = atoi(slash->argv[1]);
+    if (slash->argc >= 3)
+        timestamp = atoi(slash->argv[2]);
+    if (slash->argc >= 4)
+        last_id = atoi(slash->argv[3]);
+    if (slash->argc >= 5){
+        timeout = atoi(slash->argv[4]);
+	}
+
+	if ( (last_id == 0) && (timestamp == 0)) {
+		printf("Error: at least one of last id or timestamp must be non-zero\n");
+		return SLASH_EUSAGE;
+	}
+
+	if (param_reset_scheduler(server, timestamp, last_id, 1, timeout) < 0) {
+		printf("No response\n");
+		return SLASH_EIO;
+	}
+
+	return SLASH_SUCCESS;
+}
+slash_command_sub(schedule, reset, cmd_schedule_reset, "<server> <timestamp> <last id> [timeout]", NULL);

@@ -39,8 +39,7 @@ static void param_transaction_callback_add(csp_packet_t *response, int verbose, 
 	csp_buffer_free(response);
 }
 
-int param_schedule_push(param_queue_t *queue, int verbose, int server, uint16_t host, uint32_t time, int timeout) {
-
+int param_schedule_push(param_queue_t *queue, int verbose, int server, uint16_t host, uint32_t time, uint32_t latency_buffer, int timeout) {
 	if ((queue == NULL) || (queue->used == 0))
 		return 0;
 
@@ -57,10 +56,11 @@ int param_schedule_push(param_queue_t *queue, int verbose, int server, uint16_t 
 	packet->data[1] = 0;
     packet->data16[1] = csp_hton16(host);
     packet->data32[1] = csp_hton32(time);
+	packet->data32[2] = csp_hton32(latency_buffer);
 
-	memcpy(&packet->data[8], queue->buffer, queue->used);
+	memcpy(&packet->data[12], queue->buffer, queue->used);
 
-	packet->length = queue->used + 8;
+	packet->length = queue->used + 12;
 	int result = param_transaction(packet, server, timeout, param_transaction_callback_add, verbose, queue->version);
 
 	if (result < 0) {
@@ -133,18 +133,21 @@ static void param_transaction_callback_show(csp_packet_t *response, int verbose,
 				} else {
 					printf("scheduled at UNIX time: %u\n", time);
 				}
-			} else {
+			} else if (response->data[9] == 0x55) {
 				if (time <= 1E9) {
 					printf("completed %u s ago\n", time);
 				} else {
 					printf("completed at UNIX time: %u\n", time);
 				}
+			} else if (response->data[9] == 0xAA) {
+				if (time <= 1E9) {
+					printf("exceeded latency buffer %u s ago\n", time);
+				} else {
+					printf("exceeded latency buffer at UNIX time: %u\n", time);
+				}
 			}
 
 			param_queue_print(&queue);
-
-			csp_hex_dump("Received queue metadata:", &queue, sizeof(queue));
-			csp_hex_dump("Received queue buffer:", queue.buffer, queue.used);
 
 		}
 	}
@@ -195,17 +198,23 @@ static void param_transaction_callback_list(csp_packet_t *response, int verbose,
 				} /*else {
 					printf("[GET] Queue id %u, ", csp_ntoh16(response->data16[idx/2+2]));
 				}*/
-				if (response->data[idx+6] == 1) {
+				if (response->data[idx+6] == 0x55) {
 					if (time <= 1E9) {
 						printf("completed %u s ago.\n", time);
 					} else {
 						printf("completed at UNIX time: %u.\n", time);
 					}
-				} else {
+				} else if (response->data[idx+6] == 0) {
 					if (time <= 1E9) {
 						printf("scheduled in %u s.\n", time);
 					} else {
 						printf("scheduled at UNIX time: %u\n", time);
+					}
+				} else {
+					if (time <= 1E9) {
+						printf("exceeded latency buffer %u s ago\n", time);
+					} else {
+						printf("exceeded latency buffer at UNIX time: %u\n", time);
 					}
 				}
 			}
@@ -241,9 +250,9 @@ static void param_transaction_callback_rm(csp_packet_t *response, int verbose, i
 	}
     
 	if (verbose) {
-		if (csp_ntoh16(response->data16[1]) == UINT16_MAX) {
+		if ( (csp_ntoh16(response->data16[1]) == UINT16_MAX) && (response->length == 6) ){
 			//RM ALL RESPONSE
-			printf("All scheduled command queues removed.\n");
+			printf("All %u scheduled parameter queues removed.\n", csp_ntoh16(response->data16[2]));
 		} else {
 			//RM SINGLE RESPONSE
 			printf("Schedule id %u removed.\n", csp_ntoh16(response->data16[1]));
@@ -291,6 +300,43 @@ int param_rm_all_schedule(int server, int verbose, int timeout) {
 	packet->length = 4;
 
     int result = param_transaction(packet, server, timeout, param_transaction_callback_rm, verbose, 2);
+
+	if (result < 0) {
+		return -1;
+	}
+
+	return 0;
+}
+
+static void param_transaction_callback_reset(csp_packet_t *response, int verbose, int version) {
+	if (response->data[0] != PARAM_SCHEDULE_RESET_RESPONSE){
+        return;
+	}
+    
+	if (verbose) {
+		printf("Scheduler server reset:\n last id = %u\n timestamp = %u\n", csp_ntoh16(response->data16[1]), csp_ntoh32(response->data32[1]));
+	}
+    
+	csp_buffer_free(response);
+}
+
+int param_reset_scheduler(int server, uint32_t timestamp, uint16_t last_id, int verbose, int timeout) {
+
+    csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
+	if (packet == NULL)
+		return -2;
+
+	packet->data[0] = PARAM_SCHEDULE_RESET_REQUEST;
+
+    packet->data[1] = 0;
+
+	packet->data16[1] = csp_hton16(last_id);
+
+    packet->data32[1] = csp_hton32(timestamp);
+
+	packet->length = 8;
+
+    int result = param_transaction(packet, server, timeout, param_transaction_callback_reset, verbose, 2);
 
 	if (result < 0) {
 		return -1;

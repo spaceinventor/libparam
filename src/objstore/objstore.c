@@ -8,7 +8,7 @@
 
 //VMEM_DEFINE_FILE(schedule, "schedule", "schedule.cnf", 0x1000);
 
-const uint8_t sync_word[4] = {0x5C, 0x0F, 0xFE, 0xE1};
+const uint8_t sync_word[4] = {0xCA, 0x70, 0xCA, 0xFE};
 
 //typedef int (*objstore_scan_callback_f)(vmem_t * vmem, int offset, int verbose);
 
