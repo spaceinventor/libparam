@@ -6,6 +6,7 @@
  */
 
 #include <stdio.h>
+#include "libparam.h"
 #ifdef PARAM_LIST_DYNAMIC
 #include <malloc.h>
 #endif
@@ -18,7 +19,7 @@
 
 #include "../param_string.h"
 #include "param_list.h"
-#include "libparam.h"
+
 
 #ifdef PARAM_HAVE_SYS_QUEUE
 #include <sys/queue.h>

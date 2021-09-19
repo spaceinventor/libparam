@@ -83,7 +83,11 @@
  * for debugging and in allocation helpers.
  */
 #ifndef MPACK_STDLIB
+#ifdef PARAM_LIST_DYNAMIC
 #define MPACK_STDLIB 1
+#else
+#define MPACK_STDLIB 0
+#endif
 #endif
 
 /**
@@ -217,7 +221,7 @@
         defined(MPACK_DEBUG) && MPACK_DEBUG && \
         defined(MPACK_READER) && MPACK_READER && \
         defined(MPACK_MALLOC)
-#define MPACK_READ_TRACKING 1
+#define MPACK_READ_TRACKING 0
 #endif
 
 /**
@@ -238,7 +242,7 @@
         defined(MPACK_DEBUG) && MPACK_DEBUG && \
         defined(MPACK_WRITER) && MPACK_WRITER && \
         defined(MPACK_MALLOC)
-#define MPACK_WRITE_TRACKING 1
+#define MPACK_WRITE_TRACKING 0
 #endif
 
 /**

@@ -139,8 +139,6 @@ static void param_serve_push(csp_packet_t * packet, int send_ack, int version)
 	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
 		csp_buffer_free(packet);
 
-	printf("Param pushed\n");
-
 }
 
 void param_serve(csp_packet_t * packet) {

@@ -30,7 +30,7 @@ void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int u
 int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value) {
 	mpack_writer_t writer;
 	mpack_writer_init(&writer, queue->buffer, queue->buffer_size);
-	writer.used = queue->used;
+	writer.position = queue->buffer + queue->used;
 	if (queue->type == PARAM_QUEUE_TYPE_SET) {
 		param_serialize_to_mpack(param, offset, &writer, value, queue);
 	} else {
@@ -39,7 +39,7 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	if (mpack_writer_error(&writer) != mpack_ok) {
 		return -1;
 	}
-	queue->used = writer.used;
+	queue->used = mpack_writer_buffer_used(&writer);
 	return 0;
 }
 
@@ -69,7 +69,7 @@ int param_queue_apply(param_queue_t *queue) {
 			switch (tag.type) {
     		case mpack_type_str:
     		case mpack_type_bin:
-    			if (reader.left >= tag.v.l) {
+    			if (reader.end - reader.data >= tag.v.l) {
 	    			mpack_skip_bytes(&reader, tag.v.l);
 	    		} else {
     				valid = false;
@@ -120,7 +120,14 @@ void param_queue_print(param_queue_t *queue) {
 			}
 #if MPACK_STDIO
 			printf(" = ");
-			mpack_print_element(&reader, 2, stdout);
+
+			char buffer[20];
+    		mpack_print_t print;
+    		mpack_memset(&print, 0, sizeof(print));
+    		print.buffer = buffer;
+    		print.size = sizeof(buffer);
+			mpack_print_element(&reader, &print, 2);
+			printf("%s", buffer);
 #else
 			mpack_discard(&reader);
 #endif
