@@ -11,7 +11,7 @@
 #endif
 
 #include <csp/csp.h>
-#include <csp/csp_endian.h>
+#include <sys/types.h>
 #include <param/param.h>
 #include <param/param_list.h>
 #include <param/param_server.h>
@@ -196,11 +196,11 @@ void param_list_download(int node, int timeout, int list_version) {
 
 	        name = new_param->name;
 	        strlen = packet->length - offsetof(param_transfer_t, name);
-	        addr = csp_ntoh16(new_param->id) >> 11;
-            id = csp_ntoh16(new_param->id) & 0x7FF;
+	        addr = be16toh(new_param->id) >> 11;
+            id = be16toh(new_param->id) & 0x7FF;
             type = new_param->type;
             size = new_param->size;
-            mask = csp_ntoh32(new_param->mask) | PM_REMOTE;
+            mask = be32toh(new_param->mask) | PM_REMOTE;
 
 	    } else {
 
@@ -208,11 +208,11 @@ void param_list_download(int node, int timeout, int list_version) {
 
 	        name = new_param->name;
 	        strlen = packet->length - offsetof(param_transfer2_t, name);
-            addr = csp_ntoh16(new_param->node);
-            id = csp_ntoh16(new_param->id) & 0x7FF;
+            addr = be16toh(new_param->node);
+            id = be16toh(new_param->id) & 0x7FF;
             type = new_param->type;
             size = new_param->size;
-            mask = csp_ntoh32(new_param->mask) | PM_REMOTE;
+            mask = be32toh(new_param->mask) | PM_REMOTE;
 
 	    }
 

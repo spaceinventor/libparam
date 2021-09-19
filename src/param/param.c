@@ -3,7 +3,7 @@
 #include <libparam.h>
 
 #include <csp/csp.h>
-#include <csp/csp_endian.h>
+#include <sys/types.h>
 
 #define PARAM_GET(_type, _name, _swapfct) \
 	_type param_get_##_name##_array(param_t * param, unsigned int i) { \
@@ -26,13 +26,13 @@
 	}
 
 PARAM_GET(uint8_t, uint8, )
-PARAM_GET(uint16_t, uint16, csp_betoh16)
-PARAM_GET(uint32_t, uint32, csp_betoh32)
-PARAM_GET(uint64_t, uint64, csp_betoh64)
+PARAM_GET(uint16_t, uint16, be16toh)
+PARAM_GET(uint32_t, uint32, be32toh)
+PARAM_GET(uint64_t, uint64, be64toh)
 PARAM_GET(int8_t, int8, )
-PARAM_GET(int16_t, int16, csp_betoh16)
-PARAM_GET(int32_t, int32, csp_betoh32)
-PARAM_GET(int64_t, int64, csp_betoh64)
+PARAM_GET(int16_t, int16, be16toh)
+PARAM_GET(int32_t, int32, be32toh)
+PARAM_GET(int64_t, int64, be64toh)
 PARAM_GET(float, float, )
 PARAM_GET(double, double, )
 
@@ -116,13 +116,13 @@ void param_get_data(param_t * param, void * outbuf, int len)
 	}
 
 PARAM_SET(uint8_t, uint8, )
-PARAM_SET(uint16_t, uint16, csp_htobe16)
-PARAM_SET(uint32_t, uint32, csp_htobe32)
-PARAM_SET(uint64_t, uint64, csp_htobe64)
+PARAM_SET(uint16_t, uint16, htobe16)
+PARAM_SET(uint32_t, uint32, htobe32)
+PARAM_SET(uint64_t, uint64, htobe64)
 PARAM_SET(int8_t, int8, )
-PARAM_SET(int16_t, int16, csp_htobe16)
-PARAM_SET(int32_t, int32, csp_htobe32)
-PARAM_SET(int64_t, int64, csp_htobe64)
+PARAM_SET(int16_t, int16, htobe16)
+PARAM_SET(int32_t, int32, htobe32)
+PARAM_SET(int64_t, int64, htobe64)
 PARAM_SET(float, float, )
 PARAM_SET(double, double, )
 

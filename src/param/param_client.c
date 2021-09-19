@@ -13,7 +13,7 @@
 #include <param/param.h>
 #include <csp/csp.h>
 #include <csp/arch/csp_time.h>
-#include <csp/csp_endian.h>
+#include <sys/types.h>
 #include <param/param_list.h>
 #include <param/param_server.h>
 #include <param/param_queue.h>
@@ -109,8 +109,8 @@ int param_pull_all(int verbose, int host, uint32_t include_mask, uint32_t exclud
 		packet->data[0] = PARAM_PULL_ALL_REQUEST;
 	}
 	packet->data[1] = 0;
-	packet->data32[1] = csp_hton32(include_mask);
-	packet->data32[2] = csp_hton32(exclude_mask);
+	packet->data32[1] = htobe32(include_mask);
+	packet->data32[2] = htobe32(exclude_mask);
 	packet->length = 12;
 	return param_transaction(packet, host, timeout, param_transaction_callback_pull, verbose, version);
 

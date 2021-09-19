@@ -13,7 +13,7 @@
 #include <param/param.h>
 #include <csp/csp.h>
 #include <csp/arch/csp_time.h>
-#include <csp/csp_endian.h>
+#include <sys/types.h>
 #include <param/param_list.h>
 #include <param/param_server.h>
 #include <param/param_client.h>
@@ -29,10 +29,10 @@ static void param_transaction_callback_add(csp_packet_t *response, int verbose, 
 
 	//csp_hex_dump("pull response", response->data, response->length);
 	if (verbose) {
-		if (csp_ntoh16(response->data16[1]) == UINT16_MAX) {
+		if (be16toh(response->data16[1]) == UINT16_MAX) {
 			printf("Scheduling queue failed:\n");
 		} else {
-			printf("Queue scheduled with id %u:\n", csp_ntoh16(response->data16[1]));
+			printf("Queue scheduled with id %u:\n", be16toh(response->data16[1]));
 		}
 	}
 
@@ -55,8 +55,8 @@ int param_schedule_push(param_queue_t *queue, int verbose, int server, uint16_t 
 	}
 
 	packet->data[1] = 0;
-    packet->data16[1] = csp_hton16(host);
-    packet->data32[1] = csp_hton32(time);
+    packet->data16[1] = htobe16(host);
+    packet->data32[1] = htobe32(time);
 
 	memcpy(&packet->data[8], queue->buffer, queue->used);
 
@@ -90,8 +90,8 @@ int param_schedule_pull(param_queue_t *queue, int verbose, int server, uint16_t 
 	}
 
 	packet->data[1] = 0;
-    packet->data16[1] = csp_hton16(host);
-    packet->data32[1] = csp_hton32(time);
+    packet->data16[1] = htobe16(host);
+    packet->data32[1] = htobe32(time);
 
 	memcpy(&packet->data[8], queue->buffer, queue->used);
 
@@ -116,13 +116,13 @@ static void param_transaction_callback_show(csp_packet_t *response, int verbose,
 	}
     
 	if (verbose) {
-		int id = csp_ntoh16(response->data16[1]);
+		int id = be16toh(response->data16[1]);
 		if (id == UINT16_MAX) {
 			printf("Requested schedule id not found.\n");
 		} else {
 			param_queue_t queue;
 			param_queue_init(&queue, &response->data[10], response->length - 10, response->length - 10, response->data[8], version);
-			int time = csp_ntoh32(response->data32[1]);
+			int time = be32toh(response->data32[1]);
 			//queue.last_node = response->id.src;
 
 			/* Show the requested queue */
@@ -157,7 +157,7 @@ int param_show_schedule(int server, int verbose, uint16_t id, int timeout) {
 	packet->data[0] = PARAM_SCHEDULE_SHOW_REQUEST;
     packet->data[1] = 0;
 
-    packet->data16[1] = csp_hton16(id);
+    packet->data16[1] = htobe16(id);
 
 	packet->length = 4;
 
@@ -177,7 +177,7 @@ static void param_transaction_callback_list(csp_packet_t *response, int verbose,
     }
     
 	if (verbose) {
-		int num_scheduled = csp_ntoh16(response->data16[1]);
+		int num_scheduled = be16toh(response->data16[1]);
 		/* List the entries */
 		if (num_scheduled == 0) {
 			printf("No scheduled queues\n");
@@ -185,11 +185,11 @@ static void param_transaction_callback_list(csp_packet_t *response, int verbose,
 			printf("Received list of %u queues:\n", num_scheduled);
 			for (int i = 0; i < num_scheduled; i++) {
 				unsigned int idx = 4+i*(4+2+2);
-				unsigned int time = csp_ntoh32(response->data32[idx/4]);
+				unsigned int time = be32toh(response->data32[idx/4]);
 				if (response->data[idx+7] == PARAM_QUEUE_TYPE_SET) {
-					printf("[SET] Queue id %u, ", csp_ntoh16(response->data16[idx/2+2]));
+					printf("[SET] Queue id %u, ", be16toh(response->data16[idx/2+2]));
 				} /*else {
-					printf("[GET] Queue id %u, ", csp_ntoh16(response->data16[idx/2+2]));
+					printf("[GET] Queue id %u, ", be16toh(response->data16[idx/2+2]));
 				}*/
 				if (response->data[idx+6] == 1) {
 					if (time <= 1E9) {
@@ -237,12 +237,12 @@ static void param_transaction_callback_rm(csp_packet_t *response, int verbose, i
 	}
     
 	if (verbose) {
-		if (csp_ntoh16(response->data16[1]) == UINT16_MAX) {
+		if (be16toh(response->data16[1]) == UINT16_MAX) {
 			//RM ALL RESPONSE
 			printf("All scheduled command queues removed.\n");
 		} else {
 			//RM SINGLE RESPONSE
-			printf("Schedule id %u removed.\n", csp_ntoh16(response->data16[1]));
+			printf("Schedule id %u removed.\n", be16toh(response->data16[1]));
 		}
 	}
     
@@ -259,7 +259,7 @@ int param_rm_schedule(int server, int verbose, uint16_t id, int timeout) {
 
     packet->data[1] = 0;
 
-    packet->data16[1] = csp_hton16(id);
+    packet->data16[1] = htobe16(id);
 	
 	packet->length = 4;
 
@@ -282,7 +282,7 @@ int param_rm_all_schedule(int server, int verbose, int timeout) {
 
     packet->data[1] = 0;
 
-    packet->data16[1] = csp_hton16(UINT16_MAX);
+    packet->data16[1] = htobe16(UINT16_MAX);
 
 	packet->length = 4;
 
