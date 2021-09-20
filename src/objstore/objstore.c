@@ -82,9 +82,40 @@ objstore_idx_t * objstore_add_index(uint8_t type, uint16_t offset, uint8_t lengt
 }
 #endif
 
+static uint8_t _make_checksum(void * data, int length) {
+    if (length < 0)
+        return 0;
+
+    uint8_t checksum = *(uint8_t *) data;
+    for (int i = 1; i < length; i++) {
+        printf("Creating checksum: %u\n", checksum);
+        uint8_t * ptr = (uint8_t *) (long int) (data + i);
+        checksum ^= *ptr;
+    }
+
+    return checksum;
+}
+
+static int _valid_checksum(void * data, uint16_t length, uint8_t checksum) {
+    if (length < 0)
+        return 0;
+    
+    uint8_t temp_checksum = *(uint8_t *) data;
+    for (int i = 1; i < length; i++) {
+        uint8_t * ptr = (uint8_t *) ( (long int) data + i);
+        temp_checksum ^= *ptr;
+    }
+
+    if (checksum == temp_checksum) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 static int _valid_obj_check(vmem_t * vmem, int offset) {
-    uint8_t data;
-    vmem->read(vmem, offset, &data, 1);
+    uint16_t data;
+    vmem->read(vmem, offset, &data, 2);
     int sync_status = 0;
     if (data == sync_word[0]) {
         sync_status = 1;
@@ -101,6 +132,19 @@ static int _valid_obj_check(vmem_t * vmem, int offset) {
     }
 
     return 1;
+}
+
+static int _valid_obj_data_check(vmem_t * vmem, int offset, void * data, uint16_t length) {
+    uint8_t checksum;
+    vmem->read(vmem, offset+7+length, &checksum, 1);
+
+    if (_valid_checksum(data, length, checksum)) {
+        free(data);
+        return 1;
+    } else {
+        free(data);
+        return 0;
+    }
 }
 
 int objstore_alloc(vmem_t * vmem, int length, int verbose) {
@@ -128,20 +172,21 @@ int objstore_alloc(vmem_t * vmem, int length, int verbose) {
                     sync_status = 0;
                     counter = 0;
 
+                    uint16_t length;
                     // read length to skip ahead
-                    vmem->read(vmem, i+5, &data, 1);
-                    i += data+5;
+                    vmem->read(vmem, i+5, &length, 2);
+                    i += data+6;
                 }
             }
         } else {
             sync_status = 0;
             counter++;
-            if ( counter == (length+6) ) {
+            if ( counter == (length+8) ) {
                 if (verbose)
                     printf("Found room for %u bytes plus overhead starting at offset %u\n", length, i-(length+5));
                 
                 // todo: Lock the allocated piece of memory
-                return i-(length+5);
+                return i-(length+7);
             }
         }
     }
@@ -154,9 +199,9 @@ int objstore_read_obj_length(vmem_t * vmem, int offset) {
     if (_valid_obj_check(vmem, offset) == 0) {
         return -1;
     }
-    uint8_t length;
+    uint16_t length;
 
-    vmem->read(vmem, offset+5, &length, 1);
+    vmem->read(vmem, offset+5, &length, 2);
 
     return length;
 }
@@ -197,9 +242,9 @@ int objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose,
                     
                     sync_status = 0;
 
-                    uint8_t length;
-                    vmem->read(vmem, i+5, &length, 1);
-                    i += length+5;
+                    uint16_t length;
+                    vmem->read(vmem, i+5, &length, 2);
+                    i += length+6;
                 }
             }
         } else {
@@ -208,7 +253,6 @@ int objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose,
     }
 
     return -1;
-
 }
 
 int objstore_rm_obj(vmem_t * vmem, int offset, int verbose) {
@@ -220,7 +264,7 @@ int objstore_rm_obj(vmem_t * vmem, int offset, int verbose) {
         return -1;
     }
 
-    const uint8_t length;
+    const uint16_t length;
     vmem->read(vmem, offset+5, &length, 1);
     // clear data field
     const uint8_t clear_block = 255;
@@ -256,17 +300,33 @@ int objstore_read_obj(vmem_t * vmem, int offset, void * data_buf, int verbose) {
 
     vmem->read(vmem, offset+6, data_buf, length);
 
+    if (_valid_obj_data_check(vmem, offset, data_buf, length) == 0)
+        return -1;
+
     return 0;
 }
 
-void objstore_write_obj(vmem_t * vmem, int offset, uint8_t type, uint8_t length, void * data) {
+void objstore_write_obj(vmem_t * vmem, int offset, uint8_t type, uint16_t length, void * data) {
     // TODO: check for lock
     vmem->write(vmem, offset, sync_word, 4);
     vmem->write(vmem, offset+4, &type, 1);
-    vmem->write(vmem, offset+5, &length, 1);
-    vmem->write(vmem, offset+6, data, length);
+    vmem->write(vmem, offset+5, &length, 2);
+    vmem->write(vmem, offset+7, data, length);
+
+    uint8_t checksum = _make_checksum(data, length);
+    printf("Writing object with checksum %u\n", checksum);
+    vmem->write(vmem, offset+7+length, &checksum, 1);
     // TODO: clear lock
 }
+
+/*
+void objstore_write_data(vmem_t * vmem, int offset, int data_offset, int data_length, void * data) {
+    if (_valid_obj_check(vmem, offset) == 0)
+        return;
+
+    vmem->write(vmem, offset+data_offset, data, data_length);
+}
+*/
 
 /*
 static int test_callback(vmem_t * vmem, int offset, int verbose, void * var_in) {
