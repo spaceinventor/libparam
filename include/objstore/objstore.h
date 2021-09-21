@@ -40,6 +40,7 @@ int objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose,
 int objstore_alloc(vmem_t * vmem, int length, int verbose);
 
 void objstore_write_obj(vmem_t * vmem, int offset, uint8_t type, uint16_t length, void * data);
+void objstore_write_data(vmem_t * vmem, int obj_offset, int data_offset, int data_length, void * data);
 int objstore_rm_obj(vmem_t * vmem, int offset, int verbose);
 
 int objstore_read_obj_type(vmem_t * vmem, int offset);

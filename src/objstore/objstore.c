@@ -12,85 +12,15 @@ const uint8_t sync_word[4] = {0xCA, 0x70, 0xCA, 0xFE};
 
 //typedef int (*objstore_scan_callback_f)(vmem_t * vmem, int offset, int verbose);
 
-#if 0
-objstore_idx_t * obj_first_idx[NUM_OBJ_TYPES];
-
-void objstore_printindex(int type) {
-    if (type == -1) {
-        // print the whole index
-        for (int i = 0; i < NUM_OBJ_TYPES; i++) {
-            if (obj_first_idx[i]) {
-                // first entry
-                printf("Object store index, first entry of type %u: offset = %u, length = %u\n", obj_first_idx[i]->type, obj_first_idx[i]->offset, obj_first_idx[i]->length);
-                // TODO iterate through linked list for next entries
-            }
-        }
-    } else {
-        // print only entries of the requested type
-        for (int i = 0; i < NUM_OBJ_TYPES; i++) {
-            if (i == type) {
-                // first entry
-                printf("Object store index, first entry of type %u: offset = %u, length = %u\n", obj_first_idx[i]->type, obj_first_idx[i]->offset, obj_first_idx[i]->length);
-                // TODO iterate through linked list for next entries
-            }
-        }
-    }
-}
-objstore_idx_t * objstore_add_index(uint8_t type, uint16_t offset, uint8_t length) {
-    if (type >= NUM_OBJ_TYPES){
-        return NULL;
-    }
-
-    if (obj_first_idx[type] == NULL) {
-        objstore_idx_t * idx_ptr = malloc(sizeof(*idx_ptr));
-        if (idx_ptr == NULL)
-            return NULL;
-        
-        idx_ptr->type = (objstore_type_e) type;
-        idx_ptr->offset = offset;
-        idx_ptr->length = length;
-        idx_ptr->ptr_prev = NULL;
-        idx_ptr->ptr_next = NULL;
-
-        obj_first_idx[type] = idx_ptr;
-
-        return idx_ptr;
-    } else {
-        // iterate through the list to find where this new entry fits
-        objstore_idx_t * ptr_prev = obj_first_idx[type];
-        objstore_idx_t * ptr_next = obj_first_idx[type]->ptr_next;
-        while (1) {
-            if (ptr_next == NULL) {
-                if (ptr_prev->offset < offset){
-                    // it's the last entry, simple
-                } else {
-                    // second to last
-                }
-            } else {
-                if (ptr_next->offset < offset) {
-                    // squeeze between next and prev
-                } else {
-                    // step along the list
-                    ptr_prev = ptr_next;
-                    ptr_next = ptr_next->ptr_next;
-                }
-            }
-        }
-        
-    }
-    
-}
-#endif
-
-static uint8_t _make_checksum(void * data, int length) {
+static uint8_t _make_checksum(vmem_t * vmem, int offset, int length) {
     if (length < 0)
         return 0;
 
-    uint8_t checksum = *(uint8_t *) data;
+    uint8_t buf, checksum;
+    vmem->read(vmem, offset+7, &checksum, sizeof(checksum)); // initialize with first data byte
     for (int i = 1; i < length; i++) {
-        printf("Creating checksum: %u\n", checksum);
-        uint8_t * ptr = (uint8_t *) (long int) (data + i);
-        checksum ^= *ptr;
+        vmem->read(vmem, offset+7+i, &buf, sizeof(buf));
+        checksum ^= buf;
     }
 
     return checksum;
@@ -114,13 +44,13 @@ static int _valid_checksum(void * data, uint16_t length, uint8_t checksum) {
 }
 
 static int _valid_obj_check(vmem_t * vmem, int offset) {
-    uint16_t data;
-    vmem->read(vmem, offset, &data, 2);
+    uint8_t data;
+    vmem->read(vmem, offset, &data, sizeof(data));
     int sync_status = 0;
     if (data == sync_word[0]) {
         sync_status = 1;
         for (int j = 1; j < 4; j++) {
-            vmem->read(vmem, offset+j, &data, 1);
+            vmem->read(vmem, offset+j, &data, sizeof(data));
             if (data == sync_word[sync_status]) {
                 sync_status++;
             } else {
@@ -136,13 +66,11 @@ static int _valid_obj_check(vmem_t * vmem, int offset) {
 
 static int _valid_obj_data_check(vmem_t * vmem, int offset, void * data, uint16_t length) {
     uint8_t checksum;
-    vmem->read(vmem, offset+7+length, &checksum, 1);
+    vmem->read(vmem, offset+7+length, &checksum, sizeof(checksum));
 
     if (_valid_checksum(data, length, checksum)) {
-        free(data);
         return 1;
     } else {
-        free(data);
         return 0;
     }
 }
@@ -153,13 +81,13 @@ int objstore_alloc(vmem_t * vmem, int length, int verbose) {
 
     for (int i = 0; i < vmem->size; i++) {
         uint8_t data;
-        vmem->read(vmem, i, &data, 1);
+        vmem->read(vmem, i, &data, sizeof(data));
 
         if (data == sync_word[0]) {
             sync_status = 1;
             for (int j = 1; j < 4; j++) {
 
-                vmem->read(vmem, i+j, &data, 1);
+                vmem->read(vmem, i+j, &data, sizeof(data));
                 if (data == sync_word[sync_status]) {
                     sync_status++;
                 } else {
@@ -174,7 +102,7 @@ int objstore_alloc(vmem_t * vmem, int length, int verbose) {
 
                     uint16_t length;
                     // read length to skip ahead
-                    vmem->read(vmem, i+5, &length, 2);
+                    vmem->read(vmem, i+5, &length, sizeof(length));
                     i += data+6;
                 }
             }
@@ -183,7 +111,7 @@ int objstore_alloc(vmem_t * vmem, int length, int verbose) {
             counter++;
             if ( counter == (length+8) ) {
                 if (verbose)
-                    printf("Found room for %u bytes plus overhead starting at offset %u\n", length, i-(length+5));
+                    printf("Found room for %u bytes plus overhead starting at offset %u\n", length, i-(length+6));
                 
                 // todo: Lock the allocated piece of memory
                 return i-(length+7);
@@ -200,8 +128,7 @@ int objstore_read_obj_length(vmem_t * vmem, int offset) {
         return -1;
     }
     uint16_t length;
-
-    vmem->read(vmem, offset+5, &length, 2);
+    vmem->read(vmem, offset+5, &length, sizeof(length));
 
     return length;
 }
@@ -211,8 +138,7 @@ int objstore_read_obj_type(vmem_t * vmem, int offset) {
         return -1;
     }
     uint8_t type;
-
-    vmem->read(vmem, offset+4, &type, 1);
+    vmem->read(vmem, offset+4, &type, sizeof(type));
 
     return type;
 }
@@ -222,12 +148,12 @@ int objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose,
     
     for (int i = 0; i < vmem->size; i++) {
         uint8_t data;
-        vmem->read(vmem, i, &data, 1);
+        vmem->read(vmem, i, &data, sizeof(data));
 
         if (data == sync_word[0]) {
             sync_status = 1;
             for (int j = 1; j < 4; j++) {
-                vmem->read(vmem, i+j, &data, 1);
+                vmem->read(vmem, i+j, &data, sizeof(data));
                 if (data == sync_word[sync_status]) {
                     sync_status++;
                 } else {
@@ -243,7 +169,7 @@ int objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose,
                     sync_status = 0;
 
                     uint16_t length;
-                    vmem->read(vmem, i+5, &length, 2);
+                    vmem->read(vmem, i+5, &length, sizeof(length));
                     i += length+6;
                 }
             }
@@ -265,19 +191,22 @@ int objstore_rm_obj(vmem_t * vmem, int offset, int verbose) {
     }
 
     const uint16_t length;
-    vmem->read(vmem, offset+5, &length, 1);
+    vmem->read(vmem, offset+5, &length, sizeof(length));
+
+    const uint8_t clear_block = 0xFF;
+    // clear checksum
+    vmem->write(vmem, offset+length+7, &clear_block, sizeof(clear_block));
     // clear data field
-    const uint8_t clear_block = 255;
     for (int i = length; i > 0; i--) {
-        vmem->write(vmem, offset+i+5, &clear_block, 1);
+        vmem->write(vmem, offset+i+6, &clear_block, sizeof(clear_block));
     }
     // clear header
-    vmem->write(vmem, offset+4, &clear_block, 1);
-    vmem->write(vmem, offset+5, &clear_block, 1);
-
+    vmem->write(vmem, offset+6, &clear_block, sizeof(clear_block));
+    vmem->write(vmem, offset+5, &clear_block, sizeof(clear_block));
+    vmem->write(vmem, offset+4, &clear_block, sizeof(clear_block));
     // clear sync word
     for (int i = 0; i < 4; i++) {
-        vmem->write(vmem, offset+i, &clear_block, 1);
+        vmem->write(vmem, offset+i, &clear_block, sizeof(clear_block));
     }
 
     if (verbose)
@@ -295,10 +224,10 @@ int objstore_read_obj(vmem_t * vmem, int offset, void * data_buf, int verbose) {
     }
 
     /* Data buffer must be correct size, e.g. by using objstore_read_obj_length */
-    const uint8_t length;
-    vmem->read(vmem, offset+5, &length, 1);
+    const uint16_t length;
+    vmem->read(vmem, offset+5, &length, sizeof(length));
 
-    vmem->read(vmem, offset+6, data_buf, length);
+    vmem->read(vmem, offset+7, data_buf, length);
 
     if (_valid_obj_data_check(vmem, offset, data_buf, length) == 0)
         return -1;
@@ -309,24 +238,32 @@ int objstore_read_obj(vmem_t * vmem, int offset, void * data_buf, int verbose) {
 void objstore_write_obj(vmem_t * vmem, int offset, uint8_t type, uint16_t length, void * data) {
     // TODO: check for lock
     vmem->write(vmem, offset, sync_word, 4);
-    vmem->write(vmem, offset+4, &type, 1);
-    vmem->write(vmem, offset+5, &length, 2);
+    vmem->write(vmem, offset+4, &type, sizeof(type));
+    vmem->write(vmem, offset+5, &length, sizeof(length));
     vmem->write(vmem, offset+7, data, length);
 
-    uint8_t checksum = _make_checksum(data, length);
-    printf("Writing object with checksum %u\n", checksum);
-    vmem->write(vmem, offset+7+length, &checksum, 1);
+    uint8_t checksum = _make_checksum(vmem, offset, length);
+    vmem->write(vmem, offset+7+length, &checksum, sizeof(checksum));
     // TODO: clear lock
 }
 
-/*
-void objstore_write_data(vmem_t * vmem, int offset, int data_offset, int data_length, void * data) {
-    if (_valid_obj_check(vmem, offset) == 0)
+
+void objstore_write_data(vmem_t * vmem, int obj_offset, int data_offset, int data_length, void * data) {
+    if (_valid_obj_check(vmem, obj_offset) == 0)
         return;
 
-    vmem->write(vmem, offset+data_offset, data, data_length);
+    // Write the new piece of data
+    vmem->write(vmem, obj_offset+data_offset, data, data_length);
+
+    // Create new checksum
+    uint16_t obj_length;
+    vmem->read(vmem, obj_offset+5, &obj_length, sizeof(obj_length));
+    uint8_t checksum = _make_checksum(vmem, obj_offset, obj_length);
+
+    // Write the new checksum
+    vmem->write(vmem, obj_offset+7+obj_length, &checksum, sizeof(checksum));
 }
-*/
+
 
 /*
 static int test_callback(vmem_t * vmem, int offset, int verbose, void * var_in) {
