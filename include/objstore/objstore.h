@@ -29,7 +29,6 @@ struct objstore_idx_s {
     objstore_idx_t * ptr_prev;
     objstore_idx_t * ptr_next;
 };
-
 typedef struct objstore_idx_s objstore_idx_t;
 
 typedef int (*objstore_scan_callback_f)(vmem_t * vmem, int offset, int verbose, void * ctx);

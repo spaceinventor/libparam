@@ -26,15 +26,11 @@ static uint8_t _make_checksum(vmem_t * vmem, int offset, int length) {
     return checksum;
 }
 
-static int _valid_checksum(void * data, uint16_t length, uint8_t checksum) {
+static int _valid_checksum(vmem_t * vmem, int offset, uint16_t length, uint8_t checksum) {
     if (length < 0)
         return 0;
     
-    uint8_t temp_checksum = *(uint8_t *) data;
-    for (int i = 1; i < length; i++) {
-        uint8_t * ptr = (uint8_t *) ( (long int) data + i);
-        temp_checksum ^= *ptr;
-    }
+    uint8_t temp_checksum = _make_checksum(vmem, offset, length);
 
     if (checksum == temp_checksum) {
         return 1;
@@ -64,11 +60,11 @@ static int _valid_obj_check(vmem_t * vmem, int offset) {
     return 1;
 }
 
-static int _valid_obj_data_check(vmem_t * vmem, int offset, void * data, uint16_t length) {
+static int _valid_obj_data_check(vmem_t * vmem, int offset, uint16_t length) {
     uint8_t checksum;
     vmem->read(vmem, offset+7+length, &checksum, sizeof(checksum));
 
-    if (_valid_checksum(data, length, checksum)) {
+    if (_valid_checksum(vmem, offset, length, checksum)) {
         return 1;
     } else {
         return 0;
@@ -229,7 +225,7 @@ int objstore_read_obj(vmem_t * vmem, int offset, void * data_buf, int verbose) {
 
     vmem->read(vmem, offset+7, data_buf, length);
 
-    if (_valid_obj_data_check(vmem, offset, data_buf, length) == 0)
+    if (_valid_obj_data_check(vmem, offset, length) == 0)
         return -1;
 
     return 0;
