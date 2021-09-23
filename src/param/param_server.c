@@ -207,6 +207,10 @@ void param_serve(csp_packet_t * packet) {
 		
 #endif
 
+#ifdef PARAM_HAVE_COMMANDS
+		
+#endif
+
 		default:
 			printf("Unknown parameter request\n");
 			csp_buffer_free(packet);

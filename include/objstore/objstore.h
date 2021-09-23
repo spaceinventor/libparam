@@ -14,8 +14,9 @@
 
 typedef enum {
     OBJ_TYPE_SCHEDULE = 1,
-    OBJ_TYPE_PROGRAM = 2,
+    OBJ_TYPE_COMMAND = 2,
     OBJ_TYPE_SCHEDULER_META = 3,
+    OBJ_TYPE_COMMANDS_META = 4,
 } objstore_type_e;
 
 #define NUM_OBJ_TYPES 2

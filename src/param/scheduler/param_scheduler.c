@@ -74,18 +74,21 @@ static void meta_obj_save(vmem_t * vmem) {
 
 static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
     /* Construct a temporary schedule structure */
+    if (packet->length < 12)
+        return UINT16_MAX;
+    
     int queue_size = packet->length - 12;
 
-    param_schedule_t * temp_schedule = malloc(sizeof(param_schedule_t) + queue_size);
-
     /* Determine schedule size and allocate VMEM */
-    int obj_length = (int) sizeof(param_schedule_t) + queue_size - (int) sizeof(temp_schedule->queue.buffer);
+    int obj_length = (int) sizeof(param_schedule_t) + queue_size - (int) sizeof(char *);
     if (obj_length < 0)
         return UINT16_MAX;
 
     int obj_offset = objstore_alloc(&vmem_schedule, obj_length, 0);
     if (obj_offset < 0)
         return UINT16_MAX;
+
+    param_schedule_t * temp_schedule = malloc(sizeof(param_schedule_t) + queue_size);
 
     temp_schedule->active = 0x55;
     temp_schedule->completed = 0;
@@ -183,7 +186,7 @@ static int obj_offset_from_id_scancb(vmem_t * vmem, int offset, int verbose, voi
         return 0;
 
     uint16_t id;
-    vmem_schedule.read(&vmem_schedule, offset+7-sizeof(char*)+offsetof(param_schedule_t,id), &id, sizeof(id));
+    vmem->read(vmem, offset+7-sizeof(char*)+offsetof(param_schedule_t,id), &id, sizeof(id));
     
     if (id == target_id) {
         return -1;
@@ -199,15 +202,18 @@ static int obj_offset_from_id(vmem_t * vmem, int id) {
 
 int param_serve_schedule_show(csp_packet_t *packet) {
     uint16_t id = csp_ntoh16(packet->data16[1]);
-    int offset = obj_offset_from_id(&vmem_schedule, id);
     int status = 0;
+    int offset = obj_offset_from_id(&vmem_schedule, id);
     if (offset < 0) {
+        status = -1;
+    }
+    int length = objstore_read_obj_length(&vmem_schedule, offset);
+    if (length < 0) {
         status = -1;
     }
     
     if (status == 0) {
         /* Read the schedule entry */
-        int length = objstore_read_obj_length(&vmem_schedule, offset);
         param_schedule_t * temp_schedule = malloc(length + sizeof(temp_schedule->queue.buffer));
         void * read_ptr = (void*) ( (long int) temp_schedule + sizeof(temp_schedule->queue.buffer));
         objstore_read_obj(&vmem_schedule, offset, read_ptr, 0);
@@ -276,12 +282,8 @@ static int num_schedule_scancb(vmem_t * vmem, int offset, int verbose, void * ct
     int type = objstore_read_obj_type(vmem, offset);
     if (type != OBJ_TYPE_SCHEDULE)
         return 0;
-    
-    int length = objstore_read_obj_length(vmem, offset);
-    if (length < 0)
-        return 0;
 
-    /* Found a valid schedule object, increment ctx */
+    /* Found a schedule object, increment ctx */
     *(int*)ctx += 1;
 
     return 0;
@@ -413,8 +415,6 @@ void param_serve_schedule_reset(csp_packet_t *packet) {
 
 	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
 		csp_buffer_free(packet);
-
-
 }
 
 static int find_inactive_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
@@ -427,7 +427,7 @@ static int find_inactive_scancb(vmem_t * vmem, int offset, int verbose, void * c
         return 0;
 
     uint8_t active;
-    vmem_schedule.read(&vmem_schedule, offset+7-sizeof(char*)+offsetof(param_schedule_t, active), &active, sizeof(active));
+    vmem->read(vmem, offset+7-sizeof(char*)+offsetof(param_schedule_t, active), &active, sizeof(active));
 
     if (active == 0) {
         return -1;
@@ -454,13 +454,12 @@ int param_schedule_server_update(void) {
         vmem_schedule.read(&vmem_schedule, offset+7-sizeof(char*)+offsetof(param_schedule_t,completed), &completed, sizeof(completed));
         uint64_t time;
         vmem_schedule.read(&vmem_schedule, offset+7-sizeof(char*)+offsetof(param_schedule_t,time), &time, sizeof(time));
-        uint32_t latency_buffer;
-        vmem_schedule.read(&vmem_schedule, offset+7-sizeof(char*)+offsetof(param_schedule_t,latency_buffer), &latency_buffer, sizeof(latency_buffer));
-
-        //printf("Read schedule parameters: completed = %u, latency buffer = %u, time = %u\n", completed, latency_buffer, (uint32_t) (time / 1E9) );
 
         if (completed == 0) {
             if (time <= timestamp) {
+                uint32_t latency_buffer;
+                vmem_schedule.read(&vmem_schedule, offset+7-sizeof(char*)+offsetof(param_schedule_t,latency_buffer), &latency_buffer, sizeof(latency_buffer));
+
                 if ( (latency_buffer*1E9 >= (timestamp - time))  || (latency_buffer == 0) ) {
                     /* Read the whole schedule object */
                     int length = objstore_read_obj_length(&vmem_schedule, offset);
@@ -495,14 +494,12 @@ int param_schedule_server_update(void) {
                 }
             }
         } else {
-            if ( time <= (timestamp - (uint64_t) 86400*1E9) ) {
+            if (time <= (timestamp - (uint64_t) 86400*1E9)) {
                 /* Deactivate completed schedule entries after 24 hrs */
                 uint8_t active = 0;
                 objstore_write_data(&vmem_schedule, offset, 7-sizeof(char*)+offsetof(param_schedule_t, active), sizeof(active), &active);
             }
         }
-
-        
     }
 
     /* Delete inactive schedules */
@@ -529,8 +526,29 @@ static void meta_obj_init(vmem_t * vmem) {
         objstore_write_obj(vmem, offset, OBJ_TYPE_SCHEDULER_META, sizeof(meta_obj), (void *) &meta_obj);
     } else {
         if (objstore_read_obj(vmem, offset, (void *) &meta_obj, 0) < 0) {
-            /* Invalid meta object checksum, reset */
-            meta_obj.last_id = UINT16_MAX;
+            /* Invalid meta object checksum, reset to highest ID among active schedules */
+            uint16_t max_id = 0;
+            int num_schedules = get_number_of_schedule_objs(vmem);
+            /* Check the time on each schedule and execute if deadline is exceeded */ 
+            for (int i = 0; i < num_schedules; i++) {
+                int obj_skips = i;
+                int offset = objstore_scan(vmem, next_schedule_scancb, 0, (void *) &obj_skips);
+                if (offset < 0) {
+                    continue;
+                }
+
+                uint16_t read_id;
+                vmem->read(vmem, offset+7-sizeof(char*)+offsetof(param_schedule_t, id), &read_id, sizeof(read_id));
+                if (read_id > max_id)
+                    max_id = read_id;
+            }
+            
+            if (num_schedules <= 0) {
+                meta_obj.last_id = UINT16_MAX;
+            } else {
+                meta_obj.last_id = max_id;
+            }
+            
             objstore_write_obj(vmem, offset, OBJ_TYPE_SCHEDULER_META, sizeof(meta_obj), (void *) &meta_obj);
         }
     }

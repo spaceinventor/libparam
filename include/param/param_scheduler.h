@@ -26,7 +26,7 @@ typedef struct param_schedule_s param_schedule_t;
 
 struct param_scheduler_meta_s {
     uint16_t last_id;
-};
+} __attribute__((packed, aligned(2)));
 typedef struct param_scheduler_meta_s param_scheduler_meta_t;
 
 int param_serve_schedule_push(csp_packet_t *packet);

@@ -1,0 +1,13 @@
+/*
+ * param_commands_client.h
+ *
+ *  Created on: Sep 22, 2021
+ *      Author: Mads
+ */
+
+#pragma once
+
+#include <param/param.h>
+#include <param/param_queue.h>
+
+int param_command_push(param_queue_t *queue, int verbose, int server, char command_name[], int timeout);

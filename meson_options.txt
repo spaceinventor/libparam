@@ -4,3 +4,4 @@ option('vmem_fram', type: 'boolean', value: false, description: 'Build vmem fram
 option('have_fopen', type: 'boolean', value: false, description: 'POSIX fopen available')
 option('list_dynamic', type: 'boolean', value: false, description: 'Compile support for dynamic param list (requres sys/queue.h)')
 option('scheduler', type: 'boolean', value: false, description: 'Build scheduler')
+option('commands', type: 'boolean', value: false, description: 'Build command features')
