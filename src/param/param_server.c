@@ -9,7 +9,7 @@
 #include <csp/csp.h>
 #include <csp/arch/csp_thread.h>
 #include <csp/arch/csp_time.h>
-#include <csp/csp_endian.h>
+#include <sys/types.h>
 
 #include <param/param.h>
 #include <param/param_queue.h>
@@ -92,10 +92,10 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 		param_t * param;
 		param_list_iterator i = {};
 		while ((param = param_list_iterate(&i)) != NULL) {
-			uint32_t include_mask = csp_ntoh32(ctx.request->data32[1]);
+			uint32_t include_mask = be32toh(ctx.request->data32[1]);
 			uint32_t exclude_mask = 0x00000000;
 			if (version >= 2) {
-			    exclude_mask = csp_ntoh32(ctx.request->data32[2]);
+			    exclude_mask = be32toh(ctx.request->data32[2]);
 			}
 
 			/* If none of the include matches, continue */
@@ -138,8 +138,6 @@ static void param_serve_push(csp_packet_t * packet, int send_ack, int version)
 
 	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
 		csp_buffer_free(packet);
-
-	printf("Param pushed\n");
 
 }
 

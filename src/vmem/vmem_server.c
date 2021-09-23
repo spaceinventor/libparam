@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <csp/csp.h>
-#include <csp/csp_endian.h>
+#include <sys/types.h>
 #include <csp/arch/csp_time.h>
 #include <csp/arch/csp_thread.h>
 
@@ -39,8 +39,8 @@ void vmem_server_handler(csp_conn_t * conn)
 	 */
 	if (type == VMEM_SERVER_DOWNLOAD) {
 
-		uint32_t address = csp_ntoh32(request->data.address);
-		uint32_t length = csp_ntoh32(request->data.length);
+		uint32_t address = be32toh(request->data.address);
+		uint32_t length = be32toh(request->data.length);
 		csp_buffer_free(packet);
 
 		unsigned int count = 0;
@@ -70,7 +70,7 @@ void vmem_server_handler(csp_conn_t * conn)
 	 */
 	} else if (request->type == VMEM_SERVER_UPLOAD) {
 
-		uint32_t address = csp_ntoh32(request->data.address);
+		uint32_t address = be32toh(request->data.address);
 		csp_buffer_free(packet);
 
 		int count = 0;
@@ -94,8 +94,8 @@ void vmem_server_handler(csp_conn_t * conn)
 		int i = 0;
 		packet->length = 0;
 		for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++, i++) {
-			list[i].vaddr = csp_hton32((intptr_t) vmem->vaddr);
-			list[i].size = csp_hton32(vmem->size);
+			list[i].vaddr = htobe32((intptr_t) vmem->vaddr);
+			list[i].size = htobe32(vmem->size);
 			list[i].vmem_id = i;
 			list[i].type = vmem->type;
 			strncpy(list[i].name, vmem->name, 5);
@@ -136,7 +136,7 @@ void vmem_server_handler(csp_conn_t * conn)
 	} else if (request->type == VMEM_SERVER_UNLOCK) {
 
 		/* Step 1: Check initial unlock code */
-		if (csp_ntoh32(request->unlock.code) != 0x28140360) {
+		if (be32toh(request->unlock.code) != 0x28140360) {
 			csp_buffer_free(packet);
 			return;
 		}
@@ -144,7 +144,7 @@ void vmem_server_handler(csp_conn_t * conn)
 		/* Step 2: Generate verification sequence */
 		unsigned int seed = csp_get_ms();
 		uint32_t verification_sequence = (uint32_t) rand_r(&seed);
-		request->unlock.code = csp_hton32(verification_sequence);
+		request->unlock.code = htobe32(verification_sequence);
 
 		if (!csp_send(conn, packet, 0)) {
 			csp_buffer_free(packet);
@@ -160,12 +160,12 @@ void vmem_server_handler(csp_conn_t * conn)
 		request = (void *) packet->data;
 
 		/* Step 4: Validate verification sequence */
-		if (csp_ntoh32(request->unlock.code) == verification_sequence) {
+		if (be32toh(request->unlock.code) == verification_sequence) {
 			unlocked = 1;
-			request->unlock.code = csp_hton32(0);
+			request->unlock.code = htobe32(0);
 		} else {
 			unlocked = 0;
-			request->unlock.code = csp_hton32(0xFFFFFFFF);
+			request->unlock.code = htobe32(0xFFFFFFFF);
 		}
 
 		if (!csp_send(conn, packet, 0)) {
@@ -191,11 +191,11 @@ static void rparam_list_handler(csp_conn_t * conn)
 		int node = param->node;
 		if (node == PARAM_LIST_LOCAL)
 			node = csp_get_address();
-		rparam->id = csp_hton16(param->id);
-		rparam->node = csp_hton16(node);
+		rparam->id = htobe16(param->id);
+		rparam->node = htobe16(node);
 		rparam->type = param->type;
 		rparam->size = param->array_size;
-		rparam->mask = csp_hton32(param->mask);
+		rparam->mask = htobe32(param->mask);
 		strncpy(rparam->name, param->name, 35);
 		packet->length = offsetof(param_transfer2_t, name) + MIN(strlen(param->name), 35);
 		if (!csp_send(conn, packet, 1000)) {

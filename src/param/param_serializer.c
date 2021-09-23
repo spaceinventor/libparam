@@ -14,7 +14,7 @@
 #include "param_serializer.h"
 
 #include <csp/arch/csp_time.h>
-#include <csp/csp_endian.h>
+#include <sys/types.h>
 #include <csp/csp.h>
 #include <param/param_list.h>
 
@@ -60,7 +60,7 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 
 		uint16_t header = array_flag << 15 | node_flag << 14
 				| (param->id & 0x3ff);
-		header = csp_hton16(header);
+		header = htobe16(header);
 		mpack_write_u16(writer, header);
 
 		if (array_flag) {
@@ -70,7 +70,7 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 
 		if (node_flag) {
 			queue->last_node = node;
-			uint16_t _node = csp_hton16(node);
+			uint16_t _node = htobe16(node);
 			mpack_write_bytes(writer, (char*) &_node, 2);
 		}
 
@@ -102,7 +102,7 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, int *offse
 		if (mpack_reader_error(reader) != mpack_ok)
 			return;
 
-		header = csp_ntoh16(header);
+		header = be16toh(header);
 		int array_flag = header & 0x8000;
 		int node_flag = header & 0x4000;
 		*id = header & 0x3ff;
@@ -116,7 +116,7 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, int *offse
 		if (node_flag) {
 			uint16_t _node;
 			mpack_read_bytes(reader, (char*) &_node, 2);
-			_node = csp_ntoh16(_node);
+			_node = be16toh(_node);
 			*node = _node;
 			queue->last_node = _node;
 		} else {
