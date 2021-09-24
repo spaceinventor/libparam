@@ -19,7 +19,9 @@ typedef enum {
     OBJ_TYPE_COMMANDS_META = 4,
 } objstore_type_e;
 
-#define NUM_OBJ_TYPES 2
+#define NUM_OBJ_TYPES 4
+
+#define OBJ_HEADER_LENGTH 7
 
 typedef struct objstore_idx_s objstore_idx_t;
 

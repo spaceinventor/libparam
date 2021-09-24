@@ -17,9 +17,9 @@ static uint8_t _make_checksum(vmem_t * vmem, int offset, int length) {
         return 0;
 
     uint8_t buf, checksum;
-    vmem->read(vmem, offset+7, &checksum, sizeof(checksum)); // initialize with first data byte
+    vmem->read(vmem, offset+OBJ_HEADER_LENGTH, &checksum, sizeof(checksum)); // initialize with first data byte
     for (int i = 1; i < length; i++) {
-        vmem->read(vmem, offset+7+i, &buf, sizeof(buf));
+        vmem->read(vmem, offset+OBJ_HEADER_LENGTH+i, &buf, sizeof(buf));
         checksum ^= buf;
     }
 
@@ -62,7 +62,7 @@ static int _valid_obj_check(vmem_t * vmem, int offset) {
 
 static int _valid_obj_data_check(vmem_t * vmem, int offset, uint16_t length) {
     uint8_t checksum;
-    vmem->read(vmem, offset+7+length, &checksum, sizeof(checksum));
+    vmem->read(vmem, offset+OBJ_HEADER_LENGTH+length, &checksum, sizeof(checksum));
 
     if (_valid_checksum(vmem, offset, length, checksum)) {
         return 1;
@@ -99,18 +99,19 @@ int objstore_alloc(vmem_t * vmem, int length, int verbose) {
                     uint16_t length;
                     // read length to skip ahead
                     vmem->read(vmem, i+5, &length, sizeof(length));
-                    i += data+6;
+                    printf("objstore_alloc skipping object of length: %u\n", length);
+                    i += length+(OBJ_HEADER_LENGTH);
                 }
             }
         } else {
             sync_status = 0;
             counter++;
-            if ( counter == (length+8) ) {
+            if ( counter == (length+OBJ_HEADER_LENGTH+1) ) {
                 if (verbose)
-                    printf("Found room for %u bytes plus overhead starting at offset %u\n", length, i-(length+6));
+                    printf("Found room for %u bytes plus overhead starting at offset %u\n", length, i-(length+OBJ_HEADER_LENGTH));
                 
                 // todo: Lock the allocated piece of memory
-                return i-(length+7);
+                return i-(length+OBJ_HEADER_LENGTH);
             }
         }
     }
@@ -166,7 +167,7 @@ int objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose,
 
                     uint16_t length;
                     vmem->read(vmem, i+5, &length, sizeof(length));
-                    i += length+6;
+                    i += length+OBJ_HEADER_LENGTH-1;
                 }
             }
         } else {
@@ -191,10 +192,10 @@ int objstore_rm_obj(vmem_t * vmem, int offset, int verbose) {
 
     const uint8_t clear_block = 0xFF;
     // clear checksum
-    vmem->write(vmem, offset+length+7, &clear_block, sizeof(clear_block));
+    vmem->write(vmem, offset+length+OBJ_HEADER_LENGTH, &clear_block, sizeof(clear_block));
     // clear data field
     for (int i = length; i > 0; i--) {
-        vmem->write(vmem, offset+i+6, &clear_block, sizeof(clear_block));
+        vmem->write(vmem, offset+i+OBJ_HEADER_LENGTH-1, &clear_block, sizeof(clear_block));
     }
     // clear header
     vmem->write(vmem, offset+6, &clear_block, sizeof(clear_block));
@@ -223,7 +224,7 @@ int objstore_read_obj(vmem_t * vmem, int offset, void * data_buf, int verbose) {
     const uint16_t length;
     vmem->read(vmem, offset+5, &length, sizeof(length));
 
-    vmem->read(vmem, offset+7, data_buf, length);
+    vmem->read(vmem, offset+OBJ_HEADER_LENGTH, data_buf, length);
 
     if (_valid_obj_data_check(vmem, offset, length) == 0)
         return -1;
@@ -236,10 +237,10 @@ void objstore_write_obj(vmem_t * vmem, int offset, uint8_t type, uint16_t length
     vmem->write(vmem, offset, sync_word, 4);
     vmem->write(vmem, offset+4, &type, sizeof(type));
     vmem->write(vmem, offset+5, &length, sizeof(length));
-    vmem->write(vmem, offset+7, data, length);
+    vmem->write(vmem, offset+OBJ_HEADER_LENGTH, data, length);
 
     uint8_t checksum = _make_checksum(vmem, offset, length);
-    vmem->write(vmem, offset+7+length, &checksum, sizeof(checksum));
+    vmem->write(vmem, offset+OBJ_HEADER_LENGTH+length, &checksum, sizeof(checksum));
     // TODO: clear lock
 }
 
@@ -257,7 +258,7 @@ void objstore_write_data(vmem_t * vmem, int obj_offset, int data_offset, int dat
     uint8_t checksum = _make_checksum(vmem, obj_offset, obj_length);
 
     // Write the new checksum
-    vmem->write(vmem, obj_offset+7+obj_length, &checksum, sizeof(checksum));
+    vmem->write(vmem, obj_offset+OBJ_HEADER_LENGTH+obj_length, &checksum, sizeof(checksum));
 }
 
 
