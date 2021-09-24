@@ -56,31 +56,33 @@ static int cmd_command_push(struct slash *slash) {
 }
 slash_command_sub(command, push, cmd_command_push, "<server> <name> [timeout]", NULL);
 
-#if 0
-static int cmd_schedule_pull(struct slash *slash) {
+static int cmd_command_show(struct slash *slash) {
     unsigned int server = 0;
-    unsigned int time = 0;
-	unsigned int host = 0;
+	char name[14] = {0};
 	unsigned int timeout = 100;
 
-	if (slash->argc < 4)
+	if (slash->argc < 3)
 		return SLASH_EUSAGE;
 	if (slash->argc >= 2)
 		server = atoi(slash->argv[1]);
-	if (slash->argc >= 3)
-        host = atoi(slash->argv[2]);
-    if (slash->argc >= 4)
-        time = atoi(slash->argv[3]);
-    if (slash->argc >= 5){
-        timeout = atoi(slash->argv[4]);
+	if (slash->argc >= 3) {
+		if (strlen(slash->argv[2]) > 13) {
+			return SLASH_EUSAGE;
+		}
+		for (int i = 0; i < strlen(slash->argv[2]); i++) {
+			name[i] = slash->argv[2][i];
+		}
+		name[strlen(slash->argv[2])] = '\0';
+	}
+    if (slash->argc >= 4) {
+        timeout = atoi(slash->argv[3]);
 	}
 
-	if (param_schedule_push(&param_queue_get, 1, server, host, time, timeout) < 0) {
+	if (param_command_show(server, 1, name, timeout) < 0) {
 		printf("No response\n");
 		return SLASH_EIO;
 	}
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(schedule, pull, cmd_schedule_pull, "<server> <host> <time> [timeout]", NULL);
-#endif
+slash_command_sub(command, show, cmd_command_show, "<server> <name> [timeout]", NULL);

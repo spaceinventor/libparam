@@ -208,7 +208,11 @@ void param_serve(csp_packet_t * packet) {
 #endif
 
 #ifdef PARAM_HAVE_COMMANDS
-		
+
+		case PARAM_COMMAND_ADD_REQUEST:
+			param_serve_command_add(packet);
+			break;
+			
 #endif
 
 		default:

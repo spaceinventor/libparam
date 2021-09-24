@@ -129,7 +129,7 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
 }
 
 int param_serve_schedule_push(csp_packet_t *request) {
-    csp_packet_t * response = csp_buffer_get(0);
+    csp_packet_t * response = csp_buffer_get(4);
     if (response == NULL) {
         csp_buffer_free(request);
         return -1;
@@ -186,7 +186,7 @@ static int obj_offset_from_id_scancb(vmem_t * vmem, int offset, int verbose, voi
         return 0;
 
     uint16_t id;
-    vmem->read(vmem, offset+7-sizeof(char*)+offsetof(param_schedule_t,id), &id, sizeof(id));
+    vmem->read(vmem, offset+OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t,id), &id, sizeof(id));
     
     if (id == target_id) {
         return -1;
@@ -355,46 +355,72 @@ int param_serve_schedule_rm_all(csp_packet_t *packet) {
     return 0;
 }
 
-int param_serve_schedule_list(csp_packet_t *packet) {
+int param_serve_schedule_list(csp_packet_t *request) {
     int num_schedules = get_number_of_schedule_objs(&vmem_schedule);
     unsigned int counter = 0;
-    for (int i = 0; i < num_schedules; i++) {
-        int obj_skips = counter;
-        int offset = objstore_scan(&vmem_schedule, next_schedule_scancb, 0, (void *) &obj_skips);
-        if (offset < 0) {
+    unsigned int big_count = 0;
+    int end = 0;
+
+    while (end == 0) {
+        csp_packet_t * response = csp_buffer_get(PARAM_SERVER_MTU);
+        if (response == NULL)
+            break;
+
+        int num_per_packet = (PARAM_SERVER_MTU-4)/8;
+        
+        if ( (num_schedules - big_count*num_per_packet)*8 < (PARAM_SERVER_MTU - 4))
+            end = 1;
+
+        int loop_max = (big_count+1)*num_per_packet;
+        if (end == 1)
+            loop_max = num_schedules;
+
+        for (int i = big_count*num_per_packet; i < loop_max; i++) {
+            int obj_skips = counter;
+            int offset = objstore_scan(&vmem_schedule, next_schedule_scancb, 0, (void *) &obj_skips);
+            if (offset < 0) {
+                counter++;
+                continue;
+            }
+
+            int length = objstore_read_obj_length(&vmem_schedule, offset);
+            if (length < 0) {
+                counter++;
+                continue;
+            }
+            param_schedule_t * temp_schedule = malloc(length + sizeof(temp_schedule->queue.buffer));
+            void * read_ptr = (void*) ( (long int) temp_schedule + sizeof(temp_schedule->queue.buffer));
+            objstore_read_obj(&vmem_schedule, offset, read_ptr, 0);
+
+            unsigned int idx = 4+(counter-big_count*num_per_packet)*(4+2+2);
+
+            uint32_t time_s = (uint32_t) (temp_schedule->time / 1E9);
+            response->data32[idx/4] = csp_hton32(time_s);
+            response->data16[idx/2+2] = csp_hton16(temp_schedule->id);
+            response->data[idx+6] = temp_schedule->completed;
+            response->data[idx+7] = temp_schedule->queue.type;
+            
+            free(temp_schedule);
+            
             counter++;
-            continue;
         }
 
-        int length = objstore_read_obj_length(&vmem_schedule, offset);
-        if (length < 0) {
-            counter++;
-            continue;
+        response->data[0] = PARAM_SCHEDULE_LIST_RESPONSE;
+        if (end == 1) {
+            response->data[1] = PARAM_FLAG_END;
+        } else {
+            response->data[1] = 0;
         }
-        param_schedule_t * temp_schedule = malloc(length + sizeof(temp_schedule->queue.buffer));
-        void * read_ptr = (void*) ( (long int) temp_schedule + sizeof(temp_schedule->queue.buffer));
-        objstore_read_obj(&vmem_schedule, offset, read_ptr, 0);
+        response->data16[1] = csp_hton16(counter-big_count*num_per_packet); // number of entries
+        response->length = (counter-big_count*num_per_packet)*8 + 4;
 
-        unsigned int idx = 4+counter*(4+2+2);
+        if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)
+            csp_buffer_free(response);
 
-        uint32_t time_s = (uint32_t) (  temp_schedule->time / 1E9);
-        packet->data32[idx/4] = csp_hton32(time_s);
-        packet->data16[idx/2+2] = csp_hton16(temp_schedule->id);
-        packet->data[idx+6] = temp_schedule->completed;
-        packet->data[idx+7] = temp_schedule->queue.type;
-        
-        free(temp_schedule);
-        
-        counter++;
+        big_count++;
     }
 
-    packet->data[0] = PARAM_SCHEDULE_LIST_RESPONSE;
-	packet->data[1] = PARAM_FLAG_END;
-    packet->data16[1] = csp_hton16(counter); // number of entries
-	packet->length = counter*8 + 4;
-
-	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
-		csp_buffer_free(packet);
+    csp_buffer_free(request);
 
     return 0;
 }
@@ -427,7 +453,7 @@ static int find_inactive_scancb(vmem_t * vmem, int offset, int verbose, void * c
         return 0;
 
     uint8_t active;
-    vmem->read(vmem, offset+7-sizeof(char*)+offsetof(param_schedule_t, active), &active, sizeof(active));
+    vmem->read(vmem, offset+OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t, active), &active, sizeof(active));
 
     if (active == 0) {
         return -1;
@@ -451,14 +477,14 @@ int param_schedule_server_update(void) {
         }
 
         uint8_t completed;
-        vmem_schedule.read(&vmem_schedule, offset+7-sizeof(char*)+offsetof(param_schedule_t,completed), &completed, sizeof(completed));
+        vmem_schedule.read(&vmem_schedule, offset+OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t,completed), &completed, sizeof(completed));
         uint64_t time;
-        vmem_schedule.read(&vmem_schedule, offset+7-sizeof(char*)+offsetof(param_schedule_t,time), &time, sizeof(time));
+        vmem_schedule.read(&vmem_schedule, offset+OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t,time), &time, sizeof(time));
 
         if (completed == 0) {
             if (time <= timestamp) {
                 uint32_t latency_buffer;
-                vmem_schedule.read(&vmem_schedule, offset+7-sizeof(char*)+offsetof(param_schedule_t,latency_buffer), &latency_buffer, sizeof(latency_buffer));
+                vmem_schedule.read(&vmem_schedule, offset+OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t,latency_buffer), &latency_buffer, sizeof(latency_buffer));
 
                 if ( (latency_buffer*1E9 >= (timestamp - time))  || (latency_buffer == 0) ) {
                     /* Read the whole schedule object */
@@ -489,15 +515,15 @@ int param_schedule_server_update(void) {
                 } else {
                     /* Latency buffer exceeded */
                     completed = 0xAA;
-                    objstore_write_data(&vmem_schedule, offset, 7-sizeof(char*)+offsetof(param_schedule_t, completed), sizeof(completed), &completed);
-                    objstore_write_data(&vmem_schedule, offset, 7-sizeof(char*)+offsetof(param_schedule_t, time), sizeof(time), &timestamp);
+                    objstore_write_data(&vmem_schedule, offset, OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t, completed), sizeof(completed), &completed);
+                    objstore_write_data(&vmem_schedule, offset, OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t, time), sizeof(time), &timestamp);
                 }
             }
         } else {
             if (time <= (timestamp - (uint64_t) 86400*1E9)) {
                 /* Deactivate completed schedule entries after 24 hrs */
                 uint8_t active = 0;
-                objstore_write_data(&vmem_schedule, offset, 7-sizeof(char*)+offsetof(param_schedule_t, active), sizeof(active), &active);
+                objstore_write_data(&vmem_schedule, offset, OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t, active), sizeof(active), &active);
             }
         }
     }
@@ -538,7 +564,7 @@ static void meta_obj_init(vmem_t * vmem) {
                 }
 
                 uint16_t read_id;
-                vmem->read(vmem, offset+7-sizeof(char*)+offsetof(param_schedule_t, id), &read_id, sizeof(read_id));
+                vmem->read(vmem, offset+OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t, id), &read_id, sizeof(read_id));
                 if (read_id > max_id)
                     max_id = read_id;
             }

@@ -74,38 +74,62 @@ int param_command_push(param_queue_t *queue, int verbose, int server, char comma
 	return 0;
 }
 
-#if 0
-int param_schedule_pull(param_queue_t *queue, int verbose, int server, uint16_t host, uint32_t time, int timeout) {
+static void name_copy(char output[], char input[], int length) {
+    for (int i = 0; i < length; i++) {
+			output[i] = input[i];
+    }
+    output[length] = '\0';
+}
 
-	if ((queue == NULL) || (queue->used == 0))
-		return 0;
+static void param_transaction_callback_show(csp_packet_t *response, int verbose, int version) {
+	//csp_hex_dump("pull response", response->data, response->length);
+    if (response->data[0] != PARAM_COMMAND_SHOW_RESPONSE){
+        return;
+	}
+    
+	if (verbose) {
+		int name_length = csp_ntoh16(response->data16[1]);
+		if (name_length > 13) {
+			printf("Error: Requested command name not found.\n");
+		} else {
+			char name[14];
+			name_copy(name, &response->data[4], name_length);
 
-	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
+			param_queue_t queue;
+			param_queue_init(&queue, &response->data[4+name_length], response->length - (4+name_length), response->length - (4+name_length), response->data[3], version);
+
+			/* Show the requested queue */
+			printf("Showing command, name: %s\n", name);
+
+			param_queue_print(&queue);
+		}
+	}
+
+	csp_buffer_free(response);
+}
+
+int param_show_command(int server, int verbose, char command_name[], int timeout) {
+
+    csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
 		return -2;
 
-	if (queue->version == 2) {
-		packet->data[0] = PARAM_SCHEDULE_PULL;
-	} else {
-		return -3;
-	}
+	packet->data[0] = PARAM_COMMAND_SHOW_REQUEST;
+    packet->data[1] = 0;
 
-	packet->data[1] = 0;
-    packet->data16[1] = csp_hton16(host);
-    packet->data32[1] = csp_hton32(time);
+    int name_length = strlen(command_name);
 
-	memcpy(&packet->data[8], queue->buffer, queue->used);
+	packet->data[2] = name_length;
 
-	packet->length = queue->used + 8;
-	int result = param_transaction(packet, server, timeout, param_transaction_callback_add, verbose, queue->version);
+	memcpy(&packet->data[3], command_name, name_length);
+
+	packet->length = 3+name_length;
+
+    int result = param_transaction(packet, server, timeout, param_transaction_callback_show, verbose, 2);
 
 	if (result < 0) {
 		return -1;
 	}
 
-	if (verbose)
-		param_queue_print(queue);
-
 	return 0;
 }
-#endif

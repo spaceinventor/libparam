@@ -40,7 +40,46 @@ static void meta_obj_save(vmem_t * vmem) {
     if (offset < 0)
         return;
     
-    objstore_write_obj(vmem, offset, OBJ_TYPE_SCHEDULER_META, sizeof(meta_obj), (void *) &meta_obj);
+    objstore_write_obj(vmem, offset, OBJ_TYPE_COMMANDS_META, sizeof(meta_obj), (void *) &meta_obj);
+}
+
+static int find_name_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
+    int type = objstore_read_obj_type(vmem, offset);
+
+    if (type != OBJ_TYPE_COMMAND)
+        return 0;
+
+    int name_length = strlen((char *)ctx);
+
+    char data;
+    int status = 0;
+    for (int i = 0; i < name_length; i++) {
+        vmem->read(vmem, offset+OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_command_t, name), &data, sizeof(data));
+
+        if ( ((char *)ctx)[i] == data) {
+            status++;
+        } else {
+            break;
+        }
+    }
+
+    if (status == name_length)
+        return -1;
+
+    return 0;
+}
+
+static int obj_offset_from_name(vmem_t * vmem, char name[]) {
+    int offset = objstore_scan(vmem, find_name_scancb, 0, name);
+    
+    return offset;
+}
+
+static void name_copy(char output[], char input[], int length) {
+    for (int i = 0; i < length; i++) {
+			output[i] = input[i];
+    }
+    output[length] = '\0';
 }
 
 static uint16_t command_add(csp_packet_t * request, param_queue_type_e q_type) {
@@ -49,7 +88,7 @@ static uint16_t command_add(csp_packet_t * request, param_queue_type_e q_type) {
     
     int queue_size = request->length - 3 - request->data[2];
 
-    /* Determine schedule size and allocate VMEM */
+    /* Determine command size and allocate VMEM */
     int obj_length = (int) sizeof(param_command_t) + queue_size - (int) sizeof(char *);
     if (obj_length < 0)
         return UINT16_MAX;
@@ -62,10 +101,13 @@ static uint16_t command_add(csp_packet_t * request, param_queue_type_e q_type) {
 
     int name_length = request->data[2];
 
-    for (int i = 0; i < name_length; i++) {
-			temp_command->name[i] = request->data[i+3];
+    name_copy(temp_command->name, &request->data[3], name_length);
+
+    /* Check if a command with this name already exists and remove it if it does */
+    int old_offset = obj_offset_from_name(&vmem_commands, temp_command->name);
+    if (old_offset >= 0) {
+        objstore_rm_obj(&vmem_commands, old_offset, 0);
     }
-    temp_command->name[name_length] = '\0';
 
     int meta_offset = objstore_scan(&vmem_commands, find_meta_scancb, 0, NULL);
     if (meta_offset < 0)
@@ -91,7 +133,7 @@ static uint16_t command_add(csp_packet_t * request, param_queue_type_e q_type) {
     return meta_obj.last_id;
 }
 
-void param_serve_command_push(csp_packet_t * request) {
+int param_serve_command_add(csp_packet_t * request) {
     csp_packet_t * response = csp_buffer_get(0);
     if (response == NULL) {
         csp_buffer_free(request);
@@ -123,7 +165,7 @@ static int obj_offset_from_id_scancb(vmem_t * vmem, int offset, int verbose, voi
         return 0;
 
     uint16_t id;
-    vmem->read(vmem, offset+7-sizeof(char*)+offsetof(param_command_t,id), &id, sizeof(id));
+    vmem->read(vmem, offset+OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_command_t,id), &id, sizeof(id));
     
     if (id == target_id) {
         return -1;
@@ -135,6 +177,61 @@ static int obj_offset_from_id_scancb(vmem_t * vmem, int offset, int verbose, voi
 static int obj_offset_from_id(vmem_t * vmem, int id) {
     int offset = objstore_scan(vmem, obj_offset_from_id_scancb, 0, (void*) &id);
     return offset;
+}
+
+
+int param_serve_command_show(csp_packet_t *packet) {
+    
+    char name[14];
+    int name_length = packet->data[2];
+    name_copy(name, &packet->data[3], name_length);
+
+    int status = 0;
+    int offset = obj_offset_from_name(&vmem_commands, name);
+    if (offset < 0) {
+        status = -1;
+    }
+    int length = objstore_read_obj_length(&vmem_commands, offset);
+    if (length < 0) {
+        status = -1;
+    }
+    
+    if (status == 0) {
+        /* Read the command entry */
+        param_command_t * temp_command = malloc(length + sizeof(temp_command->queue.buffer));
+        void * read_ptr = (void*) ( (long int) temp_command + sizeof(temp_command->queue.buffer));
+        objstore_read_obj(&vmem_commands, offset, read_ptr, 0);
+
+        temp_command->queue.buffer = (char *) ((long int) temp_command + (long int) (sizeof(param_command_t)));
+
+        /* Respond with the requested command entry */
+        packet->data[0] = PARAM_COMMAND_SHOW_RESPONSE;
+        packet->data[1] = PARAM_FLAG_END;
+
+        packet->data[2] = (uint8_t) name_length;
+        packet->data[3] = (uint8_t) temp_command->queue.type;
+
+        memcpy(&packet->data[4], temp_command->name, name_length);
+        
+        memcpy(&packet->data[4+name_length], temp_command->queue.buffer, temp_command->queue.used);
+
+        packet->length = 4 + name_length + temp_command->queue.used;
+
+        free(temp_command);
+    } else {
+        /* Respond with an error code */
+        packet->data[0] = PARAM_COMMAND_SHOW_RESPONSE;
+        packet->data[1] = PARAM_FLAG_END;
+
+        packet->data[2] = UINT8_MAX;
+
+        packet->length = 3;
+    }
+
+	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
+		csp_buffer_free(packet);
+
+    return 0;
 }
 
 static int num_commands_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
@@ -176,21 +273,21 @@ static int next_command_scancb(vmem_t * vmem, int offset, int verbose, void * ct
 }
 
 static void meta_obj_init(vmem_t * vmem) {
-    /* Search for scheduler meta object */
+    /* Search for commands meta object */
     int offset = objstore_scan(vmem, find_meta_scancb, 0, NULL);
     
     if (offset < 0) {
         /* Not found, initialize default values and write the meta object */
         meta_obj.last_id = UINT16_MAX;
         offset = objstore_alloc(vmem, sizeof(meta_obj), 0);
-        objstore_write_obj(vmem, offset, OBJ_TYPE_SCHEDULER_META, sizeof(meta_obj), (void *) &meta_obj);
+        objstore_write_obj(vmem, offset, OBJ_TYPE_COMMANDS_META, sizeof(meta_obj), (void *) &meta_obj);
     } else {
         if (objstore_read_obj(vmem, offset, (void *) &meta_obj, 0) < 0) {
-            /* Invalid meta object checksum, reset to highest ID among active schedules */
+            /* Invalid meta object checksum, reset to highest ID among active commands */
             uint16_t max_id = 0;
-            int num_schedules = get_number_of_command_objs(vmem);
-            /* Check the time on each schedule and execute if deadline is exceeded */ 
-            for (int i = 0; i < num_schedules; i++) {
+            int num_commands = get_number_of_command_objs(vmem);
+            /* Check the time on each command and execute if deadline is exceeded */ 
+            for (int i = 0; i < num_commands; i++) {
                 int obj_skips = i;
                 int offset = objstore_scan(vmem, next_command_scancb, 0, (void *) &obj_skips);
                 if (offset < 0) {
@@ -198,12 +295,12 @@ static void meta_obj_init(vmem_t * vmem) {
                 }
 
                 uint16_t read_id;
-                vmem->read(vmem, offset+7-sizeof(char*)+offsetof(param_command_t, id), &read_id, sizeof(read_id));
+                vmem->read(vmem, offset+OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_command_t, id), &read_id, sizeof(read_id));
                 if (read_id > max_id)
                     max_id = read_id;
             }
             
-            if (num_schedules <= 0) {
+            if (num_commands <= 0) {
                 meta_obj.last_id = UINT16_MAX;
             } else {
                 meta_obj.last_id = max_id;
