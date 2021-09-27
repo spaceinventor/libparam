@@ -31,7 +31,7 @@ static void param_transaction_callback_add(csp_packet_t *response, int verbose, 
 		if (csp_ntoh16(response->data16[1]) == UINT16_MAX) {
 			printf("Adding command failed\n");
 		} else {
-			printf("Command added:\n", csp_ntoh16(response->data16[1]));
+			printf("Command added:\n");
 		}
 	}
 
@@ -47,7 +47,7 @@ int param_command_push(param_queue_t *queue, int verbose, int server, char comma
 		return -2;
 
 	if (queue->version == 2) {
-		packet->data[0] = PARAM_SCHEDULE_PUSH;
+		packet->data[0] = PARAM_COMMAND_ADD_REQUEST;
 	} else {
 		return -3;
 	}
@@ -88,18 +88,18 @@ static void param_transaction_callback_show(csp_packet_t *response, int verbose,
 	}
     
 	if (verbose) {
-		int name_length = csp_ntoh16(response->data16[1]);
+		int name_length = response->data[2];
 		if (name_length > 13) {
 			printf("Error: Requested command name not found.\n");
 		} else {
 			char name[14];
-			name_copy(name, &response->data[4], name_length);
+			name_copy(name, (char *) &response->data[4], name_length);
 
 			param_queue_t queue;
 			param_queue_init(&queue, &response->data[4+name_length], response->length - (4+name_length), response->length - (4+name_length), response->data[3], version);
 
 			/* Show the requested queue */
-			printf("Showing command, name: %s\n", name);
+			printf("Requested command: name = %s\n", name);
 
 			param_queue_print(&queue);
 		}
@@ -108,7 +108,7 @@ static void param_transaction_callback_show(csp_packet_t *response, int verbose,
 	csp_buffer_free(response);
 }
 
-int param_show_command(int server, int verbose, char command_name[], int timeout) {
+int param_command_show(int server, int verbose, char command_name[], int timeout) {
 
     csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
@@ -126,6 +126,143 @@ int param_show_command(int server, int verbose, char command_name[], int timeout
 	packet->length = 3+name_length;
 
     int result = param_transaction(packet, server, timeout, param_transaction_callback_show, verbose, 2);
+
+	if (result < 0) {
+		return -1;
+	}
+
+	return 0;
+}
+
+
+static void param_transaction_callback_list(csp_packet_t *response, int verbose, int version) {
+	//csp_hex_dump("pull response", response->data, response->length);
+    if (response->data[0] != PARAM_COMMAND_LIST_RESPONSE){
+        return;
+    }
+    
+	if (verbose) {
+		int num_cmds = csp_ntoh16(response->data16[1]);
+		/* List the entries */
+		if (num_cmds == 0) {
+			printf("No saved commands\n");
+		} else {
+			printf("Received list of %u saved command names:\n", num_cmds);
+			for (int i = 0; i < num_cmds; i++) {
+				unsigned int idx = 4+i*14;
+				char name[14];
+				memcpy(name, &response->data[idx], 14);
+				printf("%d - %s\n", i+1, name);
+			}
+		}
+	}
+
+	csp_buffer_free(response);
+}
+
+int param_command_list(int server, int verbose, int timeout) {
+	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
+	if (packet == NULL)
+		return -2;
+
+	packet->data[0] = PARAM_COMMAND_LIST_REQUEST;
+	packet->data[1] = 0;
+
+	packet->length = 2;
+
+	int result = param_transaction(packet, server, timeout, param_transaction_callback_list, verbose, 2);
+
+    if (result < 0) {
+		return -1;
+	}
+
+	return 0;
+}
+
+static void param_transaction_callback_rm(csp_packet_t *response, int verbose, int version) {
+	//csp_hex_dump("pull response", response->data, response->length);
+    if (response->data[0] != PARAM_COMMAND_RM_RESPONSE){
+        return;
+	}
+    
+	if (verbose) {
+		int rm_all_response = 0;
+		char name[14] = {0};
+		uint16_t response_data = csp_ntoh16(response->data16[1]);
+
+		if (response->length == 14) {
+			name_copy(name, (char *) &response->data[4], 9);
+			char rmallcmds[] = "RMALLCMDS";
+			int count = 0;
+			for (int i = 0; i < strlen(rmallcmds); i++) {
+				if (name[i] == rmallcmds[i]) {
+					count++;
+				} else {
+					break;
+				}
+			}
+			if (count == strlen(rmallcmds)) {
+				rm_all_response = 1;
+			}
+		}
+
+		if (rm_all_response) {
+			printf("Deleted %u commands\n", response_data);
+		} else {
+			if (response_data < 14) {
+				name_copy(name, (char *) &response->data[4], response_data);
+				printf("Deleted command named %s\n", name);
+			}
+		}
+	}
+
+	csp_buffer_free(response);
+}
+
+int param_command_rm(int server, int verbose, char command_name[], int timeout) {
+
+    csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
+	if (packet == NULL)
+		return -2;
+
+	packet->data[0] = PARAM_COMMAND_RM_REQUEST;
+    packet->data[1] = 0;
+
+    int name_length = strlen(command_name);
+
+	packet->data[2] = name_length;
+
+	memcpy(&packet->data[3], command_name, name_length);
+
+	packet->length = 3+name_length;
+
+    int result = param_transaction(packet, server, timeout, param_transaction_callback_rm, verbose, 2);
+
+	if (result < 0) {
+		return -1;
+	}
+
+	return 0;
+}
+
+int param_command_rm_all(int server, int verbose, char command_name[], int timeout) {
+
+    csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
+	if (packet == NULL)
+		return -2;
+
+	packet->data[0] = PARAM_COMMAND_RM_ALL_REQUEST;
+    packet->data[1] = 0;
+
+    int name_length = strlen(command_name);
+
+	packet->data[2] = name_length;
+
+	memcpy(&packet->data[3], command_name, name_length);
+
+	packet->length = 3+name_length;
+
+    int result = param_transaction(packet, server, timeout, param_transaction_callback_rm, verbose, 2);
 
 	if (result < 0) {
 		return -1;

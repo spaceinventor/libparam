@@ -22,6 +22,10 @@ struct param_commands_meta_s {
 };
 typedef struct param_commands_meta_s param_commands_meta_t;
 
+void param_command_server_init(void);
 
 int param_serve_command_show(csp_packet_t *packet);
 int param_serve_command_add(csp_packet_t *request);
+int param_serve_command_list(csp_packet_t *request);
+int param_serve_command_rm_single(csp_packet_t *packet);
+int param_serve_command_rm_all(csp_packet_t *packet);

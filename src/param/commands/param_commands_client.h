@@ -11,3 +11,7 @@
 #include <param/param_queue.h>
 
 int param_command_push(param_queue_t *queue, int verbose, int server, char command_name[], int timeout);
+int param_command_show(int server, int verbose, char command_name[], int timeout);
+int param_command_list(int server, int verbose, int timeout);
+int param_command_rm(int server, int verbose, char command_name[], int timeout);
+int param_command_rm_all(int server, int verbose, char command_name[], int timeout);

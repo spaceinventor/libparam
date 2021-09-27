@@ -121,7 +121,7 @@ int objstore_alloc(vmem_t * vmem, int length, int verbose) {
 }
 
 int objstore_read_obj_length(vmem_t * vmem, int offset) {
-    if (_valid_obj_check(vmem, offset) == 0) {
+    if ( (offset < 0) || (_valid_obj_check(vmem, offset) == 0) ) {
         return -1;
     }
     uint16_t length;

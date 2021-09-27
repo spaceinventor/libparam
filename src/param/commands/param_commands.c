@@ -25,7 +25,6 @@ VMEM_DEFINE_FILE(commands, "commands", "commands.cnf", 0x1000);
 
 param_commands_meta_t meta_obj;
 
-
 static int find_meta_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
     int type = objstore_read_obj_type(vmem, offset);
 
@@ -54,7 +53,7 @@ static int find_name_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) 
     char data;
     int status = 0;
     for (int i = 0; i < name_length; i++) {
-        vmem->read(vmem, offset+OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_command_t, name), &data, sizeof(data));
+        vmem->read(vmem, offset+OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_command_t, name)+i, &data, sizeof(data));
 
         if ( ((char *)ctx)[i] == data) {
             status++;
@@ -88,30 +87,35 @@ static uint16_t command_add(csp_packet_t * request, param_queue_type_e q_type) {
     
     int queue_size = request->length - 3 - request->data[2];
 
+    char tmp_name[14];
+    int name_length = request->data[2];
+
+    name_copy(tmp_name, (char *) &request->data[3], name_length);
+
+    /* Check if a command with this name already exists and remove it if it does */
+    int old_offset = obj_offset_from_name(&vmem_commands, tmp_name);
+    if (old_offset >= 0) {
+        objstore_rm_obj(&vmem_commands, old_offset, 0);
+    }
+
     /* Determine command size and allocate VMEM */
     int obj_length = (int) sizeof(param_command_t) + queue_size - (int) sizeof(char *);
     if (obj_length < 0)
         return UINT16_MAX;
-
+    printf("cmd add test\n");
     int obj_offset = objstore_alloc(&vmem_commands, obj_length, 0);
     if (obj_offset < 0)
         return UINT16_MAX;
 
     param_command_t * temp_command = malloc(sizeof(param_command_t) + queue_size);
 
-    int name_length = request->data[2];
-
-    name_copy(temp_command->name, &request->data[3], name_length);
-
-    /* Check if a command with this name already exists and remove it if it does */
-    int old_offset = obj_offset_from_name(&vmem_commands, temp_command->name);
-    if (old_offset >= 0) {
-        objstore_rm_obj(&vmem_commands, old_offset, 0);
-    }
+    name_copy(temp_command->name, (char *) &request->data[3], name_length);
 
     int meta_offset = objstore_scan(&vmem_commands, find_meta_scancb, 0, NULL);
-    if (meta_offset < 0)
+    if (meta_offset < 0) {
+        free(temp_command);
         return UINT16_MAX;
+    }
 
     if (objstore_read_obj(&vmem_commands, meta_offset, (void *) &meta_obj, 0) < 0)
         printf("Meta obj checksum error\n");
@@ -156,8 +160,7 @@ int param_serve_command_add(csp_packet_t * request) {
     return 0;
 }
 
-
-static int obj_offset_from_id_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
+/*static int obj_offset_from_id_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
     int target_id =  *(int*)ctx;
 
     int type = objstore_read_obj_type(vmem, offset);
@@ -177,15 +180,14 @@ static int obj_offset_from_id_scancb(vmem_t * vmem, int offset, int verbose, voi
 static int obj_offset_from_id(vmem_t * vmem, int id) {
     int offset = objstore_scan(vmem, obj_offset_from_id_scancb, 0, (void*) &id);
     return offset;
-}
-
+}*/
 
 int param_serve_command_show(csp_packet_t *packet) {
-    
     char name[14];
     int name_length = packet->data[2];
-    name_copy(name, &packet->data[3], name_length);
+    name_copy(name, (char *) &packet->data[3], name_length);
 
+    
     int status = 0;
     int offset = obj_offset_from_name(&vmem_commands, name);
     if (offset < 0) {
@@ -195,7 +197,7 @@ int param_serve_command_show(csp_packet_t *packet) {
     if (length < 0) {
         status = -1;
     }
-    
+
     if (status == 0) {
         /* Read the command entry */
         param_command_t * temp_command = malloc(length + sizeof(temp_command->queue.buffer));
@@ -268,6 +270,144 @@ static int next_command_scancb(vmem_t * vmem, int offset, int verbose, void * ct
     } else {
         *(int*)ctx -= 1;
     }
+
+    return 0;
+}
+
+int param_serve_command_list(csp_packet_t *request) {
+    int num_commands = get_number_of_command_objs(&vmem_commands);
+    unsigned int counter = 0;
+    unsigned int big_count = 0;
+    int end = 0;
+
+    while (end == 0) {
+        csp_packet_t * response = csp_buffer_get(PARAM_SERVER_MTU);
+        if (response == NULL)
+            break;
+
+        char name[14];
+        int num_per_packet = (PARAM_SERVER_MTU-4)/14;
+        
+        if ( (num_commands - big_count*num_per_packet)*14 < (PARAM_SERVER_MTU - 4))
+            end = 1;
+
+        int loop_max = (big_count+1)*num_per_packet;
+        if (end == 1)
+            loop_max = num_commands;
+
+        for (int i = big_count*num_per_packet; i < loop_max; i++) {
+            int obj_skips = counter;
+            int offset = objstore_scan(&vmem_commands, next_command_scancb, 0, (void *) &obj_skips);
+            if (offset < 0) {
+                counter++;
+                continue;
+            }
+
+            vmem_commands.read(&vmem_commands, offset + OBJ_HEADER_LENGTH - sizeof(char *) + offsetof(param_command_t, name), &name, 14);
+
+            unsigned int idx = 4+(counter-big_count*num_per_packet)*14;
+
+            memcpy(&response->data[idx], name, 14);
+            
+            counter++;
+        }
+
+        response->data[0] = PARAM_COMMAND_LIST_RESPONSE;
+        if (end == 1) {
+            response->data[1] = PARAM_FLAG_END;
+        } else {
+            response->data[1] = 0;
+        }
+        response->data16[1] = csp_hton16(counter-big_count*num_per_packet); // number of entries
+        response->length = (counter-big_count*num_per_packet)*14 + 4;
+
+        if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)
+            csp_buffer_free(response);
+
+        big_count++;
+    }
+
+    csp_buffer_free(request);
+
+    return 0;
+}
+
+int param_serve_command_rm_single(csp_packet_t *packet) {
+    /* Erase the specified command */
+    char name[14];
+    int name_length = packet->data[2];
+    name_copy(name, (char *) &packet->data[3], name_length);
+
+    int offset = obj_offset_from_name(&vmem_commands, name);
+    if (offset < 0) {
+        return -1;
+        csp_buffer_free(packet);
+    }
+
+    if (objstore_rm_obj(&vmem_commands, offset, 0) < 0) {
+        return -1;
+        csp_buffer_free(packet);
+    }
+    
+    /* Respond with the id again to verify which ID was erased */
+	packet->data[0] = PARAM_COMMAND_RM_RESPONSE;
+	packet->data[1] = PARAM_FLAG_END;
+    packet->data16[1] = csp_hton16(strlen(name));
+    
+    memcpy(&packet->data[4], name, strlen(name) + 1);
+	packet->length = 4 + strlen(name) + 1;
+
+	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
+		csp_buffer_free(packet);
+
+    return 0;
+}
+
+int param_serve_command_rm_all(csp_packet_t *packet) {
+    /* Confirm remove all by checking that name = "RMALLCMDS" */
+    char name[14];
+    int name_length = packet->data[2];
+    if (name_length != 9) {
+        return -1;
+        csp_buffer_free(packet);
+    }
+    name_copy(name, (char *) &packet->data[3], name_length);
+    char rmallcmds[] = "RMALLCMDS";
+    for (int i = 0; i < strlen(rmallcmds); i++) {
+        if (name[i] != rmallcmds[i]) {
+            return -1;
+            csp_buffer_free(packet);
+        }
+    }
+
+    int num_commands = get_number_of_command_objs(&vmem_commands);
+    uint16_t deleted_commands = 0;
+    /* Iterate over the number of commands and erase each */
+    for (int i = 0; i < num_commands; i++) {
+        int obj_skips = 0;
+        int offset = objstore_scan(&vmem_commands, next_command_scancb, 0, (void *) &obj_skips);
+        if (offset < 0) {
+            continue;
+        }
+
+        if (objstore_rm_obj(&vmem_commands, offset, 0) < 0) {
+            continue;
+        }
+        deleted_commands++;
+    }
+
+    /** Respond with name = RMALLCMDS again to verify that all commands have been erased
+     * include the number of commands deleted in the response */
+	packet->data[0] = PARAM_COMMAND_RM_RESPONSE;
+	packet->data[1] = PARAM_FLAG_END;
+    packet->data16[1] = csp_hton16(deleted_commands);
+
+    memcpy(&packet->data[4], rmallcmds, 10);
+
+	packet->length = 14;
+
+	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
+		csp_buffer_free(packet);
 
     return 0;
 }

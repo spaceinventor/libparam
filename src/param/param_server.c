@@ -16,6 +16,7 @@
 #include <param/param_server.h>
 #include <param/param_list.h>
 #include <param/param_scheduler.h>
+#include <param/param_commands.h>
 
 struct param_serve_context {
 	csp_packet_t * request;
@@ -213,6 +214,22 @@ void param_serve(csp_packet_t * packet) {
 			param_serve_command_add(packet);
 			break;
 			
+		case PARAM_COMMAND_SHOW_REQUEST:
+			param_serve_command_show(packet);
+			break;
+
+		case PARAM_COMMAND_LIST_REQUEST:
+			param_serve_command_list(packet);
+			break;
+
+		case PARAM_COMMAND_RM_REQUEST:
+			param_serve_command_rm_single(packet);
+			break;
+
+		case PARAM_COMMAND_RM_ALL_REQUEST:
+			param_serve_command_rm_all(packet);
+			break;
+		
 #endif
 
 		default:
