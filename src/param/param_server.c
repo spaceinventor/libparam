@@ -205,7 +205,13 @@ void param_serve(csp_packet_t * packet) {
 		case PARAM_SCHEDULE_RESET_REQUEST:
 			param_serve_schedule_reset(packet);
 			break;
-		
+
+	#ifdef PARAM_HAVE_COMMANDS
+		case PARAM_SCHEDULE_COMMAND_REQUEST:
+			param_serve_schedule_command(packet);
+			break;
+
+	#endif
 #endif
 
 #ifdef PARAM_HAVE_COMMANDS

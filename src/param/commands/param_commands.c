@@ -69,6 +69,9 @@ static int find_name_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) 
 }
 
 static int obj_offset_from_name(vmem_t * vmem, char name[]) {
+    if ( (strlen(name) == 0) || (strlen(name) > 13))
+        return -1;
+    
     int offset = objstore_scan(vmem, find_name_scancb, 0, name);
     
     return offset;
@@ -100,9 +103,7 @@ static uint16_t command_add(csp_packet_t * request, param_queue_type_e q_type) {
 
     /* Determine command size and allocate VMEM */
     int obj_length = (int) sizeof(param_command_t) + queue_size - (int) sizeof(char *);
-    if (obj_length < 0)
-        return UINT16_MAX;
-    printf("cmd add test\n");
+
     int obj_offset = objstore_alloc(&vmem_commands, obj_length, 0);
     if (obj_offset < 0)
         return UINT16_MAX;
@@ -349,7 +350,7 @@ int param_serve_command_rm_single(csp_packet_t *packet) {
         csp_buffer_free(packet);
     }
     
-    /* Respond with the id again to verify which ID was erased */
+    /* Respond with the name again to verify which command was erased */
 	packet->data[0] = PARAM_COMMAND_RM_RESPONSE;
 	packet->data[1] = PARAM_FLAG_END;
     packet->data16[1] = csp_hton16(strlen(name));
@@ -410,6 +411,27 @@ int param_serve_command_rm_all(csp_packet_t *packet) {
 		csp_buffer_free(packet);
 
     return 0;
+}
+
+/* Remember to free the returned command struct after use */
+param_command_t * param_command_read(char command_name[]) {
+    int offset = obj_offset_from_name(&vmem_commands, command_name);
+    if (offset < 0) {
+        return NULL;
+    }
+    int length = objstore_read_obj_length(&vmem_commands, offset);
+    if (length < 0) {
+        return NULL;
+    }
+
+    /* Read the command entry */
+    param_command_t * temp_command = malloc(length + sizeof(temp_command->queue.buffer));
+    void * read_ptr = (void*) ( (long int) temp_command + sizeof(temp_command->queue.buffer));
+    objstore_read_obj(&vmem_commands, offset, read_ptr, 0);
+
+    temp_command->queue.buffer = (char *) ((long int) temp_command + (long int) (sizeof(param_command_t)));
+
+    return temp_command;
 }
 
 static void meta_obj_init(vmem_t * vmem) {

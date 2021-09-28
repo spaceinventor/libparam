@@ -38,11 +38,10 @@ static int cmd_schedule_push(struct slash *slash) {
 		server = atoi(slash->argv[1]);
 	if (slash->argc >= 3)
         host = atoi(slash->argv[2]);
-    if (slash->argc >= 4) {
+    if (slash->argc >= 4)
         time = atoi(slash->argv[3]);
-	}
-	if (slash->argc >= 4)
-        latency_buffer = atoi(slash->argv[3]);
+    if (slash->argc >= 5)
+        latency_buffer = atoi(slash->argv[4]);
     if (slash->argc >= 6) {
         timeout = atoi(slash->argv[5]);
 	}
@@ -187,3 +186,50 @@ static int cmd_schedule_reset(struct slash *slash) {
 	return SLASH_SUCCESS;
 }
 slash_command_sub(schedule, reset, cmd_schedule_reset, "<server> <last id> [timeout]", NULL);
+
+#ifdef PARAM_HAVE_COMMANDS
+static void parse_name(char out[], char in[]) {
+	for (int i = 0; i < strlen(in); i++) {
+			out[i] = in[i];
+		}
+	out[strlen(in)] = '\0';
+}
+
+static int cmd_schedule_command(struct slash *slash) {
+    unsigned int server = 0;
+	char name[14] = {0};
+	unsigned int host = 0;
+    unsigned int time = 0;
+	unsigned int latency_buffer = 0;
+	unsigned int timeout = 100;
+
+	if (slash->argc < 6)
+		return SLASH_EUSAGE;
+	if (slash->argc >= 2)
+		server = atoi(slash->argv[1]);
+	if (slash->argc >= 3) {
+		if (strlen(slash->argv[2]) > 13) {
+			return SLASH_EUSAGE;
+		}
+		parse_name(name, slash->argv[2]);
+	}
+	if (slash->argc >= 4)
+        host = atoi(slash->argv[3]);
+    if (slash->argc >= 5) {
+        time = atoi(slash->argv[4]);
+	}
+	if (slash->argc >= 6)
+        latency_buffer = atoi(slash->argv[5]);
+    if (slash->argc >= 7) {
+        timeout = atoi(slash->argv[6]);
+	}
+
+	if (param_schedule_command(1, server, name, host, time, latency_buffer, timeout) < 0) {
+		printf("No response\n");
+		return SLASH_EIO;
+	}
+
+	return SLASH_SUCCESS;
+}
+slash_command_sub(schedule, cmd, cmd_schedule_command, "<server> <name> <host> <time> <latency buffer> [timeout]", NULL);
+#endif

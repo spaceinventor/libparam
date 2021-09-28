@@ -82,7 +82,6 @@ static void name_copy(char output[], char input[], int length) {
 }
 
 static void param_transaction_callback_show(csp_packet_t *response, int verbose, int version) {
-	//csp_hex_dump("pull response", response->data, response->length);
     if (response->data[0] != PARAM_COMMAND_SHOW_RESPONSE){
         return;
 	}
@@ -136,7 +135,6 @@ int param_command_show(int server, int verbose, char command_name[], int timeout
 
 
 static void param_transaction_callback_list(csp_packet_t *response, int verbose, int version) {
-	//csp_hex_dump("pull response", response->data, response->length);
     if (response->data[0] != PARAM_COMMAND_LIST_RESPONSE){
         return;
     }
@@ -180,7 +178,6 @@ int param_command_list(int server, int verbose, int timeout) {
 }
 
 static void param_transaction_callback_rm(csp_packet_t *response, int verbose, int version) {
-	//csp_hex_dump("pull response", response->data, response->length);
     if (response->data[0] != PARAM_COMMAND_RM_RESPONSE){
         return;
 	}

@@ -29,3 +29,5 @@ int param_serve_command_add(csp_packet_t *request);
 int param_serve_command_list(csp_packet_t *request);
 int param_serve_command_rm_single(csp_packet_t *packet);
 int param_serve_command_rm_all(csp_packet_t *packet);
+
+param_command_t * param_command_read(char command_name[]);

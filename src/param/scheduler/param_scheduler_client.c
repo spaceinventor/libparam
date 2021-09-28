@@ -317,3 +317,46 @@ int param_reset_scheduler(int server, uint16_t last_id, int verbose, int timeout
 
 	return 0;
 }
+
+#ifdef PARAM_HAVE_COMMANDS
+static void param_transaction_callback_schedule_cmd(csp_packet_t *response, int verbose, int version) {
+    if (response->data[0] != PARAM_SCHEDULE_ADD_RESPONSE){
+        return;
+    }
+
+	if (verbose) {
+		if (csp_ntoh16(response->data16[1]) == UINT16_MAX) {
+			printf("Scheduling command failed:\n");
+		} else {
+			printf("Command scheduled with id %u: ", csp_ntoh16(response->data16[1]));
+		}
+	}
+
+	csp_buffer_free(response);
+}
+
+int param_schedule_command(int verbose, int server, char command_name[], uint16_t host, uint32_t time, uint32_t latency_buffer, int timeout) {
+	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
+	if (packet == NULL)
+		return -2;
+
+	packet->data[0] = PARAM_SCHEDULE_COMMAND_REQUEST;
+
+	packet->data[1] = 0;
+    packet->data16[1] = csp_hton16(host);
+    packet->data32[1] = csp_hton32(time);
+	packet->data32[2] = csp_hton32(latency_buffer);
+
+	int name_length = strlen(command_name);
+	memcpy(&packet->data[12], command_name, name_length);
+
+	packet->length = 12+name_length;
+	if (param_transaction(packet, server, timeout, param_transaction_callback_schedule_cmd, verbose, 2) < 0)
+		return -1;
+
+	if (verbose)
+		printf("%s\n", command_name);
+
+	return 0;
+}
+#endif

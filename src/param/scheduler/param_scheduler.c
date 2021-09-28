@@ -21,6 +21,10 @@
 
 #include <objstore/objstore.h>
 
+#ifdef PARAM_HAVE_COMMANDS
+#include <param/param_commands.h>
+#endif
+
 VMEM_DEFINE_FILE(schedule, "schedule", "schedule.cnf", 0x1000);
 
 param_scheduler_meta_t meta_obj;
@@ -81,9 +85,7 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
 
     /* Determine schedule size and allocate VMEM */
     int obj_length = (int) sizeof(param_schedule_t) + queue_size - (int) sizeof(char *);
-    if (obj_length < 0)
-        return UINT16_MAX;
-
+    
     int obj_offset = objstore_alloc(&vmem_schedule, obj_length, 0);
     if (obj_offset < 0)
         return UINT16_MAX;
@@ -94,8 +96,10 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
     temp_schedule->completed = 0;
 
     int meta_offset = objstore_scan(&vmem_schedule, find_meta_scancb, 0, NULL);
-    if (meta_offset < 0)
+    if (meta_offset < 0) {
+        free(temp_schedule);
         return UINT16_MAX;
+    }
     
     if (objstore_read_obj(&vmem_schedule, meta_offset, (void *) &meta_obj, 0) < 0)
         printf("Meta obj checksum error\n");
@@ -442,6 +446,113 @@ void param_serve_schedule_reset(csp_packet_t *packet) {
 	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
 		csp_buffer_free(packet);
 }
+
+#ifdef PARAM_HAVE_COMMANDS
+static void name_copy(char output[], char input[], int length) {
+    for (int i = 0; i < length; i++) {
+			output[i] = input[i];
+    }
+    output[length] = '\0';
+}
+
+static uint16_t schedule_command(csp_packet_t *packet) {
+    if (packet->length < 13)
+        return UINT16_MAX;
+    
+    /* Find and read the requested command */
+    int name_length = packet->length - 12;
+    char name[14] = {0};
+    name_copy(name, (char *) &packet->data[12], name_length);
+
+    param_command_t * temp_command = param_command_read(name);
+    if (temp_command == NULL) {
+        return UINT16_MAX;
+    }
+
+    int queue_size = temp_command->queue.used;
+
+    /* Determine schedule size and allocate VMEM */
+    int obj_length = (int) sizeof(param_schedule_t) + queue_size - (int) sizeof(char *);
+
+    int obj_offset = objstore_alloc(&vmem_schedule, obj_length, 0);
+    if (obj_offset < 0) {
+        free(temp_command);
+        return UINT16_MAX;
+    }
+
+    param_schedule_t * temp_schedule = malloc(sizeof(param_schedule_t) + queue_size);
+    if (temp_schedule == NULL) {
+        free(temp_command);
+        return UINT16_MAX;
+    }
+
+    temp_schedule->active = 0x55;
+    temp_schedule->completed = 0;
+
+    int meta_offset = objstore_scan(&vmem_schedule, find_meta_scancb, 0, NULL);
+    if (meta_offset < 0) {
+        free(temp_command);
+        free(temp_schedule);
+        return UINT16_MAX;
+    }
+    
+    if (objstore_read_obj(&vmem_schedule, meta_offset, (void *) &meta_obj, 0) < 0)
+        printf("Meta obj checksum error\n");
+    meta_obj.last_id++;
+    if (meta_obj.last_id == UINT16_MAX){
+        meta_obj.last_id = 0;
+    }
+    meta_obj_save(&vmem_schedule);
+    temp_schedule->id = meta_obj.last_id;
+
+    uint64_t clock_get_nsec(void);
+	uint64_t timestamp = clock_get_nsec();
+
+    temp_schedule->time = (uint64_t) csp_ntoh32(packet->data32[1])*1E9;
+    if (temp_schedule->time <= 1E18) {
+        temp_schedule->time += timestamp;
+    }
+    temp_schedule->latency_buffer = csp_ntoh32(packet->data32[2]);
+
+    temp_schedule->host = csp_ntoh16(packet->data16[1]);
+
+    /* Initialize schedule queue and copy queue buffer from CSP packet */
+    param_queue_init(&temp_schedule->queue, (char *) temp_schedule + sizeof(param_schedule_t), queue_size, queue_size, temp_command->queue.type, 2);
+    memcpy(temp_schedule->queue.buffer, temp_command->queue.buffer, temp_schedule->queue.used);
+
+    void * write_ptr = (void *) (long int) temp_schedule + sizeof(temp_schedule->queue.buffer);
+    objstore_write_obj(&vmem_schedule, obj_offset, (uint8_t) OBJ_TYPE_SCHEDULE, (uint8_t) obj_length, write_ptr);
+    
+    free(temp_schedule);
+    free(temp_command);
+    return meta_obj.last_id;
+}
+
+int param_serve_schedule_command(csp_packet_t *request) {
+    csp_packet_t * response = csp_buffer_get(4);
+    if (response == NULL) {
+        csp_buffer_free(request);
+        return -1;
+    }
+
+    uint16_t id = schedule_command(request);
+
+    printf("command scheduled with id: %u\n", id);
+
+    /* Send ack with ID */
+	response->data[0] = PARAM_SCHEDULE_ADD_RESPONSE;
+	response->data[1] = PARAM_FLAG_END;
+    response->data16[1] = csp_hton16(id);
+	response->length = 4;
+
+	if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)
+		csp_buffer_free(response);
+
+    csp_buffer_free(request);
+
+    return 0;
+}
+#endif
 
 static int find_inactive_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
     int type = objstore_read_obj_type(vmem, offset);

@@ -41,20 +41,14 @@ static int _valid_checksum(vmem_t * vmem, int offset, uint16_t length, uint8_t c
 
 static int _valid_obj_check(vmem_t * vmem, int offset) {
     uint8_t data;
-    vmem->read(vmem, offset, &data, sizeof(data));
     int sync_status = 0;
-    if (data == sync_word[0]) {
-        sync_status = 1;
-        for (int j = 1; j < 4; j++) {
-            vmem->read(vmem, offset+j, &data, sizeof(data));
-            if (data == sync_word[sync_status]) {
-                sync_status++;
-            } else {
-                return 0;
-            }
+    for (int i = 0; i < 4; i++) {
+        vmem->read(vmem, offset+i, &data, sizeof(data));
+        if (data == sync_word[sync_status]) {
+            sync_status++;
+        } else {
+            return 0;
         }
-    } else {
-        return 0;
     }
 
     return 1;
@@ -69,6 +63,26 @@ static int _valid_obj_data_check(vmem_t * vmem, int offset, uint16_t length) {
     } else {
         return 0;
     }
+}
+
+int objstore_read_obj_length(vmem_t * vmem, int offset) {
+    if ( (offset < 0) || (_valid_obj_check(vmem, offset) == 0) ) {
+        return -1;
+    }
+    uint16_t length;
+    vmem->read(vmem, offset+5, &length, sizeof(length));
+
+    return length;
+}
+
+int objstore_read_obj_type(vmem_t * vmem, int offset) {
+    if (_valid_obj_check(vmem, offset) == 0) {
+        return -1;
+    }
+    uint8_t type;
+    vmem->read(vmem, offset+4, &type, sizeof(type));
+
+    return type;
 }
 
 int objstore_alloc(vmem_t * vmem, int length, int verbose) {
@@ -96,11 +110,15 @@ int objstore_alloc(vmem_t * vmem, int length, int verbose) {
                     sync_status = 0;
                     counter = 0;
 
-                    uint16_t length;
+                    
                     // read length to skip ahead
-                    vmem->read(vmem, i+5, &length, sizeof(length));
-                    printf("objstore_alloc skipping object of length: %u\n", length);
-                    i += length+(OBJ_HEADER_LENGTH);
+                    int length = objstore_read_obj_length(vmem, i);
+                    if (length < 0) {
+                        i += OBJ_HEADER_LENGTH;
+                        break;
+                    }
+                    //printf("objstore_alloc skipping object of length: %u\n", length);
+                    i += length + OBJ_HEADER_LENGTH;
                 }
             }
         } else {
@@ -117,27 +135,6 @@ int objstore_alloc(vmem_t * vmem, int length, int verbose) {
     }
 
     return -1;
-
-}
-
-int objstore_read_obj_length(vmem_t * vmem, int offset) {
-    if ( (offset < 0) || (_valid_obj_check(vmem, offset) == 0) ) {
-        return -1;
-    }
-    uint16_t length;
-    vmem->read(vmem, offset+5, &length, sizeof(length));
-
-    return length;
-}
-
-int objstore_read_obj_type(vmem_t * vmem, int offset) {
-    if (_valid_obj_check(vmem, offset) == 0) {
-        return -1;
-    }
-    uint8_t type;
-    vmem->read(vmem, offset+4, &type, sizeof(type));
-
-    return type;
 }
 
 int objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose, void * ctx) {
