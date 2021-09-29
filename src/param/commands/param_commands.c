@@ -413,7 +413,7 @@ int param_serve_command_rm_all(csp_packet_t *packet) {
     return 0;
 }
 
-/* Remember to free the returned command struct after use */
+/* Remember to free the returned pointer after use */
 param_command_t * param_command_read(char command_name[]) {
     int offset = obj_offset_from_name(&vmem_commands, command_name);
     if (offset < 0) {
