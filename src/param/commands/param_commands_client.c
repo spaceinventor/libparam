@@ -150,7 +150,7 @@ static void param_transaction_callback_list(csp_packet_t *response, int verbose,
 				unsigned int idx = 4+i*14;
 				char name[14];
 				memcpy(name, &response->data[idx], 14);
-				printf("%d - %s\n", i+1, name);
+				printf("%2u - %s\n", i+1, name);
 			}
 		}
 	}
