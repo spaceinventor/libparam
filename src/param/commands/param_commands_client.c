@@ -13,7 +13,7 @@
 #include <param/param.h>
 #include <csp/csp.h>
 #include <csp/arch/csp_time.h>
-#include <csp/csp_endian.h>
+#include <sys/types.h>
 #include <param/param_list.h>
 #include <param/param_server.h>
 #include <param/param_client.h>
@@ -28,7 +28,7 @@ static void param_transaction_callback_add(csp_packet_t *response, int verbose, 
     }
 
 	if (verbose) {
-		if (csp_ntoh16(response->data16[1]) == UINT16_MAX) {
+		if (be16toh(response->data16[1]) == UINT16_MAX) {
 			printf("Adding command failed\n");
 		} else {
 			printf("Command added:\n");
@@ -140,7 +140,7 @@ static void param_transaction_callback_list(csp_packet_t *response, int verbose,
     }
     
 	if (verbose) {
-		int num_cmds = csp_ntoh16(response->data16[1]);
+		int num_cmds = be16toh(response->data16[1]);
 		/* List the entries */
 		if (num_cmds == 0) {
 			printf("No saved commands\n");
@@ -185,7 +185,7 @@ static void param_transaction_callback_rm(csp_packet_t *response, int verbose, i
 	if (verbose) {
 		int rm_all_response = 0;
 		char name[14] = {0};
-		uint16_t response_data = csp_ntoh16(response->data16[1]);
+		uint16_t response_data = be16toh(response->data16[1]);
 
 		if (response->length == 14) {
 			name_copy(name, (char *) &response->data[4], 9);

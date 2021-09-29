@@ -11,7 +11,7 @@
 #include <csp/csp.h>
 #include <csp/arch/csp_thread.h>
 #include <csp/arch/csp_time.h>
-#include <csp/csp_endian.h>
+#include <sys/types.h>
 
 #include <param/param.h>
 #include <param/param_queue.h>
@@ -150,7 +150,7 @@ int param_serve_command_add(csp_packet_t * request) {
     /* Send ack with ID */
 	response->data[0] = PARAM_COMMAND_ADD_RESPONSE;
 	response->data[1] = PARAM_FLAG_END;
-    response->data16[1] = csp_hton16(id);
+    response->data16[1] = htobe16(id);
 	response->length = 4;
 
 	if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)
@@ -319,7 +319,7 @@ int param_serve_command_list(csp_packet_t *request) {
         } else {
             response->data[1] = 0;
         }
-        response->data16[1] = csp_hton16(counter-big_count*num_per_packet); // number of entries
+        response->data16[1] = htobe16(counter-big_count*num_per_packet); // number of entries
         response->length = (counter-big_count*num_per_packet)*14 + 4;
 
         if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)
@@ -353,7 +353,7 @@ int param_serve_command_rm_single(csp_packet_t *packet) {
     /* Respond with the name again to verify which command was erased */
 	packet->data[0] = PARAM_COMMAND_RM_RESPONSE;
 	packet->data[1] = PARAM_FLAG_END;
-    packet->data16[1] = csp_hton16(strlen(name));
+    packet->data16[1] = htobe16(strlen(name));
     
     memcpy(&packet->data[4], name, strlen(name) + 1);
 	packet->length = 4 + strlen(name) + 1;
@@ -401,7 +401,7 @@ int param_serve_command_rm_all(csp_packet_t *packet) {
      * include the number of commands deleted in the response */
 	packet->data[0] = PARAM_COMMAND_RM_RESPONSE;
 	packet->data[1] = PARAM_FLAG_END;
-    packet->data16[1] = csp_hton16(deleted_commands);
+    packet->data16[1] = htobe16(deleted_commands);
 
     memcpy(&packet->data[4], rmallcmds, 10);
 
