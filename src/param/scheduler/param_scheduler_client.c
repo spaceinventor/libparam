@@ -227,7 +227,7 @@ static void param_transaction_callback_rm(csp_packet_t *response, int verbose, i
 	if (verbose) {
 		if ((be16toh(response->data16[1]) == UINT16_MAX) && (response->length == 6) ) {
 			//RM ALL RESPONSE
-			printf("All %u scheduled parameter queues removed.\n", csp_ntoh16(response->data16[2]));
+			printf("All %u scheduled parameter queues removed.\n", be16toh(response->data16[2]));
 		} else {
 			//RM SINGLE RESPONSE
 			printf("Schedule id %u removed.\n", be16toh(response->data16[1]));
@@ -289,7 +289,7 @@ static void param_transaction_callback_reset(csp_packet_t *response, int verbose
 	}
     
 	if (verbose) {
-		printf("Scheduler server reset: last id = %u\n", csp_ntoh16(response->data16[1]));
+		printf("Scheduler server reset: last id = %u\n", be16toh(response->data16[1]));
 	}
     
 	csp_buffer_free(response);
@@ -305,7 +305,7 @@ int param_reset_scheduler(int server, uint16_t last_id, int verbose, int timeout
 
     packet->data[1] = 0;
 
-	packet->data16[1] = csp_hton16(last_id);
+	packet->data16[1] = htobe16(last_id);
 
 	packet->length = 4;
 
@@ -325,10 +325,10 @@ static void param_transaction_callback_schedule_cmd(csp_packet_t *response, int 
     }
 
 	if (verbose) {
-		if (csp_ntoh16(response->data16[1]) == UINT16_MAX) {
+		if (be16toh(response->data16[1]) == UINT16_MAX) {
 			printf("Scheduling command failed:\n");
 		} else {
-			printf("Command scheduled with id %u: ", csp_ntoh16(response->data16[1]));
+			printf("Command scheduled with id %u: ", be16toh(response->data16[1]));
 		}
 	}
 
@@ -343,9 +343,9 @@ int param_schedule_command(int verbose, int server, char command_name[], uint16_
 	packet->data[0] = PARAM_SCHEDULE_COMMAND_REQUEST;
 
 	packet->data[1] = 0;
-    packet->data16[1] = csp_hton16(host);
-    packet->data32[1] = csp_hton32(time);
-	packet->data32[2] = csp_hton32(latency_buffer);
+    packet->data16[1] = htobe16(host);
+    packet->data32[1] = htobe32(time);
+	packet->data32[2] = htobe32(latency_buffer);
 
 	int name_length = strlen(command_name);
 	memcpy(&packet->data[12], command_name, name_length);

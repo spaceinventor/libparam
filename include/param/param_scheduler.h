@@ -39,3 +39,7 @@ void param_serve_schedule_reset(csp_packet_t *packet);
 
 int param_schedule_server_update(void);
 void param_schedule_server_init(void);
+
+#ifdef PARAM_HAVE_COMMANDS
+int param_serve_schedule_command(csp_packet_t *request);
+#endif
