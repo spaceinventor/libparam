@@ -113,10 +113,20 @@ typedef struct param_s {
  * The size field is only important for non-native types such as string, data and vector.
  *
  */
-#define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _log) \
-	__attribute__((section("param"))) \
+
+/* #ifdef PARAM_SKIP_SECTION */
+#define PARAM_ATTR \
 	__attribute__((aligned(1))) \
-	__attribute__((used)) \
+	__attribute__((used))
+/* #else */
+/* #define PARAM_ATTR \ */
+/* 	__attribute__((section("param"))) \ */
+/* 	__attribute__((aligned(1))) \ */
+/* 	__attribute__((used)) */
+/* #endif */
+
+#define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _log) \
+    PARAM_ATTR \
 	param_t _name = { \
 		.vmem = NULL, \
 		.node = PARAM_LIST_LOCAL, \
@@ -132,10 +142,8 @@ typedef struct param_s {
 	}
 
 #define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _log) \
-	__attribute__((section("param"))) \
-	__attribute__((aligned(1))) \
-	__attribute__((used)) \
-	param_t _name = { \
+    PARAM_ATTR \
+    param_t _name = { \
 		.node = PARAM_LIST_LOCAL, \
 		.id = _id, \
 		.type = _type, \
@@ -150,9 +158,7 @@ typedef struct param_s {
 	}
 
 #define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_size, _array_step, _flags, _physaddr) \
-	__attribute__((section("param"))) \
-	__attribute__((aligned(1))) \
-	__attribute__((used)) \
+    PARAM_ATTR \
 	param_t _name = { \
 		.node = _node, \
 		.id = _id, \
