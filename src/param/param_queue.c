@@ -24,10 +24,15 @@ void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int u
 	queue->type = type;
 	queue->used = used;
 	queue->version = version;
-	queue->last_node = UINT16_MAX;
 }
 
 int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value) {
+
+	/* Ensure we always send nodeid on the first element of the queue */
+	if (queue->used == 0) {
+		queue->last_node = UINT16_MAX;
+	}
+
 	mpack_writer_t writer;
 	mpack_writer_init(&writer, queue->buffer, queue->buffer_size);
 	writer.position = queue->buffer + queue->used;

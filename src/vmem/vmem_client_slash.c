@@ -18,7 +18,7 @@
 #include <vmem/vmem_client.h>
 #include <vmem/vmem_server.h>
 #include <csp/csp.h>
-#include <csp/csp_endian.h>
+#include <sys/types.h>
 
 #include <slash/slash.h>
 
@@ -134,7 +134,7 @@ static int vmem_client_slash_unlock(struct slash *slash)
 	packet->length = sizeof(vmem_request_t);
 
 	/* Step 1: Check initial unlock code */
-	request->unlock.code = csp_hton32(0x28140360);
+	request->unlock.code = htobe32(0x28140360);
 
 	if (!csp_send(conn, packet, 0)) {
 		csp_buffer_free(packet);
@@ -149,7 +149,7 @@ static int vmem_client_slash_unlock(struct slash *slash)
 	}
 
 	request = (void *) packet->data;
-	uint32_t sat_verification = csp_ntoh32(request->unlock.code);
+	uint32_t sat_verification = be32toh(request->unlock.code);
 
 	printf("Verification code received: %x\n\n", (unsigned int) sat_verification);
 
@@ -194,7 +194,7 @@ static int vmem_client_slash_unlock(struct slash *slash)
 	}
 
 	/* Step 3: Send verification sequence */
-	request->unlock.code = csp_hton32(user_verification);
+	request->unlock.code = htobe32(user_verification);
 
 	if (!csp_send(conn, packet, 0)) {
 		csp_buffer_free(packet);
@@ -209,7 +209,7 @@ static int vmem_client_slash_unlock(struct slash *slash)
 	}
 
 	request = (void *) packet->data;
-	uint32_t result = csp_ntoh32(request->unlock.code);
+	uint32_t result = be32toh(request->unlock.code);
 	printf("Result: %x\n", (unsigned int) result);
 
 	csp_close(conn);

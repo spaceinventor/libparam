@@ -11,7 +11,7 @@
 #include <csp/csp.h>
 #include <csp/arch/csp_thread.h>
 #include <csp/arch/csp_time.h>
-#include <csp/csp_endian.h>
+#include <sys/types.h>
 
 #include <param/param.h>
 #include <param/param_queue.h>
@@ -113,13 +113,13 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
     uint64_t clock_get_nsec(void);
 	uint64_t timestamp = clock_get_nsec();
 
-    temp_schedule->time = (uint64_t) csp_ntoh32(packet->data32[1])*1E9;
+    temp_schedule->time = (uint64_t) be32toh(packet->data32[1])*1E9;
     if (temp_schedule->time <= 1E18) {
         temp_schedule->time += timestamp;
     }
-    temp_schedule->latency_buffer = csp_ntoh32(packet->data32[2]);
+    temp_schedule->latency_buffer = be32toh(packet->data32[2]);
 
-    temp_schedule->host = csp_ntoh16(packet->data16[1]);
+    temp_schedule->host = be16toh(packet->data16[1]);
 
     /* Initialize schedule queue and copy queue buffer from CSP packet */
     param_queue_init(&temp_schedule->queue, (char *) temp_schedule + sizeof(param_schedule_t), queue_size, queue_size, q_type, 2);
@@ -144,7 +144,7 @@ int param_serve_schedule_push(csp_packet_t *request) {
     /* Send ack with ID */
 	response->data[0] = PARAM_SCHEDULE_ADD_RESPONSE;
 	response->data[1] = PARAM_FLAG_END;
-    response->data16[1] = csp_hton16(id);
+    response->data16[1] = htobe16(id);
 	response->length = 4;
 
 	if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)
@@ -170,7 +170,7 @@ int param_serve_schedule_pull(csp_packet_t *request) {
     /* Send ack with ID */
 	response->data[0] = PARAM_SCHEDULE_ADD_RESPONSE;
 	response->data[1] = PARAM_FLAG_END;
-    response->data16[1] = csp_hton16(id);
+    response->data16[1] = htobe16(id);
 	response->length = 4;
 
 	if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)
@@ -205,7 +205,7 @@ static int obj_offset_from_id(vmem_t * vmem, int id) {
 }
 
 int param_serve_schedule_show(csp_packet_t *packet) {
-    uint16_t id = csp_ntoh16(packet->data16[1]);
+    uint16_t id = be16toh(packet->data16[1]);
     int status = 0;
     int offset = obj_offset_from_id(&vmem_schedule, id);
     if (offset < 0) {
@@ -228,9 +228,9 @@ int param_serve_schedule_show(csp_packet_t *packet) {
         packet->data[0] = PARAM_SCHEDULE_SHOW_RESPONSE;
         packet->data[1] = PARAM_FLAG_END;
 
-        packet->data16[1] = csp_hton16(temp_schedule->id);
+        packet->data16[1] = htobe16(temp_schedule->id);
         uint32_t time_s = (uint32_t) (temp_schedule->time / 1E9);
-        packet->data32[1] = csp_hton32(time_s);
+        packet->data32[1] = htobe32(time_s);
         packet->data[8] = temp_schedule->queue.type;
         packet->data[9] = temp_schedule->completed;
 
@@ -244,7 +244,7 @@ int param_serve_schedule_show(csp_packet_t *packet) {
         packet->data[0] = PARAM_SCHEDULE_SHOW_RESPONSE;
         packet->data[1] = PARAM_FLAG_END;
 
-        packet->data16[1] = csp_hton16(UINT16_MAX);
+        packet->data16[1] = htobe16(UINT16_MAX);
 
         packet->length = 4;
     }
@@ -257,7 +257,7 @@ int param_serve_schedule_show(csp_packet_t *packet) {
 
 int param_serve_schedule_rm_single(csp_packet_t *packet) {
     /* Disable the specified schedule id */
-    uint16_t id = csp_ntoh16(packet->data16[1]);
+    uint16_t id = be16toh(packet->data16[1]);
     int offset = obj_offset_from_id(&vmem_schedule, id);
     if (offset < 0) {
         return -1;
@@ -272,7 +272,7 @@ int param_serve_schedule_rm_single(csp_packet_t *packet) {
     /* Respond with the id again to verify which ID was erased */
 	packet->data[0] = PARAM_SCHEDULE_RM_RESPONSE;
 	packet->data[1] = PARAM_FLAG_END;
-    packet->data16[1] = csp_hton16(id);
+    packet->data16[1] = htobe16(id);
     
 	packet->length = 4;
 
@@ -322,7 +322,7 @@ static int next_schedule_scancb(vmem_t * vmem, int offset, int verbose, void * c
 
 int param_serve_schedule_rm_all(csp_packet_t *packet) {
     /* Confirm remove all by checking that id = UINT16_MAX */
-    uint16_t id = csp_ntoh16(packet->data16[1]);
+    uint16_t id = be16toh(packet->data16[1]);
     if (id != UINT16_MAX) {
         return -1;
         csp_buffer_free(packet);
@@ -348,8 +348,8 @@ int param_serve_schedule_rm_all(csp_packet_t *packet) {
      */
 	packet->data[0] = PARAM_SCHEDULE_RM_RESPONSE;
 	packet->data[1] = PARAM_FLAG_END;
-    packet->data16[1] = csp_hton16(UINT16_MAX);
-    packet->data16[2] = csp_hton16(deleted_schedules);
+    packet->data16[1] = htobe16(UINT16_MAX);
+    packet->data16[2] = htobe16(deleted_schedules);
 
 	packet->length = 6;
 
@@ -399,8 +399,8 @@ int param_serve_schedule_list(csp_packet_t *request) {
             unsigned int idx = 4+(counter-big_count*num_per_packet)*(4+2+2);
 
             uint32_t time_s = (uint32_t) (temp_schedule->time / 1E9);
-            response->data32[idx/4] = csp_hton32(time_s);
-            response->data16[idx/2+2] = csp_hton16(temp_schedule->id);
+            response->data32[idx/4] = htobe32(time_s);
+            response->data16[idx/2+2] = htobe16(temp_schedule->id);
             response->data[idx+6] = temp_schedule->completed;
             response->data[idx+7] = temp_schedule->queue.type;
             
@@ -415,7 +415,7 @@ int param_serve_schedule_list(csp_packet_t *request) {
         } else {
             response->data[1] = 0;
         }
-        response->data16[1] = csp_hton16(counter-big_count*num_per_packet); // number of entries
+        response->data16[1] = htobe16(counter-big_count*num_per_packet); // number of entries
         response->length = (counter-big_count*num_per_packet)*8 + 4;
 
         if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)
@@ -430,8 +430,8 @@ int param_serve_schedule_list(csp_packet_t *request) {
 }
 
 void param_serve_schedule_reset(csp_packet_t *packet) {
-    if (csp_ntoh16(packet->data16[1]) != 0) {
-        meta_obj.last_id = csp_ntoh16(packet->data16[1]);
+    if (be16toh(packet->data16[1]) != 0) {
+        meta_obj.last_id = be16toh(packet->data16[1]);
     }
 
     meta_obj_save(&vmem_schedule);
@@ -439,7 +439,7 @@ void param_serve_schedule_reset(csp_packet_t *packet) {
     packet->data[0] = PARAM_SCHEDULE_RESET_RESPONSE;
 	packet->data[1] = PARAM_FLAG_END;
 
-    packet->data16[1] = csp_hton16(meta_obj.last_id);
+    packet->data16[1] = htobe16(meta_obj.last_id);
 	
     packet->length = 4;
 
@@ -508,13 +508,13 @@ static uint16_t schedule_command(csp_packet_t *packet) {
     uint64_t clock_get_nsec(void);
 	uint64_t timestamp = clock_get_nsec();
 
-    temp_schedule->time = (uint64_t) csp_ntoh32(packet->data32[1])*1E9;
+    temp_schedule->time = (uint64_t) be32toh(packet->data32[1])*1E9;
     if (temp_schedule->time <= 1E18) {
         temp_schedule->time += timestamp;
     }
-    temp_schedule->latency_buffer = csp_ntoh32(packet->data32[2]);
+    temp_schedule->latency_buffer = be32toh(packet->data32[2]);
 
-    temp_schedule->host = csp_ntoh16(packet->data16[1]);
+    temp_schedule->host = be16toh(packet->data16[1]);
 
     /* Initialize schedule queue and copy queue buffer from CSP packet */
     param_queue_init(&temp_schedule->queue, (char *) temp_schedule + sizeof(param_schedule_t), queue_size, queue_size, temp_command->queue.type, 2);
@@ -542,7 +542,7 @@ int param_serve_schedule_command(csp_packet_t *request) {
     /* Send ack with ID */
 	response->data[0] = PARAM_SCHEDULE_ADD_RESPONSE;
 	response->data[1] = PARAM_FLAG_END;
-    response->data16[1] = csp_hton16(id);
+    response->data16[1] = htobe16(id);
 	response->length = 4;
 
 	if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)

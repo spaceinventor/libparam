@@ -21,7 +21,7 @@ typedef struct {
 } vmem_fram_cache_driver_t;
 
 #define VMEM_DEFINE_FRAM_CACHE(name_in, strname, fram_addr_in, size_in, _vaddr) \
-    uint8_t vmem_##name_in##_cache[size_in] = {}; \
+    uint8_t vmem_##name_in##_cache[size_in] __attribute__((section(".noinit"))); \
 	static vmem_fram_cache_driver_t vmem_##name_in##_driver = { \
 		.fram_addr = fram_addr_in, \
 		.cache = vmem_##name_in##_cache, \

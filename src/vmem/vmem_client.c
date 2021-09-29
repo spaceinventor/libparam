@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 #include <csp/arch/csp_time.h>
-#include <csp/csp_endian.h>
+#include <sys/types.h>
 
 #include <vmem/vmem_server.h>
 #include <vmem/vmem_client.h>
@@ -28,8 +28,8 @@ void vmem_download(int node, int timeout, uint32_t address, uint32_t length, cha
 	vmem_request_t * request = (void *) packet->data;
 	request->version = VMEM_VERSION;
 	request->type = VMEM_SERVER_DOWNLOAD;
-	request->data.address = csp_hton32(address);
-	request->data.length = csp_hton32(length);
+	request->data.address = htobe32(address);
+	request->data.length = htobe32(length);
 	packet->length = sizeof(vmem_request_t);
 
 	/* Send request */
@@ -90,8 +90,8 @@ void vmem_upload(int node, int timeout, uint32_t address, char * datain, uint32_
 	vmem_request_t * request = (void *) packet->data;
 	request->version = VMEM_VERSION;
 	request->type = VMEM_SERVER_UPLOAD;
-	request->data.address = csp_hton32(address);
-	request->data.length = csp_hton32(length);
+	request->data.address = htobe32(address);
+	request->data.length = htobe32(length);
 	packet->length = sizeof(vmem_request_t);
 
 	/* Send request */
@@ -169,7 +169,7 @@ void vmem_client_list(int node, int timeout) {
 	}
 
 	for (vmem_list_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
-		printf(" %u: %-5.5s 0x%08X - %u typ %u\r\n", vmem->vmem_id, vmem->name, (unsigned int) csp_ntoh32(vmem->vaddr), (unsigned int) csp_ntoh32(vmem->size), vmem->type);
+		printf(" %u: %-5.5s 0x%08X - %u typ %u\r\n", vmem->vmem_id, vmem->name, (unsigned int) be32toh(vmem->vaddr), (unsigned int) be32toh(vmem->size), vmem->type);
 	}
 
 	csp_buffer_free(packet);
