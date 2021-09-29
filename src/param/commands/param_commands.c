@@ -11,6 +11,7 @@
 #include <csp/csp.h>
 #include <csp/arch/csp_thread.h>
 #include <csp/arch/csp_time.h>
+#include <csp/arch/csp_semaphore.h>
 #include <sys/types.h>
 
 #include <param/param.h>
@@ -24,6 +25,9 @@
 VMEM_DEFINE_FILE(commands, "commands", "commands.cnf", 0x1000);
 
 param_commands_meta_t meta_obj;
+
+csp_mutex_t command_mtx;
+csp_mutex_buffer_t command_mtx_buffer;
 
 static int find_meta_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
     int type = objstore_read_obj_type(vmem, offset);
@@ -104,6 +108,9 @@ static uint16_t command_add(csp_packet_t * request, param_queue_type_e q_type) {
     /* Determine command size and allocate VMEM */
     int obj_length = (int) sizeof(param_command_t) + queue_size - (int) sizeof(char *);
 
+    if (csp_mutex_lock(&command_mtx, 100) == CSP_SEMAPHORE_ERROR)
+        return UINT16_MAX;
+
     int obj_offset = objstore_alloc(&vmem_commands, obj_length, 0);
     if (obj_offset < 0)
         return UINT16_MAX;
@@ -133,6 +140,8 @@ static uint16_t command_add(csp_packet_t * request, param_queue_type_e q_type) {
 
     void * write_ptr = (void *) (long int) temp_command + sizeof(temp_command->queue.buffer);
     objstore_write_obj(&vmem_commands, obj_offset, (uint8_t) OBJ_TYPE_COMMAND, (uint8_t) obj_length, write_ptr);
+
+    csp_mutex_unlock(&command_mtx);
     
     free(temp_command);
     return meta_obj.last_id;
@@ -187,9 +196,11 @@ int param_serve_command_show(csp_packet_t *packet) {
     char name[14];
     int name_length = packet->data[2];
     name_copy(name, (char *) &packet->data[3], name_length);
-
-    
     int status = 0;
+    
+    if (csp_mutex_lock(&command_mtx, 100) == CSP_SEMAPHORE_ERROR)
+        status = -1;
+
     int offset = obj_offset_from_name(&vmem_commands, name);
     if (offset < 0) {
         status = -1;
@@ -204,6 +215,8 @@ int param_serve_command_show(csp_packet_t *packet) {
         param_command_t * temp_command = malloc(length + sizeof(temp_command->queue.buffer));
         void * read_ptr = (void*) ( (long int) temp_command + sizeof(temp_command->queue.buffer));
         objstore_read_obj(&vmem_commands, offset, read_ptr, 0);
+
+        csp_mutex_unlock(&command_mtx);
 
         temp_command->queue.buffer = (char *) ((long int) temp_command + (long int) (sizeof(param_command_t)));
 
@@ -223,6 +236,8 @@ int param_serve_command_show(csp_packet_t *packet) {
         free(temp_command);
     } else {
         /* Respond with an error code */
+        csp_mutex_unlock(&command_mtx);
+
         packet->data[0] = PARAM_COMMAND_SHOW_RESPONSE;
         packet->data[1] = PARAM_FLAG_END;
 
@@ -276,6 +291,11 @@ static int next_command_scancb(vmem_t * vmem, int offset, int verbose, void * ct
 }
 
 int param_serve_command_list(csp_packet_t *request) {
+    if (csp_mutex_lock(&command_mtx, 100) == CSP_SEMAPHORE_ERROR) {
+        csp_buffer_free(request);
+        return -1;
+    }
+    
     int num_commands = get_number_of_command_objs(&vmem_commands);
     unsigned int counter = 0;
     unsigned int big_count = 0;
@@ -315,6 +335,7 @@ int param_serve_command_list(csp_packet_t *request) {
 
         response->data[0] = PARAM_COMMAND_LIST_RESPONSE;
         if (end == 1) {
+            csp_mutex_unlock(&command_mtx);
             response->data[1] = PARAM_FLAG_END;
         } else {
             response->data[1] = 0;
@@ -339,16 +360,23 @@ int param_serve_command_rm_single(csp_packet_t *packet) {
     int name_length = packet->data[2];
     name_copy(name, (char *) &packet->data[3], name_length);
 
+    if (csp_mutex_lock(&command_mtx, 100) == CSP_SEMAPHORE_ERROR) {
+        csp_buffer_free(packet);
+        return -1;
+    }
+
     int offset = obj_offset_from_name(&vmem_commands, name);
     if (offset < 0) {
-        return -1;
         csp_buffer_free(packet);
+        return -1;
     }
 
     if (objstore_rm_obj(&vmem_commands, offset, 0) < 0) {
         return -1;
         csp_buffer_free(packet);
     }
+
+    csp_mutex_unlock(&command_mtx);
     
     /* Respond with the name again to verify which command was erased */
 	packet->data[0] = PARAM_COMMAND_RM_RESPONSE;
@@ -381,6 +409,11 @@ int param_serve_command_rm_all(csp_packet_t *packet) {
         }
     }
 
+    if (csp_mutex_lock(&command_mtx, 100) == CSP_SEMAPHORE_ERROR) {
+        csp_buffer_free(packet);
+        return -1;
+    }
+
     int num_commands = get_number_of_command_objs(&vmem_commands);
     uint16_t deleted_commands = 0;
     /* Iterate over the number of commands and erase each */
@@ -396,6 +429,8 @@ int param_serve_command_rm_all(csp_packet_t *packet) {
         }
         deleted_commands++;
     }
+
+    csp_mutex_unlock(&command_mtx);
 
     /** Respond with name = RMALLCMDS again to verify that all commands have been erased
      * include the number of commands deleted in the response */
@@ -415,6 +450,9 @@ int param_serve_command_rm_all(csp_packet_t *packet) {
 
 /* Remember to free the returned pointer after use */
 param_command_t * param_command_read(char command_name[]) {
+    if (csp_mutex_lock(&command_mtx, 100) == CSP_SEMAPHORE_ERROR)
+        return NULL;
+
     int offset = obj_offset_from_name(&vmem_commands, command_name);
     if (offset < 0) {
         return NULL;
@@ -429,6 +467,8 @@ param_command_t * param_command_read(char command_name[]) {
     void * read_ptr = (void*) ( (long int) temp_command + sizeof(temp_command->queue.buffer));
     objstore_read_obj(&vmem_commands, offset, read_ptr, 0);
 
+    csp_mutex_unlock(&command_mtx);
+
     temp_command->queue.buffer = (char *) ((long int) temp_command + (long int) (sizeof(param_command_t)));
 
     return temp_command;
@@ -436,6 +476,9 @@ param_command_t * param_command_read(char command_name[]) {
 
 static void meta_obj_init(vmem_t * vmem) {
     /* Search for commands meta object */
+    if (csp_mutex_lock(&command_mtx, CSP_MAX_TIMEOUT) == CSP_SEMAPHORE_ERROR)
+        return;
+    
     int offset = objstore_scan(vmem, find_meta_scancb, 0, NULL);
     
     if (offset < 0) {
@@ -471,10 +514,14 @@ static void meta_obj_init(vmem_t * vmem) {
             objstore_write_obj(vmem, offset, OBJ_TYPE_COMMANDS_META, sizeof(meta_obj), (void *) &meta_obj);
         }
     }
+
+    csp_mutex_unlock(&command_mtx);
 }
 
 void param_command_server_init(void) {
     vmem_file_init(&vmem_commands);
+
+    csp_mutex_create_static(&command_mtx, &command_mtx_buffer);
 
     meta_obj_init(&vmem_commands);
 }

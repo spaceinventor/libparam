@@ -98,7 +98,7 @@ static void param_transaction_callback_show(csp_packet_t *response, int verbose,
 			param_queue_init(&queue, &response->data[4+name_length], response->length - (4+name_length), response->length - (4+name_length), response->data[3], version);
 
 			/* Show the requested queue */
-			printf("Requested command: name = %s\n", name);
+			printf("Requested command: %s\n", name);
 
 			param_queue_print(&queue);
 		}
