@@ -5,12 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
-//VMEM_DEFINE_FILE(schedule, "schedule", "schedule.cnf", 0x1000);
-
 const uint8_t sync_word[4] = {0xCA, 0x70, 0xCA, 0xFE};
-
-//typedef int (*objstore_scan_callback_f)(vmem_t * vmem, int offset, int verbose);
 
 static uint8_t _make_checksum(vmem_t * vmem, int offset, int length) {
     if (length < 0)
@@ -256,56 +251,4 @@ void objstore_write_data(vmem_t * vmem, int obj_offset, int data_offset, int dat
 
     // Write the new checksum
     vmem->write(vmem, obj_offset+OBJ_HEADER_LENGTH+obj_length, &checksum, sizeof(checksum));
-}
-
-
-/*
-static int test_callback(vmem_t * vmem, int offset, int verbose, void * var_in) {
-
-    if (verbose) {
-        printf("Found sync-word 5C0FFEE1 at offset %u\n", offset);
-
-        uint8_t type, length;
-
-        vmem->read(vmem, offset+4, &type, 1);
-        printf(" object type: %u\n", type);
-
-        vmem->read(vmem, offset+5, &length, 1);
-        printf(" object length: %u\n", length);
-    }
-
-    return 0;
-
-}
-*/
-
-void objstore_init(vmem_t * vmem) {
-
-    vmem_file_init(vmem);
-
-#if 0
-    /*
-    for (int i = 0; i < NUM_OBJ_TYPES; i++) {
-        obj_first_idx[i] = NULL;
-    }
-    */
-
-    objstore_rm_obj(vmem, 10);
-
-    objstore_scan(vmem, test_callback, 1);
-
-    float test = 5.7;
-    int offset = objstore_alloc(vmem, 4);
-    if (offset >= 0) {
-        objstore_write_obj(vmem, offset, 0, 4, &test);
-    }
-
-    float read_test;
-    objstore_read_obj(vmem, 10, &read_test);
-    printf("Read float %f from vmem\n", read_test);
-
-    //objstore_scan(vmem);
-
-    //objstore_printindex(-1);
-#endif
 }

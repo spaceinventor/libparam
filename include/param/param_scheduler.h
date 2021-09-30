@@ -10,6 +10,8 @@
 #include <param/param_queue.h>
 #include <csp/csp.h>
 
+extern const vmem_t vmem_schedule;
+
 struct param_schedule_s {
 	param_queue_t queue;
     uint64_t time __attribute__((aligned(8)));

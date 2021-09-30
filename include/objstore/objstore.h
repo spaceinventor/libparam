@@ -10,7 +10,6 @@
 #include <stdint.h>
 
 #include <vmem/vmem.h>
-#include <vmem/vmem_file.h>
 
 typedef enum {
     OBJ_TYPE_SCHEDULE = 1,

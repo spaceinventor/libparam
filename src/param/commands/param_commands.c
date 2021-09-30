@@ -22,8 +22,6 @@
 
 #include <objstore/objstore.h>
 
-VMEM_DEFINE_FILE(commands, "commands", "commands.cnf", 0x1000);
-
 param_commands_meta_t meta_obj;
 
 csp_mutex_t command_mtx;
@@ -372,8 +370,8 @@ int param_serve_command_rm_single(csp_packet_t *packet) {
     }
 
     if (objstore_rm_obj(&vmem_commands, offset, 0) < 0) {
-        return -1;
         csp_buffer_free(packet);
+        return -1;
     }
 
     csp_mutex_unlock(&command_mtx);
@@ -397,15 +395,15 @@ int param_serve_command_rm_all(csp_packet_t *packet) {
     char name[14];
     int name_length = packet->data[2];
     if (name_length != 9) {
-        return -1;
         csp_buffer_free(packet);
+        return -1;
     }
     name_copy(name, (char *) &packet->data[3], name_length);
     char rmallcmds[] = "RMALLCMDS";
     for (int i = 0; i < strlen(rmallcmds); i++) {
         if (name[i] != rmallcmds[i]) {
-            return -1;
             csp_buffer_free(packet);
+            return -1;
         }
     }
 
@@ -519,8 +517,6 @@ static void meta_obj_init(vmem_t * vmem) {
 }
 
 void param_command_server_init(void) {
-    vmem_file_init(&vmem_commands);
-
     csp_mutex_create_static(&command_mtx, &command_mtx_buffer);
 
     meta_obj_init(&vmem_commands);

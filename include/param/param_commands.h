@@ -10,6 +10,8 @@
 #include <param/param_queue.h>
 #include <csp/csp.h>
 
+extern const vmem_t vmem_commands;
+
 struct param_command_s {
 	param_queue_t queue;
     uint16_t id;
