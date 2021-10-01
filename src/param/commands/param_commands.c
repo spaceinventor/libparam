@@ -168,28 +168,6 @@ int param_serve_command_add(csp_packet_t * request) {
     return 0;
 }
 
-/*static int obj_offset_from_id_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
-    int target_id =  *(int*)ctx;
-
-    int type = objstore_read_obj_type(vmem, offset);
-    if (type != OBJ_TYPE_COMMAND)
-        return 0;
-
-    uint16_t id;
-    vmem->read(vmem, offset+OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_command_t,id), &id, sizeof(id));
-    
-    if (id == target_id) {
-        return -1;
-    }
-
-    return 0;
-}
-
-static int obj_offset_from_id(vmem_t * vmem, int id) {
-    int offset = objstore_scan(vmem, obj_offset_from_id_scancb, 0, (void*) &id);
-    return offset;
-}*/
-
 int param_serve_command_show(csp_packet_t *packet) {
     char name[14];
     int name_length = packet->data[2];
