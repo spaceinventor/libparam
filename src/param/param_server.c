@@ -54,7 +54,7 @@ static int __add(struct param_serve_context *ctx, param_t * param, int offset) {
 		/* Flush */
 		__send(ctx, 0);
 		if (__allocate(ctx) < 0)
-			return 0;
+			return -1;
 
 		/* Retry on fresh buffer */
 		if (param_queue_add(&ctx->q_response, param, offset, NULL) != 0) {
@@ -83,7 +83,10 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 
 		PARAM_QUEUE_FOREACH(param, reader, (&q_request), offset)
 			if (param) {
-				__add(&ctx, param, offset);
+				if (__add(&ctx, param, offset) < 0) {
+					csp_buffer_free(request);
+					return;
+				}
 			}
 		}
 
@@ -106,10 +109,12 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 			/* In any one of the exclude matches, continue */
 			if ((param->mask & exclude_mask) != 0)
 				continue;
-
-			__add(&ctx, param, -1);
+			
+			if (__add(&ctx, param, -1) < 0) {
+				csp_buffer_free(request);
+				return;
+			}
 		}
-
 	}
 
 	__send(&ctx, 1);
