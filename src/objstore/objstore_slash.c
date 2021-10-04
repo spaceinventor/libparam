@@ -55,16 +55,6 @@ slash_command_sub(schedule, push, cmd_schedule_push, "<server> <host> <time> [ti
 VMEM_DEFINE_FILE(slashfile, "slashfile", "schedule.cnf", 0x1000);
 
 
-static int cmd_objstore_init(struct slash *slash) {
-	if (slash->argc >= 1)
-		return SLASH_EUSAGE;
-
-	objstore_init(&vmem_slashfile);
-
-	return SLASH_SUCCESS;
-}
-slash_command_sub(objstore, init, cmd_objstore_init, "", NULL);
-
 static int objstore_scan_callback(vmem_t * vmem, int offset, int verbose, void * ctx) {
 
     if (verbose) {

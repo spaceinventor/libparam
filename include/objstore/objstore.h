@@ -35,8 +35,6 @@ typedef struct objstore_idx_s objstore_idx_t;
 
 typedef int (*objstore_scan_callback_f)(vmem_t * vmem, int offset, int verbose, void * ctx);
 
-void objstore_init(vmem_t * vmem);
-
 int objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose, void * ctx);
 int objstore_alloc(vmem_t * vmem, int length, int verbose);
 
