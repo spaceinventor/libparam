@@ -221,7 +221,8 @@ static int cmd_set(struct slash *slash) {
 		
 	} else if (autosend) {
 		/* For local parameters, set immediately if autosend is enabled */
-	    printf("Param set \n");
+	    if (offset < 0)
+			offset = 0;
 		param_set(param, offset, valuebuf);
 	} else {
 		/* If autosend is off, queue the parameters */
