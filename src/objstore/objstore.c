@@ -180,22 +180,22 @@ int objstore_rm_obj(vmem_t * vmem, int offset, int verbose) {
     }
 
     const uint16_t length;
-    vmem->read(vmem, offset+5, &length, sizeof(length));
+    vmem->read(vmem, offset+5, (void *) &length, sizeof(length));
 
     const uint8_t clear_block = 0xFF;
     // clear checksum
-    vmem->write(vmem, offset+length+OBJ_HEADER_LENGTH, &clear_block, sizeof(clear_block));
+    vmem->write(vmem, offset+length+OBJ_HEADER_LENGTH, (void *) &clear_block, sizeof(clear_block));
     // clear data field
     for (int i = length; i > 0; i--) {
-        vmem->write(vmem, offset+i+OBJ_HEADER_LENGTH-1, &clear_block, sizeof(clear_block));
+        vmem->write(vmem, offset+i+OBJ_HEADER_LENGTH-1, (void *) &clear_block, sizeof(clear_block));
     }
     // clear header
-    vmem->write(vmem, offset+6, &clear_block, sizeof(clear_block));
-    vmem->write(vmem, offset+5, &clear_block, sizeof(clear_block));
-    vmem->write(vmem, offset+4, &clear_block, sizeof(clear_block));
+    vmem->write(vmem, offset+6, (void *) &clear_block, sizeof(clear_block));
+    vmem->write(vmem, offset+5, (void *) &clear_block, sizeof(clear_block));
+    vmem->write(vmem, offset+4, (void *) &clear_block, sizeof(clear_block));
     // clear sync word
     for (int i = 0; i < 4; i++) {
-        vmem->write(vmem, offset+i, &clear_block, sizeof(clear_block));
+        vmem->write(vmem, offset+i, (void *) &clear_block, sizeof(clear_block));
     }
 
     if (verbose)
@@ -214,7 +214,7 @@ int objstore_read_obj(vmem_t * vmem, int offset, void * data_buf, int verbose) {
 
     /* Data buffer must be correct size, e.g. by using objstore_read_obj_length */
     const uint16_t length;
-    vmem->read(vmem, offset+5, &length, sizeof(length));
+    vmem->read(vmem, offset+5, (void *) &length, sizeof(length));
 
     vmem->read(vmem, offset+OBJ_HEADER_LENGTH, data_buf, length);
 
@@ -226,7 +226,7 @@ int objstore_read_obj(vmem_t * vmem, int offset, void * data_buf, int verbose) {
 
 void objstore_write_obj(vmem_t * vmem, int offset, uint8_t type, uint16_t length, void * data) {
     // TODO: check for lock
-    vmem->write(vmem, offset, sync_word, 4);
+    vmem->write(vmem, offset, (void *) sync_word, 4);
     vmem->write(vmem, offset+4, &type, sizeof(type));
     vmem->write(vmem, offset+5, &length, sizeof(length));
     vmem->write(vmem, offset+OBJ_HEADER_LENGTH, data, length);
