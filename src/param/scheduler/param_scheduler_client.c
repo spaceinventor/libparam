@@ -318,7 +318,6 @@ int param_reset_scheduler(int server, uint16_t last_id, int verbose, int timeout
 	return 0;
 }
 
-#ifdef PARAM_HAVE_COMMANDS
 static void param_transaction_callback_schedule_cmd(csp_packet_t *response, int verbose, int version) {
     if (response->data[0] != PARAM_SCHEDULE_ADD_RESPONSE){
         return;
@@ -359,4 +358,3 @@ int param_schedule_command(int verbose, int server, char command_name[], uint16_
 
 	return 0;
 }
-#endif
