@@ -86,7 +86,7 @@ slash_command_sub(schedule, pull, cmd_schedule_pull, "<server> <host> <time> [ti
 
 static int cmd_schedule_list(struct slash *slash) {
     unsigned int server = 0;
-	unsigned int timeout = 100;
+	unsigned int timeout = 200;
 
 	if (slash->argc < 2)
 		return SLASH_EUSAGE;
@@ -109,7 +109,7 @@ slash_command_sub(schedule, list, cmd_schedule_list, "<server> [timeout]", NULL)
 static int cmd_schedule_show(struct slash *slash) {
     unsigned int server = 0;
     unsigned int id = 0;
-	unsigned int timeout = 100;
+	unsigned int timeout = 200;
 
 	if (slash->argc < 3)
 		return SLASH_EUSAGE;
@@ -133,7 +133,7 @@ slash_command_sub(schedule, show, cmd_schedule_show, "<server> <id> [timeout]", 
 static int cmd_schedule_rm(struct slash *slash) {
     unsigned int server = 0;
     int id = 0;
-	unsigned int timeout = 100;
+	unsigned int timeout = 200;
 
 	if (slash->argc < 3)
 		return SLASH_EUSAGE;

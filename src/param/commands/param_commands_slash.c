@@ -62,7 +62,7 @@ slash_command_sub(command, push, cmd_command_push, "<server> <name> [timeout]", 
 static int cmd_command_show(struct slash *slash) {
     unsigned int server = 0;
 	char name[14] = {0};
-	unsigned int timeout = 100;
+	unsigned int timeout = 200;
 
 	if (slash->argc < 3)
 		return SLASH_EUSAGE;
@@ -89,7 +89,7 @@ slash_command_sub(command, show, cmd_command_show, "<server> <name> [timeout]", 
 
 static int cmd_command_list(struct slash *slash) {
     unsigned int server = 0;
-	unsigned int timeout = 100;
+	unsigned int timeout = 200;
 
 	if (slash->argc < 2)
 		return SLASH_EUSAGE;
@@ -111,7 +111,7 @@ slash_command_sub(command, list, cmd_command_list, "<server> [timeout]", NULL);
 static int cmd_command_rm(struct slash *slash) {
     unsigned int server = 0;
     char name[14] = {0};
-	unsigned int timeout = 100;
+	unsigned int timeout = 200;
 
 	if (slash->argc < 3)
 		return SLASH_EUSAGE;
