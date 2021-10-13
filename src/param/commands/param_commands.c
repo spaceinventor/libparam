@@ -110,8 +110,10 @@ static uint16_t command_add(csp_packet_t * request, param_queue_type_e q_type) {
         return UINT16_MAX;
 
     int obj_offset = objstore_alloc(&vmem_commands, obj_length, 0);
-    if (obj_offset < 0)
+    if (obj_offset < 0){
+        csp_mutex_unlock(&command_mtx);
         return UINT16_MAX;
+    }
 
     param_command_t * temp_command = malloc(sizeof(param_command_t) + queue_size);
 
@@ -120,6 +122,7 @@ static uint16_t command_add(csp_packet_t * request, param_queue_type_e q_type) {
     int meta_offset = objstore_scan(&vmem_commands, find_meta_scancb, 0, NULL);
     if (meta_offset < 0) {
         free(temp_command);
+        csp_mutex_unlock(&command_mtx);
         return UINT16_MAX;
     }
 
@@ -177,13 +180,16 @@ int param_serve_command_show(csp_packet_t *packet) {
     if (csp_mutex_lock(&command_mtx, 100) == CSP_SEMAPHORE_ERROR)
         status = -1;
 
-    int offset = obj_offset_from_name(&vmem_commands, name);
-    if (offset < 0) {
-        status = -1;
+    int offset, length;
+    if (status == 0) {
+        offset = obj_offset_from_name(&vmem_commands, name);
+        if (offset < 0)
+            status = -1;
     }
-    int length = objstore_read_obj_length(&vmem_commands, offset);
-    if (length < 0) {
-        status = -1;
+    if (status == 0) {
+        length = objstore_read_obj_length(&vmem_commands, offset);
+        if (length < 0)
+            status = -1;
     }
 
     if (status == 0) {
@@ -325,6 +331,7 @@ int param_serve_command_list(csp_packet_t *request) {
         big_count++;
     }
 
+    csp_mutex_unlock(&command_mtx);
     csp_buffer_free(request);
 
     return 0;
@@ -343,11 +350,13 @@ int param_serve_command_rm_single(csp_packet_t *packet) {
 
     int offset = obj_offset_from_name(&vmem_commands, name);
     if (offset < 0) {
+        csp_mutex_unlock(&command_mtx);
         csp_buffer_free(packet);
         return -1;
     }
 
     if (objstore_rm_obj(&vmem_commands, offset, 0) < 0) {
+        csp_mutex_unlock(&command_mtx);
         csp_buffer_free(packet);
         return -1;
     }
@@ -431,10 +440,12 @@ param_command_t * param_command_read(char command_name[]) {
 
     int offset = obj_offset_from_name(&vmem_commands, command_name);
     if (offset < 0) {
+        csp_mutex_unlock(&command_mtx);
         return NULL;
     }
     int length = objstore_read_obj_length(&vmem_commands, offset);
     if (length < 0) {
+        csp_mutex_unlock(&command_mtx);
         return NULL;
     }
 
