@@ -26,15 +26,15 @@
 #ifdef PARAM_HAVE_COMMANDS
 #include <param/param_commands.h>
 
-param_command_buf_t temp_command;
+static param_command_buf_t temp_command;
 #endif
 
-param_scheduler_meta_t meta_obj;
+static param_scheduler_meta_t meta_obj;
 
-param_schedule_buf_t temp_schedule;
+static param_schedule_buf_t temp_schedule;
 
-csp_mutex_t schedule_mtx;
-csp_mutex_buffer_t schedule_mtx_buffer;
+static csp_mutex_t schedule_mtx;
+static csp_mutex_buffer_t schedule_mtx_buffer;
 
 static int find_meta_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
     int type = objstore_read_obj_type(vmem, offset);

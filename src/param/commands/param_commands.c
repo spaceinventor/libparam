@@ -22,12 +22,12 @@
 
 #include <objstore/objstore.h>
 
-param_commands_meta_t meta_obj;
+static param_commands_meta_t meta_obj;
 
-param_command_buf_t temp_command;
+static param_command_buf_t temp_command;
 
-csp_mutex_t command_mtx;
-csp_mutex_buffer_t command_mtx_buffer;
+static csp_mutex_t command_mtx;
+static csp_mutex_buffer_t command_mtx_buffer;
 
 static int find_meta_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
     int type = objstore_read_obj_type(vmem, offset);
