@@ -29,6 +29,8 @@
 
 param_scheduler_meta_t meta_obj;
 
+param_schedule_buf_t temp_schedule;
+
 csp_mutex_t schedule_mtx;
 csp_mutex_buffer_t schedule_mtx_buffer;
 
@@ -68,16 +70,16 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
         csp_mutex_unlock(&schedule_mtx);
         return UINT16_MAX;
     }
+    
+    //param_schedule_t * temp_schedule = malloc(sizeof(param_schedule_t) + queue_size);
+    memset(&temp_schedule, 0, sizeof(temp_schedule));
 
-    param_schedule_t * temp_schedule = malloc(sizeof(param_schedule_t) + queue_size);
-
-    temp_schedule->active = 0x55;
-    temp_schedule->completed = 0;
+    temp_schedule.header.active = 0x55;
+    temp_schedule.header.completed = 0;
 
     int meta_offset = objstore_scan(&vmem_schedule, find_meta_scancb, 0, NULL);
     if (meta_offset < 0) {
         csp_mutex_unlock(&schedule_mtx);
-        free(temp_schedule);
         return UINT16_MAX;
     }
     
@@ -88,29 +90,28 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
         meta_obj.last_id = 0;
     }
     meta_obj_save(&vmem_schedule);
-    temp_schedule->id = meta_obj.last_id;
+    temp_schedule.header.id = meta_obj.last_id;
 
     uint64_t clock_get_nsec(void);
 	uint64_t timestamp = clock_get_nsec();
 
-    temp_schedule->time = (uint64_t) be32toh(packet->data32[1])*1E9;
-    if (temp_schedule->time <= 1E18) {
-        temp_schedule->time += timestamp;
+    temp_schedule.header.time = (uint64_t) be32toh(packet->data32[1])*1E9;
+    if (temp_schedule.header.time <= 1E18) {
+        temp_schedule.header.time += timestamp;
     }
-    temp_schedule->latency_buffer = be32toh(packet->data32[2]);
+    temp_schedule.header.latency_buffer = be32toh(packet->data32[2]);
 
-    temp_schedule->host = be16toh(packet->data16[1]);
+    temp_schedule.header.host = be16toh(packet->data16[1]);
 
     /* Initialize schedule queue and copy queue buffer from CSP packet */
-    param_queue_init(&temp_schedule->queue, (char *) temp_schedule + sizeof(param_schedule_t), queue_size, queue_size, q_type, 2);
-    memcpy(temp_schedule->queue.buffer, &packet->data[12], temp_schedule->queue.used);
+    param_queue_init(&temp_schedule.header.queue, (char *) &temp_schedule + sizeof(param_schedule_t), queue_size, queue_size, q_type, 2);
+    memcpy(temp_schedule.header.queue.buffer, &packet->data[12], temp_schedule.header.queue.used);
 
-    void * write_ptr = (void *) (long int) temp_schedule + sizeof(temp_schedule->queue.buffer);
+    void * write_ptr = (void *) (long int) &temp_schedule + sizeof(temp_schedule.header.queue.buffer);
     objstore_write_obj(&vmem_schedule, obj_offset, (uint8_t) OBJ_TYPE_SCHEDULE, (uint8_t) obj_length, write_ptr);
 
     csp_mutex_unlock(&schedule_mtx);
     
-    free(temp_schedule);
     return meta_obj.last_id;
 }
 
@@ -208,29 +209,28 @@ int param_serve_schedule_show(csp_packet_t *packet) {
     
     if (status == 0) {
         /* Read the schedule entry */
-        param_schedule_t * temp_schedule = malloc(length + sizeof(temp_schedule->queue.buffer));
-        void * read_ptr = (void*) ( (long int) temp_schedule + sizeof(temp_schedule->queue.buffer));
+        //param_schedule_t * temp_schedule = malloc(length + sizeof(temp_schedule->queue.buffer));
+        memset(&temp_schedule, 0, sizeof(temp_schedule));
+        void * read_ptr = (void*) ( (long int) &temp_schedule + sizeof(temp_schedule.header.queue.buffer));
         objstore_read_obj(&vmem_schedule, offset, read_ptr, 0);
 
         csp_mutex_unlock(&schedule_mtx);
 
-        temp_schedule->queue.buffer = (char *) ((long int) temp_schedule + (long int) (sizeof(param_schedule_t)));
+        temp_schedule.header.queue.buffer = (char *) ((long int) &temp_schedule + (long int) (sizeof(param_schedule_t)));
 
         /* Respond with the requested schedule entry */
         packet->data[0] = PARAM_SCHEDULE_SHOW_RESPONSE;
         packet->data[1] = PARAM_FLAG_END;
 
-        packet->data16[1] = htobe16(temp_schedule->id);
-        uint32_t time_s = (uint32_t) (temp_schedule->time / 1E9);
+        packet->data16[1] = htobe16(temp_schedule.header.id);
+        uint32_t time_s = (uint32_t) (temp_schedule.header.time / 1E9);
         packet->data32[1] = htobe32(time_s);
-        packet->data[8] = temp_schedule->queue.type;
-        packet->data[9] = temp_schedule->completed;
+        packet->data[8] = temp_schedule.header.queue.type;
+        packet->data[9] = temp_schedule.header.completed;
 
-        packet->length = temp_schedule->queue.used + 10;
+        packet->length = temp_schedule.header.queue.used + 10;
         
-        memcpy(&packet->data[10], temp_schedule->queue.buffer, temp_schedule->queue.used);
-
-        free(temp_schedule);
+        memcpy(&packet->data[10], temp_schedule.header.queue.buffer, temp_schedule.header.queue.used);
     } else {
         csp_mutex_unlock(&schedule_mtx);
 
@@ -401,19 +401,18 @@ int param_serve_schedule_list(csp_packet_t *request) {
                 counter++;
                 continue;
             }
-            param_schedule_t * temp_schedule = malloc(length + sizeof(temp_schedule->queue.buffer));
-            void * read_ptr = (void*) ( (long int) temp_schedule + sizeof(temp_schedule->queue.buffer));
+            //param_schedule_t * temp_schedule = malloc(length + sizeof(temp_schedule->queue.buffer));
+            memset(&temp_schedule, 0, sizeof(temp_schedule));
+            void * read_ptr = (void*) ( (long int) &temp_schedule + sizeof(temp_schedule.header.queue.buffer));
             objstore_read_obj(&vmem_schedule, offset, read_ptr, 0);
 
             unsigned int idx = 4+(counter-big_count*num_per_packet)*(4+2+2);
 
-            uint32_t time_s = (uint32_t) (temp_schedule->time / 1E9);
+            uint32_t time_s = (uint32_t) (temp_schedule.header.time / 1E9);
             response->data32[idx/4] = htobe32(time_s);
-            response->data16[idx/2+2] = htobe16(temp_schedule->id);
-            response->data[idx+6] = temp_schedule->completed;
-            response->data[idx+7] = temp_schedule->queue.type;
-            
-            free(temp_schedule);
+            response->data16[idx/2+2] = htobe16(temp_schedule.header.id);
+            response->data[idx+6] = temp_schedule.header.completed;
+            response->data[idx+7] = temp_schedule.header.queue.type;
             
             counter++;
         }
@@ -502,21 +501,16 @@ static uint16_t schedule_command(csp_packet_t *packet) {
         return UINT16_MAX;
     }
 
-    param_schedule_t * temp_schedule = malloc(sizeof(param_schedule_t) + queue_size);
-    if (temp_schedule == NULL) {
-        csp_mutex_unlock(&schedule_mtx);
-        free(temp_command);
-        return UINT16_MAX;
-    }
+    //param_schedule_t * temp_schedule = malloc(sizeof(param_schedule_t) + queue_size);
+    memset(&temp_schedule, 0, sizeof(temp_schedule));
 
-    temp_schedule->active = 0x55;
-    temp_schedule->completed = 0;
+    temp_schedule.header.active = 0x55;
+    temp_schedule.header.completed = 0;
 
     int meta_offset = objstore_scan(&vmem_schedule, find_meta_scancb, 0, NULL);
     if (meta_offset < 0) {
         csp_mutex_unlock(&schedule_mtx);
         free(temp_command);
-        free(temp_schedule);
         return UINT16_MAX;
     }
     
@@ -527,29 +521,28 @@ static uint16_t schedule_command(csp_packet_t *packet) {
         meta_obj.last_id = 0;
     }
     meta_obj_save(&vmem_schedule);
-    temp_schedule->id = meta_obj.last_id;
+    temp_schedule.header.id = meta_obj.last_id;
 
     uint64_t clock_get_nsec(void);
 	uint64_t timestamp = clock_get_nsec();
 
-    temp_schedule->time = (uint64_t) be32toh(packet->data32[1])*1E9;
-    if (temp_schedule->time <= 1E18) {
-        temp_schedule->time += timestamp;
+    temp_schedule.header.time = (uint64_t) be32toh(packet->data32[1])*1E9;
+    if (temp_schedule.header.time <= 1E18) {
+        temp_schedule.header.time += timestamp;
     }
-    temp_schedule->latency_buffer = be32toh(packet->data32[2]);
+    temp_schedule.header.latency_buffer = be32toh(packet->data32[2]);
 
-    temp_schedule->host = be16toh(packet->data16[1]);
+    temp_schedule.header.host = be16toh(packet->data16[1]);
 
     /* Initialize schedule queue and copy queue buffer from CSP packet */
-    param_queue_init(&temp_schedule->queue, (char *) temp_schedule + sizeof(param_schedule_t), queue_size, queue_size, temp_command->queue.type, 2);
-    memcpy(temp_schedule->queue.buffer, temp_command->queue.buffer, temp_schedule->queue.used);
+    param_queue_init(&temp_schedule.header.queue, (char *) &temp_schedule + sizeof(param_schedule_t), queue_size, queue_size, temp_command->queue.type, 2);
+    memcpy(temp_schedule.header.queue.buffer, temp_command->queue.buffer, temp_schedule.header.queue.used);
 
-    void * write_ptr = (void *) (long int) temp_schedule + sizeof(temp_schedule->queue.buffer);
+    void * write_ptr = (void *) (long int) &temp_schedule + sizeof(temp_schedule.header.queue.buffer);
     objstore_write_obj(&vmem_schedule, obj_offset, (uint8_t) OBJ_TYPE_SCHEDULE, (uint8_t) obj_length, write_ptr);
     
     csp_mutex_unlock(&schedule_mtx);
 
-    free(temp_schedule);
     free(temp_command);
     return meta_obj.last_id;
 }
@@ -630,26 +623,25 @@ int param_schedule_server_update(void) {
                     if (length < 0) {
                         continue;
                     }
-                    param_schedule_t * temp_schedule = malloc((long int) length + sizeof(temp_schedule->queue.buffer));
-                    void * read_ptr = (void*) ( (long int) temp_schedule + sizeof(temp_schedule->queue.buffer));
+                    memset(&temp_schedule, 0, sizeof(temp_schedule));
+                    //param_schedule_t * temp_schedule = malloc((long int) length + sizeof(temp_schedule->queue.buffer));
+                    void * read_ptr = (void*) ( (long int) &temp_schedule + sizeof(temp_schedule.header.queue.buffer));
                     objstore_read_obj(&vmem_schedule, offset, read_ptr, 0);
 
-                    temp_schedule->queue.buffer = (char *) ((long int) temp_schedule + (long int) (sizeof(param_schedule_t)));
+                    temp_schedule.header.queue.buffer = (char *) ((long int) &temp_schedule + (long int) (sizeof(param_schedule_t)));
 
                     /* Execute the scheduled queue */
-                    if (param_push_queue(&temp_schedule->queue, 0, temp_schedule->host, 100) == 0){
-                        temp_schedule->completed = 0x55;
-                        temp_schedule->time = timestamp;
+                    if (param_push_queue(&temp_schedule.header.queue, 0, temp_schedule.header.host, 100) == 0){
+                        temp_schedule.header.completed = 0x55;
+                        temp_schedule.header.time = timestamp;
                     } else {
                         /* Postpone 10 seconds to retry in case of network errors */
-                        temp_schedule->time += 10*1E9;
+                        temp_schedule.header.time += 10*1E9;
                     }
 
                     /* Write the results to objstore */
-                    void * write_ptr = (void*) ( (long int) temp_schedule + sizeof(temp_schedule->queue.buffer));
+                    void * write_ptr = (void*) ( (long int) &temp_schedule + sizeof(temp_schedule.header.queue.buffer));
                     objstore_write_obj(&vmem_schedule, offset, OBJ_TYPE_SCHEDULE, length, write_ptr);
-
-                    free(temp_schedule);
                 } else {
                     /* Latency buffer exceeded */
                     completed = 0xAA;

@@ -8,6 +8,7 @@
 #pragma once
 
 #include <param/param_queue.h>
+#include <param/param_server.h>
 #include <csp/csp.h>
 
 extern const vmem_t vmem_schedule;
@@ -25,6 +26,12 @@ struct param_schedule_s {
     uint32_t reserved_2;
 } __attribute__((packed, aligned(1)));
 typedef struct param_schedule_s param_schedule_t;
+
+struct param_schedule_buf_s {
+    param_schedule_t header;
+    char queue_buffer[PARAM_SERVER_MTU];
+} __attribute__((packed, aligned(1)));
+typedef struct param_schedule_buf_s param_schedule_buf_t;
 
 struct param_scheduler_meta_s {
     uint16_t last_id;
