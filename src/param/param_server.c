@@ -16,6 +16,7 @@
 #include <param/param_server.h>
 #include <param/param_list.h>
 #include <param/param_scheduler.h>
+#include <param/param_commands.h>
 
 struct param_serve_context {
 	csp_packet_t * request;
@@ -53,7 +54,7 @@ static int __add(struct param_serve_context *ctx, param_t * param, int offset) {
 		/* Flush */
 		__send(ctx, 0);
 		if (__allocate(ctx) < 0)
-			return 0;
+			return -1;
 
 		/* Retry on fresh buffer */
 		if (param_queue_add(&ctx->q_response, param, offset, NULL) != 0) {
@@ -82,7 +83,10 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 
 		PARAM_QUEUE_FOREACH(param, reader, (&q_request), offset)
 			if (param) {
-				__add(&ctx, param, offset);
+				if (__add(&ctx, param, offset) < 0) {
+					csp_buffer_free(request);
+					return;
+				}
 			}
 		}
 
@@ -105,10 +109,12 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 			/* In any one of the exclude matches, continue */
 			if ((param->mask & exclude_mask) != 0)
 				continue;
-
-			__add(&ctx, param, -1);
+			
+			if (__add(&ctx, param, -1) < 0) {
+				csp_buffer_free(request);
+				return;
+			}
 		}
-
 	}
 
 	__send(&ctx, 1);
@@ -198,7 +204,41 @@ void param_serve(csp_packet_t * packet) {
 		case PARAM_SCHEDULE_RM_ALL_REQUEST:
 			param_serve_schedule_rm_all(packet);
 			break;
+
+		case PARAM_SCHEDULE_RESET_REQUEST:
+			param_serve_schedule_reset(packet);
+			break;
+
+	#ifdef PARAM_HAVE_COMMANDS
+		case PARAM_SCHEDULE_COMMAND_REQUEST:
+			param_serve_schedule_command(packet);
+			break;
+
+	#endif
+#endif
+
+#ifdef PARAM_HAVE_COMMANDS
+
+		case PARAM_COMMAND_ADD_REQUEST:
+			param_serve_command_add(packet);
+			break;
 			
+		case PARAM_COMMAND_SHOW_REQUEST:
+			param_serve_command_show(packet);
+			break;
+
+		case PARAM_COMMAND_LIST_REQUEST:
+			param_serve_command_list(packet);
+			break;
+
+		case PARAM_COMMAND_RM_REQUEST:
+			param_serve_command_rm_single(packet);
+			break;
+
+		case PARAM_COMMAND_RM_ALL_REQUEST:
+			param_serve_command_rm_all(packet);
+			break;
+		
 #endif
 
 		default:

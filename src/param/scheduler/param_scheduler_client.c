@@ -27,7 +27,6 @@ static void param_transaction_callback_add(csp_packet_t *response, int verbose, 
         return;
     }
 
-	//csp_hex_dump("pull response", response->data, response->length);
 	if (verbose) {
 		if (be16toh(response->data16[1]) == UINT16_MAX) {
 			printf("Scheduling queue failed:\n");
@@ -39,8 +38,7 @@ static void param_transaction_callback_add(csp_packet_t *response, int verbose, 
 	csp_buffer_free(response);
 }
 
-int param_schedule_push(param_queue_t *queue, int verbose, int server, uint16_t host, uint32_t time, int timeout) {
-
+int param_schedule_push(param_queue_t *queue, int verbose, int server, uint16_t host, uint32_t time, uint32_t latency_buffer, int timeout) {
 	if ((queue == NULL) || (queue->used == 0))
 		return 0;
 
@@ -57,10 +55,11 @@ int param_schedule_push(param_queue_t *queue, int verbose, int server, uint16_t 
 	packet->data[1] = 0;
     packet->data16[1] = htobe16(host);
     packet->data32[1] = htobe32(time);
+	packet->data32[2] = htobe32(latency_buffer);
 
-	memcpy(&packet->data[8], queue->buffer, queue->used);
+	memcpy(&packet->data[12], queue->buffer, queue->used);
 
-	packet->length = queue->used + 8;
+	packet->length = queue->used + 12;
 	int result = param_transaction(packet, server, timeout, param_transaction_callback_add, verbose, queue->version);
 
 	if (result < 0) {
@@ -128,20 +127,15 @@ static void param_transaction_callback_show(csp_packet_t *response, int verbose,
 			/* Show the requested queue */
 			printf("Showing queue id %u ", id);
 			if (response->data[9] == 0) { // if not completed
-				if (time <= 1E9) {
-					printf("scheduled in %u s\n", time);
-				} else {
-					printf("scheduled at UNIX time: %u\n", time);
-				}
-			} else {
-				if (time <= 1E9) {
-					printf("completed %u s ago\n", time);
-				} else {
-					printf("completed at UNIX time: %u\n", time);
-				}
+				printf("scheduled at server time: %u\n", time);
+			} else if (response->data[9] == 0x55) {
+				printf("completed at server time: %u\n", time);
+			} else if (response->data[9] == 0xAA) {
+				printf("exceeded latency buffer at server time: %u\n", time);
 			}
 
 			param_queue_print(&queue);
+
 		}
 	}
 
@@ -191,18 +185,12 @@ static void param_transaction_callback_list(csp_packet_t *response, int verbose,
 				} /*else {
 					printf("[GET] Queue id %u, ", be16toh(response->data16[idx/2+2]));
 				}*/
-				if (response->data[idx+6] == 1) {
-					if (time <= 1E9) {
-						printf("completed %u s ago.\n", time);
-					} else {
-						printf("completed at UNIX time: %u.\n", time);
-					}
+				if (response->data[idx+6] == 0x55) {
+					printf("completed at server time: %u.\n", time);
+				} else if (response->data[idx+6] == 0) {
+					printf("scheduled at server time: %u\n", time);
 				} else {
-					if (time <= 1E9) {
-						printf("scheduled in %u s.\n", time);
-					} else {
-						printf("scheduled at UNIX time: %u\n", time);
-					}
+					printf("exceeded latency buffer at server time: %u\n", time);
 				}
 			}
 		}
@@ -237,9 +225,9 @@ static void param_transaction_callback_rm(csp_packet_t *response, int verbose, i
 	}
     
 	if (verbose) {
-		if (be16toh(response->data16[1]) == UINT16_MAX) {
+		if ((be16toh(response->data16[1]) == UINT16_MAX) && (response->length == 6) ) {
 			//RM ALL RESPONSE
-			printf("All scheduled command queues removed.\n");
+			printf("All %u scheduled parameter queues removed.\n", be16toh(response->data16[2]));
 		} else {
 			//RM SINGLE RESPONSE
 			printf("Schedule id %u removed.\n", be16toh(response->data16[1]));
@@ -291,6 +279,82 @@ int param_rm_all_schedule(int server, int verbose, int timeout) {
 	if (result < 0) {
 		return -1;
 	}
+
+	return 0;
+}
+
+static void param_transaction_callback_reset(csp_packet_t *response, int verbose, int version) {
+	if (response->data[0] != PARAM_SCHEDULE_RESET_RESPONSE){
+        return;
+	}
+    
+	if (verbose) {
+		printf("Scheduler server reset: last id = %u\n", be16toh(response->data16[1]));
+	}
+    
+	csp_buffer_free(response);
+}
+
+int param_reset_scheduler(int server, uint16_t last_id, int verbose, int timeout) {
+
+    csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
+	if (packet == NULL)
+		return -2;
+
+	packet->data[0] = PARAM_SCHEDULE_RESET_REQUEST;
+
+    packet->data[1] = 0;
+
+	packet->data16[1] = htobe16(last_id);
+
+	packet->length = 4;
+
+    int result = param_transaction(packet, server, timeout, param_transaction_callback_reset, verbose, 2);
+
+	if (result < 0) {
+		return -1;
+	}
+
+	return 0;
+}
+
+static void param_transaction_callback_schedule_cmd(csp_packet_t *response, int verbose, int version) {
+    if (response->data[0] != PARAM_SCHEDULE_ADD_RESPONSE){
+        return;
+    }
+
+	if (verbose) {
+		if (be16toh(response->data16[1]) == UINT16_MAX) {
+			printf("Scheduling command failed:\n");
+		} else {
+			printf("Command scheduled with id %u: ", be16toh(response->data16[1]));
+		}
+	}
+
+	csp_buffer_free(response);
+}
+
+int param_schedule_command(int verbose, int server, char command_name[], uint16_t host, uint32_t time, uint32_t latency_buffer, int timeout) {
+	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
+	if (packet == NULL)
+		return -2;
+
+	packet->data[0] = PARAM_SCHEDULE_COMMAND_REQUEST;
+
+	packet->data[1] = 0;
+    packet->data16[1] = htobe16(host);
+    packet->data32[1] = htobe32(time);
+	packet->data32[2] = htobe32(latency_buffer);
+
+	int name_length = strlen(command_name);
+	memcpy(&packet->data[12], command_name, name_length);
+
+	packet->length = 12+name_length;
+	if (param_transaction(packet, server, timeout, param_transaction_callback_schedule_cmd, verbose, 2) < 0)
+		return -1;
+
+	if (verbose)
+		printf("%s\n", command_name);
 
 	return 0;
 }

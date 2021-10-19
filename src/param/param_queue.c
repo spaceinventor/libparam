@@ -126,7 +126,7 @@ void param_queue_print(param_queue_t *queue) {
 #if MPACK_STDIO
 			printf(" = ");
 
-			char buffer[20];
+			char buffer[20] = {0};
     		mpack_print_t print;
     		mpack_memset(&print, 0, sizeof(print));
     		print.buffer = buffer;

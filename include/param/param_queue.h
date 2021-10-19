@@ -19,19 +19,17 @@ typedef enum {
 
 struct param_queue_s {
 	char *buffer;
-	int buffer_internal;
-	int buffer_size;
-	param_queue_type_e type;
-	int used;
-	int version;
+	//int buffer_internal;
+	uint16_t buffer_size;
+	uint16_t used;
+	uint8_t version;
+	uint8_t type;
 
 	/* State used by serializer */
+	//uint32_t last_timestamp;
 	uint16_t last_node;
-	uint32_t last_timestamp;
-	uint16_t last_timediff_ms;
-
-};
-
+	//uint16_t last_timediff_ms;
+} __attribute__((packed, aligned(1)));
 typedef struct param_queue_s param_queue_t;
 
 void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int used, param_queue_type_e type, int version);
