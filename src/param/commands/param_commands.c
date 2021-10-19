@@ -434,32 +434,31 @@ int param_serve_command_rm_all(csp_packet_t *packet) {
     return 0;
 }
 
-/* Remember to free the returned pointer after use */
-param_command_t * param_command_read(char command_name[]) {
+int param_command_read(char command_name[], param_command_buf_t * cmd_buffer) {
     if (csp_mutex_lock(&command_mtx, 100) == CSP_SEMAPHORE_ERROR)
-        return NULL;
+        return -1;
 
     int offset = obj_offset_from_name(&vmem_commands, command_name);
     if (offset < 0) {
         csp_mutex_unlock(&command_mtx);
-        return NULL;
+        return -1;
     }
     int length = objstore_read_obj_length(&vmem_commands, offset);
     if (length < 0) {
         csp_mutex_unlock(&command_mtx);
-        return NULL;
+        return -1;
     }
 
     /* Read the command entry */
-    param_command_t * tmp_cmd = malloc(length + sizeof(tmp_cmd->queue.buffer));
-    void * read_ptr = (void*) ( (long int) tmp_cmd + sizeof(tmp_cmd->queue.buffer));
+    //param_command_t * tmp_cmd = malloc(length + sizeof(tmp_cmd->queue.buffer));
+    void * read_ptr = (void*) ( (long int) cmd_buffer + sizeof(cmd_buffer->header.queue.buffer));
     objstore_read_obj(&vmem_commands, offset, read_ptr, 0);
 
     csp_mutex_unlock(&command_mtx);
 
-    tmp_cmd->queue.buffer = (char *) ((long int) tmp_cmd + (long int) (sizeof(param_command_t)));
+    cmd_buffer->header.queue.buffer = (char *) ((long int) cmd_buffer + (long int) (sizeof(param_command_t)));
 
-    return tmp_cmd;
+    return 0;
 }
 
 static void meta_obj_init(vmem_t * vmem) {

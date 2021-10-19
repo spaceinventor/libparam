@@ -25,6 +25,8 @@
 
 #ifdef PARAM_HAVE_COMMANDS
 #include <param/param_commands.h>
+
+param_command_buf_t temp_command;
 #endif
 
 param_scheduler_meta_t meta_obj;
@@ -479,25 +481,24 @@ static uint16_t schedule_command(csp_packet_t *packet) {
     char name[14] = {0};
     name_copy(name, (char *) &packet->data[12], name_length);
 
-    param_command_t * temp_command = param_command_read(name);
-    if (temp_command == NULL) {
+    if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR) {
         return UINT16_MAX;
     }
 
-    int queue_size = temp_command->queue.used;
+    memset(&temp_command, 0, sizeof(temp_command));
+    if(param_command_read(name, &temp_command) < 0) {
+        csp_mutex_unlock(&schedule_mtx);
+        return UINT16_MAX;
+    }
+
+    int queue_size = temp_command.header.queue.used;
 
     /* Determine schedule size and allocate VMEM */
     int obj_length = (int) sizeof(param_schedule_t) + queue_size - (int) sizeof(char *);
 
-    if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR) {
-        free(temp_command);
-        return UINT16_MAX;
-    }
-
     int obj_offset = objstore_alloc(&vmem_schedule, obj_length, 0);
     if (obj_offset < 0) {
         csp_mutex_unlock(&schedule_mtx);
-        free(temp_command);
         return UINT16_MAX;
     }
 
@@ -510,7 +511,6 @@ static uint16_t schedule_command(csp_packet_t *packet) {
     int meta_offset = objstore_scan(&vmem_schedule, find_meta_scancb, 0, NULL);
     if (meta_offset < 0) {
         csp_mutex_unlock(&schedule_mtx);
-        free(temp_command);
         return UINT16_MAX;
     }
     
@@ -535,15 +535,14 @@ static uint16_t schedule_command(csp_packet_t *packet) {
     temp_schedule.header.host = be16toh(packet->data16[1]);
 
     /* Initialize schedule queue and copy queue buffer from CSP packet */
-    param_queue_init(&temp_schedule.header.queue, (char *) &temp_schedule + sizeof(param_schedule_t), queue_size, queue_size, temp_command->queue.type, 2);
-    memcpy(temp_schedule.header.queue.buffer, temp_command->queue.buffer, temp_schedule.header.queue.used);
+    param_queue_init(&temp_schedule.header.queue, (char *) &temp_schedule + sizeof(param_schedule_t), queue_size, queue_size, temp_command.header.queue.type, 2);
+    memcpy(temp_schedule.header.queue.buffer, temp_command.header.queue.buffer, temp_schedule.header.queue.used);
 
     void * write_ptr = (void *) (long int) &temp_schedule + sizeof(temp_schedule.header.queue.buffer);
     objstore_write_obj(&vmem_schedule, obj_offset, (uint8_t) OBJ_TYPE_SCHEDULE, (uint8_t) obj_length, write_ptr);
     
     csp_mutex_unlock(&schedule_mtx);
 
-    free(temp_command);
     return meta_obj.last_id;
 }
 
