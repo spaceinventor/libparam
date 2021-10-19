@@ -196,6 +196,7 @@ int param_serve_command_show(csp_packet_t *packet) {
     if (status == 0) {
         /* Read the command entry */
         //param_command_t * temp_command = malloc(length + sizeof(temp_command->queue.buffer));
+        memset(&temp_command, 0, sizeof(temp_command));
         void * read_ptr = (void*) ( (long int) &temp_command + sizeof(temp_command.header.queue.buffer));
         objstore_read_obj(&vmem_commands, offset, read_ptr, 0);
 
