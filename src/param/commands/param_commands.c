@@ -24,6 +24,8 @@
 
 param_commands_meta_t meta_obj;
 
+param_command_buf_t temp_command;
+
 csp_mutex_t command_mtx;
 csp_mutex_buffer_t command_mtx_buffer;
 
@@ -115,13 +117,13 @@ static uint16_t command_add(csp_packet_t * request, param_queue_type_e q_type) {
         return UINT16_MAX;
     }
 
-    param_command_t * temp_command = malloc(sizeof(param_command_t) + queue_size);
+    //param_command_t * temp_command = malloc(sizeof(param_command_t) + queue_size);
+    memset(&temp_command, 0, sizeof(temp_command));
 
-    name_copy(temp_command->name, (char *) &request->data[3], name_length);
+    name_copy(temp_command.header.name, (char *) &request->data[3], name_length);
 
     int meta_offset = objstore_scan(&vmem_commands, find_meta_scancb, 0, NULL);
     if (meta_offset < 0) {
-        free(temp_command);
         csp_mutex_unlock(&command_mtx);
         return UINT16_MAX;
     }
@@ -133,18 +135,17 @@ static uint16_t command_add(csp_packet_t * request, param_queue_type_e q_type) {
         meta_obj.last_id = 0;
     }
     meta_obj_save(&vmem_commands);
-    temp_command->id = meta_obj.last_id;
+    temp_command.header.id = meta_obj.last_id;
     
     /* Initialize command queue and copy queue buffer from CSP packet */
-    param_queue_init(&temp_command->queue, (char *) temp_command + sizeof(param_command_t), queue_size, queue_size, q_type, 2);
-    memcpy(temp_command->queue.buffer, &request->data[3+name_length], temp_command->queue.used);
+    param_queue_init(&temp_command.header.queue, (char *) &temp_command + sizeof(param_command_t), queue_size, queue_size, q_type, 2);
+    memcpy(temp_command.header.queue.buffer, &request->data[3+name_length], temp_command.header.queue.used);
 
-    void * write_ptr = (void *) (long int) temp_command + sizeof(temp_command->queue.buffer);
+    void * write_ptr = (void *) (long int) &temp_command + sizeof(temp_command.header.queue.buffer);
     objstore_write_obj(&vmem_commands, obj_offset, (uint8_t) OBJ_TYPE_COMMAND, (uint8_t) obj_length, write_ptr);
 
     csp_mutex_unlock(&command_mtx);
     
-    free(temp_command);
     return meta_obj.last_id;
 }
 
@@ -194,28 +195,27 @@ int param_serve_command_show(csp_packet_t *packet) {
 
     if (status == 0) {
         /* Read the command entry */
-        param_command_t * temp_command = malloc(length + sizeof(temp_command->queue.buffer));
-        void * read_ptr = (void*) ( (long int) temp_command + sizeof(temp_command->queue.buffer));
+        //param_command_t * temp_command = malloc(length + sizeof(temp_command->queue.buffer));
+        void * read_ptr = (void*) ( (long int) &temp_command + sizeof(temp_command.header.queue.buffer));
         objstore_read_obj(&vmem_commands, offset, read_ptr, 0);
 
         csp_mutex_unlock(&command_mtx);
 
-        temp_command->queue.buffer = (char *) ((long int) temp_command + (long int) (sizeof(param_command_t)));
+        temp_command.header.queue.buffer = (char *) ((long int) &temp_command + (long int) (sizeof(param_command_t)));
 
         /* Respond with the requested command entry */
         packet->data[0] = PARAM_COMMAND_SHOW_RESPONSE;
         packet->data[1] = PARAM_FLAG_END;
 
         packet->data[2] = (uint8_t) name_length;
-        packet->data[3] = (uint8_t) temp_command->queue.type;
+        packet->data[3] = (uint8_t) temp_command.header.queue.type;
 
-        memcpy(&packet->data[4], temp_command->name, name_length);
+        memcpy(&packet->data[4], temp_command.header.name, name_length);
         
-        memcpy(&packet->data[4+name_length], temp_command->queue.buffer, temp_command->queue.used);
+        memcpy(&packet->data[4+name_length], temp_command.header.queue.buffer, temp_command.header.queue.used);
 
-        packet->length = 4 + name_length + temp_command->queue.used;
+        packet->length = 4 + name_length + temp_command.header.queue.used;
 
-        free(temp_command);
     } else {
         /* Respond with an error code */
         csp_mutex_unlock(&command_mtx);
@@ -450,15 +450,15 @@ param_command_t * param_command_read(char command_name[]) {
     }
 
     /* Read the command entry */
-    param_command_t * temp_command = malloc(length + sizeof(temp_command->queue.buffer));
-    void * read_ptr = (void*) ( (long int) temp_command + sizeof(temp_command->queue.buffer));
+    param_command_t * tmp_cmd = malloc(length + sizeof(tmp_cmd->queue.buffer));
+    void * read_ptr = (void*) ( (long int) tmp_cmd + sizeof(tmp_cmd->queue.buffer));
     objstore_read_obj(&vmem_commands, offset, read_ptr, 0);
 
     csp_mutex_unlock(&command_mtx);
 
-    temp_command->queue.buffer = (char *) ((long int) temp_command + (long int) (sizeof(param_command_t)));
+    tmp_cmd->queue.buffer = (char *) ((long int) tmp_cmd + (long int) (sizeof(param_command_t)));
 
-    return temp_command;
+    return tmp_cmd;
 }
 
 static void meta_obj_init(vmem_t * vmem) {

@@ -8,6 +8,7 @@
 #pragma once
 
 #include <param/param_queue.h>
+#include <param/param_server.h>
 #include <csp/csp.h>
 
 extern const vmem_t vmem_commands;
@@ -18,6 +19,12 @@ struct param_command_s {
     char name[14];
 } __attribute__((packed, aligned(1)));
 typedef struct param_command_s param_command_t;
+
+struct param_command_buf_s {
+    param_command_t header;
+    char queue_buffer[PARAM_SERVER_MTU];
+} __attribute__((packed, aligned(1)));
+typedef struct param_command_buf_s param_command_buf_t;
 
 struct param_commands_meta_s {
     uint16_t last_id;
