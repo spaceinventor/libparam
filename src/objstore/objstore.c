@@ -225,7 +225,6 @@ int objstore_read_obj(vmem_t * vmem, int offset, void * data_buf, int verbose) {
 }
 
 void objstore_write_obj(vmem_t * vmem, int offset, uint8_t type, uint16_t length, void * data) {
-    // TODO: check for lock
     vmem->write(vmem, offset, (void *) sync_word, 4);
     vmem->write(vmem, offset+4, &type, sizeof(type));
     vmem->write(vmem, offset+5, &length, sizeof(length));
@@ -233,7 +232,6 @@ void objstore_write_obj(vmem_t * vmem, int offset, uint8_t type, uint16_t length
 
     uint8_t checksum = _make_checksum(vmem, offset, length);
     vmem->write(vmem, offset+OBJ_HEADER_LENGTH+length, &checksum, sizeof(checksum));
-    // TODO: clear lock
 }
 
 
