@@ -101,8 +101,8 @@ if get_option('slash') == true
 			'src/param/param_slash.c',	
 			'src/vmem/vmem_client_slash.c',
 			#'src/objstore/objstore_slash.c',
-			'src/param/scheduler/param_scheduler_slash.c',
-			'src/param/commands/param_commands_slash.c',
+			#'src/param/scheduler/param_scheduler_slash.c',
+			#'src/param/commands/param_commands_slash.c',
 		])
 		if get_option('have_fopen') == true
 			param_src += files([
