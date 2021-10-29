@@ -219,7 +219,7 @@ int objstore_read_obj(vmem_t * vmem, int offset, void * data_buf, int verbose) {
     vmem->read(vmem, offset+OBJ_HEADER_LENGTH, data_buf, length);
 
     if (_valid_obj_data_check(vmem, offset, length) == 0)
-        return -1;
+        return -2;
 
     return 0;
 }
