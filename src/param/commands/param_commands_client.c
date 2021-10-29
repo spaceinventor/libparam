@@ -20,7 +20,7 @@
 #include <param/param_queue.h>
 
 typedef void (*param_transaction_callback_f)(csp_packet_t *response, int verbose, int version);
-int param_transaction(csp_packet_t *packet, int host, int timeout, param_transaction_callback_f callback, int verbose, int version);
+int param_transaction(csp_packet_t *packet, int host, int timeout, param_transaction_callback_f callback, int verbose, int version, void * context);
 
 static void param_transaction_callback_add(csp_packet_t *response, int verbose, int version) {
     if (response->data[0] != PARAM_COMMAND_ADD_RESPONSE){
@@ -62,7 +62,7 @@ int param_command_push(param_queue_t *queue, int verbose, int server, char comma
 	memcpy(&packet->data[3+name_length], queue->buffer, queue->used);
 
 	packet->length = queue->used + 3 + name_length;
-	int result = param_transaction(packet, server, timeout, param_transaction_callback_add, verbose, queue->version);
+	int result = param_transaction(packet, server, timeout, param_transaction_callback_add, verbose, queue->version, NULL);
 
 	if (result < 0) {
 		return -1;
@@ -124,7 +124,7 @@ int param_command_show(int server, int verbose, char command_name[], int timeout
 
 	packet->length = 3+name_length;
 
-    int result = param_transaction(packet, server, timeout, param_transaction_callback_show, verbose, 2);
+    int result = param_transaction(packet, server, timeout, param_transaction_callback_show, verbose, 2, NULL);
 
 	if (result < 0) {
 		return -1;
@@ -168,7 +168,7 @@ int param_command_list(int server, int verbose, int timeout) {
 
 	packet->length = 2;
 
-	int result = param_transaction(packet, server, timeout, param_transaction_callback_list, verbose, 2);
+	int result = param_transaction(packet, server, timeout, param_transaction_callback_list, verbose, 2, NULL);
 
     if (result < 0) {
 		return -1;
@@ -233,7 +233,7 @@ int param_command_rm(int server, int verbose, char command_name[], int timeout) 
 
 	packet->length = 3+name_length;
 
-    int result = param_transaction(packet, server, timeout, param_transaction_callback_rm, verbose, 2);
+    int result = param_transaction(packet, server, timeout, param_transaction_callback_rm, verbose, 2, NULL);
 
 	if (result < 0) {
 		return -1;
@@ -259,7 +259,7 @@ int param_command_rm_all(int server, int verbose, char command_name[], int timeo
 
 	packet->length = 3+name_length;
 
-    int result = param_transaction(packet, server, timeout, param_transaction_callback_rm, verbose, 2);
+    int result = param_transaction(packet, server, timeout, param_transaction_callback_rm, verbose, 2, NULL);
 
 	if (result < 0) {
 		return -1;

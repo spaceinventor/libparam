@@ -20,7 +20,7 @@
 #include <param/param_queue.h>
 
 typedef void (*param_transaction_callback_f)(csp_packet_t *response, int verbose, int version);
-int param_transaction(csp_packet_t *packet, int host, int timeout, param_transaction_callback_f callback, int verbose, int version);
+int param_transaction(csp_packet_t *packet, int host, int timeout, param_transaction_callback_f callback, int verbose, int version, void * context);
 
 static void param_transaction_callback_add(csp_packet_t *response, int verbose, int version) {
     if (response->data[0] != PARAM_SCHEDULE_ADD_RESPONSE){
@@ -60,7 +60,7 @@ int param_schedule_push(param_queue_t *queue, int verbose, int server, uint16_t 
 	memcpy(&packet->data[12], queue->buffer, queue->used);
 
 	packet->length = queue->used + 12;
-	int result = param_transaction(packet, server, timeout, param_transaction_callback_add, verbose, queue->version);
+	int result = param_transaction(packet, server, timeout, param_transaction_callback_add, verbose, queue->version, NULL);
 
 	if (result < 0) {
 		return -1;
@@ -95,7 +95,7 @@ int param_schedule_pull(param_queue_t *queue, int verbose, int server, uint16_t 
 	memcpy(&packet->data[8], queue->buffer, queue->used);
 
 	packet->length = queue->used + 8;
-	int result = param_transaction(packet, server, timeout, param_transaction_callback_add, verbose, queue->version);
+	int result = param_transaction(packet, server, timeout, param_transaction_callback_add, verbose, queue->version, NULL);
 
 	if (result < 0) {
 		return -1;
@@ -155,7 +155,7 @@ int param_show_schedule(int server, int verbose, uint16_t id, int timeout) {
 
 	packet->length = 4;
 
-    int result = param_transaction(packet, server, timeout, param_transaction_callback_show, verbose, 2);
+    int result = param_transaction(packet, server, timeout, param_transaction_callback_show, verbose, 2, NULL);
 
 	if (result < 0) {
 		return -1;
@@ -209,7 +209,7 @@ int param_list_schedule(int server, int verbose, int timeout) {
 
 	packet->length = 2;
 
-    int result = param_transaction(packet, server, timeout, param_transaction_callback_list, verbose, 2);
+    int result = param_transaction(packet, server, timeout, param_transaction_callback_list, verbose, 2, NULL);
 
     if (result < 0) {
 		return -1;
@@ -251,7 +251,7 @@ int param_rm_schedule(int server, int verbose, uint16_t id, int timeout) {
 	
 	packet->length = 4;
 
-    int result = param_transaction(packet, server, timeout, param_transaction_callback_rm, verbose, 2);
+    int result = param_transaction(packet, server, timeout, param_transaction_callback_rm, verbose, 2, NULL);
 
 	if (result < 0) {
 		return -1;
@@ -274,7 +274,7 @@ int param_rm_all_schedule(int server, int verbose, int timeout) {
 
 	packet->length = 4;
 
-    int result = param_transaction(packet, server, timeout, param_transaction_callback_rm, verbose, 2);
+    int result = param_transaction(packet, server, timeout, param_transaction_callback_rm, verbose, 2, NULL);
 
 	if (result < 0) {
 		return -1;
@@ -309,7 +309,7 @@ int param_reset_scheduler(int server, uint16_t last_id, int verbose, int timeout
 
 	packet->length = 4;
 
-    int result = param_transaction(packet, server, timeout, param_transaction_callback_reset, verbose, 2);
+    int result = param_transaction(packet, server, timeout, param_transaction_callback_reset, verbose, 2, NULL);
 
 	if (result < 0) {
 		return -1;
@@ -350,7 +350,7 @@ int param_schedule_command(int verbose, int server, char command_name[], uint16_
 	memcpy(&packet->data[12], command_name, name_length);
 
 	packet->length = 12+name_length;
-	if (param_transaction(packet, server, timeout, param_transaction_callback_schedule_cmd, verbose, 2) < 0)
+	if (param_transaction(packet, server, timeout, param_transaction_callback_schedule_cmd, verbose, 2, NULL) < 0)
 		return -1;
 
 	if (verbose)
