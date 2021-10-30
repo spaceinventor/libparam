@@ -59,10 +59,8 @@ void vmem_server_handler(csp_conn_t * conn)
 			/* Increment */
 			count += packet->length;
 
-			if (!csp_send(conn, packet, VMEM_SERVER_TIMEOUT)) {
-				csp_buffer_free(packet);
-				return;
-			}
+			csp_send(conn, packet);
+
 		}
 
 	/**
@@ -102,10 +100,7 @@ void vmem_server_handler(csp_conn_t * conn)
 			packet->length += sizeof(vmem_list_t);
 		}
 
-		if (!csp_send(conn, packet, VMEM_SERVER_TIMEOUT)) {
-			csp_buffer_free(packet);
-			return;
-		}
+		csp_send(conn, packet);
 
 	} else if ((request->type == VMEM_SERVER_RESTORE) || (request->type == VMEM_SERVER_BACKUP)) {
 
@@ -128,10 +123,7 @@ void vmem_server_handler(csp_conn_t * conn)
 		packet->data[0] = (int8_t) result;
 		packet->length = 1;
 
-		if (!csp_send(conn, packet, VMEM_SERVER_TIMEOUT)) {
-			csp_buffer_free(packet);
-			return;
-		}
+		csp_send(conn, packet);
 
 	} else if (request->type == VMEM_SERVER_UNLOCK) {
 
@@ -146,10 +138,7 @@ void vmem_server_handler(csp_conn_t * conn)
 		uint32_t verification_sequence = (uint32_t) rand_r(&seed);
 		request->unlock.code = htobe32(verification_sequence);
 
-		if (!csp_send(conn, packet, 0)) {
-			csp_buffer_free(packet);
-			return;
-		}
+		csp_send(conn, packet);
 
 		/* Step 3: Wait for verification return (you have 30 seconds only) */
 		if ((packet = csp_read(conn, 30000)) == NULL) {
@@ -168,10 +157,7 @@ void vmem_server_handler(csp_conn_t * conn)
 			request->unlock.code = htobe32(0xFFFFFFFF);
 		}
 
-		if (!csp_send(conn, packet, 0)) {
-			csp_buffer_free(packet);
-			return;
-		}
+		csp_send(conn, packet);
 
 	}
 
@@ -198,10 +184,8 @@ static void rparam_list_handler(csp_conn_t * conn)
 		rparam->mask = htobe32(param->mask);
 		strncpy(rparam->name, param->name, 35);
 		packet->length = offsetof(param_transfer2_t, name) + MIN(strlen(param->name), 35);
-		if (!csp_send(conn, packet, 1000)) {
-			csp_buffer_free(packet);
-			break;
-		}
+		
+		csp_send(conn, packet);
 	}
 }
 

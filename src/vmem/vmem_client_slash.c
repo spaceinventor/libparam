@@ -136,11 +136,7 @@ static int vmem_client_slash_unlock(struct slash *slash)
 	/* Step 1: Check initial unlock code */
 	request->unlock.code = htobe32(0x28140360);
 
-	if (!csp_send(conn, packet, 0)) {
-		csp_buffer_free(packet);
-		csp_close(conn);
-		return SLASH_EINVAL;
-	}
+	csp_send(conn, packet);
 
 	/* Step 2: Wait for verification sequence */
 	if ((packet = csp_read(conn, timeout)) == NULL) {
@@ -196,11 +192,7 @@ static int vmem_client_slash_unlock(struct slash *slash)
 	/* Step 3: Send verification sequence */
 	request->unlock.code = htobe32(user_verification);
 
-	if (!csp_send(conn, packet, 0)) {
-		csp_buffer_free(packet);
-		csp_close(conn);
-		return SLASH_EINVAL;
-	}
+	csp_send(conn, packet);
 
 	/* Step 4: Check for result */
 	if ((packet = csp_read(conn, timeout)) == NULL) {

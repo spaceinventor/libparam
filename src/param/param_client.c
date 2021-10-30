@@ -60,12 +60,7 @@ int param_transaction(csp_packet_t *packet, int host, int timeout, param_transac
 		return -1;
 	}
 
-	if (!csp_send(conn, packet, 0)) {
-		printf("param transaction failure\n");
-		csp_close(conn);
-		csp_buffer_free(packet);
-		return -1;
-	}
+	csp_send(conn, packet);
 
 	if (timeout == -1) {
 		printf("param transaction failure\n");

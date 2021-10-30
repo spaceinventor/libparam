@@ -33,11 +33,7 @@ void vmem_download(int node, int timeout, uint32_t address, uint32_t length, cha
 	packet->length = sizeof(vmem_request_t);
 
 	/* Send request */
-	if (!csp_send(conn, packet, timeout)) {
-		csp_buffer_free(packet);
-		csp_close(conn);
-		return;
-	}
+	csp_send(conn, packet);
 
 	/* Go into download loop */
 	int count = 0;
@@ -95,11 +91,7 @@ void vmem_upload(int node, int timeout, uint32_t address, char * datain, uint32_
 	packet->length = sizeof(vmem_request_t);
 
 	/* Send request */
-	if (!csp_send(conn, packet, timeout)) {
-		csp_buffer_free(packet);
-		csp_close(conn);
-		return;
-	}
+	csp_send(conn, packet);
 
 	unsigned int count = 0;
 	int dotcount = 0;
@@ -123,10 +115,7 @@ void vmem_upload(int node, int timeout, uint32_t address, char * datain, uint32_
 		/* Increment */
 		count += packet->length;
 
-		if (!csp_send(conn, packet, VMEM_SERVER_TIMEOUT)) {
-			csp_buffer_free(packet);
-			return;
-		}
+		csp_send(conn, packet);
 
 	}
 
@@ -155,10 +144,7 @@ void vmem_client_list(int node, int timeout) {
 	request->type = VMEM_SERVER_LIST;
 	packet->length = sizeof(vmem_request_t);
 
-	if (!csp_send(conn, packet, VMEM_SERVER_TIMEOUT)) {
-		csp_buffer_free(packet);
-		return;
-	}
+	csp_send(conn, packet);
 
 	/* Wait for response */
 	packet = csp_read(conn, timeout);

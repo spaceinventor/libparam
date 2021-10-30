@@ -40,10 +40,7 @@ static void __send(struct param_serve_context *ctx, int end) {
 	}
 	ctx->response->data[1] = (end) ? PARAM_FLAG_END : 0;
 	ctx->response->length = ctx->q_response.used + 2;
-	if (csp_sendto_reply(ctx->request, ctx->response, CSP_O_SAME, 0) != CSP_ERR_NONE) {
-		csp_buffer_free(ctx->response);
-		return;
-	}
+	csp_sendto_reply(ctx->request, ctx->response, CSP_O_SAME);
 }
 
 static int __add(struct param_serve_context *ctx, param_t * param, int offset) {
@@ -142,8 +139,7 @@ static void param_serve_push(csp_packet_t * packet, int send_ack, int version)
 	packet->data[1] = PARAM_FLAG_END;
 	packet->length = 2;
 
-	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
-		csp_buffer_free(packet);
+	csp_sendto_reply(packet, packet, CSP_O_SAME);
 
 }
 
