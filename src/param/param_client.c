@@ -216,6 +216,8 @@ int param_push_single(param_t *param, int offset, void *value, int verbose, int 
 		return -1;
 	}
 
+	if (offset < 0)
+		offset = 0;
 	param_set(param, offset, value);
 
 	return 0;
