@@ -269,7 +269,7 @@ slash_command(push, cmd_push, "<node> [timeout]", NULL);
 
 static int cmd_pull(struct slash *slash) {
 	unsigned int host = 0;
-	unsigned int timeout = 100;
+	unsigned int timeout = 1000;
 	uint32_t include_mask = 0xFFFFFFFF;
 	uint32_t exclude_mask = PM_REMOTE | PM_HWREG;
 
