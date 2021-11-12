@@ -7,3 +7,4 @@ option('scheduler', type: 'boolean', value: false, description: 'Build scheduler
 option('commands', type: 'boolean', value: false, description: 'Build command server')
 option('scheduler_client', type: 'boolean', value: false, description: 'Build scheduler client')
 option('commands_client', type: 'boolean', value: false, description: 'Build command client')
+option('enable_python3_bindings', type: 'boolean', value: true, description: 'Build Python 3 binding')

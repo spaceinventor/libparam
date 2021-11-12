@@ -123,3 +123,21 @@ param_lib = static_library('param',
 
 param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib)
 param_dep_whole = declare_dependency(include_directories : param_inc, link_whole : param_lib)
+
+if get_option('enable_python3_bindings')
+
+	# param_shlib = shared_library('param',
+	# 	sources: [param_src, libparam_h],
+	# 	include_directories : param_inc,
+	# 	dependencies : param_deps,
+	# 	install : true,
+	# )
+	py = import('python').find_installation('python3')
+	# py.dependency() doesn't work with version constraint. Use plain
+	# dependency() instead
+	pydep = dependency('python3', version : '>=3.5', required : true)
+	py.extension_module('libparam_py3', 'src/bindings/python/pyparam.c',
+                    	dependencies : [param_dep, pydep, param_deps],
+                    	install : true,
+						c_args : ['-static', '-fPIC'])  # TODO Kevin: Debug
+endif
