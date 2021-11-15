@@ -132,8 +132,7 @@ int param_serve_schedule_push(csp_packet_t *request) {
     response->data16[1] = htobe16(id);
 	response->length = 4;
 
-	if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)
-		csp_buffer_free(response);
+	csp_sendto_reply(request, response, CSP_O_SAME);
 
     csp_buffer_free(request);
 
@@ -158,8 +157,7 @@ int param_serve_schedule_pull(csp_packet_t *request) {
     response->data16[1] = htobe16(id);
 	response->length = 4;
 
-	if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)
-		csp_buffer_free(response);
+	csp_sendto_reply(request, response, CSP_O_SAME);
 
     csp_buffer_free(request);
 
@@ -245,8 +243,7 @@ int param_serve_schedule_show(csp_packet_t *packet) {
         packet->length = 4;
     }
 
-	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
-		csp_buffer_free(packet);
+	csp_sendto_reply(packet, packet, CSP_O_SAME);
 
     return 0;
 }
@@ -279,8 +276,7 @@ int param_serve_schedule_rm_single(csp_packet_t *packet) {
     
 	packet->length = 4;
 
-	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
-		csp_buffer_free(packet);
+	csp_sendto_reply(packet, packet, CSP_O_SAME);
 
     return 0;
 }
@@ -361,8 +357,7 @@ int param_serve_schedule_rm_all(csp_packet_t *packet) {
 
 	packet->length = 6;
 
-	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
-		csp_buffer_free(packet);
+	csp_sendto_reply(packet, packet, CSP_O_SAME);
 
     return 0;
 }
@@ -429,8 +424,7 @@ int param_serve_schedule_list(csp_packet_t *request) {
         response->data16[1] = htobe16(counter-big_count*num_per_packet); // number of entries
         response->length = (counter-big_count*num_per_packet)*8 + 4;
 
-        if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)
-            csp_buffer_free(response);
+        csp_sendto_reply(request, response, CSP_O_SAME);
 
         big_count++;
     }
@@ -460,8 +454,7 @@ void param_serve_schedule_reset(csp_packet_t *packet) {
 	
     packet->length = 4;
 
-	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
-		csp_buffer_free(packet);
+	csp_sendto_reply(packet, packet, CSP_O_SAME);
 }
 
 #ifdef PARAM_HAVE_COMMANDS
@@ -561,8 +554,7 @@ int param_serve_schedule_command(csp_packet_t *request) {
     response->data16[1] = htobe16(id);
 	response->length = 4;
 
-	if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)
-		csp_buffer_free(response);
+	csp_sendto_reply(request, response, CSP_O_SAME);
 
     csp_buffer_free(request);
 

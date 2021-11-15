@@ -164,8 +164,7 @@ int param_serve_command_add(csp_packet_t * request) {
     response->data16[1] = htobe16(id);
 	response->length = 4;
 
-	if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)
-		csp_buffer_free(response);
+    csp_sendto_reply(request, response, CSP_O_SAME);
 
     csp_buffer_free(request);
 
@@ -229,8 +228,7 @@ int param_serve_command_show(csp_packet_t *packet) {
         packet->length = 3;
     }
 
-	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
-		csp_buffer_free(packet);
+	csp_sendto_reply(packet, packet, CSP_O_SAME);
 
     return 0;
 }
@@ -326,8 +324,7 @@ int param_serve_command_list(csp_packet_t *request) {
         response->data16[1] = htobe16(counter-big_count*num_per_packet); // number of entries
         response->length = (counter-big_count*num_per_packet)*14 + 4;
 
-        if (csp_sendto_reply(request, response, CSP_O_SAME, 0) != CSP_ERR_NONE)
-            csp_buffer_free(response);
+        csp_sendto_reply(request, response, CSP_O_SAME);
 
         big_count++;
     }
@@ -372,8 +369,7 @@ int param_serve_command_rm_single(csp_packet_t *packet) {
     memcpy(&packet->data[4], name, strlen(name) + 1);
 	packet->length = 4 + strlen(name) + 1;
 
-	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
-		csp_buffer_free(packet);
+	csp_sendto_reply(packet, packet, CSP_O_SAME);
 
     return 0;
 }
@@ -428,8 +424,7 @@ int param_serve_command_rm_all(csp_packet_t *packet) {
 
 	packet->length = 14;
 
-	if (csp_sendto_reply(packet, packet, CSP_O_SAME, 0) != CSP_ERR_NONE)
-		csp_buffer_free(packet);
+	csp_sendto_reply(packet, packet, CSP_O_SAME);
 
     return 0;
 }
