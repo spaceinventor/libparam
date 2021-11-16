@@ -1,6 +1,7 @@
 // It is recommended to always define PY_SSIZE_T_CLEAN before including Python.h
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include "structmember.h"
 
 #include <stdio.h>
 
@@ -32,6 +33,7 @@
 
 #define PARAMID_CSP_RTABLE					 12
 
+static PyTypeObject ParameterType;
 
 VMEM_DEFINE_FILE(csp, "csp", "cspcnf.vmem", 120);
 VMEM_DEFINE_FILE(params, "param", "params.csv", 50000);
@@ -58,27 +60,29 @@ static int default_node = -1;
 static int autosend = 1;
 static int paramver = 2;
 
-static PyObject * Error = NULL;
+
+typedef struct {
+    PyObject_HEAD
+    /* Type-specific fields go here. */
+	// uint16_t id;
+	// uint16_t node;
+	PyTypeObject *type;  // Best Python representation of the parameter type, i.e 'int' for uint32.
+	//uint32_t mask;
+
+	/* Store Python strings for name and unit, to lesson the overhead of converting them from C */
+	PyObject *name;
+	PyObject *unit;
+	
+	param_t *param;
+} ParameterObject;
+
+
+// static PyObject * Error = NULL;
 
 //static int PARAM_POINTER_HAS_BEEN_FREED = 0;  // used to indicate pointer has been freed, because a NULL pointer can't be set.
 
-static PyObject * pyparam_param_get(PyObject * self, PyObject * args) {
-
-	if (!_csp_initialized) {
-		PyErr_SetString(PyExc_RuntimeError, 
-			"Cannot perform operations before ._param_init() has been called.");
-		return 0;
-	}
-
-	PyObject * param_identifier;  // Raw argument object/type passed. Identify its type when needed.
-	int host = -1;
-	int node = default_node;
-	int offset = -1;
-
-	if (!PyArg_ParseTuple(args, "O|iii", &param_identifier, &host, &node, &offset)) {
-		return NULL;  // TypeError is thrown
-	}
-
+/* Retrieves a parameter from either its name or id. */
+static param_t * pyparam_util_find_param(PyObject * param_identifier, int node) {
 
 	int is_string = PyUnicode_Check(param_identifier);
 	int is_int = PyLong_Check(param_identifier);
@@ -90,9 +94,46 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args) {
 	else if (is_int)
 		param = param_list_find_id(node, (int)PyLong_AsLong(param_identifier));
 	else {
-		PyErr_SetString(PyExc_TypeError, 
-			"First argument must be either an int or string identifier of the intended parameter.");
+		PyErr_SetString(PyExc_TypeError,
+			"Parameter identifier must be either an integer or string of the parameter ID or name respectively.");
+		return NULL;
+	}
+
+	return param;
+}
+
+
+static PyObject * pyparam_param_get(PyObject * self, PyObject * args) {
+
+	if (!_csp_initialized) {
+		PyErr_SetString(PyExc_RuntimeError,
+			"Cannot perform operations before ._param_init() has been called.");
 		return 0;
+	}
+
+	PyObject * param_identifier;  // Raw argument object/type passed. Identify its type when needed.
+	int host = -1;
+	int node = default_node;
+	int offset = -1;
+
+	param_t * param;
+
+	/* Function may be called either as method on 'Paramter object' or standalone function. */
+	if (self && PyObject_TypeCheck(self, &ParameterType)) {
+		ParameterObject *_self = (ParameterObject *)self;
+
+		node = _self->param->node;
+		offset = _self->param->array_step;  // TODO Kevin: I think the offset corresponds to array step.
+		param = _self->param;
+
+	} else {
+		if (!PyArg_ParseTuple(args, "O|iii", &param_identifier, &host, &node, &offset)) {
+			return NULL;  // TypeError is thrown
+		}
+
+		param = pyparam_util_find_param(param_identifier, node);
+
+		
 	}
 
 	if (param == NULL) {  // Did not find a match.
@@ -137,13 +178,57 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args) {
 		return 0;
 	}
 
-	Py_RETURN_NONE;
+	switch (param->type) {
+		case PARAM_TYPE_UINT8:
+		case PARAM_TYPE_XINT8:
+			return Py_BuildValue("B", param_get_uint8(param));
+		case PARAM_TYPE_UINT16:
+		case PARAM_TYPE_XINT16:
+			return Py_BuildValue("H", param_get_uint16(param));
+		case PARAM_TYPE_UINT32:
+		case PARAM_TYPE_XINT32:
+			return Py_BuildValue("I", param_get_uint32(param));
+		case PARAM_TYPE_UINT64:
+		case PARAM_TYPE_XINT64:
+			return Py_BuildValue("K", param_get_uint64(param));
+		case PARAM_TYPE_INT8:
+			return Py_BuildValue("b", param_get_uint8(param));
+		case PARAM_TYPE_INT16:
+			return Py_BuildValue("h", param_get_uint8(param));
+		case PARAM_TYPE_INT32:
+			return Py_BuildValue("i", param_get_uint8(param));
+		case PARAM_TYPE_INT64:
+			return Py_BuildValue("k", param_get_uint8(param));
+		case PARAM_TYPE_FLOAT:
+			return Py_BuildValue("f", param_get_float(param));
+		case PARAM_TYPE_DOUBLE:
+			return Py_BuildValue("d", param_get_double(param));
+		case PARAM_TYPE_STRING: {
+			char buf[param->array_size];
+			param_get_string(param, &buf, param->array_size);
+			return Py_BuildValue("s", buf);
+			break;
+		}
+		case PARAM_TYPE_DATA: {
+			// TODO Kevin: No idea if this has any chance of working.
+			//	I hope it will raise a reasonable exception if it doesn't.
+			unsigned int size = (param->array_size > 0) ? param->array_size : 1;
+			char buf[size];
+			param_get_data(param, buf, size);
+			return Py_BuildValue("O&", buf);
+		}
+
+		default: {
+			Py_RETURN_NONE;
+		}
+
+	}
 }
 
 static PyObject * pyparam_param_set(PyObject * self, PyObject * args) {
 
 	if (!_csp_initialized) {
-		PyErr_SetString(PyExc_RuntimeError, 
+		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot perform operations before ._param_init() has been called.");
 		return 0;
 	}
@@ -154,65 +239,39 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args) {
 	int node = default_node;
 	int offset = -1;
 
-	if (!PyArg_ParseTuple(args, "Os|iii", &param_identifier, &strvalue, &host, &node, &offset)) {
-		return NULL;  // TypeError is thrown
-	}
-
-	// printf("strvalue is:\t%s\n", strvalue);
-
-	// printf("\nParameters before push:\n");
-	// param_pull_all(1, host, 0xFFFFFFFF, 0, 1000, paramver);
-	// printf("\n");
-
-	// {
-	// 	/* Print all known parameters */  // TODO Kevin: For debug purposes.
-	// 	param_t * param;
-	// 	param_list_iterator i = {};
-	// 	while ((param = param_list_iterate(&i)) != NULL) {
-	// 		printf("param name:\t%s\tparam node:\t%i\n", param->name, param->node);
-	// 	}
-	// }
-
-
-	int is_string = PyUnicode_Check(param_identifier);
-	int is_int = PyLong_Check(param_identifier);
-
 	param_t * param;
 
-	if (is_string)
-		param = param_list_find_name(node, (char*)PyUnicode_AsUTF8(param_identifier));
-	else if (is_int)
-		param = param_list_find_id(node, (int)PyLong_AsLong(param_identifier));
-	else {
-		PyErr_SetString(PyExc_TypeError, 
-			"First argument must be either an int or string identifier of the intended parameter.");
-		return 0;
+	/* Function may be called either as method on 'Paramter object' or standalone function. */
+	if (self && PyObject_TypeCheck(self, &ParameterType)) {
+		/* Parse the value from args */
+		if (!PyArg_ParseTuple(args, "s", &strvalue)) {
+			return NULL;  // TypeError is thrown
+		}
+
+		ParameterObject *_self = (ParameterObject *)self;
+
+		node = _self->param->node;
+		offset = _self->param->array_step;  // TODO Kevin: I think the offset corresponds to array step.
+		param = _self->param;
+
+		printf("%s\n", strvalue);
+
+	} else {
+		if (!PyArg_ParseTuple(args, "Os|iii", &param_identifier, &strvalue, &host, &node, &offset)) {
+			return NULL;  // TypeError is thrown
+		}
+
+		param = pyparam_util_find_param(param_identifier, node);
 	}
+
 
 	if (param == NULL) {  // Did not find a match.
 		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
 		return 0;
 	}
 
-	// printf("Found param:\t%i\n", param->id);
-
 	char valuebuf[128] __attribute__((aligned(16))) = { };
 	param_str_to_value(param->type, strvalue, valuebuf);
-
-	// printf("As string:\t");
-	// for (size_t i = 0; i < 128; i++)
-	// {
-	// 	printf("%c", valuebuf[i]);
-	// }
-	// printf("\n");
-
-	// printf("As ints:\t");
-	// for (size_t i = 0; i < 128; i++)
-	// {
-	// 	printf("%i", valuebuf[i]);
-	// }
-	// printf("\n");
-	
 
 	/* Remote parameters are sent to a queue or directly */
 	int result = 0;
@@ -268,7 +327,7 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args) {
 static PyObject * pyparam_param_push(PyObject * self, PyObject * args) {
 
 	if (!_csp_initialized) {
-		PyErr_SetString(PyExc_RuntimeError, 
+		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot perform operations before ._param_init() has been called.");
 		return 0;
 	}
@@ -291,7 +350,7 @@ static PyObject * pyparam_param_push(PyObject * self, PyObject * args) {
 static PyObject * pyparam_param_pull(PyObject * self, PyObject * args) {
 
 	if (!_csp_initialized) {
-		PyErr_SetString(PyExc_RuntimeError, 
+		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot perform operations before ._param_init() has been called.");
 		return 0;
 	}
@@ -421,7 +480,7 @@ static PyObject * pyparam_param_list(PyObject * self, PyObject * args) {
 
 	uint32_t mask = 0xFFFFFFFF;
 
-	char * _str_mask;
+	char * _str_mask = NULL;
 
 	if (!PyArg_ParseTuple(args, "|s", &_str_mask)) {
 		return NULL;
@@ -455,7 +514,7 @@ static PyObject * pyparam_param_list_download(PyObject * self, PyObject * args) 
 static PyObject * pyparam_csp_ping(PyObject * self, PyObject * args) {
 
 	if (!_csp_initialized) {
-		PyErr_SetString(PyExc_RuntimeError, 
+		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot perform operations before ._param_init() has been called.");
 		return 0;
 	}
@@ -485,7 +544,7 @@ static PyObject * pyparam_csp_ping(PyObject * self, PyObject * args) {
 static PyObject * pyparam_csp_ident(PyObject * self, PyObject * args) {
 
 	if (!_csp_initialized) {
-		PyErr_SetString(PyExc_RuntimeError, 
+		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot perform operations before ._param_init() has been called.");
 		return 0;
 	}
@@ -512,12 +571,201 @@ static PyObject * pyparam_csp_ident(PyObject * self, PyObject * args) {
 }
 
 
+static PyObject * pyparam_misc_param_type(PyObject * self, PyObject * args) {
+
+	if (!_csp_initialized) {
+		PyErr_SetString(PyExc_RuntimeError,
+			"Cannot perform operations before ._param_init() has been called.");
+		return 0;
+	}
+
+	PyObject * param_identifier;
+	int node = default_node;
+
+	if (!PyArg_ParseTuple(args, "O|i", &param_identifier, &node)) {
+		return NULL;  // TypeError is thrown
+	}
+
+	param_t * param = pyparam_util_find_param(param_identifier, node);
+
+	if (param == NULL) {  // Did not find a match.
+		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
+		return 0;
+	}
+
+	switch (param->type) {
+		case PARAM_TYPE_UINT8:
+		case PARAM_TYPE_XINT8:
+		case PARAM_TYPE_UINT16:
+		case PARAM_TYPE_XINT16:
+		case PARAM_TYPE_UINT32:
+		case PARAM_TYPE_XINT32:
+		case PARAM_TYPE_UINT64:
+		case PARAM_TYPE_XINT64:
+		case PARAM_TYPE_INT8:
+		case PARAM_TYPE_INT16:
+		case PARAM_TYPE_INT32:
+		case PARAM_TYPE_INT64:
+			return (PyObject *)&PyLong_Type;
+		case PARAM_TYPE_FLOAT:
+		case PARAM_TYPE_DOUBLE:
+			return (PyObject *)&PyFloat_Type;
+		case PARAM_TYPE_STRING: {
+			return (PyObject *)&PyUnicode_Type;
+		}
+		case PARAM_TYPE_DATA: {
+			return (PyObject *)&PyByteArray_Type;
+		}
+
+		default: {
+			PyErr_SetString(PyExc_NotImplementedError, 
+				"Unsupported parameter type.");
+			return 0;
+		}
+
+	}
+
+}
+
+
+static void Parameter_dealloc(ParameterObject *self) {
+	Py_XDECREF((PyObject*)&self->type);  // TODO Kevin: In case this works, we need to be really careful when manipulating reference counts of builtin types.
+	Py_XDECREF(self->name);
+	Py_XDECREF(self->unit);
+	// Get the type of 'self' in case the user has subclassed 'Parameter'.
+	// Not that this makes a lot of sense to do.
+	Py_TYPE(self)->tp_free((PyObject *) self);
+}
+
+static PyObject * Parameter_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+
+	ParameterObject *self;
+	self = (ParameterObject *) type->tp_alloc(type, 0);
+
+	if (self != NULL) {
+
+		PyObject * param_identifier;  // Raw argument object/type passed. Identify its type when needed.
+		int host = -1;
+		int node = default_node;
+		int offset = -1;
+
+		if (!PyArg_ParseTuple(args, "O|iii", &param_identifier, &host, &node, &offset)) {
+			return NULL;  // TypeError is thrown
+		}
+
+		param_t * param = pyparam_util_find_param(param_identifier, node);
+
+		if (param == NULL) {  // Did not find a match.
+			PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
+			return 0;
+		}
+
+		self->param = param;
+
+        self->name = PyUnicode_FromString(param->name);
+        if (self->name == NULL) {
+            Py_DECREF(self);
+            return NULL;
+        }
+        self->unit = PyUnicode_FromString(param->unit);
+        if (self->unit == NULL) {
+            Py_DECREF(self);
+            return NULL;
+        }
+        self->type = &PyLong_Type;
+		Py_INCREF(self->type);  // TODO Kevin: Confirm this is correct.
+    }
+    return (PyObject *) self;
+}
+
+static PyObject * Parameter_getname(ParameterObject *self, void *closure) {
+	Py_INCREF(self->name);
+	return self->name;
+}
+
+static PyObject * Parameter_getunit(ParameterObject *self, void *closure) {
+	Py_INCREF(self->unit);
+	return self->unit;
+}
+
+static PyObject * Parameter_getid(ParameterObject *self, void *closure) {
+	return Py_BuildValue("H", self->param->id);
+}
+
+static PyObject * Parameter_getnode(ParameterObject *self, void *closure) {
+	return Py_BuildValue("H", self->param->node);
+}
+
+static PyObject * Parameter_gettype(ParameterObject *self, void *closure) {
+	Py_INCREF(self->type);
+	return (PyObject *)self->type;
+}
+
+static PyObject * Parameter_getvalue(ParameterObject *self, void *closure) {
+	return pyparam_param_get((PyObject *)self, NULL);
+}
+
+static int Parameter_setvalue(ParameterObject *self, PyObject *value, void *closure) {
+	if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the value attribute");
+        return -1;
+    }
+	if (!PyUnicode_Check(value)) {
+        PyErr_SetString(PyExc_TypeError,
+                        "The value attribute must be set as a string");
+        return -1;
+    }
+	pyparam_param_set((PyObject *)self, PyTuple_Pack(1, value));
+	return 0;
+}
+
+static PyObject * Parameter_str(ParameterObject *self) {
+	char buf[100];
+	sprintf(buf, "[id:%i|node:%i] %s", self->param->id, self->param->node, self->param->name);
+	return Py_BuildValue("s", buf);
+}
+
+/* 
+The Python binding 'Parameter' class exposes most of its attributes through getters, 
+as only its 'value' is supposed to be writable (for now), and even that is through a setter.
+*/
+static PyGetSetDef Parameter_getsetters[] = {
+    {"name", (getter) Parameter_getname, NULL,
+     "name of the parameter", NULL},
+    {"unit", (getter) Parameter_getunit, NULL,
+     "unit of the parameter", NULL},
+	{"id", (getter) Parameter_getid, NULL,
+     "id of the parameter", NULL},
+	{"node", (getter) Parameter_getnode, NULL,
+     "node of the parameter", NULL},
+	{"type", (getter) Parameter_gettype, NULL,
+     "type of the parameter", NULL},
+	{"value", (getter) Parameter_getvalue, (setter)Parameter_setvalue,
+     "value of the parameter", NULL},
+    {NULL}  /* Sentinel */
+};
+
+static PyTypeObject ParameterType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "libparam_py3.Parameter",
+    .tp_doc = "Wrapper utility class for libparam parameters.",
+    .tp_basicsize = sizeof(ParameterObject),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_new = Parameter_new,
+    //.tp_init = (initproc) Custom_init,
+    .tp_dealloc = (destructor) Parameter_dealloc,
+	.tp_getset = Parameter_getsetters,
+	.tp_str = (reprfunc)Parameter_str,
+};
+
+
 static PyObject * pyparam_csp_init(PyObject * self, PyObject * args) {
 
 	// printf("Init address %li\n", &_csp_initialized);
 
 	if (_csp_initialized) {
-		PyErr_SetString(PyExc_RuntimeError, 
+		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot initialize multiple instances of libparam bindings. Please use a previous binding.");
 			return 0;
 	}
@@ -529,8 +777,10 @@ static PyObject * pyparam_csp_init(PyObject * self, PyObject * args) {
 
 	uint16_t csp_port = PARAM_PORT_SERVER;
 
+	char * can_dev = NULL;
+
 	// TODO Kevin: These should probably be parsed as keyword arguments.
-	if (!PyArg_ParseTuple(args, "|ibssi", &csp_conf.address, &csp_conf.hostname, &csp_conf.model, &csp_conf.revision, &csp_port)) {
+	if (!PyArg_ParseTuple(args, "|ibssis", &csp_conf.address, &csp_conf.hostname, &csp_conf.model, &csp_conf.revision, &csp_port, &can_dev)) {
 		return NULL;  // TypeError is thrown
 	}
 
@@ -544,6 +794,15 @@ static PyObject * pyparam_csp_init(PyObject * self, PyObject * args) {
 	
 	csp_init();
 
+	csp_iface_t * default_iface = NULL;
+	if (can_dev != NULL) {
+		printf("Starting CAN");
+		int error = csp_can_socketcan_open_and_add_interface(can_dev, CSP_IF_CAN_DEFAULT_NAME, 1000000, true, &default_iface);
+		if (error != CSP_ERR_NONE) {
+			csp_log_error("failed to add CAN interface [%s], error: %d", can_dev, error);
+		}
+	}
+
 
 	pthread_create(&router_handle, NULL, &router_task, NULL);
 
@@ -551,7 +810,7 @@ static PyObject * pyparam_csp_init(PyObject * self, PyObject * args) {
 
 	char saved_rtable[csp_rtable.array_size];
 	char * rtable = NULL;
-	csp_iface_t * default_iface = NULL;
+
 
 	if (!rtable) {
 		/* Read routing table from parameter system */
@@ -623,6 +882,9 @@ static PyMethodDef methods[] = {
 	{"ping", 		pyparam_csp_ping, 		METH_VARARGS, 		""},
 	{"ident", 		pyparam_csp_ident, 		METH_VARARGS, 		""},
 
+	/* Miscellaneous utility functions */
+	{"get_type", 	pyparam_misc_param_type, METH_VARARGS, 	""},
+
 	/* Misc */
 	{"_param_init", pyparam_csp_init, 			METH_VARARGS, 	""},
 
@@ -642,14 +904,19 @@ static struct PyModuleDef moduledef = {
 
 PyMODINIT_FUNC PyInit_libparam_py3(void) {
 
+	if (PyType_Ready(&ParameterType) < 0)
+        return NULL;
+
 	PyObject * m = PyModule_Create(&moduledef);
+	if (m == NULL)
+		return NULL;
 
-	/* Exceptions */
-	Error = PyErr_NewException((char *)"param.Error", NULL, NULL);
-	Py_INCREF(Error);
-
-	/* Add exception object to your module */
-	PyModule_AddObject(m, "Error", Error);
+	Py_INCREF(&ParameterType);
+	if (PyModule_AddObject(m, "Parameter", (PyObject *) &ParameterType) < 0) {
+		Py_DECREF(&ParameterType);
+        Py_DECREF(m);
+        return NULL;
+	}
 
 	return m;
 }
