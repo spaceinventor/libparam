@@ -9,7 +9,6 @@
 #define LIB_PARAM_INCLUDE_VMEM_VMEM_SERVER_H_
 
 #include <csp/csp.h>
-#include <csp/arch/csp_thread.h>
 #include <vmem/vmem.h>
 
 #define VMEM_SERVER_TIMEOUT 30000
@@ -52,6 +51,6 @@ typedef struct {
 } __attribute__((packed)) vmem_list_t;
 
 void vmem_server_handler(csp_conn_t * conn);
-csp_thread_return_t vmem_server_task(void *pvParameters);
+void vmem_server_loop(void * param);
 
 #endif /* LIB_PARAM_INCLUDE_VMEM_VMEM_SERVER_H_ */

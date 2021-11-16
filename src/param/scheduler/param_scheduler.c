@@ -9,7 +9,6 @@
 
 #include <stdio.h>
 #include <csp/csp.h>
-#include <csp/arch/csp_thread.h>
 #include <csp/arch/csp_time.h>
 #include <csp/arch/csp_semaphore.h>
 #include <sys/types.h>
