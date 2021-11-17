@@ -65,14 +65,14 @@ typedef struct {
     PyObject_HEAD
     /* Type-specific fields go here. */
 	// uint16_t id;
-	// uint16_t node;
+	uint16_t node;  // Use this node as the default node for this parameter.
 	PyTypeObject *type;  // Best Python representation of the parameter type, i.e 'int' for uint32.
 	//uint32_t mask;
 
 	/* Store Python strings for name and unit, to lesson the overhead of converting them from C */
 	PyObject *name;
 	PyObject *unit;
-	
+
 	param_t *param;
 } ParameterObject;
 
@@ -81,7 +81,7 @@ typedef struct {
 
 //static int PARAM_POINTER_HAS_BEEN_FREED = 0;  // used to indicate pointer has been freed, because a NULL pointer can't be set.
 
-/* Retrieves a parameter from either its name or id. */
+/* Retrieves a parameter from either its name, id or wrapper object. */
 static param_t * pyparam_util_find_param(PyObject * param_identifier, int node) {
 
 	int is_string = PyUnicode_Check(param_identifier);
@@ -93,6 +93,8 @@ static param_t * pyparam_util_find_param(PyObject * param_identifier, int node) 
 		param = param_list_find_name(node, (char*)PyUnicode_AsUTF8(param_identifier));
 	else if (is_int)
 		param = param_list_find_id(node, (int)PyLong_AsLong(param_identifier));
+	else if (PyObject_TypeCheck(param_identifier, &ParameterType))
+		param = ((ParameterObject *)param_identifier)->param;
 	else {
 		PyErr_SetString(PyExc_TypeError,
 			"Parameter identifier must be either an integer or string of the parameter ID or name respectively.");
@@ -103,7 +105,7 @@ static param_t * pyparam_util_find_param(PyObject * param_identifier, int node) 
 }
 
 
-static PyObject * pyparam_param_get(PyObject * self, PyObject * args) {
+static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject * kwds) {
 
 	if (!_csp_initialized) {
 		PyErr_SetString(PyExc_RuntimeError,
@@ -127,13 +129,15 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args) {
 		param = _self->param;
 
 	} else {
-		if (!PyArg_ParseTuple(args, "O|iii", &param_identifier, &host, &node, &offset)) {
+
+		static char *kwlist[] = {"param_identifier", "host", "node", "offset", NULL};
+
+		if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iii", kwlist, &param_identifier, &host, &node, &offset)) {
 			return NULL;  // TypeError is thrown
 		}
 
 		param = pyparam_util_find_param(param_identifier, node);
 
-		
 	}
 
 	if (param == NULL) {  // Did not find a match.
@@ -207,7 +211,6 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args) {
 			char buf[param->array_size];
 			param_get_string(param, &buf, param->array_size);
 			return Py_BuildValue("s", buf);
-			break;
 		}
 		case PARAM_TYPE_DATA: {
 			// TODO Kevin: No idea if this has any chance of working.
@@ -217,15 +220,11 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args) {
 			param_get_data(param, buf, size);
 			return Py_BuildValue("O&", buf);
 		}
-
-		default: {
-			Py_RETURN_NONE;
-		}
-
 	}
+	Py_RETURN_NONE;
 }
 
-static PyObject * pyparam_param_set(PyObject * self, PyObject * args) {
+static PyObject * pyparam_param_set(PyObject * self, PyObject * args, PyObject * kwds) {
 
 	if (!_csp_initialized) {
 		PyErr_SetString(PyExc_RuntimeError,
@@ -250,25 +249,28 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args) {
 
 		ParameterObject *_self = (ParameterObject *)self;
 
-		node = _self->param->node;
-		offset = _self->param->array_step;  // TODO Kevin: I think the offset corresponds to array step.
+		//node = _self->param->node;
+		node = _self->node;
+		// offset = _self->param->array_step;  // TODO Kevin: Haven't decided how best to parse the offset yet.
 		param = _self->param;
 
-		printf("%s\n", strvalue);
-
 	} else {
-		if (!PyArg_ParseTuple(args, "Os|iii", &param_identifier, &strvalue, &host, &node, &offset)) {
+
+		static char *kwlist[] = {"param_identifier", "strvalue", "host", "node", "offset", NULL};
+		
+		if (!PyArg_ParseTupleAndKeywords(args, kwds, "Os|iii", kwlist, &param_identifier, &strvalue, &host, &node, &offset)) {
 			return NULL;  // TypeError is thrown
 		}
 
 		param = pyparam_util_find_param(param_identifier, node);
 	}
 
-
 	if (param == NULL) {  // Did not find a match.
 		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
 		return 0;
 	}
+
+	printf("Array step:\t%i\n", param->array_step);
 
 	char valuebuf[128] __attribute__((aligned(16))) = { };
 	param_str_to_value(param->type, strvalue, valuebuf);
@@ -313,13 +315,6 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args) {
 	}
 
 	param_print(param, -1, NULL, 0, 2);
-	
-	// TODO Kevin: Remove debug prints.
-	// printf("Param is named:\t%s\n", param->name);
-	// printf("is_string=%i\nis_int=%i\n", is_string, is_int);
-
-	// printf("\nParameters after push:\n");
-	// param_pull_all(1, host, 0xFFFFFFFF, 0, 1000, paramver);
 
 	Py_RETURN_NONE;
 }
@@ -347,7 +342,7 @@ static PyObject * pyparam_param_push(PyObject * self, PyObject * args) {
 	Py_RETURN_NONE;
 }
 
-static PyObject * pyparam_param_pull(PyObject * self, PyObject * args) {
+static PyObject * pyparam_param_pull(PyObject * self, PyObject * args, PyObject * kwds) {
 
 	if (!_csp_initialized) {
 		PyErr_SetString(PyExc_RuntimeError,
@@ -363,7 +358,9 @@ static PyObject * pyparam_param_pull(PyObject * self, PyObject * args) {
 	char * _str_include_mask;
 	char * _str_exclude_mask;
 
-	if (!PyArg_ParseTuple(args, "I|ssI", &host, &_str_include_mask, &_str_exclude_mask, &timeout)) {
+	static char *kwlist[] = {"host", "include_mask", "exclude_mask", "timeout", NULL};
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "I|ssI", kwlist, &host, &_str_include_mask, &_str_exclude_mask, &timeout)) {
 		return NULL;
 	}
 
@@ -400,9 +397,9 @@ static PyObject * pyparam_param_clear(PyObject * self, PyObject * args) {
 
 static PyObject * pyparam_param_node(PyObject * self, PyObject * args) {
 
-	unsigned int node = -1;
+	int node = -1;
 
-	if (!PyArg_ParseTuple(args, "|I", &node)) {
+	if (!PyArg_ParseTuple(args, "|i", &node)) {
 		return NULL;  // TypeError is thrown
 	}
 
@@ -413,8 +410,7 @@ static PyObject * pyparam_param_node(PyObject * self, PyObject * args) {
 		printf("Set default node to %d\n", default_node);
 	}
 
-	Py_RETURN_NONE;
-
+	return Py_BuildValue("i", default_node);
 }
 
 static PyObject * pyparam_param_paramver(PyObject * self, PyObject * args) {
@@ -422,7 +418,7 @@ static PyObject * pyparam_param_paramver(PyObject * self, PyObject * args) {
 	// Not sure if the static paramver would be set to NULL, when nothing is passed.
 	int _paramver = -1;  
 
-	if (!PyArg_ParseTuple(args, "|I", &_paramver)) {
+	if (!PyArg_ParseTuple(args, "|i", &_paramver)) {
 		return NULL;  // TypeError is thrown
 	}
 
@@ -433,16 +429,14 @@ static PyObject * pyparam_param_paramver(PyObject * self, PyObject * args) {
 		printf("Set parameter client version to %d\n", paramver);
 	}
 
-	Py_RETURN_NONE;
-
+	return Py_BuildValue("i", paramver);
 }
 
 static PyObject * pyparam_param_autosend(PyObject * self, PyObject * args) {
 
-	// Not sure if the static autosend would be set to NULL, when nothing is passed.
-	unsigned int _autosend = -1;
+	int _autosend = -1;
 
-	if (!PyArg_ParseTuple(args, "|I", &_autosend)) {
+	if (!PyArg_ParseTuple(args, "|i", &_autosend)) {
 		return NULL;  // TypeError is thrown
 	}
 
@@ -453,8 +447,7 @@ static PyObject * pyparam_param_autosend(PyObject * self, PyObject * args) {
 		printf("Set autosend to %d\n", autosend);
 	}
 
-	Py_RETURN_NONE;
-
+	return Py_BuildValue("i", autosend);
 }
 
 static PyObject * pyparam_param_queue(PyObject * self, PyObject * args) {
@@ -494,13 +487,15 @@ static PyObject * pyparam_param_list(PyObject * self, PyObject * args) {
 	Py_RETURN_NONE;
 }
 
-static PyObject * pyparam_param_list_download(PyObject * self, PyObject * args) {
+static PyObject * pyparam_param_list_download(PyObject * self, PyObject * args, PyObject * kwds) {
 
 	unsigned int node;
     unsigned int timeout = 1000;
     unsigned int version = 2;
 
-	if (!PyArg_ParseTuple(args, "I|II", &node, &timeout, &version)) {
+	static char *kwlist[] = {"node", "timeout", "version", NULL};
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "I|II", kwlist, &node, &timeout, &version)) {
 		return NULL;  // TypeError is thrown
 	}
 
@@ -511,7 +506,7 @@ static PyObject * pyparam_param_list_download(PyObject * self, PyObject * args) 
 }
 
 
-static PyObject * pyparam_csp_ping(PyObject * self, PyObject * args) {
+static PyObject * pyparam_csp_ping(PyObject * self, PyObject * args, PyObject * kwds) {
 
 	if (!_csp_initialized) {
 		PyErr_SetString(PyExc_RuntimeError,
@@ -523,7 +518,9 @@ static PyObject * pyparam_csp_ping(PyObject * self, PyObject * args) {
 	unsigned int timeout = 1000;
 	unsigned int size = 1;
 
-	if (!PyArg_ParseTuple(args, "I|II", &node, &timeout, &size)) {
+	static char *kwlist[] = {"node", "timeout", "size", NULL};
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "I|II", kwlist, &node, &timeout, &size)) {
 		return NULL;  // TypeError is thrown
 	}
 
@@ -541,7 +538,7 @@ static PyObject * pyparam_csp_ping(PyObject * self, PyObject * args) {
 
 }
 
-static PyObject * pyparam_csp_ident(PyObject * self, PyObject * args) {
+static PyObject * pyparam_csp_ident(PyObject * self, PyObject * args, PyObject * kwds) {
 
 	if (!_csp_initialized) {
 		PyErr_SetString(PyExc_RuntimeError,
@@ -553,7 +550,9 @@ static PyObject * pyparam_csp_ident(PyObject * self, PyObject * args) {
 	unsigned int timeout = 1000;
 	unsigned int size = 1;
 
-	if (!PyArg_ParseTuple(args, "I|II", &node, &timeout, &size)) {
+	static char *kwlist[] = {"node", "timeout", "size", NULL};
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "I|II", kwlist, &node, &timeout, &size)) {
 		return NULL;  // TypeError is thrown
 	}
 
@@ -582,16 +581,30 @@ static PyObject * pyparam_misc_param_type(PyObject * self, PyObject * args) {
 	PyObject * param_identifier;
 	int node = default_node;
 
-	if (!PyArg_ParseTuple(args, "O|i", &param_identifier, &node)) {
-		return NULL;  // TypeError is thrown
+	param_t * param;
+
+	/* Function may be called either as method on 'Paramter object' or standalone function. */
+	if (self && PyObject_TypeCheck(self, &ParameterType)) {
+		ParameterObject *_self = (ParameterObject *)self;
+
+		node = _self->param->node;
+		param = _self->param;
+
+	} else {
+		if (!PyArg_ParseTuple(args, "O|i", &param_identifier, &node)) {
+			return NULL;  // TypeError is thrown
+		}
+
+		param = pyparam_util_find_param(param_identifier, node);
 	}
 
-	param_t * param = pyparam_util_find_param(param_identifier, node);
 
 	if (param == NULL) {  // Did not find a match.
 		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
 		return 0;
 	}
+
+	PyTypeObject * param_type = NULL;
 
 	switch (param->type) {
 		case PARAM_TYPE_UINT8:
@@ -605,26 +618,33 @@ static PyObject * pyparam_misc_param_type(PyObject * self, PyObject * args) {
 		case PARAM_TYPE_INT8:
 		case PARAM_TYPE_INT16:
 		case PARAM_TYPE_INT32:
-		case PARAM_TYPE_INT64:
-			return (PyObject *)&PyLong_Type;
+		case PARAM_TYPE_INT64: {
+			param_type = &PyLong_Type;
+			break;
+		}
 		case PARAM_TYPE_FLOAT:
-		case PARAM_TYPE_DOUBLE:
-			return (PyObject *)&PyFloat_Type;
+		case PARAM_TYPE_DOUBLE: {
+			param_type = &PyFloat_Type;
+			break;
+		}
 		case PARAM_TYPE_STRING: {
-			return (PyObject *)&PyUnicode_Type;
+			param_type = &PyUnicode_Type;
+			break;
 		}
 		case PARAM_TYPE_DATA: {
-			return (PyObject *)&PyByteArray_Type;
+			param_type = &PyByteArray_Type;
+			break;
 		}
-
-		default: {
-			PyErr_SetString(PyExc_NotImplementedError, 
-				"Unsupported parameter type.");
-			return 0;
-		}
-
+		default:  // Raise NotImplementedError when param_type remains NULL.
+			break;
 	}
 
+	if (param_type == NULL) {
+		PyErr_SetString(PyExc_NotImplementedError, "Unsupported parameter type.");
+		return 0;
+	}
+	Py_INCREF(param_type);
+	return (PyObject *)param_type;
 }
 
 
@@ -639,42 +659,45 @@ static void Parameter_dealloc(ParameterObject *self) {
 
 static PyObject * Parameter_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 
-	ParameterObject *self;
-	self = (ParameterObject *) type->tp_alloc(type, 0);
+	ParameterObject *self = (ParameterObject *) type->tp_alloc(type, 0);
 
-	if (self != NULL) {
+	if (self == NULL)
+		return NULL;
 
-		PyObject * param_identifier;  // Raw argument object/type passed. Identify its type when needed.
-		int host = -1;
-		int node = default_node;
-		int offset = -1;
+	static char *kwlist[] = {"param_identifier", "node", NULL};
 
-		if (!PyArg_ParseTuple(args, "O|iii", &param_identifier, &host, &node, &offset)) {
-			return NULL;  // TypeError is thrown
-		}
+	PyObject * param_identifier;  // Raw argument object/type passed. Identify its type when needed.
+	//int host = -1;
+	self->node = default_node;
+	//int offset = -1;
 
-		param_t * param = pyparam_util_find_param(param_identifier, node);
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|H", kwlist, &param_identifier, &self->node)) {
+		return NULL;  // TypeError is thrown
+	}
 
-		if (param == NULL) {  // Did not find a match.
-			PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
-			return 0;
-		}
+	param_t * param = pyparam_util_find_param(param_identifier, self->node);
 
-		self->param = param;
+	if (param == NULL) {  // Did not find a match.
+		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
+		return 0;
+	}
 
-        self->name = PyUnicode_FromString(param->name);
-        if (self->name == NULL) {
-            Py_DECREF(self);
-            return NULL;
-        }
-        self->unit = PyUnicode_FromString(param->unit);
-        if (self->unit == NULL) {
-            Py_DECREF(self);
-            return NULL;
-        }
-        self->type = &PyLong_Type;
-		Py_INCREF(self->type);  // TODO Kevin: Confirm this is correct.
-    }
+	self->param = param;
+
+	self->name = PyUnicode_FromString(param->name);
+	if (self->name == NULL) {
+		Py_DECREF(self);
+		return NULL;
+	}
+	self->unit = PyUnicode_FromString(param->unit);
+	if (self->unit == NULL) {
+		Py_DECREF(self);
+		return NULL;
+	}
+	// self->type = &PyLong_Type;
+	self->type = (PyTypeObject *)pyparam_misc_param_type((PyObject *)self, NULL);
+	Py_INCREF(self->type);  // TODO Kevin: Confirm this is correct.
+
     return (PyObject *) self;
 }
 
@@ -693,7 +716,35 @@ static PyObject * Parameter_getid(ParameterObject *self, void *closure) {
 }
 
 static PyObject * Parameter_getnode(ParameterObject *self, void *closure) {
-	return Py_BuildValue("H", self->param->node);
+	return Py_BuildValue("H", self->node);
+}
+
+static int Parameter_setnode(ParameterObject *self, PyObject *value, void *closure) {
+
+	if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the value attribute");
+        return -1;
+    }
+
+	if(!PyLong_Check(value)) {
+		PyErr_SetString(PyExc_TypeError,
+                        "The node attribute must be set to an int");
+        return -1;
+	}
+
+	uint16_t node;
+
+	// This is pretty stupid, but seems to be the easiest way to convert a long to short using Python.
+	PyObject * value_tuple = PyTuple_Pack(1, value);
+	if (!PyArg_ParseTuple(value_tuple, "H", &node)) {
+		Py_DECREF(value_tuple);
+		return -1;
+	}
+	Py_DECREF(value_tuple);
+	
+	self->node = node;
+
+	return 0;
 }
 
 static PyObject * Parameter_gettype(ParameterObject *self, void *closure) {
@@ -702,7 +753,7 @@ static PyObject * Parameter_gettype(ParameterObject *self, void *closure) {
 }
 
 static PyObject * Parameter_getvalue(ParameterObject *self, void *closure) {
-	return pyparam_param_get((PyObject *)self, NULL);
+	return pyparam_param_get((PyObject *)self, NULL, NULL);
 }
 
 static int Parameter_setvalue(ParameterObject *self, PyObject *value, void *closure) {
@@ -715,7 +766,9 @@ static int Parameter_setvalue(ParameterObject *self, PyObject *value, void *clos
                         "The value attribute must be set as a string");
         return -1;
     }
-	pyparam_param_set((PyObject *)self, PyTuple_Pack(1, value));
+	PyObject * value_tuple = PyTuple_Pack(1, value);
+	pyparam_param_set((PyObject *)self, value_tuple, NULL);
+	Py_DECREF(value_tuple);
 	return 0;
 }
 
@@ -736,7 +789,7 @@ static PyGetSetDef Parameter_getsetters[] = {
      "unit of the parameter", NULL},
 	{"id", (getter) Parameter_getid, NULL,
      "id of the parameter", NULL},
-	{"node", (getter) Parameter_getnode, NULL,
+	{"node", (getter) Parameter_getnode, (setter)Parameter_setnode,
      "node of the parameter", NULL},
 	{"type", (getter) Parameter_gettype, NULL,
      "type of the parameter", NULL},
@@ -753,22 +806,21 @@ static PyTypeObject ParameterType = {
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_new = Parameter_new,
-    //.tp_init = (initproc) Custom_init,
     .tp_dealloc = (destructor) Parameter_dealloc,
 	.tp_getset = Parameter_getsetters,
 	.tp_str = (reprfunc)Parameter_str,
 };
 
 
-static PyObject * pyparam_csp_init(PyObject * self, PyObject * args) {
-
-	// printf("Init address %li\n", &_csp_initialized);
+static PyObject * pyparam_csp_init(PyObject * self, PyObject * args, PyObject *kwds) {
 
 	if (_csp_initialized) {
 		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot initialize multiple instances of libparam bindings. Please use a previous binding.");
 			return 0;
 	}
+
+	static char *kwlist[] = {"csp_address", "csp_version", "csp_hostname", "csp_model", "csp_port", "can_dev", NULL};
 
 	csp_conf.address = 1;
 	csp_conf.version = 2;
@@ -779,8 +831,7 @@ static PyObject * pyparam_csp_init(PyObject * self, PyObject * args) {
 
 	char * can_dev = NULL;
 
-	// TODO Kevin: These should probably be parsed as keyword arguments.
-	if (!PyArg_ParseTuple(args, "|ibssis", &csp_conf.address, &csp_conf.hostname, &csp_conf.model, &csp_conf.revision, &csp_port, &can_dev)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|HBssHs", kwlist, &csp_conf.address, &csp_conf.version,  &csp_conf.hostname, &csp_conf.model, &csp_port, &can_dev)) {
 		return NULL;  // TypeError is thrown
 	}
 
@@ -796,7 +847,6 @@ static PyObject * pyparam_csp_init(PyObject * self, PyObject * args) {
 
 	csp_iface_t * default_iface = NULL;
 	if (can_dev != NULL) {
-		printf("Starting CAN");
 		int error = csp_can_socketcan_open_and_add_interface(can_dev, CSP_IF_CAN_DEFAULT_NAME, 1000000, true, &default_iface);
 		if (error != CSP_ERR_NONE) {
 			csp_log_error("failed to add CAN interface [%s], error: %d", can_dev, error);
@@ -863,30 +913,30 @@ static PyObject * pyparam_csp_init(PyObject * self, PyObject * args) {
 static PyMethodDef methods[] = {
 
 	/* Converted Slash/Satctl commands from param/param_slash.c */
-	{"set", 		pyparam_param_set, 			METH_VARARGS, 	""},
-	{"get", 		pyparam_param_get, 			METH_VARARGS, 	""},
-	{"push", 		pyparam_param_push, 		METH_VARARGS, 	""},
-	{"pull", 		pyparam_param_pull, 		METH_VARARGS, 	""},
-	{"clear", 		pyparam_param_clear, 		METH_NOARGS, 	""},
-	{"node", 		pyparam_param_node, 		METH_VARARGS, 	""},
-	{"paramver", 	pyparam_param_paramver, 	METH_VARARGS, 	""},
-	{"autosend", 	pyparam_param_autosend, 	METH_VARARGS, 	""},
-	{"queue", 		pyparam_param_queue, 		METH_NOARGS, 	""},
+	{"set", 		(PyCFunction)pyparam_param_set, METH_VARARGS | METH_KEYWORDS, 	""},
+	{"get", 		(PyCFunction)pyparam_param_get, METH_VARARGS | METH_KEYWORDS, 	""},
+	{"push", 		pyparam_param_push, 			METH_VARARGS, 					""},
+	{"pull", 		(PyCFunction)pyparam_param_pull, METH_VARARGS | METH_KEYWORDS, 	""},
+	{"clear", 		pyparam_param_clear, 			METH_NOARGS, 					""},
+	{"node", 		pyparam_param_node, 			METH_VARARGS, 					""},
+	{"paramver", 	pyparam_param_paramver, 		METH_VARARGS, 					""},
+	{"autosend", 	pyparam_param_autosend, 		METH_VARARGS, 					""},
+	{"queue", 		pyparam_param_queue, 			METH_NOARGS, 					""},
 
 	/* Converted Slash/Satctl commands from param/param_list_slash.c */
-	{"list", 		pyparam_param_list, 		METH_VARARGS, 	""},
-	{"list_download", pyparam_param_list_download, METH_VARARGS, ""},
+	{"list", 		pyparam_param_list, 			METH_VARARGS, 					""},
+	{"list_download", (PyCFunction)pyparam_param_list_download, METH_VARARGS | METH_KEYWORDS, ""},
 
 	/* Converted Slash/Satctl commands from slash_csp.c */
 	/* Including these here is not entirely optimal, they may be removed. */
-	{"ping", 		pyparam_csp_ping, 		METH_VARARGS, 		""},
-	{"ident", 		pyparam_csp_ident, 		METH_VARARGS, 		""},
+	{"ping", 		(PyCFunction)pyparam_csp_ping, 	METH_VARARGS | METH_KEYWORDS, 	""},
+	{"ident", 		(PyCFunction)pyparam_csp_ident, METH_VARARGS | METH_KEYWORDS, 	""},
 
 	/* Miscellaneous utility functions */
-	{"get_type", 	pyparam_misc_param_type, METH_VARARGS, 	""},
+	{"get_type", 	pyparam_misc_param_type, 		METH_VARARGS, 					""},
 
 	/* Misc */
-	{"_param_init", pyparam_csp_init, 			METH_VARARGS, 	""},
+	{"_param_init", (PyCFunction)pyparam_csp_init, 	METH_VARARGS | METH_KEYWORDS, 	""},
 
 	/* sentinel */
 	{NULL, NULL, 0, NULL}};
