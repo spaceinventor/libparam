@@ -37,6 +37,15 @@ class Parameter:
     def value(self, value: str) -> None: ...
 
 
+class ParameterList(list):
+
+
+
+    def __init__(self, *args: tuple[Parameter, ...]) -> None: ...
+
+    def append(self, __object: Parameter) -> None: ...
+
+
 _param_ident_hint = int | str | Parameter
 
 
@@ -80,3 +89,6 @@ def ident(node: int, timeout: int = None, size: int = None) -> None: ...
 
 
 def get_type(param_identifier: _param_ident_hint, node: int = None) -> _param_type_hint: ...
+
+
+def _param_init(csp_address: int = None, csp_version = None, csp_hostname: str = None, csp_model: str = None, csp_port: int = None, can_dev: str = None) -> None: ...

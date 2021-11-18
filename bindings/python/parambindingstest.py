@@ -32,14 +32,21 @@ import param_binder
 #
 libparam = param_binder.Bindings(module_name='libparam_py3')
 
-libparam.ping(1)
-libparam.ident(1)
+# libparam.ping(1)
+# libparam.ident(1)
 
-# libparam.get(200, 1)
-#
-# libparam.set("col_cnfstr", "", 1)
-#
-# libparam.get(200, 1)
+test = libparam.get(200, 1)
+test2 = libparam.get("col_verbose", 1)
+print(test)
+print(test2)
+
+libparam.set("col_cnfstr", "test", 1)
+libparam.set(202, "55", 1)
+
+test3 = libparam.get(200, 1)
+test4 = libparam.get("col_verbose", 1)
+print(test3)
+print(test4)
 
 raise SystemExit
 

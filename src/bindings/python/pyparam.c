@@ -35,6 +35,8 @@
 
 static PyTypeObject ParameterType;
 
+static PyTypeObject ParameterListType;
+
 VMEM_DEFINE_FILE(csp, "csp", "cspcnf.vmem", 120);
 VMEM_DEFINE_FILE(params, "param", "params.csv", 50000);
 VMEM_DEFINE_FILE(col, "col", "colcnf.vmem", 120);
@@ -69,12 +71,83 @@ typedef struct {
 	PyTypeObject *type;  // Best Python representation of the parameter type, i.e 'int' for uint32.
 	//uint32_t mask;
 
-	/* Store Python strings for name and unit, to lesson the overhead of converting them from C */
+	/* Store Python strings for name and unit, to lessen the overhead of converting them from C */
 	PyObject *name;
 	PyObject *unit;
 
 	param_t *param;
 } ParameterObject;
+
+
+typedef struct {
+	PyListObject list;
+	// TODO Kevin: Perhaps expand this object, to avoid the weird Python multi inheritance bug, 
+	//	when the subclass object is the same size as the superclass.
+} ParameterListObject;
+
+
+/* Source: https://pythonextensionpatterns.readthedocs.io/en/latest/super_call.html */
+static PyObject * call_super_pyname_lookup(PyObject *self, PyObject *func_name, PyObject *args, PyObject *kwargs) {
+    PyObject *result        = NULL;
+    PyObject *builtins      = NULL;
+    PyObject *super_type    = NULL;
+    PyObject *super         = NULL;
+    PyObject *super_args    = NULL;
+    PyObject *func          = NULL;
+
+    builtins = PyImport_AddModule("builtins");
+    if (! builtins) {
+        assert(PyErr_Occurred());
+        goto except;
+    }
+    // Borrowed reference
+    Py_INCREF(builtins);
+    super_type = PyObject_GetAttrString(builtins, "super");
+    if (! super_type) {
+        assert(PyErr_Occurred());
+        goto except;
+    }
+    super_args = PyTuple_New(2);
+    Py_INCREF(self->ob_type);
+    if (PyTuple_SetItem(super_args, 0, (PyObject*)self->ob_type)) {
+        assert(PyErr_Occurred());
+        goto except;
+    }
+    Py_INCREF(self);
+    if (PyTuple_SetItem(super_args, 1, self)) {
+        assert(PyErr_Occurred());
+        goto except;
+    }
+    super = PyObject_Call(super_type, super_args, NULL);
+    if (! super) {
+        assert(PyErr_Occurred());
+        goto except;
+    }
+    func = PyObject_GetAttr(super, func_name);
+    if (! func) {
+        assert(PyErr_Occurred());
+        goto except;
+    }
+    if (! PyCallable_Check(func)) {
+        PyErr_Format(PyExc_AttributeError,
+                     "super() attribute \"%S\" is not callable.", func_name);
+        goto except;
+    }
+    result = PyObject_Call(func, args, kwargs);
+    assert(! PyErr_Occurred());
+    goto finally;
+except:
+    assert(PyErr_Occurred());
+    Py_XDECREF(result);
+    result = NULL;
+finally:
+    Py_XDECREF(builtins);
+    Py_XDECREF(super_args);
+    Py_XDECREF(super_type);
+    Py_XDECREF(super);
+    Py_XDECREF(func);
+    return result;
+}
 
 
 // static PyObject * Error = NULL;
@@ -269,8 +342,6 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args, PyObject *
 		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
 		return 0;
 	}
-
-	printf("Array step:\t%i\n", param->array_step);
 
 	char valuebuf[128] __attribute__((aligned(16))) = { };
 	param_str_to_value(param->type, strvalue, valuebuf);
@@ -534,7 +605,7 @@ static PyObject * pyparam_csp_ping(PyObject * self, PyObject * args, PyObject * 
 		printf("No reply\n");
 	}
 
-	Py_RETURN_NONE;
+	return Py_BuildValue("i", result);
 
 }
 
@@ -780,7 +851,7 @@ static PyObject * Parameter_str(ParameterObject *self) {
 
 /* 
 The Python binding 'Parameter' class exposes most of its attributes through getters, 
-as only its 'value' is supposed to be writable (for now), and even that is through a setter.
+as only its 'value' and 'node' are mutable, and even those are through setters.
 */
 static PyGetSetDef Parameter_getsetters[] = {
     {"name", (getter) Parameter_getname, NULL,
@@ -806,9 +877,97 @@ static PyTypeObject ParameterType = {
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_new = Parameter_new,
-    .tp_dealloc = (destructor) Parameter_dealloc,
+    // .tp_dealloc = (destructor)Parameter_dealloc,
 	.tp_getset = Parameter_getsetters,
 	.tp_str = (reprfunc)Parameter_str,
+};
+
+
+// static void ParameterList_dealloc(ParameterListObject *self) {
+// 	// Get the type of 'self' in case the user has subclassed 'Parameter'.
+// 	// Not that this makes a lot of sense to do.
+// 	Py_TYPE(self)->tp_free((PyObject *) self);
+// }
+
+/* Checks that the argument is a Parameter object, before calling list.append(). */
+static PyObject * ParameterList_append(PyObject * self, PyObject * args) {
+	PyObject * obj;
+
+	if (!PyArg_ParseTuple(args, "O", &obj)) {
+		return NULL;
+	}
+
+	if (!PyObject_TypeCheck(obj, &ParameterType)) {
+		char errstr[40 + strlen(Py_TYPE(self)->tp_name)];
+		sprintf(errstr, "%ss can only contain Parameters.", Py_TYPE(self)->tp_name);
+		PyErr_SetString(PyExc_TypeError, errstr);
+		return 0;
+	}
+
+	//Py_DECREF(obj);
+
+	//PyList_Append(self, obj);
+
+	/* 
+	Finding the name in the superclass is likely not nearly as efficient 
+	as calling list.append() directly. But it is more flexible.
+	*/
+	PyObject * func_name = Py_BuildValue("s", "append");
+	call_super_pyname_lookup(self, func_name, args, NULL);
+	Py_DECREF(func_name);
+}
+
+static PyMethodDef ParameterList_methods[] = {
+    {"append", (PyCFunction) ParameterList_append, METH_VARARGS,
+     PyDoc_STR("Add a Parameter to the list.")},
+    {NULL},
+};
+
+static int ParameterList_init(ParameterListObject *self, PyObject *args, PyObject *kwds)
+{
+	int seqlen = PySequence_Fast_GET_SIZE(args);
+
+    if (PyList_Type.tp_init((PyObject *) self, NULL, NULL) < 0)
+        return -1;
+    
+	/* We append all the items passed as arguments to self. Checking that they are Parameters as we go. */
+	/* Iterate over the objects in args directly, as opposed to copying them first.
+		I'm not sure this is entirely legal, considering the GIL and multiprocessing stuff. */
+	for (int i = 0; i < seqlen; i++)
+	{
+		// TODO Kevin: Confirm this doesn't cause a memory leak, as it should be a borrowed reference.
+		PyObject *item = PySequence_Fast_GET_ITEM(args, i);
+
+		if(!item) {  // TODO Kevin: Not sure why we do this.
+            Py_DECREF(args);
+            return -1;
+        }
+
+		if (!PyObject_TypeCheck(item, &ParameterType)) {
+			char errstr[40 + strlen(Py_TYPE(self)->tp_name)];
+			sprintf(errstr, "%ss can only contain Parameters.", Py_TYPE(self)->tp_name);
+			PyErr_SetString(PyExc_TypeError, errstr);
+			return -1;
+		}
+
+		Py_INCREF(item);  // TODO Kevin: Not sure this is necessary, check for memory leaks.
+		PyList_Append(self, item);
+
+	}
+
+    return 0;
+}
+
+static PyTypeObject ParameterListType = {
+	PyVarObject_HEAD_INIT(NULL, 0)
+	.tp_name = "libparam_py3.ParameterList",
+	.tp_doc = "Parameter list class with interface to libparam's queue API.",
+	.tp_basicsize = sizeof(ParameterListObject), // TODO Kevin: ParameterListObject is not done.
+	.tp_itemsize = 0,
+	.tp_flags = Py_TPFLAGS_DEFAULT,
+	.tp_init = (initproc)ParameterList_init,
+	// .tp_dealloc = (destructor)ParameterList_dealloc,
+	.tp_methods = ParameterList_methods,
 };
 
 
@@ -957,6 +1116,10 @@ PyMODINIT_FUNC PyInit_libparam_py3(void) {
 	if (PyType_Ready(&ParameterType) < 0)
         return NULL;
 
+	ParameterListType.tp_base = &PyList_Type;
+	if (PyType_Ready(&ParameterListType) < 0)
+		return NULL;
+
 	PyObject * m = PyModule_Create(&moduledef);
 	if (m == NULL)
 		return NULL;
@@ -966,6 +1129,13 @@ PyMODINIT_FUNC PyInit_libparam_py3(void) {
 		Py_DECREF(&ParameterType);
         Py_DECREF(m);
         return NULL;
+	}
+
+	Py_INCREF(&ParameterListType);
+	if (PyModule_AddObject(m, "ParameterList", (PyObject *)&ParameterListType) < 0) {
+		Py_DECREF(&ParameterListType);
+		Py_DECREF(m);
+		return NULL;
 	}
 
 	return m;
