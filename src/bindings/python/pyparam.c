@@ -40,7 +40,7 @@
 
 static PyTypeObject ParameterType;
 
-// static PyTypeObject ParameterListType;
+static PyTypeObject ParameterListType;
 
 VMEM_DEFINE_FILE(csp, "csp", "cspcnf.vmem", 120);
 VMEM_DEFINE_FILE(params, "param", "params.csv", 50000);
@@ -86,8 +86,9 @@ typedef struct {
 
 typedef struct {
 	PyListObject list;
-	// TODO Kevin: Perhaps expand this object, to avoid the weird Python multi inheritance bug, 
-	//	when the subclass object is the same size as the superclass.
+	// The documentation warns that for a class to be compatible with multiple inheritance in Python,
+	// its .tp_basicsize should be larger than that of its base class; currently not the case here.
+	// Source: https://docs.python.org/3/extending/newtypes_tutorial.html#subclassing-other-types
 } ParameterListObject;
 
 
@@ -183,6 +184,23 @@ static param_t * pyparam_util_find_param(PyObject * param_identifier, int node) 
 }
 
 
+static PyObject * pyparam_util_parameter_list(int node) {
+
+	
+	
+	if (node == -1)
+		node = PARAM_LIST_LOCAL;
+
+	param_t * found = NULL;
+	param_t * param;
+	param_list_iterator i = {};
+	while ((param = param_list_iterate(&i)) != NULL) {
+		
+	}
+
+}
+
+
 static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject * kwds) {
 
 	if (!_csp_initialized) {
@@ -240,7 +258,9 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 			if (param_queue_add(&param_queue_get, param, offset, NULL) < 0)
 				printf("Queue full\n");
 			param_queue_print(&param_queue_get);
+#ifdef PYPARAM_SKIP_CACHED_VAL
 			Py_RETURN_NONE;
+#endif
 		}
 
 	} else if (autosend) {
@@ -252,7 +272,9 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 		if (param_queue_add(&param_queue_get, param, offset, NULL) < 0)
 			printf("Queue full\n");
 		param_queue_print(&param_queue_get);
+#ifdef PYPARAM_SKIP_CACHED_VAL
 		Py_RETURN_NONE;
+#endif
 	}
 
 	if (result < 0) {
@@ -732,6 +754,36 @@ static void Parameter_dealloc(ParameterObject *self) {
 	Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
+/* Create a Python Parameter object from a param_t pointer directly. */
+static PyObject * _Parameter_new_from_param(PyTypeObject *type, param_t * param) {
+	// TODO Kevin: An internal constructor like this is likely bad practice and not very DRY.
+	//	Perhaps find a better way?
+
+	ParameterObject *self = (ParameterObject *)type->tp_alloc(type, 0);
+
+	if (self == NULL)
+		return NULL;
+
+	self->param = param;
+	self->node = default_node;
+
+	self->name = PyUnicode_FromString(param->name);
+	if (self->name == NULL) {
+		Py_DECREF(self);
+		return NULL;
+	}
+	self->unit = PyUnicode_FromString(param->unit);
+	if (self->unit == NULL) {
+		Py_DECREF(self);
+		return NULL;
+	}
+
+	self->type = (PyTypeObject *)pyparam_misc_param_type((PyObject *)self, NULL);
+	Py_INCREF(self->type);  // TODO Kevin: Confirm this is correct.
+
+    return (PyObject *) self;
+}
+
 static PyObject * Parameter_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 
 	ParameterObject *self = (ParameterObject *) type->tp_alloc(type, 0);
@@ -769,7 +821,7 @@ static PyObject * Parameter_new(PyTypeObject *type, PyObject *args, PyObject *kw
 		Py_DECREF(self);
 		return NULL;
 	}
-	// self->type = &PyLong_Type;
+
 	self->type = (PyTypeObject *)pyparam_misc_param_type((PyObject *)self, NULL);
 	Py_INCREF(self->type);  // TODO Kevin: Confirm this is correct.
 
@@ -929,8 +981,8 @@ static PyMethodDef ParameterList_methods[] = {
     {NULL},
 };
 
-static int ParameterList_init(ParameterListObject *self, PyObject *args, PyObject *kwds)
-{
+static int ParameterList_init(ParameterListObject *self, PyObject *args, PyObject *kwds) {
+
 	int seqlen = PySequence_Fast_GET_SIZE(args);
 
 	if (PyList_Type.tp_init((PyObject *) self, PyTuple_Pack(0), kwds) < 0)
@@ -968,7 +1020,7 @@ static PyTypeObject ParameterListType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
 	.tp_name = "libparam_py3.ParameterList",
 	.tp_doc = "Parameter list class with interface to libparam's queue API.",
-	.tp_basicsize = sizeof(ParameterListObject), // TODO Kevin: ParameterListObject is not done.
+	.tp_basicsize = sizeof(ParameterListObject),
 	.tp_itemsize = 0,
 	.tp_flags = Py_TPFLAGS_DEFAULT,
 	.tp_init = (initproc)ParameterList_init,
