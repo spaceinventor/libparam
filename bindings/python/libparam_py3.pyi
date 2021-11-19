@@ -13,82 +13,162 @@ class Parameter:
     def __init__(self, param_identifier: _param_ident_hint, node: int = None) -> None: ...
 
     @property
-    def name(self) -> str: ...
+    def name(self) -> str:
+        """ Returns the name of the wrapped param_t c struct. """
 
     @property
-    def unit(self) -> str: ...
+    def unit(self) -> str:
+        """ The unit of the wrapped param_t c struct as a string. """
 
     @property
-    def id(self) -> int: ...
+    def id(self) -> int:
+        """ Returns the id of the wrapped param_t c struct. """
 
     @property
-    def node(self) -> int: ...
+    def node(self) -> int:
+        """ Returns a node integer stored in the wrapper class. This node has priority over the one in the parameter itself. """
 
     @node.setter
-    def node(self, value: int) -> None: ...
+    def node(self, value: int) -> None:
+        """ Sets the node stored in the wrapper class. """
 
     @property
-    def type(self) -> _param_type_hint: ...
+    def type(self) -> _param_type_hint:
+        """ Returns the best Python representation type object of the param_t c struct type. i.e int for uint32. """
 
     @property
-    def value(self) -> _param_value_hint: ...
+    def value(self) -> _param_value_hint:
+        """ Returns the cached value of the parameter from the specified node in the Python representation of its type """
 
     @value.setter
-    def value(self, value: str) -> None: ...
+    def value(self, value: str) -> None:
+        """
+        Sets the value of the parameter.
 
+        :param value: Desired value as a string.
+        """
 
 class ParameterList(list):
 
+    def __init__(self, *args: Parameter) -> None:
+        """ Accepts a sequence of Parameter object as is initial values. """
 
-
-    def __init__(self, *args: tuple[Parameter, ...]) -> None: ...
-
-    def append(self, __object: Parameter) -> None: ...
+    def append(self, __object: Parameter) -> None:
+        """ Appends the specified Parameter object to the list. """
 
 
 _param_ident_hint = int | str | Parameter
 
 
-def get(param_identifier: _param_ident_hint, host: int = None, node: int = None, offset: int = None) -> _param_value_hint | _Any: ...
+def get(param_identifier: _param_ident_hint, host: int = None, node: int = None, offset: int = None) -> _param_value_hint | _Any:
+    """
+    Get the value of a parameter.
 
+    :param param_identifier: string name, int id or Parameter object of the desired parameter.
+    :param host: The host from which the value should be retrieved (has priority over node).
+    :param node: The node from which the value should be retrived.
 
-def set(param_identifier: _param_ident_hint, strvalue: str, host: int = None, node: int = None, offset: int = None) -> None: ...
+    :raises TypeError: When an invalid param_identifier type is provided.
+    :raises ValueError: When a parameter could not be found.
+    :raises RuntimeError: When run before ._param_init() has been called.
 
+    :return: The value of the retrieved parameter (As its Python type).
+    """
 
-def push(node: int, timeout: int = None) -> None: ...
+def set(param_identifier: _param_ident_hint, strvalue: str, host: int = None, node: int = None, offset: int = None) -> None:
+    """
+    Set the value of a parameter.
 
+    :param param_identifier: string name, int id or Parameter object of the desired parameter.
+    :param strvalue: The new value of the parameter as a string.
+    :param host: The host from which the value should be retrieved (has priority over node).
+    :param node: The node from which the value should be retrived.
+
+    :raises TypeError: When an invalid param_identifier type is provided.
+    :raises ValueError: When a parameter could not be found.
+    :raises RuntimeError: When run before ._param_init() has been called.
+    """
+
+def push(node: int, timeout: int = None) -> None:
+    """
+    Push the current queue
+
+    :param timeout: Timeout in milliseconds of the push request.
+    :raises ConnectionError: when no response is received.
+    """
 
 def pull(host: int, include_mask: str = None, exclude_mask: str = None, timeout: int = None) -> None: ...
 
+def clear() -> None:
+    """ Clears the queue. """
 
-def clear() -> None: ...
+def node(node: int = None) -> int:
+    """
+    Used to get or change the default node.
 
+    :param node: Integer to change the default node to.
+    :return: The current default node.
+    """
 
-def node(node: int = None) -> int: ...
+def paramver(paramver: int = None) -> int:
+    """
+    Used to get or change the parameter version.
 
+    :param paramver: Integer to change the parameter version to.
+    :return: The current parameter version.
+    """
 
-def paramver(paramver: int = None) -> int: ...
+def autosend(autosend: int = None) -> int:
+    """
+    Used to get or change whether autosend is enabled.
 
+    :param autosend: Integer value (representing True or False) to set autosend to.
+    :return: The current value/status of autosend.
+    """
 
-def autosend(autosend: int = None) -> int: ...
+def queue() -> None:
+    """ Print the current status of the queue. """
 
+def list(mask: str) -> None:
+    """
+    List all known parameters.
 
-def queue() -> None: ...
-
-
-def list(mask: str) -> None: ...
-
+    :param mask: Mask on which to filter the list.
+    """
 
 def list_download(node: int, timeout: int = None, version: int = None) -> None: ...
 
+def ping(node: int, timeout: int = None, size: int = None) -> int:
+    """
+    Ping the specified node.
 
-def ping(node: int, timeout: int = None, size: int = None) -> int: ...
+    :param node: Address of subsystem.
+    :param timeout: Timeout in ms to wait for reply.
+    :param size: Payload size in bytes.
 
+    :raises RuntimeError: When run before ._param_init() has been called.
 
-def ident(node: int, timeout: int = None, size: int = None) -> None: ...
+    :return: >0 = echo time in mS on success, otherwise -1 for error.
+    """
 
+def ident(node: int, timeout: int = None) -> None:
+    """
+    Print the identity of the specified node.
 
-def get_type(param_identifier: _param_ident_hint, node: int = None) -> _param_type_hint: ...
+    :param node: Address of subsystem.
+    :param timeout: Timeout in ms to wait for reply.
 
+    :raises RuntimeError: When run before ._param_init() has been called.
+    :raises ConnectionError: When no response is received.
+    """
+
+def get_type(param_identifier: _param_ident_hint, node: int = None) -> _param_type_hint:
+    """
+    Gets the type of the specified parameter.
+
+    :param param_identifier: string name, int id or Parameter object of the desired parameter.
+    :param node: Node of the parameter.
+    :return: The best Python representation type object of the param_t c struct type. i.e int for uint32.
+    """
 
 def _param_init(csp_address: int = None, csp_version = None, csp_hostname: str = None, csp_model: str = None, csp_port: int = None, can_dev: str = None) -> None: ...
