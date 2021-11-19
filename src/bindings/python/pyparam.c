@@ -13,7 +13,7 @@
 
 #include <csp/csp.h>
 #include <csp/csp_cmp.h>
-#include <csp/arch/csp_thread.h>
+#include <pthread.h>
 #include <csp/interfaces/csp_if_can.h>
 #include <csp/interfaces/csp_if_kiss.h>
 #include <csp/interfaces/csp_if_udp.h>
@@ -28,6 +28,11 @@
 #include <param/param_queue.h>
 
 #include <sys/types.h>
+
+// TODO Kevin: This is likely not the right way to do this.
+// #include "../../../../../src/csp_if_tun.h"
+// #include "../../../../../src/csp_if_eth.h"
+
 #include "../../param/param_string.h"
 
 
@@ -35,7 +40,7 @@
 
 static PyTypeObject ParameterType;
 
-static PyTypeObject ParameterListType;
+// static PyTypeObject ParameterListType;
 
 VMEM_DEFINE_FILE(csp, "csp", "cspcnf.vmem", 120);
 VMEM_DEFINE_FILE(params, "param", "params.csv", 50000);
@@ -619,11 +624,10 @@ static PyObject * pyparam_csp_ident(PyObject * self, PyObject * args, PyObject *
 
 	unsigned int node;
 	unsigned int timeout = 1000;
-	unsigned int size = 1;
 
-	static char *kwlist[] = {"node", "timeout", "size", NULL};
+	static char *kwlist[] = {"node", "timeout", NULL};
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "I|II", kwlist, &node, &timeout, &size)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "I|I", kwlist, &node, &timeout)) {
 		return NULL;  // TypeError is thrown
 	}
 
@@ -877,7 +881,7 @@ static PyTypeObject ParameterType = {
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_new = Parameter_new,
-    // .tp_dealloc = (destructor)Parameter_dealloc,
+    .tp_dealloc = (destructor)Parameter_dealloc,
 	.tp_getset = Parameter_getsetters,
 	.tp_str = (reprfunc)Parameter_str,
 };
@@ -915,6 +919,8 @@ static PyObject * ParameterList_append(PyObject * self, PyObject * args) {
 	PyObject * func_name = Py_BuildValue("s", "append");
 	call_super_pyname_lookup(self, func_name, args, NULL);
 	Py_DECREF(func_name);
+
+	Py_RETURN_NONE;
 }
 
 static PyMethodDef ParameterList_methods[] = {
@@ -927,9 +933,9 @@ static int ParameterList_init(ParameterListObject *self, PyObject *args, PyObjec
 {
 	int seqlen = PySequence_Fast_GET_SIZE(args);
 
-    if (PyList_Type.tp_init((PyObject *) self, NULL, NULL) < 0)
+	if (PyList_Type.tp_init((PyObject *) self, PyTuple_Pack(0), kwds) < 0)
         return -1;
-    
+        
 	/* We append all the items passed as arguments to self. Checking that they are Parameters as we go. */
 	/* Iterate over the objects in args directly, as opposed to copying them first.
 		I'm not sure this is entirely legal, considering the GIL and multiprocessing stuff. */
@@ -951,7 +957,7 @@ static int ParameterList_init(ParameterListObject *self, PyObject *args, PyObjec
 		}
 
 		Py_INCREF(item);  // TODO Kevin: Not sure this is necessary, check for memory leaks.
-		PyList_Append(self, item);
+		PyList_Append((PyObject *)self, item);
 
 	}
 
@@ -971,6 +977,17 @@ static PyTypeObject ParameterListType = {
 };
 
 
+void * param_collector_task(void * param) {
+	param_collector_loop(param);
+	return NULL;
+}
+
+void * vmem_server_task(void * param) {
+	vmem_server_loop(param);
+	return NULL;
+}
+
+
 static PyObject * pyparam_csp_init(PyObject * self, PyObject * args, PyObject *kwds) {
 
 	if (_csp_initialized) {
@@ -979,7 +996,11 @@ static PyObject * pyparam_csp_init(PyObject * self, PyObject * args, PyObject *k
 			return 0;
 	}
 
-	static char *kwlist[] = {"csp_address", "csp_version", "csp_hostname", "csp_model", "csp_port", "can_dev", NULL};
+	static char *kwlist[] = {
+		"csp_address", "csp_version", "csp_hostname", "csp_model", "csp_port", 
+		"can_dev", "udp_peer_str", "udp_peer_idx", "tun_conf_str", "eth_ifname", 
+		"csp_zmqhub_addr", "csp_zmqhub_idx", NULL
+	};
 
 	csp_conf.address = 1;
 	csp_conf.version = 2;
@@ -989,10 +1010,19 @@ static PyObject * pyparam_csp_init(PyObject * self, PyObject * args, PyObject *k
 	uint16_t csp_port = PARAM_PORT_SERVER;
 
 	char * can_dev = NULL;
+	char * udp_peer_str[10];  // TODO Kevin: Not sure what effect declaring the size of the array will have when Python likely alters the pointer address.
+	int udp_peer_idx = 0;
+	char * tun_conf_str = NULL;
+	char * eth_ifname = NULL;
+	char * csp_zmqhub_addr[10];
+	int csp_zmqhub_idx = 0;
+	
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|HBssHs", kwlist, &csp_conf.address, &csp_conf.version,  &csp_conf.hostname, &csp_conf.model, &csp_port, &can_dev)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|HBssHssisssi", kwlist, 
+		&csp_conf.address, &csp_conf.version,  &csp_conf.hostname, 
+		&csp_conf.model, &csp_port, &can_dev, &udp_peer_str, &udp_peer_idx, &tun_conf_str, &eth_ifname, &csp_zmqhub_addr, &csp_zmqhub_idx)
+	)
 		return NULL;  // TypeError is thrown
-	}
 
 	/* Get csp config from file */
 	vmem_file_init(&vmem_csp);
@@ -1016,6 +1046,80 @@ static PyObject * pyparam_csp_init(PyObject * self, PyObject * args, PyObject *k
 	pthread_create(&router_handle, NULL, &router_task, NULL);
 
 	csp_rdp_set_opt(3, 10000, 5000, 1, 2000, 2);
+
+
+
+	while (udp_peer_idx > 0) {
+		char * udp_str = udp_peer_str[--udp_peer_idx];
+		printf("udp str %s\n", udp_str);
+
+		int lport = 9600;
+		int rport = 9600;
+		char udp_peer_ip[20];
+
+		if (sscanf(udp_str, "%d %19s %d", &lport, udp_peer_ip, &rport) != 3) {
+			printf("Invalid UDP configuration string: %s\n", udp_str);
+			printf("Should math the pattern \"<lport> <peer ip> <rport>\" exactly\n");
+			return NULL;
+		}
+
+		csp_iface_t * udp_client_if = malloc(sizeof(csp_iface_t));
+		csp_if_udp_conf_t * udp_conf = malloc(sizeof(csp_if_udp_conf_t));
+		udp_conf->host = udp_peer_ip;
+		udp_conf->lport = lport;
+		udp_conf->rport = rport;
+		csp_if_udp_init(udp_client_if, udp_conf);
+
+		/* Use auto incrementing names */
+		char * udp_name = malloc(20);
+		sprintf(udp_name, "UDP%u", udp_peer_idx);
+		udp_client_if->name = udp_name;
+
+		default_iface = udp_client_if;
+	}
+
+	if (tun_conf_str) {
+
+		int src;
+		int dst;
+
+		if (sscanf(tun_conf_str, "%d %d", &src, &dst) != 2) {
+			printf("Invalid TUN configuration string: %s\n", tun_conf_str);
+			printf("Should math the pattern \"<src> <dst>\" exactly\n");
+			return NULL;
+		}
+
+		// csp_iface_t * tun_if = malloc(sizeof(csp_iface_t));
+		// csp_if_tun_conf_t * ifconf = malloc(sizeof(csp_if_tun_conf_t));
+
+		// ifconf->tun_dst = dst;
+		// ifconf->tun_src = src;
+
+		// csp_if_tun_init(tun_if, ifconf);
+
+	}
+
+	// if (eth_ifname) {
+	// 	static csp_iface_t csp_iface_eth;
+	// 	csp_if_eth_init(&csp_iface_eth, eth_ifname);
+	// 	default_iface = &csp_iface_eth;
+	// }
+
+	while (csp_zmqhub_idx > 0) {
+		char * zmq_str = csp_zmqhub_addr[--csp_zmqhub_idx];
+		printf("zmq str %s\n", zmq_str);
+		csp_iface_t * zmq_if;
+		csp_zmqhub_init(csp_get_address(), zmq_str, 0, &zmq_if);
+
+		/* Use auto incrementing names */
+		char * zmq_name = malloc(20);
+		sprintf(zmq_name, "ZMQ%u", csp_zmqhub_idx);
+		zmq_if->name = zmq_name;
+
+		default_iface = zmq_if;
+	}
+
+
 
 	char saved_rtable[csp_rtable.array_size];
 	char * rtable = NULL;
@@ -1048,11 +1152,12 @@ static PyObject * pyparam_csp_init(PyObject * self, PyObject * args, PyObject *k
 	csp_socket_set_callback(sock_param, param_serve);
 	csp_bind(sock_param, csp_port);
 
-	csp_thread_handle_t vmem_handle;
-	csp_thread_create(vmem_server_task, "vmem", 2000, NULL, 1, &vmem_handle);
+	pthread_t vmem_server_handle;
+	pthread_create(&vmem_server_handle, NULL, &vmem_server_task, NULL);
 
 	/* Start a collector task */
 	vmem_file_init(&vmem_col);
+
 	pthread_t param_collector_handle;
 	pthread_create(&param_collector_handle, NULL, &param_collector_task, NULL);
 
