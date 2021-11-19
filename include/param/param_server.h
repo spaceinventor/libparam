@@ -5,10 +5,9 @@
  *      Author: johan
  */
 
-#ifndef LIB_PARAM_INCLUDE_PARAM_PARAM_SERVER_H_
-#define LIB_PARAM_INCLUDE_PARAM_PARAM_SERVER_H_
+#pragma once 
 
-#include <csp/arch/csp_thread.h>
+#include <csp/csp_types.h>
 
 #define PARAM_SERVER_MTU 200
 #define PARAM_PORT_SERVER 10
@@ -71,5 +70,3 @@ typedef enum {
  * @param packet
  */
 void param_serve(csp_packet_t * packet);
-
-#endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_SERVER_H_ */

@@ -6,9 +6,9 @@
  */
 
 #include <csp/csp.h>
-#include <csp/arch/csp_thread.h>
 #include <csp/arch/csp_clock.h>
 #include <csp/arch/csp_time.h>
+#include <unistd.h>
 
 #include <param/param_collector.h>
 #include <param/param_client.h>
@@ -16,13 +16,13 @@
 
 #include "param_collector_config.h"
 
-csp_thread_return_t param_collector_task(void *pvParameters) {
+void param_collector_loop(void * param) {
 
 	param_collector_init();
 
 	while(1) {
 
-		csp_sleep_ms(100);
+		usleep(100000);
 
 		for(int i = 0; i < 16; i++) {
 			if (param_collector_config[i].node == 0)

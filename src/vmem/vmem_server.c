@@ -10,7 +10,6 @@
 #include <csp/csp.h>
 #include <sys/types.h>
 #include <csp/arch/csp_time.h>
-#include <csp/arch/csp_thread.h>
 
 #include <vmem/vmem.h>
 #include <vmem/vmem_server.h>
@@ -189,8 +188,7 @@ static void rparam_list_handler(csp_conn_t * conn)
 	}
 }
 
-csp_thread_return_t vmem_server_task(void *pvParameters)
-{
+void vmem_server_loop(void * param) {
 
 	/* Create socket without any socket options */
 	csp_socket_t *sock = csp_socket(CSP_SO_NONE);
@@ -230,8 +228,6 @@ csp_thread_return_t vmem_server_task(void *pvParameters)
 		csp_close(conn);
 
 	}
-
-	return CSP_TASK_RETURN;
 
 }
 
