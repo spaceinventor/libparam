@@ -160,7 +160,39 @@ finally:
 
 //static int PARAM_POINTER_HAS_BEEN_FREED = 0;  // used to indicate pointer has been freed, because a NULL pointer can't be set.
 
-/* Retrieves a parameter from either its name, id or wrapper object. */
+
+/* Checks that the argument is a Parameter object, before calling list.append(). */
+static PyObject * ParameterList_append(PyObject * self, PyObject * args) {
+	PyObject * obj;
+
+	if (!PyArg_ParseTuple(args, "O", &obj)) {
+		return NULL;
+	}
+
+	if (!PyObject_TypeCheck(obj, &ParameterType)) {
+		char errstr[40 + strlen(Py_TYPE(self)->tp_name)];
+		sprintf(errstr, "%ss can only contain Parameters.", Py_TYPE(self)->tp_name);
+		PyErr_SetString(PyExc_TypeError, errstr);
+		return 0;
+	}
+
+	//Py_DECREF(obj);
+
+	//PyList_Append(self, obj);
+
+	/* 
+	Finding the name in the superclass is likely not nearly as efficient 
+	as calling list.append() directly. But it is more flexible.
+	*/
+	PyObject * func_name = Py_BuildValue("s", "append");
+	call_super_pyname_lookup(self, func_name, args, NULL);
+	Py_DECREF(func_name);
+
+	Py_RETURN_NONE;
+}
+
+
+/* Retrieves a param_t from either its name, id or wrapper object. */
 static param_t * pyparam_util_find_param(PyObject * param_identifier, int node) {
 
 	int is_string = PyUnicode_Check(param_identifier);
@@ -184,19 +216,147 @@ static param_t * pyparam_util_find_param(PyObject * param_identifier, int node) 
 }
 
 
-static PyObject * pyparam_util_parameter_list(int node) {
+/* Gets the best Python representation of the param_t's type, i.e 'int' for 'uint32' */
+static PyObject * pyparam_misc_param_type(PyObject * self, PyObject * args) {
 
-	
-	
-	if (node == -1)
-		node = PARAM_LIST_LOCAL;
+	if (!_csp_initialized) {
+		PyErr_SetString(PyExc_RuntimeError,
+			"Cannot perform operations before ._param_init() has been called.");
+		return 0;
+	}
 
-	param_t * found = NULL;
+	PyObject * param_identifier;
+	int node = default_node;
+
+	param_t * param;
+
+	/* Function may be called either as method on 'Paramter object' or standalone function. */
+	if (self && PyObject_TypeCheck(self, &ParameterType)) {
+		ParameterObject *_self = (ParameterObject *)self;
+
+		node = _self->param->node;
+		param = _self->param;
+
+	} else {
+		if (!PyArg_ParseTuple(args, "O|i", &param_identifier, &node)) {
+			return NULL;  // TypeError is thrown
+		}
+
+		param = pyparam_util_find_param(param_identifier, node);
+	}
+
+
+	if (param == NULL) {  // Did not find a match.
+		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
+		return 0;
+	}
+
+	PyTypeObject * param_type = NULL;
+
+	switch (param->type) {
+		case PARAM_TYPE_UINT8:
+		case PARAM_TYPE_XINT8:
+		case PARAM_TYPE_UINT16:
+		case PARAM_TYPE_XINT16:
+		case PARAM_TYPE_UINT32:
+		case PARAM_TYPE_XINT32:
+		case PARAM_TYPE_UINT64:
+		case PARAM_TYPE_XINT64:
+		case PARAM_TYPE_INT8:
+		case PARAM_TYPE_INT16:
+		case PARAM_TYPE_INT32:
+		case PARAM_TYPE_INT64: {
+			param_type = &PyLong_Type;
+			break;
+		}
+		case PARAM_TYPE_FLOAT:
+		case PARAM_TYPE_DOUBLE: {
+			param_type = &PyFloat_Type;
+			break;
+		}
+		case PARAM_TYPE_STRING: {
+			param_type = &PyUnicode_Type;
+			break;
+		}
+		case PARAM_TYPE_DATA: {
+			param_type = &PyByteArray_Type;
+			break;
+		}
+		default:  // Raise NotImplementedError when param_type remains NULL.
+			break;
+	}
+
+	if (param_type == NULL) {
+		PyErr_SetString(PyExc_NotImplementedError, "Unsupported parameter type.");
+		return 0;
+	}
+	Py_INCREF(param_type);
+	return (PyObject *)param_type;
+}
+
+
+/* Create a Python Parameter object from a param_t pointer directly. */
+static PyObject * _pyparam_Parameter_from_param(PyTypeObject *type, param_t * param) {
+	// TODO Kevin: An internal constructor like this is likely bad practice and not very DRY.
+	//	Perhaps find a better way?
+
+	printf("Allocating space for %s\n", param->name);
+
+	ParameterObject *self = (ParameterObject *)type->tp_alloc(type, 0);
+
+	if (self == NULL) {
+		printf("self == NULL!!!");
+		return NULL;
+	}
+
+	self->param = param;
+	self->node = default_node;
+
+	printf("\n\nCreating PyUnicode object...\n\n");
+
+	self->name = PyUnicode_FromString(param->name);
+	if (self->name == NULL) {
+		Py_DECREF(self);
+		return NULL;
+	}
+	self->unit = PyUnicode_FromString(param->unit);
+	if (self->unit == NULL) {
+		Py_DECREF(self);
+		return NULL;
+	}
+
+	printf("\n\nGetting type of param\n\n");
+
+	self->type = (PyTypeObject *)pyparam_misc_param_type((PyObject *)self, NULL);
+	Py_INCREF(self->type);  // TODO Kevin: Confirm this is correct.
+
+    return (PyObject *) self;
+}
+
+
+/* Constructs a list of Python Parameters of all known param_t returned by param_list_iterate. */
+static PyObject * pyparam_util_parameter_list() {
+
+	printf("\n\nCREATING PARAMETERLIST\n\n");
+
+	PyObject * list = PyObject_CallObject((PyObject *)&ParameterListType, NULL);
+
 	param_t * param;
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
-		
+		// PyList_Append(list, _pyparam_Parameter_from_param(&ParameterType, param));
+		PyObject * parameter = _pyparam_Parameter_from_param(&ParameterType, param);
+		printf("Packing into tuple\n");
+		PyObject * argtuple = PyTuple_Pack(1, parameter);
+		printf("Appending: %s\n", param->name);
+		ParameterList_append(list, argtuple);
+		Py_DECREF(argtuple);
+		Py_DECREF(parameter);
 	}
+
+	printf("\n\nGOING TO RETURN LIST\n\n");
+
+	return list;
 
 }
 
@@ -582,7 +742,7 @@ static PyObject * pyparam_param_list(PyObject * self, PyObject * args) {
 
 	param_list_print(mask);
 
-	Py_RETURN_NONE;
+	return pyparam_util_parameter_list();
 }
 
 static PyObject * pyparam_param_list_download(PyObject * self, PyObject * args, PyObject * kwds) {
@@ -599,7 +759,7 @@ static PyObject * pyparam_param_list_download(PyObject * self, PyObject * args, 
 
 	param_list_download(node, timeout, version);
 
-	Py_RETURN_NONE;
+	return pyparam_util_parameter_list();
 
 }
 
@@ -667,84 +827,6 @@ static PyObject * pyparam_csp_ident(PyObject * self, PyObject * args, PyObject *
 }
 
 
-static PyObject * pyparam_misc_param_type(PyObject * self, PyObject * args) {
-
-	if (!_csp_initialized) {
-		PyErr_SetString(PyExc_RuntimeError,
-			"Cannot perform operations before ._param_init() has been called.");
-		return 0;
-	}
-
-	PyObject * param_identifier;
-	int node = default_node;
-
-	param_t * param;
-
-	/* Function may be called either as method on 'Paramter object' or standalone function. */
-	if (self && PyObject_TypeCheck(self, &ParameterType)) {
-		ParameterObject *_self = (ParameterObject *)self;
-
-		node = _self->param->node;
-		param = _self->param;
-
-	} else {
-		if (!PyArg_ParseTuple(args, "O|i", &param_identifier, &node)) {
-			return NULL;  // TypeError is thrown
-		}
-
-		param = pyparam_util_find_param(param_identifier, node);
-	}
-
-
-	if (param == NULL) {  // Did not find a match.
-		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
-		return 0;
-	}
-
-	PyTypeObject * param_type = NULL;
-
-	switch (param->type) {
-		case PARAM_TYPE_UINT8:
-		case PARAM_TYPE_XINT8:
-		case PARAM_TYPE_UINT16:
-		case PARAM_TYPE_XINT16:
-		case PARAM_TYPE_UINT32:
-		case PARAM_TYPE_XINT32:
-		case PARAM_TYPE_UINT64:
-		case PARAM_TYPE_XINT64:
-		case PARAM_TYPE_INT8:
-		case PARAM_TYPE_INT16:
-		case PARAM_TYPE_INT32:
-		case PARAM_TYPE_INT64: {
-			param_type = &PyLong_Type;
-			break;
-		}
-		case PARAM_TYPE_FLOAT:
-		case PARAM_TYPE_DOUBLE: {
-			param_type = &PyFloat_Type;
-			break;
-		}
-		case PARAM_TYPE_STRING: {
-			param_type = &PyUnicode_Type;
-			break;
-		}
-		case PARAM_TYPE_DATA: {
-			param_type = &PyByteArray_Type;
-			break;
-		}
-		default:  // Raise NotImplementedError when param_type remains NULL.
-			break;
-	}
-
-	if (param_type == NULL) {
-		PyErr_SetString(PyExc_NotImplementedError, "Unsupported parameter type.");
-		return 0;
-	}
-	Py_INCREF(param_type);
-	return (PyObject *)param_type;
-}
-
-
 static void Parameter_dealloc(ParameterObject *self) {
 	Py_XDECREF((PyObject*)&self->type);  // TODO Kevin: In case this works, we need to be really careful when manipulating reference counts of builtin types.
 	Py_XDECREF(self->name);
@@ -752,36 +834,6 @@ static void Parameter_dealloc(ParameterObject *self) {
 	// Get the type of 'self' in case the user has subclassed 'Parameter'.
 	// Not that this makes a lot of sense to do.
 	Py_TYPE(self)->tp_free((PyObject *) self);
-}
-
-/* Create a Python Parameter object from a param_t pointer directly. */
-static PyObject * _Parameter_new_from_param(PyTypeObject *type, param_t * param) {
-	// TODO Kevin: An internal constructor like this is likely bad practice and not very DRY.
-	//	Perhaps find a better way?
-
-	ParameterObject *self = (ParameterObject *)type->tp_alloc(type, 0);
-
-	if (self == NULL)
-		return NULL;
-
-	self->param = param;
-	self->node = default_node;
-
-	self->name = PyUnicode_FromString(param->name);
-	if (self->name == NULL) {
-		Py_DECREF(self);
-		return NULL;
-	}
-	self->unit = PyUnicode_FromString(param->unit);
-	if (self->unit == NULL) {
-		Py_DECREF(self);
-		return NULL;
-	}
-
-	self->type = (PyTypeObject *)pyparam_misc_param_type((PyObject *)self, NULL);
-	Py_INCREF(self->type);  // TODO Kevin: Confirm this is correct.
-
-    return (PyObject *) self;
 }
 
 static PyObject * Parameter_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
@@ -944,36 +996,6 @@ static PyTypeObject ParameterType = {
 // 	// Not that this makes a lot of sense to do.
 // 	Py_TYPE(self)->tp_free((PyObject *) self);
 // }
-
-/* Checks that the argument is a Parameter object, before calling list.append(). */
-static PyObject * ParameterList_append(PyObject * self, PyObject * args) {
-	PyObject * obj;
-
-	if (!PyArg_ParseTuple(args, "O", &obj)) {
-		return NULL;
-	}
-
-	if (!PyObject_TypeCheck(obj, &ParameterType)) {
-		char errstr[40 + strlen(Py_TYPE(self)->tp_name)];
-		sprintf(errstr, "%ss can only contain Parameters.", Py_TYPE(self)->tp_name);
-		PyErr_SetString(PyExc_TypeError, errstr);
-		return 0;
-	}
-
-	//Py_DECREF(obj);
-
-	//PyList_Append(self, obj);
-
-	/* 
-	Finding the name in the superclass is likely not nearly as efficient 
-	as calling list.append() directly. But it is more flexible.
-	*/
-	PyObject * func_name = Py_BuildValue("s", "append");
-	call_super_pyname_lookup(self, func_name, args, NULL);
-	Py_DECREF(func_name);
-
-	Py_RETURN_NONE;
-}
 
 static PyMethodDef ParameterList_methods[] = {
     {"append", (PyCFunction) ParameterList_append, METH_VARARGS,
