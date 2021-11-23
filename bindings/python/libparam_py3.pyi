@@ -48,7 +48,7 @@ class Parameter:
         :param value: Desired value as a string.
         """
 
-class ParameterList(list):
+class ParameterList(list[Parameter]):
 
     def __init__(self, *args: Parameter) -> None:
         """ Accepts a sequence of Parameter object as is initial values. """
@@ -129,14 +129,14 @@ def autosend(autosend: int = None) -> int:
 def queue() -> None:
     """ Print the current status of the queue. """
 
-def list(mask: str) -> None:
+def list(mask: str) -> ParameterList:
     """
     List all known parameters.
 
     :param mask: Mask on which to filter the list.
     """
 
-def list_download(node: int, timeout: int = None, version: int = None) -> None: ...
+def list_download(node: int, timeout: int = None, version: int = None) -> ParameterList: ...
 
 def ping(node: int, timeout: int = None, size: int = None) -> int:
     """
@@ -171,4 +171,17 @@ def get_type(param_identifier: _param_ident_hint, node: int = None) -> _param_ty
     :return: The best Python representation type object of the param_t c struct type. i.e int for uint32.
     """
 
-def _param_init(csp_address: int = None, csp_version = None, csp_hostname: str = None, csp_model: str = None, csp_port: int = None, can_dev: str = None) -> None: ...
+def _param_init(csp_address: int = None, csp_version = None, csp_hostname: str = None, csp_model: str = None,
+                csp_port: int = None, can_dev: str = None, udp_peer_str: str = None, udp_peer_idx: int = None,
+                tun_conf_str: str = None, eth_ifname: str = None, csp_zmqhub_addr: str = None,
+                csp_zmqhub_idx: int = None) -> None:
+    """
+    Initializes the libparam shared object module, with the provided settings.
+
+    :param csp_address: Which CSP address to use in the module.
+    :param csp_version: Which CSP version to use in the module.
+    :param csp_hostname: Which CSP hostname to use in the module.
+    :param csp_model: Which CSP model to use in the module.
+    :param csp_port: Which CSP port to use in the module.
+    :param can_dev: Can interface to use.
+    """

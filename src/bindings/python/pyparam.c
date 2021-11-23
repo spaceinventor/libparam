@@ -300,32 +300,25 @@ static PyObject * _pyparam_Parameter_from_param(PyTypeObject *type, param_t * pa
 	// TODO Kevin: An internal constructor like this is likely bad practice and not very DRY.
 	//	Perhaps find a better way?
 
-	printf("Allocating space for %s\n", param->name);
-
 	ParameterObject *self = (ParameterObject *)type->tp_alloc(type, 0);
 
 	if (self == NULL) {
-		printf("self == NULL!!!");
 		return NULL;
 	}
 
 	self->param = param;
 	self->node = default_node;
 
-	printf("\n\nCreating PyUnicode object...\n\n");
-
 	self->name = PyUnicode_FromString(param->name);
 	if (self->name == NULL) {
 		Py_DECREF(self);
 		return NULL;
 	}
-	self->unit = PyUnicode_FromString(param->unit);
+	self->unit = PyUnicode_FromString(param->unit != NULL ? param->unit : "NULL");
 	if (self->unit == NULL) {
 		Py_DECREF(self);
 		return NULL;
 	}
-
-	printf("\n\nGetting type of param\n\n");
 
 	self->type = (PyTypeObject *)pyparam_misc_param_type((PyObject *)self, NULL);
 	Py_INCREF(self->type);  // TODO Kevin: Confirm this is correct.
@@ -337,8 +330,6 @@ static PyObject * _pyparam_Parameter_from_param(PyTypeObject *type, param_t * pa
 /* Constructs a list of Python Parameters of all known param_t returned by param_list_iterate. */
 static PyObject * pyparam_util_parameter_list() {
 
-	printf("\n\nCREATING PARAMETERLIST\n\n");
-
 	PyObject * list = PyObject_CallObject((PyObject *)&ParameterListType, NULL);
 
 	param_t * param;
@@ -346,15 +337,11 @@ static PyObject * pyparam_util_parameter_list() {
 	while ((param = param_list_iterate(&i)) != NULL) {
 		// PyList_Append(list, _pyparam_Parameter_from_param(&ParameterType, param));
 		PyObject * parameter = _pyparam_Parameter_from_param(&ParameterType, param);
-		printf("Packing into tuple\n");
 		PyObject * argtuple = PyTuple_Pack(1, parameter);
-		printf("Appending: %s\n", param->name);
 		ParameterList_append(list, argtuple);
 		Py_DECREF(argtuple);
 		Py_DECREF(parameter);
 	}
-
-	printf("\n\nGOING TO RETURN LIST\n\n");
 
 	return list;
 
@@ -868,7 +855,7 @@ static PyObject * Parameter_new(PyTypeObject *type, PyObject *args, PyObject *kw
 		Py_DECREF(self);
 		return NULL;
 	}
-	self->unit = PyUnicode_FromString(param->unit);
+	self->unit = PyUnicode_FromString(param->unit != NULL ? param->unit : "NULL");
 	if (self->unit == NULL) {
 		Py_DECREF(self);
 		return NULL;
