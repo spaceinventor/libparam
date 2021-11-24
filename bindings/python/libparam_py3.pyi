@@ -45,7 +45,7 @@ class Parameter:
         """
         Sets the value of the parameter.
 
-        :param value: Desired value as a string.
+        :param value: New desired value. .__str__() of the provided object will be used.
         """
 
 class ParameterList(list[Parameter]):
@@ -54,7 +54,25 @@ class ParameterList(list[Parameter]):
         """ Accepts a sequence of Parameter object as is initial values. """
 
     def append(self, __object: Parameter) -> None:
-        """ Appends the specified Parameter object to the list. """
+        """
+        Appends the specified Parameter object to the list.
+
+        :raises TypeError: When attempting to append a non-Parameter object.
+        """
+
+    def pull(self) -> None:
+        """
+        Pulls all Parameters in the list as a single request.
+
+        :raises ConnectionError: When no response is received.
+        """
+
+    def push(self, node: int, timeout: int = None) -> None:
+        """
+        Pushes all Parameters in the list as a single request.
+
+        :raises ConnectionError: When no response is received.
+        """
 
 
 _param_ident_hint = int | str | Parameter
@@ -75,12 +93,12 @@ def get(param_identifier: _param_ident_hint, host: int = None, node: int = None,
     :return: The value of the retrieved parameter (As its Python type).
     """
 
-def set(param_identifier: _param_ident_hint, strvalue: str, host: int = None, node: int = None, offset: int = None) -> None:
+def set(param_identifier: _param_ident_hint, value: str, host: int = None, node: int = None, offset: int = None) -> None:
     """
     Set the value of a parameter.
 
     :param param_identifier: string name, int id or Parameter object of the desired parameter.
-    :param strvalue: The new value of the parameter as a string.
+    :param value: The new value of the parameter. .__str__() of the provided object will be used.
     :param host: The host from which the value should be retrieved (has priority over node).
     :param node: The node from which the value should be retrived.
 
@@ -172,9 +190,9 @@ def get_type(param_identifier: _param_ident_hint, node: int = None) -> _param_ty
     """
 
 def _param_init(csp_address: int = None, csp_version = None, csp_hostname: str = None, csp_model: str = None,
-                csp_port: int = None, can_dev: str = None, udp_peer_str: str = None, udp_peer_idx: int = None,
+                csp_port: int = None, uart_dev: str = None, uart_baud: int = None, can_dev: str = None, udp_peer_str: str = None, udp_peer_idx: int = None,
                 tun_conf_str: str = None, eth_ifname: str = None, csp_zmqhub_addr: str = None,
-                csp_zmqhub_idx: int = None) -> None:
+                csp_zmqhub_idx: int = None, quiet: int = None) -> None:
     """
     Initializes the libparam shared object module, with the provided settings.
 
