@@ -5,6 +5,8 @@
 from __future__ import annotations
 
 import sys as _sys
+from typing import Callable
+
 import libparam_py3
 from importlib import import_module as _import_module
 from contextlib import contextmanager as _contextmanager
@@ -63,6 +65,58 @@ def Bindings(csp_address: int = ..., csp_version: int = ..., csp_hostname: str =
     del _sys.modules[module_name or 'libparam_py3']
 
     return libparam_py3
+
+
+class ParamMapping:
+    """
+    This class contains mappings to parameters through their IDs.
+    Using this class; it's possible to retrieve parameters without specifying neither their name or ID, as such:
+        ParamMapping().CSP_RTABLE(3) -> Returns a Python Parameter of CSP_RTABLE (provided that it is available).
+
+    "ParamMapping()" creates a required instance of the class (a module may be specified here).
+
+    ".CSP_RTABLE" returns a lazy constructor for a Python Parameter object
+    (such that *args and **kwargs may be received and sent along).
+    """
+
+    _param_constructor_typehint = Callable[[int], _libparam_typehint.Parameter]
+
+    CSP_RTABLE: _param_constructor_typehint = 12
+    TFETCH_PRIMARY: _param_constructor_typehint = 41
+    TFETCH_SECONDARY: _param_constructor_typehint = 42
+    TFETCH_TIMEOUT: _param_constructor_typehint = 43
+    TFETCH_SYNCED: _param_constructor_typehint = 44
+    TFETCH_ERRORS: _param_constructor_typehint = 45
+    TFETCH_LAST: _param_constructor_typehint = 46
+
+    CSP_DEBUG: _param_constructor_typehint = 50
+
+    COLLECTOR_CNFSTR: _param_constructor_typehint = 200
+    COLLECTOR_RUN: _param_constructor_typehint = 201
+    COLLECTOR_VERBOSE: _param_constructor_typehint = 202
+
+    CRYPTO_KEY_PUBLIC: _param_constructor_typehint = 150
+    CRYPTO_KEY_SECRET: _param_constructor_typehint = 151
+    CRYPTO_KEY_REMOTE: _param_constructor_typehint = 152
+    CRYPTO_NONCE_RX: _param_constructor_typehint = 153
+    CRYPTO_NONCE_TX: _param_constructor_typehint = 154
+
+    CRYPTO_FAUL_AUTH_COUNT: _param_constructor_typehint = 156
+    CRYPTO_FAUL_NONCE_COUNT: _param_constructor_typehint = 157
+
+    def __init__(self, module: _libparam_typehint = libparam_py3) -> None:
+        super().__init__()
+        self._module = module
+
+    def __getattribute__(self, name: str) -> Callable[[int], _libparam_typehint.Parameter]:
+
+        paramid = super().__getattribute__(name)
+        module = super().__getattribute__('_module')
+
+        def param_constructor(*args, **kwargs) -> _libparam_typehint.Parameter:
+            return module.Parameter(paramid, *args, **kwargs)
+
+        return param_constructor
 
 
 @_contextmanager
