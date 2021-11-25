@@ -337,6 +337,22 @@ static PyObject * pyparam_util_parameter_list() {
 
 }
 
+/* Checks that the specified index is within bounds of the parameter array, raises IndexError if not.
+   Supports Python backwards subscriptions. */
+static int invalid_index(param_t * arr_param, int *index) {
+	if (*index != INT_MIN) {
+		if (*index < 0)  // Python backwards subscription.
+			*index += arr_param->array_size;
+		if (*index < 0 || *index > arr_param->array_size - 1) {
+			PyErr_SetString(PyExc_IndexError, "Array Parameter index out of range");
+			return -1;
+		}
+	} else {
+		*index = -1;  // Index was not specified, set it to its default value.
+	}
+	return 0;
+}
+
 
 static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject * kwds) {
 
@@ -349,7 +365,7 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 	PyObject * param_identifier;  // Raw argument object/type passed. Identify its type when needed.
 	int host = -1;
 	int node = default_node;
-	int offset = -1;
+	int offset = INT_MIN;  // Using INT_MIN as the least likely value as Parameter arrays should be backwards subscriptable like lists.
 
 	param_t * param;
 
@@ -358,16 +374,17 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 		ParameterObject *_self = (ParameterObject *)self;
 
 		node = _self->param->node;
-		offset = _self->param->array_step;  // TODO Kevin: I think the offset corresponds to array step.
 		param = _self->param;
+
+		if (args && !PyArg_ParseTuple(args, "|i", &offset))
+			return NULL;
 
 	} else {
 
 		static char *kwlist[] = {"param_identifier", "host", "node", "offset", NULL};
 
-		if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iii", kwlist, &param_identifier, &host, &node, &offset)) {
+		if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iii", kwlist, &param_identifier, &host, &node, &offset))
 			return NULL;  // TypeError is thrown
-		}
 
 		param = pyparam_util_find_param(param_identifier, node);
 
@@ -377,6 +394,9 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
 		return 0;
 	}
+
+	if (invalid_index(param, &offset))  // Validate the return offset.
+		return NULL;  // Raises IndexError.
 
 	/* Remote parameters are sent to a queue or directly */
 	int result = 0;
@@ -419,34 +439,60 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 		return 0;
 	}
 
+	// TODO Kevin: Should be possible to return the entire array.
+
 	switch (param->type) {
 		case PARAM_TYPE_UINT8:
 		case PARAM_TYPE_XINT8:
+			if (offset != -1)
+				return Py_BuildValue("B", param_get_uint8_array(param, offset));
 			return Py_BuildValue("B", param_get_uint8(param));
 		case PARAM_TYPE_UINT16:
 		case PARAM_TYPE_XINT16:
+			if (offset != -1)
+				return Py_BuildValue("H", param_get_uint16_array(param, offset));
 			return Py_BuildValue("H", param_get_uint16(param));
 		case PARAM_TYPE_UINT32:
 		case PARAM_TYPE_XINT32:
+			if (offset != -1)
+				return Py_BuildValue("I", param_get_uint32_array(param, offset));
 			return Py_BuildValue("I", param_get_uint32(param));
 		case PARAM_TYPE_UINT64:
 		case PARAM_TYPE_XINT64:
+			if (offset != -1)
+				return Py_BuildValue("K", param_get_uint64_array(param, offset));
 			return Py_BuildValue("K", param_get_uint64(param));
 		case PARAM_TYPE_INT8:
+			if (offset != -1)
+				return Py_BuildValue("b", param_get_uint8_array(param, offset));
 			return Py_BuildValue("b", param_get_uint8(param));
 		case PARAM_TYPE_INT16:
+			if (offset != -1)
+				return Py_BuildValue("h", param_get_uint8_array(param, offset));
 			return Py_BuildValue("h", param_get_uint8(param));
 		case PARAM_TYPE_INT32:
+			if (offset != -1)
+				return Py_BuildValue("i", param_get_uint8_array(param, offset));
 			return Py_BuildValue("i", param_get_uint8(param));
 		case PARAM_TYPE_INT64:
+			if (offset != -1)
+				return Py_BuildValue("k", param_get_uint8_array(param, offset));
 			return Py_BuildValue("k", param_get_uint8(param));
 		case PARAM_TYPE_FLOAT:
+			if (offset != -1)
+				return Py_BuildValue("f", param_get_float_array(param, offset));
 			return Py_BuildValue("f", param_get_float(param));
 		case PARAM_TYPE_DOUBLE:
+			if (offset != -1)
+				return Py_BuildValue("d", param_get_double_array(param, offset));
 			return Py_BuildValue("d", param_get_double(param));
 		case PARAM_TYPE_STRING: {
 			char buf[param->array_size];
 			param_get_string(param, &buf, param->array_size);
+			if (offset != -1) {
+				char charstrbuf[] = {buf[offset]};
+				return Py_BuildValue("s", charstrbuf);
+			}
 			return Py_BuildValue("s", buf);
 		}
 		case PARAM_TYPE_DATA: {
@@ -492,21 +538,20 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args, PyObject *
 	PyObject * value;
 	int host = -1;
 	int node = default_node;
-	int offset = -1;
+	int offset = INT_MIN;  // Using INT_MIN as the least likely value as Parameter arrays should be backwards subscriptable like lists.
 
 	param_t * param;
 
 	/* Function may be called either as method on 'Paramter object' or standalone function. */
 	if (self && PyObject_TypeCheck(self, &ParameterType)) {
 		/* Parse the value from args */
-		if (!PyArg_ParseTuple(args, "O", &value)) {
+		if (!PyArg_ParseTuple(args, "O|i", &value, &offset)) {
 			return NULL;  // TypeError is thrown
 		}
 
 		ParameterObject *_self = (ParameterObject *)self;
 
 		node = _self->param->node;
-		// offset = _self->param->array_step;  // TODO Kevin: Haven't decided how best to parse the offset yet.
 		param = _self->param;
 
 		PyObject * strvalue = _pyparam_get_str_value(value);
@@ -540,6 +585,9 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args, PyObject *
 		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
 		return 0;
 	}
+
+	if (invalid_index(param, &offset))  // Validate the return offset.
+		return NULL;  // Raises IndexError.
 
 	char valuebuf[128] __attribute__((aligned(16))) = { };
 	PyObject * strvalue = _pyparam_get_str_value(value);
@@ -582,7 +630,7 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args, PyObject *
 
 	if (result < 0) {
 		PyErr_SetString(PyExc_ConnectionError, "No response");
-		return 0;
+		return NULL;
 	}
 
 	param_print(param, -1, NULL, 0, 2);
@@ -974,6 +1022,42 @@ static PyObject * Parameter_str(ParameterObject *self) {
 	return Py_BuildValue("s", buf);
 }
 
+static PyObject * Parameter_GetItem(ParameterObject *self, PyObject *item) {
+	PyObject * valuetuple = PyTuple_Pack(1, item);
+	PyObject * returnvalue = pyparam_param_get((PyObject *)self, valuetuple, NULL);
+	Py_DECREF(valuetuple);
+	return returnvalue;
+}
+
+static int Parameter_SetItem(ParameterObject *self, PyObject* item, PyObject* value) {
+
+	if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete parameter array indexes.");
+        return -1;
+    }
+	PyObject * value_tuple = PyTuple_Pack(2, value, item);  // value, index
+	if (!pyparam_param_set((PyObject *)self, value_tuple, NULL)) {
+		Py_DECREF(value_tuple);
+		return -1;
+	}
+	Py_DECREF(value_tuple);
+	return 0;
+}
+
+static Py_ssize_t Parameter_length(ParameterObject *self) {
+	// We currently raise an exception when getting len() of non-array type parameters.
+	// This stops PyCharm (Perhaps other IDE's) from showing their length as 0. ¯\_(ツ)_/¯
+	if (!self->param->array_size)
+		PyErr_SetString(PyExc_AttributeError, "Non-array type parameter is not subscriptable");
+	return self->param->array_size;
+}
+
+static PyMappingMethods Parameter_as_mapping = {
+    (lenfunc)Parameter_length,
+    (binaryfunc)Parameter_GetItem,
+    (objobjargproc)Parameter_SetItem
+};
+
 /* 
 The Python binding 'Parameter' class exposes most of its attributes through getters, 
 as only its 'value' and 'node' are mutable, and even those are through setters.
@@ -1005,6 +1089,7 @@ static PyTypeObject ParameterType = {
     .tp_dealloc = (destructor)Parameter_dealloc,
 	.tp_getset = Parameter_getsetters,
 	.tp_str = (reprfunc)Parameter_str,
+	.tp_as_mapping = &Parameter_as_mapping,
 };
 
 
@@ -1105,9 +1190,11 @@ static PyObject * ParameterList_push(ParameterListObject *self, PyObject *args, 
 
 	if (param_push_queue(&queue, 1, node, timeout) < 0) {
 		PyErr_SetString(PyExc_ConnectionError, "No response.");
+		free(queuebuffer);
 		return NULL;
 	}
 
+	free(queuebuffer);
 	Py_RETURN_NONE;
 }
 

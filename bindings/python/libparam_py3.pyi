@@ -12,6 +12,35 @@ class Parameter:
 
     def __init__(self, param_identifier: _param_ident_hint, node: int = None) -> None: ...
 
+    def __len__(self) -> int:
+        """
+        Gets the length of array parameters.
+
+        :raises PyExc_AttributeError: For non-array type parameters.
+        :return: The value of the wrapped param_t->array_size.
+        """
+
+    def __getitem__(self, index: int) -> _param_type_hint:
+        """
+        Get the value of an index in a array parameter.
+
+        :param index: Index on which to get the value. Supports backwards subscription (i.e: -1).
+        :raises IndexError: When trying to get value ouside the bounds the parameter array.
+        :raises ConnectionError: When autosend is on, and no response is received.
+
+        :return: The value of the specified index, as its Python type.
+        """
+
+    def __setitem__(self, index: int, value: int | float) -> None:
+        """
+        Set the value of an index in a array parameter.
+
+        :param index: Index on which to set the value. Supports backwards subscription (i.e: -1).
+        :param value: New value to set, should match the type of the parameter.
+        :raises IndexError: When trying to set value ouside the bounds the parameter array.
+        :raises ConnectionError: When autosend is on, and no response is received.
+        """
+
     @property
     def name(self) -> str:
         """ Returns the name of the wrapped param_t c struct. """
