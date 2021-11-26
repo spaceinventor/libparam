@@ -216,7 +216,7 @@ static PyObject * pyparam_misc_param_type(PyObject * self, PyObject * args) {
 	if (!_csp_initialized) {
 		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot perform operations before ._param_init() has been called.");
-		return 0;
+		return NULL;
 	}
 
 	PyObject * param_identifier;
@@ -359,7 +359,7 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 	if (!_csp_initialized) {
 		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot perform operations before ._param_init() has been called.");
-		return 0;
+		return NULL;
 	}
 
 	PyObject * param_identifier;  // Raw argument object/type passed. Identify its type when needed.
@@ -531,7 +531,7 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args, PyObject *
 	if (!_csp_initialized) {
 		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot perform operations before ._param_init() has been called.");
-		return 0;
+		return NULL;
 	}
 
 	PyObject * param_identifier;  // Raw argument object/type passed. Identify its type when needed.
@@ -643,7 +643,7 @@ static PyObject * pyparam_param_pull(PyObject * self, PyObject * args, PyObject 
 	if (!_csp_initialized) {
 		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot perform operations before ._param_init() has been called.");
-		return 0;
+		return NULL;
 	}
 
 	unsigned int host = 0;
@@ -685,7 +685,7 @@ static PyObject * pyparam_param_push(PyObject * self, PyObject * args) {
 	if (!_csp_initialized) {
 		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot perform operations before ._param_init() has been called.");
-		return 0;
+		return NULL;
 	}
 
 	unsigned int node = 0;
@@ -830,7 +830,7 @@ static PyObject * pyparam_csp_ping(PyObject * self, PyObject * args, PyObject * 
 	if (!_csp_initialized) {
 		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot perform operations before ._param_init() has been called.");
-		return 0;
+		return NULL;
 	}
 
 	unsigned int node;
@@ -862,7 +862,7 @@ static PyObject * pyparam_csp_ident(PyObject * self, PyObject * args, PyObject *
 	if (!_csp_initialized) {
 		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot perform operations before ._param_init() has been called.");
-		return 0;
+		return NULL;
 	}
 
 	unsigned int node;
@@ -878,13 +878,235 @@ static PyObject * pyparam_csp_ident(PyObject * self, PyObject * args, PyObject *
 
 	if (csp_cmp_ident(node, timeout, &message) != CSP_ERR_NONE) {
 		PyErr_SetString(PyExc_ConnectionError, "No response.");
-		return 0;
+		return NULL;
 	}
 
 	printf("%s\n%s\n%s\n%s %s\n", message.ident.hostname, message.ident.model, message.ident.revision, message.ident.date, message.ident.time);
 
 	Py_RETURN_NONE;
 	
+}
+
+
+static PyObject * pyparam_vmem_list(PyObject * self, PyObject * args, PyObject * kwds) {
+
+	if (!_csp_initialized) {
+		PyErr_SetString(PyExc_RuntimeError,
+			"Cannot perform operations before ._param_init() has been called.");
+		return NULL;
+	}
+
+	int node = csp_get_address();
+	int timeout = 2000;
+
+	static char *kwlist[] = {"node", "timeout", NULL};
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "ii|i", kwlist, &node, &timeout))
+		return NULL;  // Raises TypeError.
+
+	printf("Requesting vmem list from node %u timeout %u\n", node, timeout);
+
+
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_NONE);
+	if (conn == NULL) {
+		PyErr_SetString(PyExc_ConnectionError, "No response.");
+		return NULL;
+	}
+
+	csp_packet_t * packet = csp_buffer_get(sizeof(vmem_request_t));
+	if (packet == NULL) {
+		PyErr_SetString(PyExc_MemoryError, "Failed to get CSP buffer");
+		return NULL;
+	}
+
+	vmem_request_t * request = (void *) packet->data;
+	request->version = VMEM_VERSION;
+	request->type = VMEM_SERVER_LIST;
+	packet->length = sizeof(vmem_request_t);
+
+	csp_send(conn, packet);
+
+	/* Wait for response */
+	packet = csp_read(conn, timeout);
+	if (packet == NULL) {
+		PyErr_SetString(PyExc_ConnectionError, "No response.");
+		csp_close(conn);
+		return NULL;
+	}
+
+	// TODO Kevin: What arguments are reasonable for PyUnicode_New()?
+	PyObject * list_string = PyUnicode_New(4000, 4000);
+
+	for (vmem_list_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
+		char buf[300];
+		fprintf(buf, " %u: %-5.5s 0x%08X - %u typ %u\r\n", vmem->vmem_id, vmem->name, (unsigned int) be32toh(vmem->vaddr), (unsigned int) be32toh(vmem->size), vmem->type);
+		// TODO Kevin: May this fail while building the string.
+		PyUnicode_AppendAndDel(&list_string, PyUnicode_FromString(buf));
+	}
+
+	csp_buffer_free(packet);
+	csp_close(conn);
+
+
+	return list_string;
+}
+
+static PyObject * pyparam_vmem_restore(PyObject * self, PyObject * args, PyObject * kwds) {
+
+	if (!_csp_initialized) {
+		PyErr_SetString(PyExc_RuntimeError,
+			"Cannot perform operations before ._param_init() has been called.");
+		return NULL;
+	}
+
+	// The node argument is required (even though it has a default)
+	// because Python requires that keyword/optional arguments 
+	// come after positional/required arguments (vmem_id).
+	int node = csp_get_address();
+	int vmem_id;
+	int timeout = 2000;
+
+	static char *kwlist[] = {"node", "vmem_id", "timeout", NULL};
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "ii|i", kwlist, &node, &vmem_id, &timeout))
+		return NULL;  // Raises TypeError.
+
+	printf("Restoring vmem %u on node %u\n", vmem_id, node);
+
+	int result = vmem_client_backup(node, vmem_id, timeout, 0);
+
+	if (result == -2) {
+		PyErr_SetString(PyExc_ConnectionError, "No response");
+		return NULL;
+	} else {
+		printf("Result: %d\n", result);
+	}
+
+	return Py_BuildValue("i", result);
+}
+
+static PyObject * pyparam_vmem_backup(PyObject * self, PyObject * args, PyObject * kwds) {
+	
+	if (!_csp_initialized) {
+		PyErr_SetString(PyExc_RuntimeError,
+			"Cannot perform operations before ._param_init() has been called.");
+		return NULL;
+	}
+
+	// The node argument is required (even though it has a default)
+	// because Python requires that keyword/optional arguments 
+	// come after positional/required arguments (vmem_id).
+	int node = csp_get_address();
+	int vmem_id;
+	int timeout = 2000;
+
+	static char *kwlist[] = {"node", "vmem_id", "timeout", NULL};
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "ii|i", kwlist, &node, &vmem_id, &timeout))
+		return NULL;  // Raises TypeError.
+
+	printf("Taking backup of vmem %u on node %u\n", vmem_id, node);
+
+	int result = vmem_client_backup(node, vmem_id, timeout, 1);
+
+	if (result == -2) {
+		PyErr_SetString(PyExc_ConnectionError, "No response");
+		return NULL;
+	} else {
+		printf("Result: %d\n", result);
+	}
+	
+	return Py_BuildValue("i", result);
+}
+
+static PyObject * pyparam_vmem_unlock(PyObject * self, PyObject * args, PyObject * kwds) {
+	// TODO Kevin: This function is likely to be very short lived.
+	//	As this way of unlocking the vmem is obsolete.
+
+	if (!_csp_initialized) {
+		PyErr_SetString(PyExc_RuntimeError,
+			"Cannot perform operations before ._param_init() has been called.");
+		return NULL;
+	}
+
+	int node = csp_get_address();
+	int timeout = 2000;
+
+	static char *kwlist[] = {"node", "timeout", NULL};
+
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "ii|i", kwlist, &node, &timeout))
+		return NULL;  // Raises TypeError.
+
+	/* Step 0: Prepare request */
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_NONE);
+	if (conn == NULL) {
+		PyErr_SetString(PyExc_ConnectionError, "No response");
+		return NULL;
+	}
+
+	csp_packet_t * packet = csp_buffer_get(sizeof(vmem_request_t));
+	if (packet == NULL) {
+		PyErr_SetString(PyExc_MemoryError, "Failed to get CSP buffer");
+		return NULL;
+	}
+
+	vmem_request_t * request = (void *) packet->data;
+	request->version = 1;
+	request->type = VMEM_SERVER_UNLOCK;
+	packet->length = sizeof(vmem_request_t);
+
+	/* Step 1: Check initial unlock code */
+	request->unlock.code = htobe32(0x28140360);
+
+	/* Step 2: Wait for verification sequence */
+	if ((packet = csp_read(conn, timeout)) == NULL) {
+		csp_close(conn);
+		PyErr_SetString(PyExc_ConnectionError, "No response");
+		return NULL;
+	}
+
+	request = (void *) packet->data;
+	uint32_t sat_verification = be32toh(request->unlock.code);
+
+	// We skip and simulate successful user input.
+	// We still print the output, 
+	// if for no other reason than to keep up appearances.
+
+	printf("Verification code received: %x\n\n", (unsigned int) sat_verification);
+
+	printf("************************************\n");
+	printf("* WARNING WARNING WARNING WARNING! *\n");
+	printf("* You are about to unlock the FRAM *\n");
+	printf("* Please understand the risks      *\n");
+	printf("* Abort now by typing CTRL + C     *\n");
+	printf("************************************\n");
+
+	/* Step 2a: Ask user to input sequence */
+	printf("Type verification sequence (you have <30 seconds): \n");
+
+	/* Step 2b: Ask for final confirmation */
+	printf("Validation sequence accepted\n");
+
+	printf("Are you sure [Y/N]?\n");
+
+	/* Step 3: Send verification sequence */
+	request->unlock.code = htobe32(sat_verification);
+
+	csp_send(conn, packet);
+
+	/* Step 4: Check for result */
+	if ((packet = csp_read(conn, timeout)) == NULL) {
+		csp_close(conn);
+		PyErr_SetString(PyExc_ConnectionError, "No response");
+		return NULL;
+	}
+
+	request = (void *) packet->data;
+	uint32_t result = be32toh(request->unlock.code);
+	printf("Result: %x\n", (unsigned int) result);
+
+	csp_close(conn);
+	return Py_BuildValue("i", result);
 }
 
 
@@ -1105,7 +1327,7 @@ static PyObject * ParameterList_pull(ParameterListObject *self, PyObject *args, 
 	if (!_csp_initialized) {
 		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot perform operations before ._param_init() has been called.");
-		return 0;
+		return NULL;
 	}
 
 	unsigned int host = 0;
@@ -1155,7 +1377,7 @@ static PyObject * ParameterList_push(ParameterListObject *self, PyObject *args, 
 	if (!_csp_initialized) {
 		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot perform operations before ._param_init() has been called.");
-		return 0;
+		return NULL;
 	}
 	
 	unsigned int node = 0;
