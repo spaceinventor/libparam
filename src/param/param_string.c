@@ -247,11 +247,14 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 		/* Type */
 		char type_str[11] = {};
 		param_type_str(param->type, type_str, 10);
-		printf(" %s", type_str);
+		printf(" %-7s", type_str);
 
 		/* Size */
-		if (param->array_size > 0)
-			printf("[%u]", param->array_size);
+		if (param->array_size > 1) {
+			printf(" [%u]", param->array_size);
+		} else {
+			printf("    ");
+		}
 
 		if (param->mask > 0) {
 			unsigned int mask = param->mask;
