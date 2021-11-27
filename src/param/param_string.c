@@ -191,7 +191,11 @@ static void param_print_value(param_t * param, int offset) {
 		if (param->type == PARAM_TYPE_STRING) {
 			printf("\"%s\"", value_str);
 		} else {
-			printf("%s", value_str);
+			if (count <= 1) {
+			    printf("%-20s", value_str);
+			} else {
+				printf("%s", value_str);
+			}
 		}
 		if (i + 1 < count)
 			printf(" ");
@@ -207,15 +211,19 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 	if (param == NULL)
 		return;
 
+	printf("%s", param_mask_color(param));
+
 	/* Node/ID */
-	if (param->node != PARAM_LIST_LOCAL) {
-		printf(" %3u:%-2u", param->id, param->node);
-	} else {
-		printf(" %3u:L ", param->id);
+	if (verbose >= 1) {
+		if (param->node != PARAM_LIST_LOCAL) {
+			printf(" %3u:%-2u", param->id, param->node);
+		} else {
+			printf(" %3u:L ", param->id);
+		}
 	}
 
 	/* Name */
-	printf(" %-20s", param->name);
+	printf("  %-20s", param->name);
 
 	/* Value table */
 	if (nodes_count > 0 && nodes != NULL) {
@@ -314,6 +322,8 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 
 	}
 
+	printf("%s", param_mask_color_off());
+
 	printf("\n");
 
 }
@@ -346,4 +356,31 @@ uint32_t param_maskstr_to_mask(char * str) {
 
 	return mask;
 
+}
+
+char * param_mask_color(param_t *param) {
+    unsigned int mask = param->mask;
+
+    if (mask & PM_CONF) {
+        return "\033[33m";
+    }
+
+    if (mask & PM_TELEM) {
+        return "\033[32m";
+    }
+
+    if (mask & PM_HWREG) {
+        return "\033[31m";
+    }
+
+    if (mask & PM_DEBUG) {
+        return "\033[34m";
+    }
+
+	return "\033[0m";
+
+}
+
+char * param_mask_color_off(void) {
+	return "\033[0m";
 }
