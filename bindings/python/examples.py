@@ -97,7 +97,7 @@ def string_param_examples(bindings) -> None:
     #col_cnfstr[2] = 'J'
     #print(f'We inserted a \'J\' into the string, so the new value is "{col_cnfstr.value}".')
 
-    # String parameters can still be indexed like arrays/list.
+    # String parameters can still be indexed like arrays/lists.
     print(f"The first character in the new string value is: '{col_cnfstr[0]}'")
 
     # Backwards indexation for string parameters behaves in a manner which is probably unexpected.
@@ -218,6 +218,23 @@ def param_mapping_example() -> None:
     print(f'We retrieved the parameter named "{csp_rtable.name}" on node {csp_rtable.node} from our mapping.')
 
 
+def param_vmem_examples(bindings) -> None:
+    """
+    Examples of commands related to vmem.
+
+    :param bindings: Return value of 'param_utils.Bindings()'.
+    """
+
+    vmem_list: str = bindings.vmem_list()  # Returns a string listing vmem parameters. Accepts argument for 'node' and 'timeout'.
+    print('We just retrieved a list of all vmem parameters, shown below:')
+    print(vmem_list)
+
+    # There also exists bindings for:
+    # bindings.vmem_restore()
+    # bindings.vmeme_backup()
+    # bindings.vmem_unlock()
+
+
 if __name__ == '__main__':
 
     # While it is entirely legal for us to import libparam_py3 directly,
@@ -254,3 +271,7 @@ if __name__ == '__main__':
     print()  # Newline
 
     param_mapping_example()
+
+    print()  # Newline
+
+    param_vmem_examples(bindings)

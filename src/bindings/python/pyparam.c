@@ -9,6 +9,7 @@
 
 #include <param/param.h>
 #include <vmem/vmem_server.h>
+#include <vmem/vmem_client.h>
 #include <vmem/vmem_ram.h>
 #include <vmem/vmem_file.h>
 
@@ -901,7 +902,7 @@ static PyObject * pyparam_vmem_list(PyObject * self, PyObject * args, PyObject *
 
 	static char *kwlist[] = {"node", "timeout", NULL};
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "ii|i", kwlist, &node, &timeout))
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|ii", kwlist, &node, &timeout))
 		return NULL;  // Raises TypeError.
 
 	printf("Requesting vmem list from node %u timeout %u\n", node, timeout);
@@ -934,13 +935,11 @@ static PyObject * pyparam_vmem_list(PyObject * self, PyObject * args, PyObject *
 		return NULL;
 	}
 
-	// TODO Kevin: What arguments are reasonable for PyUnicode_New()?
-	PyObject * list_string = PyUnicode_New(4000, 4000);
+	PyObject * list_string = PyUnicode_New(0, 0);
 
 	for (vmem_list_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
 		char buf[300];
-		fprintf(buf, " %u: %-5.5s 0x%08X - %u typ %u\r\n", vmem->vmem_id, vmem->name, (unsigned int) be32toh(vmem->vaddr), (unsigned int) be32toh(vmem->size), vmem->type);
-		// TODO Kevin: May this fail while building the string.
+		sprintf(buf, " %u: %-5.5s 0x%08X - %u typ %u\r\n", vmem->vmem_id, vmem->name, (unsigned int) be32toh(vmem->vaddr), (unsigned int) be32toh(vmem->size), vmem->type);
 		PyUnicode_AppendAndDel(&list_string, PyUnicode_FromString(buf));
 	}
 
@@ -1034,7 +1033,7 @@ static PyObject * pyparam_vmem_unlock(PyObject * self, PyObject * args, PyObject
 
 	static char *kwlist[] = {"node", "timeout", NULL};
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "ii|i", kwlist, &node, &timeout))
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "i|i", kwlist, &node, &timeout))
 		return NULL;  // Raises TypeError.
 
 	/* Step 0: Prepare request */
@@ -1734,8 +1733,14 @@ static PyMethodDef methods[] = {
 	/* Miscellaneous utility functions */
 	{"get_type", 	pyparam_misc_param_type, 		METH_VARARGS, 					""},
 
+	/* Converted vmem commands. */
+	{"vmem_list", (PyCFunction)pyparam_vmem_list, 	METH_VARARGS | METH_KEYWORDS, 	""},
+	{"vmem_restore", (PyCFunction)pyparam_vmem_restore, METH_VARARGS | METH_KEYWORDS, ""},
+	{"vmem_backup", (PyCFunction)pyparam_vmem_backup, METH_VARARGS | METH_KEYWORDS, ""},
+	{"vmem_unlock", (PyCFunction)pyparam_vmem_unlock, METH_VARARGS | METH_KEYWORDS, ""},
+
 	/* Misc */
-	{"_param_init", (PyCFunction)pyparam_init, 	METH_VARARGS | METH_KEYWORDS, 	""},
+	{"_param_init", (PyCFunction)pyparam_init, 		METH_VARARGS | METH_KEYWORDS, 	""},
 
 	/* sentinel */
 	{NULL, NULL, 0, NULL}};
