@@ -272,7 +272,7 @@ static PyObject * pyparam_misc_get_type(PyObject * self, PyObject * args) {
 
 	param_t * param;
 
-	/* Function may be called either as method on 'Paramter object' or standalone function. */
+	/* Function may be called either as method on 'Parameter' object or standalone function. */
 	if (self && PyObject_TypeCheck(self, &ParameterType)) {
 		ParameterObject *_self = (ParameterObject *)self;
 
@@ -377,7 +377,7 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 
 	param_t * param;
 
-	/* Function may be called either as method on 'Paramter object' or standalone function. */
+	/* Function may be called either as method on 'Parameter' object or standalone function. */
 	if (self && PyObject_TypeCheck(self, &ParameterType)) {
 		ParameterObject *_self = (ParameterObject *)self;
 
@@ -467,9 +467,7 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 			if (param_queue_add(&param_queue_get, param, offset, NULL) < 0)
 				printf("Queue full\n");
 			param_queue_print(&param_queue_get);
-#ifdef PYPARAM_SKIP_CACHED_VAL
-			Py_RETURN_NONE;
-#endif
+			//Py_RETURN_NONE;  // Skip returning a cached value
 		}
 
 	} else if (autosend) {
@@ -481,17 +479,13 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 		if (param_queue_add(&param_queue_get, param, offset, NULL) < 0)
 			printf("Queue full\n");
 		param_queue_print(&param_queue_get);
-#ifdef PYPARAM_SKIP_CACHED_VAL
-		Py_RETURN_NONE;
-#endif
+		//Py_RETURN_NONE;  // Skip returning a cached value
 	}
 
 	if (result < 0) {
 		PyErr_SetString(PyExc_ConnectionError, "No response");
 		return 0;
 	}
-
-	// TODO Kevin: Should be possible to return the entire array.
 
 	switch (param->type) {
 		case PARAM_TYPE_UINT8:
@@ -549,21 +543,23 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 		}
 		case PARAM_TYPE_DATA: {
 			// TODO Kevin: No idea if this has any chance of working.
-			//	I hope it will raise a reasonable exception if it doesn't.
+			//	I hope it will raise a reasonable exception if it doesn't,
+			//	instead of just segfaulting :P
 			unsigned int size = (param->array_size > 0) ? param->array_size : 1;
 			char buf[size];
 			param_get_data(param, buf, size);
 			return Py_BuildValue("O&", buf);
 		}
 	}
-	Py_RETURN_NONE;
+	PyErr_SetString(PyExc_NotImplementedError, "Unsupported parameter type for get operation.");
+	return NULL;
 }
 
 
 static PyObject * _pyparam_get_str_value(PyObject * obj) {
 
 	// This 'if' exists for cases where the value 
-	// of 1 parmeter is assigned from that of another.
+	// of a parmeter is assigned from that of another.
 	// i.e: 				param1.value = param2
 	// Which is equal to:	param1.value = param2.value
 	if (PyObject_TypeCheck(obj, &ParameterType)) {
@@ -617,7 +613,6 @@ static int _pyparam_typecheck_sequence(PyObject * sequence, PyTypeObject * type)
 		}
 
 		if (!_pyparam_typeconvert(item, type, 1)) {
-			// TODO Kevin: Tell type here when bored.
 			PyObject * temppystr = PyObject_Str(item);
 			char* tempstr = (char*)PyUnicode_AsUTF8(temppystr);
 			char buf[70 + strlen(item->ob_type->tp_name) + strlen(tempstr)];
@@ -1047,8 +1042,20 @@ static PyObject * pyparam_csp_ident(PyObject * self, PyObject * args, PyObject *
 
 	printf("%s\n%s\n%s\n%s %s\n", message.ident.hostname, message.ident.model, message.ident.revision, message.ident.date, message.ident.time);
 
-	Py_RETURN_NONE;
+	return PyUnicode_FromFormat("%s\n%s\n%s\n%s %s\n", message.ident.hostname, message.ident.model, message.ident.revision, message.ident.date, message.ident.time);
 	
+}
+
+static PyObject * pyparam_csp_reboot(PyObject * self, PyObject * args) {
+
+	unsigned int node;
+
+	if (!PyArg_ParseTuple(args, "I", &node))
+		return NULL;  // Raises TypeError.
+
+	csp_reboot(node);
+
+	Py_RETURN_NONE;
 }
 
 
@@ -1103,6 +1110,7 @@ static PyObject * pyparam_vmem_list(PyObject * self, PyObject * args, PyObject *
 	for (vmem_list_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
 		char buf[300];
 		sprintf(buf, " %u: %-5.5s 0x%08X - %u typ %u\r\n", vmem->vmem_id, vmem->name, (unsigned int) be32toh(vmem->vaddr), (unsigned int) be32toh(vmem->size), vmem->type);
+		printf("%s", buf);
 		PyUnicode_AppendAndDel(&list_string, PyUnicode_FromString(buf));
 	}
 
@@ -1439,6 +1447,38 @@ static Py_ssize_t Parameter_length(ParameterObject *self) {
 	return self->param->array_size;
 }
 
+/* 1 for success. Comapares the wrapped param_t for parameters, otherwise 0. Assumes self to be a ParameterObject. */
+static int Parameter_equal(PyObject *self, PyObject *other) {
+	if (PyObject_TypeCheck(other, &ParameterType) && ((ParameterObject *)other)->param == ((ParameterObject *)self)->param)
+		return 1;
+	return 0;
+}
+
+static PyObject * Parameter_richcompare(PyObject *self, PyObject *other, int op) {
+
+	PyObject *result = Py_NotImplemented;
+
+	switch (op) {
+		// case Py_LT:
+		// 	break;
+		// case Py_LE:
+		// 	break;
+		case Py_EQ:
+			result = (Parameter_equal(self, other)) ? Py_True : Py_False;
+			break;
+		case Py_NE:
+			result = (Parameter_equal(self, other)) ? Py_False : Py_True;
+			break;
+		// case Py_GT:
+		// 	break;
+		// case Py_GE:
+		// 	break;
+	}
+
+    Py_XINCREF(result);
+    return result;
+}
+
 static PyMappingMethods Parameter_as_mapping = {
     (lenfunc)Parameter_length,
     (binaryfunc)Parameter_GetItem,
@@ -1477,6 +1517,7 @@ static PyTypeObject ParameterType = {
 	.tp_getset = Parameter_getsetters,
 	.tp_str = (reprfunc)Parameter_str,
 	.tp_as_mapping = &Parameter_as_mapping,
+	.tp_richcompare = (richcmpfunc)Parameter_richcompare,
 };
 
 
@@ -1569,9 +1610,10 @@ static PyObject * ParameterList_push(ParameterListObject *self, PyObject *args, 
             return NULL;
         }
 
-		if (PyObject_TypeCheck(item, &ParameterType))  // Sanity check
-			param_queue_add(&queue, ((ParameterObject *)item)->param, -1, ((ParameterObject *)item)->valuebuf);
-		else
+		if (PyObject_TypeCheck(item, &ParameterType)) {  // Sanity check
+			if (strlen(((ParameterObject *)item)->valuebuf) != 0)  // Empty value buffers, seem to cause errors.
+				param_queue_add(&queue, ((ParameterObject *)item)->param, -1, ((ParameterObject *)item)->valuebuf);
+		} else
 			fprintf(stderr, "Skipping non-parameter object (of type: %s) in Parameter list.", item->ob_type->tp_name);
 	}
 
@@ -1880,7 +1922,7 @@ static PyMethodDef methods[] = {
 	{"set", 		(PyCFunction)pyparam_param_set, METH_VARARGS | METH_KEYWORDS, 	""},
 	{"get", 		(PyCFunction)pyparam_param_get, METH_VARARGS | METH_KEYWORDS, 	""},
 	{"push", 		pyparam_param_push, 			METH_VARARGS, 					""},
-	{"pull", 		(PyCFunction)pyparam_param_pull, METH_VARARGS | METH_KEYWORDS, 	""},
+	{"pull", 		(PyCFunction)pyparam_param_pull,METH_VARARGS | METH_KEYWORDS, 	""},
 	{"clear", 		pyparam_param_clear, 			METH_NOARGS, 					""},
 	{"node", 		pyparam_param_node, 			METH_VARARGS, 					""},
 	{"paramver", 	pyparam_param_paramver, 		METH_VARARGS, 					""},
@@ -1895,13 +1937,14 @@ static PyMethodDef methods[] = {
 	/* Including these here is not entirely optimal, they may be removed. */
 	{"ping", 		(PyCFunction)pyparam_csp_ping, 	METH_VARARGS | METH_KEYWORDS, 	""},
 	{"ident", 		(PyCFunction)pyparam_csp_ident, METH_VARARGS | METH_KEYWORDS, 	""},
+	{"reboot", 		pyparam_csp_reboot, 			METH_VARARGS, 					""},
 
 	/* Miscellaneous utility functions */
-	{"get_type", 	pyparam_misc_get_type, 		METH_VARARGS, 					""},
+	{"get_type", 	pyparam_misc_get_type, 			METH_VARARGS, 					""},
 
 	/* Converted vmem commands. */
-	{"vmem_list", (PyCFunction)pyparam_vmem_list, 	METH_VARARGS | METH_KEYWORDS, 	""},
-	{"vmem_restore", (PyCFunction)pyparam_vmem_restore, METH_VARARGS | METH_KEYWORDS, ""},
+	{"vmem_list", 	(PyCFunction)pyparam_vmem_list,   METH_VARARGS | METH_KEYWORDS,	""},
+	{"vmem_restore",(PyCFunction)pyparam_vmem_restore,METH_VARARGS | METH_KEYWORDS, ""},
 	{"vmem_backup", (PyCFunction)pyparam_vmem_backup, METH_VARARGS | METH_KEYWORDS, ""},
 	{"vmem_unlock", (PyCFunction)pyparam_vmem_unlock, METH_VARARGS | METH_KEYWORDS, ""},
 

@@ -115,6 +115,7 @@ class ParameterList(list[Parameter]):
 _param_ident_hint = int | str | Parameter  # Types accepted for finding a param_t
 
 
+# Libparam commands
 def get(param_identifier: _param_ident_hint, host: int = None, node: int = None, offset: int = None) -> _param_value_hint | tuple[_param_value_hint]:
     """
     Get the value of a parameter.
@@ -196,6 +197,7 @@ def list(mask: str) -> ParameterList:
 def list_download(node: int, timeout: int = None, version: int = None) -> ParameterList: ...
 
 
+# Commands from CSP
 def ping(node: int, timeout: int = None, size: int = None) -> int:
     """
     Ping the specified node.
@@ -209,7 +211,7 @@ def ping(node: int, timeout: int = None, size: int = None) -> int:
     :return: >0 = echo time in mS on success, otherwise -1 for error.
     """
 
-def ident(node: int, timeout: int = None) -> None:
+def ident(node: int, timeout: int = None) -> str:
     """
     Print the identity of the specified node.
 
@@ -219,6 +221,9 @@ def ident(node: int, timeout: int = None) -> None:
     :raises RuntimeError: When called before ._param_init().
     :raises ConnectionError: When no response is received.
     """
+
+def reboot(node: int) -> None:
+    """ Reboot the specified node. """
 
 
 def get_type(param_identifier: _param_ident_hint, node: int = None) -> _param_type_hint:
@@ -231,6 +236,7 @@ def get_type(param_identifier: _param_ident_hint, node: int = None) -> _param_ty
     """
 
 
+# Vmem commands
 def vmem_list(node: int = None, timeout: int = None) -> str:
     """
     Builds a string of the vmem at the specified node.

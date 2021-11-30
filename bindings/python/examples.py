@@ -132,9 +132,8 @@ def parameter_list_examples(bindings) -> None:
 
     downloaded_parameter_list = bindings.list_download(LOCAL_NODE)
     print(f"We just downloaded a list of all local parameters, the length of which is {len(downloaded_parameter_list)}.")
-    # TODO Kevin: Perhaps add an easier way to compare parameter lists.
-    if next((False for param1, param2 in zip(parameter_list, downloaded_parameter_list) if param1.name != param2.name), True):
-        print("But its content were identical with the list we already had.")
+    if parameter_list == downloaded_parameter_list:
+        print("But its contents were identical with the list we already had.")
 
     # Here is an example of how a parameter list may be filtered.
     paramlist = bindings.ParameterList([param for param in parameter_list if param.type is int])
@@ -193,7 +192,7 @@ def misc_param_examples(bindings) -> None:
     print(f"Ping recieved response in {bindings.ping(LOCAL_NODE)} ms.")
 
     # As well as ident.
-    print(f"Ident of the pinged node: {bindings.ident(LOCAL_NODE)}.")
+    print(f"Ident of the pinged node: {bindings.ident(LOCAL_NODE).splitlines()}.")
 
     # We can get and set the current parameter version too.
     print(f"The current parameter version is {bindings.paramver()}.")
