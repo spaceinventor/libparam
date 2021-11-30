@@ -1,8 +1,9 @@
 """ Interface documentation of the libparam Python bindings. """
 
 
-from typing import Any as _Any
-
+from typing import \
+    Any as _Any, \
+    Iterable as _Iterable
 
 _param_value_hint = int | float | str
 _param_type_hint = _param_value_hint | bytearray
@@ -55,26 +56,33 @@ class Parameter:
 
     @property
     def node(self) -> int:
-        """ Returns a node integer stored in the wrapper class. This node has priority over the one in the parameter itself. """
+        """ Returns the node of the parameter, as in; the one in the wrapped param_t struct. """
 
     @node.setter
     def node(self, value: int) -> None:
-        """ Sets the node stored in the wrapper class. """
+        """
+        Attempts to set the parameter to a matching, one on the specified node.
+
+        :param value: Node on which the other parameter ought to be located.
+
+        :raises TypeError: When attempting to delete or assign the node to an invalid type.
+        :raises ValueError: When a matching parameter cannot be found on the specified node.
+        """
 
     @property
     def type(self) -> _param_type_hint:
         """ Returns the best Python representation type object of the param_t c struct type. i.e int for uint32. """
 
     @property
-    def value(self) -> _param_value_hint:
+    def value(self) -> _param_value_hint | tuple[_param_value_hint]:
         """ Returns the cached value of the parameter from the specified node in the Python representation of its type """
 
     @value.setter
-    def value(self, value: str) -> None:
+    def value(self, value: _param_value_hint | _Iterable[_param_value_hint]) -> None:
         """
         Sets the value of the parameter.
 
-        :param value: New desired value. .__str__() of the provided object will be used.
+        :param value: New desired value. Assignments to other parameters, use their value instead, Otherwise uses .__str__().
         """
 
 class ParameterList(list[Parameter]):
@@ -104,16 +112,17 @@ class ParameterList(list[Parameter]):
         """
 
 
-_param_ident_hint = int | str | Parameter
+_param_ident_hint = int | str | Parameter  # Types accepted for finding a param_t
 
 
-def get(param_identifier: _param_ident_hint, host: int = None, node: int = None, offset: int = None) -> _param_value_hint | _Any:
+def get(param_identifier: _param_ident_hint, host: int = None, node: int = None, offset: int = None) -> _param_value_hint | tuple[_param_value_hint]:
     """
     Get the value of a parameter.
 
     :param param_identifier: string name, int id or Parameter object of the desired parameter.
     :param host: The host from which the value should be retrieved (has priority over node).
     :param node: The node from which the value should be retrived.
+    :param offset: Index to use for array parameters.
 
     :raises TypeError: When an invalid param_identifier type is provided.
     :raises ValueError: When a parameter could not be found.
@@ -122,14 +131,15 @@ def get(param_identifier: _param_ident_hint, host: int = None, node: int = None,
     :return: The value of the retrieved parameter (As its Python type).
     """
 
-def set(param_identifier: _param_ident_hint, value: str, host: int = None, node: int = None, offset: int = None) -> None:
+def set(param_identifier: _param_ident_hint, value: _param_value_hint | _Iterable[_param_value_hint], host: int = None, node: int = None, offset: int = None) -> None:
     """
     Set the value of a parameter.
 
     :param param_identifier: string name, int id or Parameter object of the desired parameter.
     :param value: The new value of the parameter. .__str__() of the provided object will be used.
     :param host: The host from which the value should be retrieved (has priority over node).
-    :param node: The node from which the value should be retrived.
+    :param node: The node from which the value should be retrieved.
+    :param offset: Index to use for array parameters.
 
     :raises TypeError: When an invalid param_identifier type is provided.
     :raises ValueError: When a parameter could not be found.

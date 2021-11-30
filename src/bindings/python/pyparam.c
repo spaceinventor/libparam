@@ -212,38 +212,7 @@ static param_t * pyparam_util_find_param(PyObject * param_identifier, int node) 
 
 /* Gets the best Python representation of the param_t's type, i.e 'int' for 'uint32'.
    Increments the reference count of the found type before returning. */
-static PyObject * pyparam_misc_param_type(PyObject * self, PyObject * args) {
-
-	if (!_csp_initialized) {
-		PyErr_SetString(PyExc_RuntimeError,
-			"Cannot perform operations before ._param_init() has been called.");
-		return NULL;
-	}
-
-	PyObject * param_identifier;
-	int node = default_node;
-
-	param_t * param;
-
-	/* Function may be called either as method on 'Paramter object' or standalone function. */
-	if (self && PyObject_TypeCheck(self, &ParameterType)) {
-		ParameterObject *_self = (ParameterObject *)self;
-
-		node = _self->param->node;
-		param = _self->param;
-
-	} else {
-		if (!PyArg_ParseTuple(args, "O|i", &param_identifier, &node)) {
-			return NULL;  // TypeError is thrown
-		}
-
-		param = pyparam_util_find_param(param_identifier, node);
-	}
-
-	if (param == NULL) {  // Did not find a match.
-		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
-		return 0;
-	}
+static PyObject * _pyparam_misc_param_t_type(param_t * param) {
 
 	PyTypeObject * param_type = NULL;
 
@@ -282,10 +251,48 @@ static PyObject * pyparam_misc_param_type(PyObject * self, PyObject * args) {
 
 	if (param_type == NULL) {
 		PyErr_SetString(PyExc_NotImplementedError, "Unsupported parameter type.");
-		return 0;
+		return NULL;
 	}
 	Py_INCREF(param_type);
 	return (PyObject *)param_type;
+}
+
+
+/* Public interface for '_pyparam_misc_param_t_type()' */
+static PyObject * pyparam_misc_get_type(PyObject * self, PyObject * args) {
+
+	if (!_csp_initialized) {
+		PyErr_SetString(PyExc_RuntimeError,
+			"Cannot perform operations before ._param_init() has been called.");
+		return NULL;
+	}
+
+	PyObject * param_identifier;
+	int node = default_node;
+
+	param_t * param;
+
+	/* Function may be called either as method on 'Paramter object' or standalone function. */
+	if (self && PyObject_TypeCheck(self, &ParameterType)) {
+		ParameterObject *_self = (ParameterObject *)self;
+
+		node = _self->param->node;
+		param = _self->param;
+
+	} else {
+		if (!PyArg_ParseTuple(args, "O|i", &param_identifier, &node)) {
+			return NULL;  // TypeError is thrown
+		}
+
+		param = pyparam_util_find_param(param_identifier, node);
+	}
+
+	if (param == NULL) {  // Did not find a match.
+		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
+		return 0;
+	}
+
+	return _pyparam_misc_param_t_type(param);
 }
 
 
@@ -313,7 +320,7 @@ static PyObject * _pyparam_Parameter_from_param(PyTypeObject *type, param_t * pa
 		return NULL;
 	}
 
-	self->type = (PyTypeObject *)pyparam_misc_param_type((PyObject *)self, NULL);
+	self->type = (PyTypeObject *)pyparam_misc_get_type((PyObject *)self, NULL);
 
     return (PyObject *) self;
 }
@@ -340,7 +347,7 @@ static PyObject * pyparam_util_parameter_list() {
 
 /* Checks that the specified index is within bounds of the parameter array, raises IndexError if not.
    Supports Python backwards subscriptions. */
-static int invalid_index(param_t * arr_param, int *index) {
+static int _pyparam_invalid_index(param_t * arr_param, int *index) {
 	if (*index != INT_MIN) {
 		if (*index < 0)  // Python backwards subscription.
 			*index += arr_param->array_size;
@@ -393,10 +400,54 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 
 	if (param == NULL) {  // Did not find a match.
 		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
-		return 0;
+		return NULL;
 	}
 
-	if (invalid_index(param, &offset))  // Validate the return offset.
+	PyObject * param_type = _pyparam_misc_param_t_type(param);
+	if(param->array_size > 0 && offset == INT_MIN && (PyTypeObject *)param_type != &PyUnicode_Type) {
+		// We have now concluded that the parameter is an array,
+		// and that we should return in, in its entirety.
+
+		// We will populate this tuple with the values from the indexes.
+		PyObject * value_tuple = PyTuple_New(param->array_size);
+
+		for (int i = 0; i < param->array_size; i++)
+		{
+			PyObject * arg_tuple;
+			PyObject * index_value;
+			PyObject * temp_offset = Py_BuildValue("i", i);
+
+			// Getting the value as a method on self.
+			if (self && PyObject_TypeCheck(self, &ParameterType)) {
+				arg_tuple = PyTuple_Pack(1, temp_offset);
+				index_value = pyparam_param_get(self, arg_tuple, NULL);
+			} else {  // Calling the function statically, without an instance.
+				arg_tuple = PyTuple_Pack(1, param_identifier);
+				PyObject * tempdict = PyDict_New();
+
+				PyObject * py_temp_host = Py_BuildValue("i", host);
+				PyDict_SetItemString(tempdict, "host", py_temp_host);
+				Py_DECREF(py_temp_host);  // tempdict contains a reference.
+
+				PyObject * py_temp_node = Py_BuildValue("i", node);
+				PyDict_SetItemString(tempdict, "host", py_temp_node);
+				Py_DECREF(py_temp_node);  // tempdict contains a reference.
+
+				PyDict_SetItemString(tempdict, "offset", temp_offset);
+				index_value = pyparam_param_get(NULL, arg_tuple, tempdict);
+				Py_DECREF(tempdict);
+			}
+			Py_DECREF(temp_offset);
+			Py_DECREF(arg_tuple);
+			//Py_DECREF(index_value);  // Not decreasing this doesn't seem to cause a memory leak.
+
+			PyTuple_SET_ITEM(value_tuple, i, index_value);
+		}
+		
+		return value_tuple;
+	}
+
+	if (_pyparam_invalid_index(param, &offset))  // Validate the return offset.
 		return NULL;  // Raises IndexError.
 
 	/* Remote parameters are sent to a queue or directly */
@@ -511,8 +562,12 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 
 static PyObject * _pyparam_get_str_value(PyObject * obj) {
 
+	// This 'if' exists for cases where the value 
+	// of 1 parmeter is assigned from that of another.
+	// i.e: 				param1.value = param2
+	// Which is equal to:	param1.value = param2.value
 	if (PyObject_TypeCheck(obj, &ParameterType)) {
-		// Return the value of Parameters.
+		// Return the value of the Parameter.
 		PyObject * argtuple = PyTuple_Pack(0);
 		PyObject * kwdsdict = PyDict_New();
 		PyObject * value = pyparam_param_get(obj, argtuple, kwdsdict);
@@ -524,6 +579,55 @@ static PyObject * _pyparam_get_str_value(PyObject * obj) {
 	}
 	else  // Otherwise use __str__.
 		return PyObject_Str(obj);
+}
+
+/* Attempts a conversion to the specified type, by calling it. */
+static PyObject * _pyparam_typeconvert(PyObject * strvalue, PyTypeObject * type, int check_only) {
+	// TODO Kevin: Using this to check the types of object is likely against
+	// PEP 20 -- The Zen of Python: "Explicit is better than implicit"
+
+	PyObject * valuetuple = PyTuple_Pack(1, strvalue);
+	PyObject * converted_value = PyObject_CallObject((PyObject *)type, valuetuple);
+	if (converted_value == NULL) {
+		Py_DECREF(valuetuple);  // converted_value is NULL, so we don't decrements its refcount.
+		return NULL;  // We assume failed conversions to have set an exception string.
+	}
+	Py_DECREF(valuetuple);
+	if (check_only) {
+		Py_DECREF(converted_value);
+		Py_RETURN_NONE;
+	}
+	return converted_value;
+}
+
+/* Iterates over the specified iterable, and checks the type of each object. */
+static int _pyparam_typecheck_sequence(PyObject * sequence, PyTypeObject * type) {
+	// This is not thread-safe however.
+
+	int seqlen = PySequence_Fast_GET_SIZE(sequence);
+
+	for (int i = 0; i < seqlen; i++) {
+
+		PyObject *item = PySequence_Fast_GET_ITEM(sequence, i);
+
+		if(!item) {
+			Py_DECREF(sequence);
+			PyErr_SetString(PyExc_RuntimeError, "Iterator went outside the bounds of the iterable.");
+			return -1;
+		}
+
+		if (!_pyparam_typeconvert(item, type, 1)) {
+			// TODO Kevin: Tell type here when bored.
+			PyObject * temppystr = PyObject_Str(item);
+			char* tempstr = (char*)PyUnicode_AsUTF8(temppystr);
+			char buf[70 + strlen(item->ob_type->tp_name) + strlen(tempstr)];
+			sprintf(buf, "Iterable contains object of an incorrect/unconvertible type <%s: %s>.", item->ob_type->tp_name, tempstr);
+			PyErr_SetString(PyExc_TypeError, buf);
+			Py_DECREF(temppystr);
+			return -2;
+		}
+	}
+	return 0;
 }
 
 
@@ -555,23 +659,17 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args, PyObject *
 		node = _self->param->node;
 		param = _self->param;
 
-		PyObject * strvalue = _pyparam_get_str_value(value);
-
 		// Check for dubious value assignments by converting 'strvalue' to '_self.type'.
 		// For example: assigning "hello" to an int Parameter.
-		PyObject * valuetuple = PyTuple_Pack(1, strvalue);
-		PyObject * converted_value = PyObject_CallObject((PyObject *)_self->type, valuetuple);
-		if (converted_value == NULL) {
-			Py_DECREF(valuetuple);  // converted_value is NULL, so we don't decrements its refcount.
-			return NULL;  // We assume failed conversions to have set an exception string.
-		}
-		Py_DECREF(converted_value);
-		Py_DECREF(valuetuple);
+		// TODO Kevin: Should we convert using 'strvalue' or 'value'.
+		if (!_pyparam_typeconvert(value, _self->type, 1))
+			return NULL;  // Raises exception based on the failed conversion.
 
+		PyObject * strvalue = _pyparam_get_str_value(value);
 		param_str_to_value(param->type, (char*)PyUnicode_AsUTF8(strvalue), _self->valuebuf);
 		Py_DECREF(strvalue);
 
-	} else {
+	} else {  // Calling the function statically, without an instance. Get the parameter from arguments.
 
 		static char *kwlist[] = {"param_identifier", "value", "host", "node", "offset", NULL};
 		
@@ -584,10 +682,75 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args, PyObject *
 
 	if (param == NULL) {  // Did not find a match.
 		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
-		return 0;
+		return NULL;
 	}
 
-	if (invalid_index(param, &offset))  // Validate the return offset.
+	if(PySequence_Check(value) && !PyObject_TypeCheck(value, &PyUnicode_Type)) {
+		if (param->array_size <= 0) {  // Check that the parameter is an array.
+			PyErr_SetString(PyExc_TypeError, "Cannot assign iterable to non-array type parameter.");
+			return NULL;
+		}
+
+		int seqlen = PySequence_Fast_GET_SIZE(value);
+
+		// We don't support assigning slices (or anything of the like) yet, so...
+		if (seqlen != param->array_size) {  // Check that the lengths match.
+			PyErr_SetString(PyExc_ValueError, "Provided iterable's length does not match parameter's.");
+			return NULL;
+		}
+
+		// Check that the iterable only contains valid types.
+		PyObject * param_type = _pyparam_misc_param_t_type(param);
+		if (_pyparam_typecheck_sequence(value, (PyTypeObject *)param_type)) {
+			Py_DECREF(param_type);
+			return NULL;  // Raises TypeError.
+		}
+		Py_DECREF(param_type);
+		
+		// Handle assignments from iterables index by index.
+		// TODO Kevin: This could be far more efficient if assignment shared a queue.
+		//	But this might incorporate weirdly with a global queue.
+		for (int i = 0; i < seqlen; i++) {
+
+			PyObject *item = PySequence_Fast_GET_ITEM(value, i);
+
+			if(!item) {
+				Py_DECREF(value);
+				PyErr_SetString(PyExc_RuntimeError, "Iterator went outside the bounds of the iterable.");
+				return NULL;
+			}
+
+			PyObject * temp_offset = Py_BuildValue("i", i);
+			PyObject * value_tuple;
+
+			// Setting the value as a method on self.
+			if (self && PyObject_TypeCheck(self, &ParameterType)) {
+				value_tuple = PyTuple_Pack(2, item, temp_offset);
+				pyparam_param_set(self, value_tuple, NULL);
+			} else {  // Calling the function statically, without an instance.
+				value_tuple = PyTuple_Pack(2, param_identifier, item);
+				PyObject * tempdict = PyDict_New();
+
+				PyObject * py_temp_host = Py_BuildValue("i", host);
+				PyDict_SetItemString(tempdict, "host", py_temp_host);
+				Py_DECREF(py_temp_host);  // tempdict contains a reference.
+
+				PyObject * py_temp_node = Py_BuildValue("i", node);
+				PyDict_SetItemString(tempdict, "host", py_temp_node);
+				Py_DECREF(py_temp_node);  // tempdict contains a reference.
+
+				PyDict_SetItemString(tempdict, "offset", temp_offset);
+				pyparam_param_set(NULL, value_tuple, tempdict);
+				Py_DECREF(tempdict);
+			}
+			Py_DECREF(temp_offset);
+			Py_DECREF(value_tuple);
+			// 'item' is a borrowed reference, so we don't need to decrement it.
+		}
+		Py_RETURN_NONE;
+	}
+
+	if (_pyparam_invalid_index(param, &offset))  // Validate the offset.
 		return NULL;  // Raises IndexError.
 
 	char valuebuf[128] __attribute__((aligned(16))) = { };
@@ -1156,7 +1319,7 @@ static PyObject * Parameter_new(PyTypeObject *type, PyObject *args, PyObject *kw
 		return NULL;
 	}
 
-	self->type = (PyTypeObject *)pyparam_misc_param_type((PyObject *)self, NULL);
+	self->type = (PyTypeObject *)pyparam_misc_get_type((PyObject *)self, NULL);
 
     return (PyObject *) self;
 }
@@ -1209,7 +1372,7 @@ static int Parameter_setnode(ParameterObject *self, PyObject *value, void *closu
 
 	if (param == NULL) {  // Did not find a match.
 		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
-		return 0;
+		return -1;
 	}
 
 	self->param = param;
@@ -1232,7 +1395,10 @@ static int Parameter_setvalue(ParameterObject *self, PyObject *value, void *clos
         return -1;
     }
 	PyObject * value_tuple = PyTuple_Pack(1, value);
-	pyparam_param_set((PyObject *)self, value_tuple, NULL);
+	if (pyparam_param_set((PyObject *)self, value_tuple, NULL) == NULL) {
+		Py_DECREF(value_tuple);
+		return -1;
+	}
 	Py_DECREF(value_tuple);
 	return 0;
 }
@@ -1731,7 +1897,7 @@ static PyMethodDef methods[] = {
 	{"ident", 		(PyCFunction)pyparam_csp_ident, METH_VARARGS | METH_KEYWORDS, 	""},
 
 	/* Miscellaneous utility functions */
-	{"get_type", 	pyparam_misc_param_type, 		METH_VARARGS, 					""},
+	{"get_type", 	pyparam_misc_get_type, 		METH_VARARGS, 					""},
 
 	/* Converted vmem commands. */
 	{"vmem_list", (PyCFunction)pyparam_vmem_list, 	METH_VARARGS | METH_KEYWORDS, 	""},
