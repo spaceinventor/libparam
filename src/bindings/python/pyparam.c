@@ -14,6 +14,7 @@
 #include <vmem/vmem_file.h>
 
 #include <csp/csp.h>
+#include <csp/csp_yaml.h>
 #include <csp/csp_cmp.h>
 #include <pthread.h>
 #include <csp/interfaces/csp_if_can.h>
@@ -30,10 +31,6 @@
 #include <param/param_queue.h>
 
 #include <sys/types.h>
-
-// TODO Kevin: This is likely not the right way to do this.
-// #include "../../../../../src/csp_if_tun.h"
-// #include "../../../../../src/csp_if_eth.h"
 
 #include "../../param/param_string.h"
 
@@ -54,7 +51,10 @@ VMEM_DEFINE_FILE(tfetch, "tfetc", "tfetch.vmem", 120);
 PARAM_DEFINE_STATIC_VMEM(PARAMID_CSP_RTABLE,      csp_rtable,        PARAM_TYPE_STRING, 64, 0, PM_SYSCONF, NULL, "", csp, 0, NULL);
 
 
-static pthread_t router_handle;
+uint8_t test_array[] = {1,2,3,4,5,6,7,8};
+PARAM_DEFINE_STATIC_RAM(10001, test_array_param,          PARAM_TYPE_UINT8,  8, sizeof(uint8_t),  PM_DEBUG, NULL, "", test_array, NULL);
+
+
 void * router_task(void * param) {
 	while(1) {
 		csp_route_work();
@@ -186,27 +186,28 @@ static PyObject * ParameterList_append(PyObject * self, PyObject * args) {
 }
 
 
-/* Retrieves a param_t from either its name, id or wrapper object. */
-static param_t * pyparam_util_find_param(PyObject * param_identifier, int node) {
+/* Retrieves a param_t from either its name, id or wrapper object.
+   May raise TypeError or ValueError, returned value will be NULL in either case. */
+static param_t * _pyparam_util_find_param_t(PyObject * param_identifier, int node) {
 
-	int is_string = PyUnicode_Check(param_identifier);
-	int is_int = PyLong_Check(param_identifier);
+	param_t * param = NULL;
 
-	param_t * param;
-
-	if (is_string)
+	if (PyUnicode_Check(param_identifier))  // is_string
 		param = param_list_find_name(node, (char*)PyUnicode_AsUTF8(param_identifier));
-	else if (is_int)
+	else if (PyLong_Check(param_identifier))  // is_int
 		param = param_list_find_id(node, (int)PyLong_AsLong(param_identifier));
 	else if (PyObject_TypeCheck(param_identifier, &ParameterType))
 		param = ((ParameterObject *)param_identifier)->param;
-	else {
+	else {  // Invalid type passed.
 		PyErr_SetString(PyExc_TypeError,
 			"Parameter identifier must be either an integer or string of the parameter ID or name respectively.");
 		return NULL;
 	}
 
-	return param;
+	if (param == NULL)  // Check if a parameter was found.
+		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
+
+	return param;  // or NULL for ValueError.
 }
 
 
@@ -284,12 +285,11 @@ static PyObject * pyparam_misc_get_type(PyObject * self, PyObject * args) {
 			return NULL;  // TypeError is thrown
 		}
 
-		param = pyparam_util_find_param(param_identifier, node);
+		param = _pyparam_util_find_param_t(param_identifier, node);
 	}
 
 	if (param == NULL) {  // Did not find a match.
-		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
-		return 0;
+		return NULL;  // Raises either TypeError or ValueError.
 	}
 
 	return _pyparam_misc_param_t_type(param);
@@ -394,14 +394,12 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 		if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iii", kwlist, &param_identifier, &host, &node, &offset))
 			return NULL;  // TypeError is thrown
 
-		param = pyparam_util_find_param(param_identifier, node);
+		param = _pyparam_util_find_param_t(param_identifier, node);
 
 	}
 
-	if (param == NULL) {  // Did not find a match.
-		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
-		return NULL;
-	}
+	if (param == NULL)  // Did not find a match.
+		return NULL;  // Raises TypeError or ValueError.
 
 	PyObject * param_type = _pyparam_misc_param_t_type(param);
 	if(param->array_size > 0 && offset == INT_MIN && (PyTypeObject *)param_type != &PyUnicode_Type) {
@@ -672,13 +670,11 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args, PyObject *
 			return NULL;  // TypeError is thrown
 		}
 
-		param = pyparam_util_find_param(param_identifier, node);
+		param = _pyparam_util_find_param_t(param_identifier, node);
 	}
 
-	if (param == NULL) {  // Did not find a match.
-		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
-		return NULL;
-	}
+	if (param == NULL)  // Did not find a match.
+		return NULL;  // Raises TypeError or ValueError.
 
 	if(PySequence_Check(value) && !PyObject_TypeCheck(value, &PyUnicode_Type)) {
 		if (param->array_size <= 0) {  // Check that the parameter is an array.
@@ -1307,12 +1303,10 @@ static PyObject * Parameter_new(PyTypeObject *type, PyObject *args, PyObject *kw
 		return NULL;  // TypeError is thrown
 	}
 
-	param_t * param = pyparam_util_find_param(param_identifier, node);
+	param_t * param = _pyparam_util_find_param_t(param_identifier, node);
 
-	if (param == NULL) {  // Did not find a match.
-		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
-		return 0;
-	}
+	if (param == NULL)  // Did not find a match.
+		return NULL;  // Raises TypeError or ValueError.
 
 	self->param = param;
 
@@ -1376,12 +1370,10 @@ static int Parameter_setnode(ParameterObject *self, PyObject *value, void *closu
 	}
 	Py_DECREF(value_tuple);
 
-	param_t * param = pyparam_util_find_param(self->name, node);
+	param_t * param = _pyparam_util_find_param_t(self->name, node);
 
-	if (param == NULL) {  // Did not find a match.
-		PyErr_SetString(PyExc_ValueError, "Could not find a matching parameter.");
-		return -1;
-	}
+	if (param == NULL)  // Did not find a match.
+		return -1;  // Raises either TypeError or ValueError.
 
 	self->param = param;
 
@@ -1710,9 +1702,9 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 	}
 
 	static char *kwlist[] = {
-		"csp_address", "csp_version", "csp_hostname", "csp_model", "csp_port", 
-		"uart_dev", "uart_baud", "can_dev", "udp_peer_str", "udp_peer_idx", "tun_conf_str", "eth_ifname", 
-		"csp_zmqhub_addr", "csp_zmqhub_idx", "quiet", NULL
+		"csp_address", "csp_version", "csp_hostname", "csp_model", 
+		"use_prometheus", "csp_version", "rtable", "yamlname", "dfl_addr", 
+		"quiet", NULL,
 	};
 
 	csp_conf.address = 1;
@@ -1720,26 +1712,19 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 	csp_conf.hostname = "python_bindings";
 	csp_conf.model = "linux";
 
-	uint16_t csp_port = PARAM_PORT_SERVER;
-
-	char *uart_dev = NULL;  // "/dev/ttyUSB0"
-	uint32_t uart_baud = 1000000;
-
-	char * can_dev = NULL;  // can0
-	char * udp_peer_str[10];  // TODO Kevin: Not sure what effect declaring the size of the array will have when Python likely alters the pointer address.
-	int udp_peer_idx = 0;
-	char * tun_conf_str = NULL;
-	char * eth_ifname = NULL;
-	char * csp_zmqhub_addr[10];
-	int csp_zmqhub_idx = 0;
+	int use_prometheus = 0;
+	int csp_version = 2;
+	char * rtable = NULL;
+	char * yamlname = "can.yaml";
+	int dfl_addr = 0;
 	
 	int quiet = 0;
 	
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|HBssHsIssisssii", kwlist, 
-		&csp_conf.address, &csp_conf.version,  &csp_conf.hostname, &csp_conf.model, 
-		&csp_port, &uart_dev, &uart_baud, &can_dev, &udp_peer_str, &udp_peer_idx, 
-		&tun_conf_str, &eth_ifname, &csp_zmqhub_addr, &csp_zmqhub_idx, &quiet)
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|HBssiissii", kwlist, 
+		&csp_conf.address, &csp_conf.version,  &csp_conf.hostname, 
+		&csp_conf.model, &use_prometheus, &csp_version, &rtable, 
+		&yamlname, &dfl_addr, &quiet)
 	)
 		return NULL;  // TypeError is thrown
 
@@ -1762,154 +1747,36 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 	
 	csp_init();
 
-	csp_iface_t * default_iface = NULL;
-	if (uart_dev != NULL) {
-		csp_usart_conf_t conf = {
-			.device = uart_dev,
-			.baudrate = uart_baud, /* supported on all platforms */
-			.databits = 8,
-			.stopbits = 1,
-			.paritysetting = 0,
-			.checkparity = 0
-		};
-		int error = csp_usart_open_and_add_kiss_interface(&conf, CSP_IF_KISS_DEFAULT_NAME, &default_iface);
-		if (error != CSP_ERR_NONE) {
-			csp_log_error("failed to add KISS interface [%s], error: %d", uart_dev, error);
-			exit(1);
-		}
-	}
-
-	if (can_dev != NULL) {
-		int error = csp_can_socketcan_open_and_add_interface(can_dev, CSP_IF_CAN_DEFAULT_NAME, 1000000, true, &default_iface);
-		if (error != CSP_ERR_NONE) {
-			csp_log_error("failed to add CAN interface [%s], error: %d", can_dev, error);
-		}
-	}
-
-
-	pthread_create(&router_handle, NULL, &router_task, NULL);
+	csp_yaml_init(yamlname, dfl_addr);
 
 	csp_rdp_set_opt(3, 10000, 5000, 1, 2000, 2);
 
-
-	while (udp_peer_idx > 0) {
-		char * udp_str = udp_peer_str[--udp_peer_idx];
-		printf("udp str %s\n", udp_str);
-
-		int lport = 9600;
-		int rport = 9600;
-		char udp_peer_ip[20];
-
-		if (sscanf(udp_str, "%d %19s %d", &lport, udp_peer_ip, &rport) != 3) {
-			printf("Invalid UDP configuration string: %s\n", udp_str);
-			printf("Should math the pattern \"<lport> <peer ip> <rport>\" exactly\n");
-			return NULL;
-		}
-
-		csp_iface_t * udp_client_if = malloc(sizeof(csp_iface_t));
-		csp_if_udp_conf_t * udp_conf = malloc(sizeof(csp_if_udp_conf_t));
-		udp_conf->host = udp_peer_ip;
-		udp_conf->lport = lport;
-		udp_conf->rport = rport;
-		csp_if_udp_init(udp_client_if, udp_conf);
-
-		/* Use auto incrementing names */
-		char * udp_name = malloc(20);
-		sprintf(udp_name, "UDP%u", udp_peer_idx);
-		udp_client_if->name = udp_name;
-
-		default_iface = udp_client_if;
-	}
-
-	if (tun_conf_str) {
-
-		int src;
-		int dst;
-
-		if (sscanf(tun_conf_str, "%d %d", &src, &dst) != 2) {
-			printf("Invalid TUN configuration string: %s\n", tun_conf_str);
-			printf("Should math the pattern \"<src> <dst>\" exactly\n");
-			return NULL;
-		}
-
-		// csp_iface_t * tun_if = malloc(sizeof(csp_iface_t));
-		// csp_if_tun_conf_t * ifconf = malloc(sizeof(csp_if_tun_conf_t));
-
-		// ifconf->tun_dst = dst;
-		// ifconf->tun_src = src;
-
-		// csp_if_tun_init(tun_if, ifconf);
-
-	}
-
-	// if (eth_ifname) {
-	// 	static csp_iface_t csp_iface_eth;
-	// 	csp_if_eth_init(&csp_iface_eth, eth_ifname);
-	// 	default_iface = &csp_iface_eth;
-	// }
-
-	while (csp_zmqhub_idx > 0) {
-		char * zmq_str = csp_zmqhub_addr[--csp_zmqhub_idx];
-		printf("zmq str %s\n", zmq_str);
-		csp_iface_t * zmq_if;
-		csp_zmqhub_init(csp_get_address(), zmq_str, 0, &zmq_if);
-
-		/* Use auto incrementing names */
-		char * zmq_name = malloc(20);
-		sprintf(zmq_name, "ZMQ%u", csp_zmqhub_idx);
-		zmq_if->name = zmq_name;
-
-		default_iface = zmq_if;
-	}
-
-
-	char saved_rtable[csp_rtable.array_size];
-	char * rtable = NULL;
-
-
-	if (!rtable) {
-		/* Read routing table from parameter system */
-		param_get_string(&csp_rtable, saved_rtable, csp_rtable.array_size);
-		rtable = saved_rtable;
-	}
-
-	if (csp_rtable_check(rtable)) {
+	if (rtable && csp_rtable_check(rtable)) {
 		int error = csp_rtable_load(rtable);
 		if (error < 1) {
-			csp_log_error("csp_rtable_load(%s) failed, error: %d", rtable, error);
-			//exit(1);
+			printf("csp_rtable_load(%s) failed, error: %d\n", rtable, error);
 		}
-	} else if (default_iface) {
-		printf("Setting default route to %s\n", default_iface->name);
-		csp_rtable_set(0, 0, default_iface, CSP_NO_VIA_ADDRESS);
-	} else {
-		printf("No routing defined\n");
 	}
 
-	csp_socket_t *sock_csh = csp_socket(CSP_SO_NONE);
-	csp_socket_set_callback(sock_csh, csp_service_handler);
-	csp_bind(sock_csh, CSP_ANY);
-
-	csp_socket_t *sock_param = csp_socket(CSP_SO_NONE);
-	csp_socket_set_callback(sock_param, param_serve);
-	csp_bind(sock_param, csp_port);
-
-	pthread_t vmem_server_handle;
-	pthread_create(&vmem_server_handle, NULL, &vmem_server_task, NULL);
+	csp_bind_callback(csp_service_handler, CSP_ANY);
+	csp_bind_callback(param_serve, PARAM_PORT_SERVER);
 
 	/* Start a collector task */
 	vmem_file_init(&vmem_col);
 
-	pthread_t param_collector_handle;
+	static pthread_t param_collector_handle;
 	pthread_create(&param_collector_handle, NULL, &param_collector_task, NULL);
 
-	/* Crypto magic */
-	vmem_file_init(&vmem_crypto);
-	// crypto_key_refresh();
+	static pthread_t router_handle;
+	pthread_create(&router_handle, NULL, &router_task, NULL);
 
-	/* Test of time fetch */
-	vmem_file_init(&vmem_tfetch);
-	// tfetch_onehz();
+	static pthread_t vmem_server_handle;
+	pthread_create(&vmem_server_handle, NULL, &vmem_server_task, NULL);
+
+	// if (use_prometheus) {  // TODO Kevin: include functions.
+	// 	prometheus_init();
+	// 	param_sniffer_init();
+	// }
 	
 	_csp_initialized = 1;
 	Py_RETURN_NONE;
@@ -1918,7 +1785,7 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 
 static PyMethodDef methods[] = {
 
-	/* Converted Slash/Satctl commands from param/param_slash.c */
+	/* Converted CSH commands from param/param_slash.c */
 	{"set", 		(PyCFunction)pyparam_param_set, METH_VARARGS | METH_KEYWORDS, 	""},
 	{"get", 		(PyCFunction)pyparam_param_get, METH_VARARGS | METH_KEYWORDS, 	""},
 	{"push", 		pyparam_param_push, 			METH_VARARGS, 					""},
@@ -1929,11 +1796,11 @@ static PyMethodDef methods[] = {
 	{"autosend", 	pyparam_param_autosend, 		METH_VARARGS, 					""},
 	{"queue", 		pyparam_param_queue, 			METH_NOARGS, 					""},
 
-	/* Converted Slash/Satctl commands from param/param_list_slash.c */
+	/* Converted CSH commands from param/param_list_slash.c */
 	{"list", 		pyparam_param_list, 			METH_VARARGS, 					""},
 	{"list_download", (PyCFunction)pyparam_param_list_download, METH_VARARGS | METH_KEYWORDS, ""},
 
-	/* Converted Slash/Satctl commands from slash_csp.c */
+	/* Converted CSH commands from slash_csp.c */
 	/* Including these here is not entirely optimal, they may be removed. */
 	{"ping", 		(PyCFunction)pyparam_csp_ping, 	METH_VARARGS | METH_KEYWORDS, 	""},
 	{"ident", 		(PyCFunction)pyparam_csp_ident, METH_VARARGS | METH_KEYWORDS, 	""},

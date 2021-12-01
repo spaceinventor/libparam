@@ -14,7 +14,6 @@ from contextlib import contextmanager as _contextmanager
 _libparam_typehint = libparam_py3
 
 
-# TODO Kevin: Bindings should be a class instead, such that we can use __iter__ and __getitem__.
 def Bindings(csp_address: int = ..., csp_version: int = ..., csp_hostname: str = ..., csp_model: str = ..., csp_port: int = ...,
              uart_dev: str = ..., uart_baud: int = ..., can_dev: str = ..., udp_peer_str: str = ..., udp_peer_idx: int = ...,
              tun_conf_str: str = ..., eth_ifname: str = ..., csp_zmqhub_addr: str = ..., csp_zmqhub_idx: int = ..., quiet: int = ...,
@@ -78,6 +77,7 @@ class ParamMapping:
     ".CSP_RTABLE" returns a lazy constructor for a Python Parameter object
     (such that *args and **kwargs may be received and sent along).
     """
+    # TODO Kevin: PyCharm fails to read the annotated typehints for attributes, and therefore thinks that they are ints.
 
     _param_constructor_typehint = Callable[[int], _libparam_typehint.Parameter]
 

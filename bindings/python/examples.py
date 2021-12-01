@@ -35,7 +35,7 @@ def int_param_examples(bindings) -> None:
     ParamClass = bindings.Parameter
 
     # Currently; two methods for retrieving and changing the values of parameters are available.
-    # The first is simply using the 'get' and 'set' translations available from 'Satctl', shown below:
+    # The first is simply using the 'get' and 'set' translations available from 'CSH', shown below:
     # 'bindings.get()' returns the value of a parameter. The first argument is an identifier of the desired parameter,
     # it'll be the ID when it is an int, or the name when it is a string. The second argument is the host.
     original_col_verbose_value: int = bindings.get(202)  # We change the value later, so store this so we can revert.
@@ -58,11 +58,11 @@ def int_param_examples(bindings) -> None:
     if original_col_verbose_value_by_class == original_col_verbose_value:
         print("Either way of receiving values return the same result.")
 
-    print(f"We changed the value of {col_verbose.name} to {original_col_verbose_value + 3}, using the Satctl translations.")
+    print(f"We changed the value of {col_verbose.name} to {original_col_verbose_value + 3}, using the CSH translations.")
     bindings.set(202, original_col_verbose_value + 3)
 
     if col_verbose.value != original_col_verbose_value_by_class:
-        print(f"We just changed the value of {col_verbose.name} to {col_verbose.value} through the Satctl set command.")
+        print(f"We just changed the value of {col_verbose.name} to {col_verbose.value} through the CSH set command.")
         print("This was reflected on the instance as well, as its value was the same.")
 
     # Revert the value, and pretend we were never here.
@@ -93,7 +93,7 @@ def string_param_examples(bindings) -> None:
     print(f'We have now changed it to: "{col_cnfstr.value}".')
 
     # Let's change the value of a character in the string by index.
-    # TODO Kevin: Whoops; this doesn't quite work yet, neither here, nor in Satctl.
+    # TODO Kevin: Whoops; this doesn't quite work yet, neither here, nor in CSH.
     #col_cnfstr[2] = 'J'
     #print(f'We inserted a \'J\' into the string, so the new value is "{col_cnfstr.value}".')
 
@@ -160,7 +160,7 @@ def misc_param_examples(bindings) -> None:
     :param bindings: Return value of 'param_utils.Bindings()'.
     """
 
-    # You can change the value of 'autosend' not much unlike how it would be done in Satctl.
+    # You can change the value of 'autosend' not much unlike how it would be done in CSH.
     original_autosend = bindings.autosend()
     bindings.autosend(0)
     print(f"The initial value of autosend was {original_autosend}, we have now set it to {bindings.autosend()}")
@@ -188,7 +188,7 @@ def misc_param_examples(bindings) -> None:
     print("We just pushed all staged changes.")
     print(f'But because we cleared the queue first, the value is still: "{bindings.get(200)}"')
 
-    # You can use the ping from Satctl.
+    # You can use the ping from CSH.
     print(f"Ping recieved response in {bindings.ping(LOCAL_NODE)} ms.")
 
     # As well as ident.
@@ -246,7 +246,7 @@ if __name__ == '__main__':
     # The following is equivalent to 'Bindings(quiet=False)':
     # libparam_py3._param_init(quiet=True)
 
-    # Just as when using Satctl, the node command returns the current default node,
+    # Just as when using CSH, the node command returns the current default node,
     # as well as changing it when an integer argument is provided.
     bindings.node(LOCAL_NODE)  # Local
     print(f"We just set the default node to {bindings.node()}.")
