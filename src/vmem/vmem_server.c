@@ -190,15 +190,15 @@ static void rparam_list_handler(csp_conn_t * conn)
 
 void vmem_server_loop(void * param) {
 
-	/* Create socket without any socket options */
-	csp_socket_t *sock = csp_socket(CSP_SO_NONE);
+	/* Statically allocate a listener socket */
+	static csp_socket_t vmem_server_socket = {0};
 
 	/* Bind all ports to socket */
-	csp_bind(sock, VMEM_PORT_SERVER);
-	csp_bind(sock, PARAM_PORT_LIST);
+	csp_bind(&vmem_server_socket, VMEM_PORT_SERVER);
+	csp_bind(&vmem_server_socket, PARAM_PORT_LIST);
 
 	/* Create 10 connections backlog queue */
-	csp_listen(sock, 10);
+	csp_listen(&vmem_server_socket, 10);
 
 	/* Pointer to current connection and packet */
 	csp_conn_t *conn;
@@ -207,7 +207,7 @@ void vmem_server_loop(void * param) {
 	while (1) {
 
 		/* Wait for connection, 10000 ms timeout */
-		if ((conn = csp_accept(sock, CSP_MAX_DELAY)) == NULL)
+		if ((conn = csp_accept(&vmem_server_socket, CSP_MAX_DELAY)) == NULL)
 			continue;
 
 		/* Handle RDP service differently */

@@ -119,23 +119,28 @@ int param_queue_apply(param_queue_t *queue) {
 void param_queue_print(param_queue_t *queue) {
 	PARAM_QUEUE_FOREACH(param, reader, queue, offset)
 		if (param) {
-			printf	("  %s:%u", param->name, param->node);
+			printf("%s", param_mask_color(param));
+			printf(" %5u", param->node);
+			printf	("  %-20s", param->name);
 			if (offset >= 0) {
 				printf("[%u]", offset);
 			}
+			if (queue->type == PARAM_QUEUE_TYPE_SET) {
 #if MPACK_STDIO
-			printf(" = ");
+				printf(" = ");
 
-			char buffer[20] = {0};
-    		mpack_print_t print;
-    		mpack_memset(&print, 0, sizeof(print));
-    		print.buffer = buffer;
-    		print.size = sizeof(buffer);
-			mpack_print_element(&reader, &print, 2);
-			printf("%s", buffer);
+				char buffer[20] = {0};
+				mpack_print_t print;
+				mpack_memset(&print, 0, sizeof(print));
+				print.buffer = buffer;
+				print.size = sizeof(buffer);
+				mpack_print_element(&reader, &print, 2);
+				printf("%s", buffer);
 #else
-			mpack_discard(&reader);
+				mpack_discard(&reader);
 #endif
+			}
+			printf("%s", param_mask_color_off());
 			printf("\n");
 		}
 	}
