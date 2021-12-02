@@ -212,8 +212,8 @@ static param_t * _pyparam_util_find_param_t(PyObject * param_identifier, int nod
 
 
 /* Gets the best Python representation of the param_t's type, i.e 'int' for 'uint32'.
-   Increments the reference count of the found type before returning. */
-static PyObject * _pyparam_misc_param_t_type(param_t * param) {
+   Does not increment the reference count of the found type before returning. */
+static PyTypeObject * _pyparam_misc_param_t_type(param_t * param) {
 
 	PyTypeObject * param_type = NULL;
 
@@ -250,16 +250,15 @@ static PyObject * _pyparam_misc_param_t_type(param_t * param) {
 			break;
 	}
 
-	if (param_type == NULL) {
+	if (param_type == NULL)
 		PyErr_SetString(PyExc_NotImplementedError, "Unsupported parameter type.");
-		return NULL;
-	}
-	Py_INCREF(param_type);
-	return (PyObject *)param_type;
+
+	return param_type;  // or NULL (for NotImplementedError).
 }
 
 
-/* Public interface for '_pyparam_misc_param_t_type()' */
+/* Public interface for '_pyparam_misc_param_t_type()' 
+   Increments the reference count of the found type before returning. */
 static PyObject * pyparam_misc_get_type(PyObject * self, PyObject * args) {
 
 	if (!_csp_initialized) {
@@ -292,7 +291,10 @@ static PyObject * pyparam_misc_get_type(PyObject * self, PyObject * args) {
 		return NULL;  // Raises either TypeError or ValueError.
 	}
 
-	return _pyparam_misc_param_t_type(param);
+	PyTypeObject * result = _pyparam_misc_param_t_type(param);
+	Py_INCREF(result);
+
+	return (PyObject *)result;
 }
 
 
@@ -401,8 +403,7 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 	if (param == NULL)  // Did not find a match.
 		return NULL;  // Raises TypeError or ValueError.
 
-	PyObject * param_type = _pyparam_misc_param_t_type(param);
-	if(param->array_size > 0 && offset == INT_MIN && (PyTypeObject *)param_type != &PyUnicode_Type) {
+	if(param->array_size > 0 && offset == INT_MIN && _pyparam_misc_param_t_type(param) != &PyUnicode_Type) {
 		// We have now concluded that the parameter is an array,
 		// and that we should return in, in its entirety.
 
@@ -655,7 +656,7 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args, PyObject *
 		// Check for dubious value assignments by converting 'strvalue' to '_self.type'.
 		// For example: assigning "hello" to an int Parameter.
 		// TODO Kevin: Should we convert using 'strvalue' or 'value'.
-		if (!_pyparam_typeconvert(value, _self->type, 1))
+		if (_self->param->array_size <= 0 && !_pyparam_typeconvert(value, _self->type, 1))
 			return NULL;  // Raises exception based on the failed conversion.
 
 		PyObject * strvalue = _pyparam_get_str_value(value);
@@ -691,12 +692,9 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args, PyObject *
 		}
 
 		// Check that the iterable only contains valid types.
-		PyObject * param_type = _pyparam_misc_param_t_type(param);
-		if (_pyparam_typecheck_sequence(value, (PyTypeObject *)param_type)) {
-			Py_DECREF(param_type);
+		if (_pyparam_typecheck_sequence(value, _pyparam_misc_param_t_type(param))) {
 			return NULL;  // Raises TypeError.
 		}
-		Py_DECREF(param_type);
 		
 		// Handle assignments from iterables index by index.
 		// TODO Kevin: This could be far more efficient if assignment shared a queue.
@@ -1389,17 +1387,45 @@ static PyObject * Parameter_getvalue(ParameterObject *self, void *closure) {
 	return pyparam_param_get((PyObject *)self, NULL, NULL);
 }
 
+static int ParameterArray_setvalue(ParameterObject *self, PyObject *value, void *closure) {
+
+	param_t *param = self->param;
+
+	// Transform lazy generators and iterators into sequences,
+	// such that their length may be retrieved.
+	if (!PySequence_Check(value)) {
+		if (PyIter_Check(value)) {
+			value = PyObject_CallObject((PyObject *)&PyTuple_Type, value);  // TODO Kevin: Confirm that this won't segfault.
+			Py_DECREF(value);  // TODO Kevin: Decreasing the reference here will likely have problems with multithreaded garbage collection.
+		} else {
+			PyErr_SetString(PyExc_TypeError, "Provided argument must be iterable.");
+			return -1;
+		}
+	}
+
+	// TODO Kevin: Set index value here.
+	
+	return 0;
+}
+
 static int Parameter_setvalue(ParameterObject *self, PyObject *value, void *closure) {
+
 	if (value == NULL) {
         PyErr_SetString(PyExc_TypeError, "Cannot delete the value attribute");
         return -1;
     }
-	PyObject * value_tuple = PyTuple_Pack(1, value);
-	if (pyparam_param_set((PyObject *)self, value_tuple, NULL) == NULL) {
+
+	if (self->param->array_size > 0 && self->param->type != PARAM_TYPE_STRING) {  // Is array parameter
+		return ParameterArray_setvalue(self, value, closure);
+	} else {  // Normal parameter
+		PyObject * value_tuple = PyTuple_Pack(1, value);
+		if (pyparam_param_set((PyObject *)self, value_tuple, NULL) == NULL) {
+			Py_DECREF(value_tuple);
+			return -1;
+		}
 		Py_DECREF(value_tuple);
-		return -1;
 	}
-	Py_DECREF(value_tuple);
+
 	return 0;
 }
 

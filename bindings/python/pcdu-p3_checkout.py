@@ -27,8 +27,6 @@ def get_options() -> argparse.Namespace:
 
 def _check_boot_cur(bindings, default_node: int):
 
-    "Preparations"
-
     bindings.ident(default_node)
     # TODO Kevin: Check that the return value of .ident() is a PCDU-P3.
     if input("Does the identity of the current node match the PCDU-P3? [Y/n] (default=Y)").lower() not in {'', 'y'}:
