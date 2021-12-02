@@ -98,8 +98,6 @@ typedef struct param_s {
 
 } param_t;
 
-#define PARAM_LIST_LOCAL	255
-
 /**
  * DEFINITION HELPERS:
  *
@@ -119,7 +117,7 @@ typedef struct param_s {
 	__attribute__((used)) \
 	param_t _name = { \
 		.vmem = NULL, \
-		.node = PARAM_LIST_LOCAL, \
+		.node = 0, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
@@ -136,7 +134,7 @@ typedef struct param_s {
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
-		.node = PARAM_LIST_LOCAL, \
+		.node = 0, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
@@ -232,5 +230,9 @@ void param_copy(param_t * dest, param_t * src);
 /* External hooks to get atomic writes */
 extern __attribute__((weak)) void param_enter_critical(void);
 extern __attribute__((weak)) void param_exit_critical(void);
+
+
+void param_set_local_node(uint16_t node);
+uint16_t param_get_local_node(void);
 
 #endif /* SRC_PARAM_PARAM_H_ */

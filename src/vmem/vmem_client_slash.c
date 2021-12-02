@@ -24,7 +24,7 @@
 
 static int vmem_client_slash_list(struct slash *slash)
 {
-	int node = csp_get_address();
+	int node = 0;
 	int timeout = 2000;
 	char * endptr;
 
@@ -49,7 +49,7 @@ slash_command_sub(vmem, list, vmem_client_slash_list, "[node] [timeout]", NULL);
 
 static int vmem_client_slash_fram(struct slash *slash, int backup) {
 
-	int node = csp_get_address();
+	int node = 0;
 	int vmem_id;
 	int timeout = 2000;
 	char * endptr;
@@ -103,7 +103,7 @@ slash_command_sub(vmem, backup, vmem_client_slash_backup, "<vmem idx> [node] [ti
 
 static int vmem_client_slash_unlock(struct slash *slash)
 {
-	int node = csp_get_address();
+	int node = 0;
 	int timeout = 2000;
 	char * endptr;
 

@@ -144,7 +144,7 @@ static int cmd_get(struct slash *slash) {
 
 	/* Remote parameters are sent to a queue or directly */
 	int result = 0;
-	if (param->node != PARAM_LIST_LOCAL) {
+	if (param->node != 0) {
 
 		if (autosend) {
 			if (host != -1) {
@@ -203,7 +203,7 @@ static int cmd_set(struct slash *slash) {
 
 	/* Remote parameters are sent to a queue or directly */
 	int result = 0;
-	if (param->node != PARAM_LIST_LOCAL) {
+	if (param->node != 0) {
 
 		if ((node != -1) && (autosend)) {
 			result = param_push_single(param, offset, valuebuf, 1, node, 1000, paramver);

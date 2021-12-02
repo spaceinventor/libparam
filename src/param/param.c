@@ -5,6 +5,16 @@
 #include <csp/csp.h>
 #include <sys/types.h>
 
+static uint16_t param_local_node = 0;
+
+void param_set_local_node(uint16_t node) {
+	param_local_node = node;
+}
+
+uint16_t param_get_local_node(void) {
+	return param_local_node;
+}
+
 #define PARAM_GET(_type, _name, _swapfct) \
 	_type param_get_##_name##_array(param_t * param, unsigned int i) { \
 		if (i > (unsigned int) param->array_size) { \

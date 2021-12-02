@@ -11,8 +11,6 @@
 #include <param/param.h>
 #include <vmem/vmem.h>
 
-#define PARAM_LIST_LOCAL	255
-
 typedef struct param_list_iterator_s {
 	int phase;							// Hybrid iterator has multiple phases (0 == Static, 1 == Dynamic List)
 	param_t * element;
