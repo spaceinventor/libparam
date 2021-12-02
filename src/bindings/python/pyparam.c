@@ -1403,6 +1403,22 @@ static int Parameter_setvalue(ParameterObject *self, PyObject *value, void *clos
 	return 0;
 }
 
+static PyObject * Parameter_is_array(ParameterObject *self, void *closure) {
+	// I believe this is the most appropriate way to check whether the parameter is an array.
+	// Additionally; this seems a decent substitute for an array parameter subclass.
+	PyObject * result = self->param->array_size <= 0 ? Py_True : Py_False;
+	Py_INCREF(result);
+	return result;
+}
+
+static PyObject * Parameter_getmask(ParameterObject *self, void *closure) {
+	return Py_BuildValue("I", self->param->mask);
+}
+
+static PyObject * Parameter_gettimestamp(ParameterObject *self, void *closure) {
+	return Py_BuildValue("I", self->param->timestamp);
+}
+
 static PyObject * Parameter_str(ParameterObject *self) {
 	char buf[100];
 	sprintf(buf, "[id:%i|node:%i] %s | %s", self->param->id, self->param->node, self->param->name, self->type->tp_name);
@@ -1434,7 +1450,7 @@ static int Parameter_SetItem(ParameterObject *self, PyObject* item, PyObject* va
 static Py_ssize_t Parameter_length(ParameterObject *self) {
 	// We currently raise an exception when getting len() of non-array type parameters.
 	// This stops PyCharm (Perhaps other IDE's) from showing their length as 0. ¯\_(ツ)_/¯
-	if (!self->param->array_size)
+	if (self->param->array_size > 0)
 		PyErr_SetString(PyExc_AttributeError, "Non-array type parameter is not subscriptable");
 	return self->param->array_size;
 }
@@ -1482,18 +1498,24 @@ The Python binding 'Parameter' class exposes most of its attributes through gett
 as only its 'value' and 'node' are mutable, and even those are through setters.
 */
 static PyGetSetDef Parameter_getsetters[] = {
-    {"name", (getter) Parameter_getname, NULL,
+    {"name", (getter)Parameter_getname, NULL,
      "name of the parameter", NULL},
-    {"unit", (getter) Parameter_getunit, NULL,
+    {"unit", (getter)Parameter_getunit, NULL,
      "unit of the parameter", NULL},
-	{"id", (getter) Parameter_getid, NULL,
+	{"id", (getter)Parameter_getid, NULL,
      "id of the parameter", NULL},
-	{"node", (getter) Parameter_getnode, (setter)Parameter_setnode,
+	{"node", (getter)Parameter_getnode, (setter)Parameter_setnode,
      "node of the parameter", NULL},
-	{"type", (getter) Parameter_gettype, NULL,
+	{"type", (getter)Parameter_gettype, NULL,
      "type of the parameter", NULL},
-	{"value", (getter) Parameter_getvalue, (setter)Parameter_setvalue,
+	{"value", (getter)Parameter_getvalue, (setter)Parameter_setvalue,
      "value of the parameter", NULL},
+	{"is_array", (getter)Parameter_is_array, NULL,
+     "whether the parameter is an array", NULL},
+	{"mask", (getter)Parameter_getmask, NULL,
+     "mask of the parameter", NULL},
+	{"timestamp", (getter)Parameter_gettimestamp, NULL,
+     "timestamp of the parameter", NULL},
     {NULL}  /* Sentinel */
 };
 
@@ -1703,8 +1725,7 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 
 	static char *kwlist[] = {
 		"csp_address", "csp_version", "csp_hostname", "csp_model", 
-		"use_prometheus", "csp_version", "rtable", "yamlname", "dfl_addr", 
-		"quiet", NULL,
+		"use_prometheus", "rtable", "yamlname", "dfl_addr", "quiet", NULL,
 	};
 
 	csp_conf.address = 1;
@@ -1713,7 +1734,6 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 	csp_conf.model = "linux";
 
 	int use_prometheus = 0;
-	int csp_version = 2;
 	char * rtable = NULL;
 	char * yamlname = "can.yaml";
 	int dfl_addr = 0;
@@ -1721,9 +1741,9 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 	int quiet = 0;
 	
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|HBssiissii", kwlist, 
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|HBssissii", kwlist,
 		&csp_conf.address, &csp_conf.version,  &csp_conf.hostname, 
-		&csp_conf.model, &use_prometheus, &csp_version, &rtable, 
+		&csp_conf.model, &use_prometheus, &rtable,
 		&yamlname, &dfl_addr, &quiet)
 	)
 		return NULL;  // TypeError is thrown

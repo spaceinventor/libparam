@@ -14,9 +14,8 @@ from contextlib import contextmanager as _contextmanager
 _libparam_typehint = libparam_py3
 
 
-def Bindings(csp_address: int = ..., csp_version: int = ..., csp_hostname: str = ..., csp_model: str = ..., csp_port: int = ...,
-             uart_dev: str = ..., uart_baud: int = ..., can_dev: str = ..., udp_peer_str: str = ..., udp_peer_idx: int = ...,
-             tun_conf_str: str = ..., eth_ifname: str = ..., csp_zmqhub_addr: str = ..., csp_zmqhub_idx: int = ..., quiet: int = ...,
+def Bindings(csp_address: int = ..., csp_version: int = ..., csp_hostname: str = ..., csp_model: str = ...,
+             use_prometheus: int = ..., rtable: str = ..., yamlname: str = ..., dfl_addr: int = ..., quiet: int = ...,
              *, module_name: str = None) -> _libparam_typehint:
     """
     Imports and customizes a new instance of the libparam bindings module based on the provided arguments.
@@ -25,9 +24,7 @@ def Bindings(csp_address: int = ..., csp_version: int = ..., csp_hostname: str =
     :param csp_version: Which CSP version to use in the module.
     :param csp_hostname: Which CSP hostname to use in the module.
     :param csp_model: Which CSP model to use in the module.
-    :param csp_port: Which CSP port to use in the module.
     :param module_name: Optional alternative name of the module to import.
-    :param can_dev: Can interface to use.
     :param quiet: Send output from C to /dev/null.
     :return: An instance of the libparam binded module on which operations may be performed.
     """
@@ -38,16 +35,10 @@ def Bindings(csp_address: int = ..., csp_version: int = ..., csp_hostname: str =
                      'csp_version': csp_version,
                      'csp_hostname': csp_hostname,
                      'csp_model': csp_model,
-                     'csp_port': csp_port,
-                     'uart_dev': uart_dev,
-                     'uart_baud': uart_baud,
-                     'can_dev': can_dev,
-                     'udp_peer_str': udp_peer_str,
-                     'udp_peer_idx': udp_peer_idx,
-                     'tun_conf_str': tun_conf_str,
-                     'eth_ifname': eth_ifname,
-                     'csp_zmqhub_addr': csp_zmqhub_addr,
-                     'csp_zmqhub_idx': csp_zmqhub_idx,
+                     'use_prometheus': use_prometheus,
+                     'rtable': rtable,
+                     'yamlname': yamlname,
+                     'dfl_addr': dfl_addr,
                      'quiet': quiet,
                  }.items()
                  if value is not ...}
@@ -61,7 +52,8 @@ def Bindings(csp_address: int = ..., csp_version: int = ..., csp_hostname: str =
     libparam_py3._param_init(**init_dict)
 
     # Delete the imported module from the cache, to force a new import next time.
-    del _sys.modules[module_name or 'libparam_py3']
+    # TODO Kevin: This is not really necessary until we have support for multiple shared objects.
+    #del _sys.modules[module_name or 'libparam_py3']
 
     return libparam_py3
 

@@ -26,7 +26,7 @@ class Parameter:
         Get the value of an index in a array parameter.
 
         :param index: Index on which to get the value. Supports backwards subscription (i.e: -1).
-        :raises IndexError: When trying to get value ouside the bounds the parameter array.
+        :raises IndexError: When trying to get a value ouside the bounds of the parameter array.
         :raises ConnectionError: When autosend is on, and no response is received.
 
         :return: The value of the specified index, as its Python type.
@@ -44,7 +44,7 @@ class Parameter:
 
     @property
     def name(self) -> str:
-        """ Returns the name of the wrapped param_t c struct. """
+        """ Returns the name of the wrapped param_t C struct. """
 
     @property
     def unit(self) -> str:
@@ -52,16 +52,16 @@ class Parameter:
 
     @property
     def id(self) -> int:
-        """ Returns the id of the wrapped param_t c struct. """
+        """ Returns the id of the wrapped param_t C struct. """
 
     @property
     def node(self) -> int:
-        """ Returns the node of the parameter, as in; the one in the wrapped param_t struct. """
+        """ Returns the node of the parameter, as in; the one in the wrapped param_t C struct. """
 
     @node.setter
     def node(self, value: int) -> None:
         """
-        Attempts to set the parameter to a matching, one on the specified node.
+        Attempts to set the parameter to a matching one, on the specified node.
 
         :param value: Node on which the other parameter ought to be located.
 
@@ -75,7 +75,10 @@ class Parameter:
 
     @property
     def value(self) -> _param_value_hint | tuple[_param_value_hint]:
-        """ Returns the cached value of the parameter from the specified node in the Python representation of its type """
+        """
+        Returns the value of the parameter from the specified node in the Python representation of its type.
+        Array parameters return a tuple of values, whereas normal parameters return only a single value.
+        """
 
     @value.setter
     def value(self, value: _param_value_hint | _Iterable[_param_value_hint]) -> None:
@@ -84,6 +87,19 @@ class Parameter:
 
         :param value: New desired value. Assignments to other parameters, use their value instead, Otherwise uses .__str__().
         """
+
+    @property
+    def is_array(self) -> bool:
+        """ Returns True or False based on whether the parameter is an array (Strings count as arrays)."""
+
+    @property
+    def mask(self) -> int:
+        """ Returns the mask of the wrapped param_t C struct. """
+
+    @property
+    def timestamp(self) -> int:
+        """ Returns the timestamp of the wrapped param_t C struct. """
+
 
 class ParameterList(list[Parameter]):
 
@@ -293,9 +309,7 @@ def vmem_unlock(node: int = None, timeout: int = None) -> int:
 
 
 def _param_init(csp_address: int = None, csp_version = None, csp_hostname: str = None, csp_model: str = None,
-                csp_port: int = None, uart_dev: str = None, uart_baud: int = None, can_dev: str = None, udp_peer_str: str = None, udp_peer_idx: int = None,
-                tun_conf_str: str = None, eth_ifname: str = None, csp_zmqhub_addr: str = None,
-                csp_zmqhub_idx: int = None, quiet: int = None) -> None:
+                use_prometheus: int = None, rtable: str = None, yamlname: str = None, dfl_addr: int = None, quiet: int = None) -> None:
     """
     Initializes the libparam shared object module, with the provided settings.
 
@@ -303,6 +317,4 @@ def _param_init(csp_address: int = None, csp_version = None, csp_hostname: str =
     :param csp_version: Which CSP version to use in the module.
     :param csp_hostname: Which CSP hostname to use in the module.
     :param csp_model: Which CSP model to use in the module.
-    :param csp_port: Which CSP port to use in the module.
-    :param can_dev: Can interface to use.
     """
