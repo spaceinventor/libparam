@@ -14,15 +14,13 @@ endif
 
 libparam_h = configure_file(output: 'libparam.h', configuration: conf)
 
-param_deps = []
-param_deps += dependency('csp', fallback : ['csp', 'csp_dep'])
+csp_dep = dependency('csp', fallback : ['csp', 'csp_dep'])
 
 clib = meson.get_compiler('c').find_library('c', required: false)
+clib_dep = []
 if not clib.found()
-	clib = dependency('libc', fallback: ['picolibc', 'picolibc_dep'], required: true)
+	clib_dep = dependency('libc', fallback: ['picolibc', 'picolibc_dep'], required: true)
 endif
-
-param_deps += clib
 
 param_src = files([
 	'src/param/list/param_list.c',
@@ -92,10 +90,10 @@ if get_option('collector') == true
 	])
 endif
 
+slash_dep = []
 if get_option('slash') == true
 	slash_dep = dependency('slash', fallback : ['slash', 'slash_dep'], required: false)
 	if slash_dep.found()
-		param_deps += slash_dep
 		param_src += files([
 			'src/param/list/param_list_slash.c',	
 			'src/param/param_slash.c',	
@@ -118,8 +116,8 @@ param_inc = include_directories('.', 'include', 'lib')
 param_lib = static_library('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
-	dependencies : param_deps,
+	dependencies : [clib_dep, csp_dep, slash_dep],
+	install : false
 )
 
 param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib)
-param_dep_whole = declare_dependency(include_directories : param_inc, link_whole : param_lib)
