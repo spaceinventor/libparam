@@ -212,7 +212,8 @@ static param_t * _pyparam_util_find_param_t(PyObject * param_identifier, int nod
 
 
 /* Gets the best Python representation of the param_t's type, i.e 'int' for 'uint32'.
-   Does not increment the reference count of the found type before returning. */
+   Does not increment the reference count of the found type before returning.
+   May raise TypeError for unsupported parameter types (none exist at time of writing). */
 static PyTypeObject * _pyparam_misc_param_t_type(param_t * param) {
 
 	PyTypeObject * param_type = NULL;
@@ -612,15 +613,163 @@ static int _pyparam_typecheck_sequence(PyObject * sequence, PyTypeObject * type)
 		}
 
 		if (!_pyparam_typeconvert(item, type, 1)) {
-			PyObject * temppystr = PyObject_Str(item);
-			char* tempstr = (char*)PyUnicode_AsUTF8(temppystr);
-			char buf[70 + strlen(item->ob_type->tp_name) + strlen(tempstr)];
-			sprintf(buf, "Iterable contains object of an incorrect/unconvertible type <%s: %s>.", item->ob_type->tp_name, tempstr);
-			PyErr_SetString(PyExc_TypeError, buf);
-			Py_DECREF(temppystr);
+			// PyObject * temppystr = PyObject_Str(item);
+			// char* tempstr = (char*)PyUnicode_AsUTF8(temppystr);
+			// char buf[70 + strlen(item->ob_type->tp_name) + strlen(tempstr)];
+			// sprintf(buf, "Iterable contains object of an incorrect/unconvertible type <%s: %s>.", item->ob_type->tp_name, tempstr);
+			// PyErr_SetString(PyExc_TypeError, buf);
+			// Py_DECREF(temppystr);
 			return -2;
 		}
 	}
+	return 0;
+}
+
+/* Private interface for setting the value of an array parameter. */
+static int _pyparam_util_set_array(param_t *param, PyObject *value) {
+
+	// Transform lazy generators and iterators into sequences,
+	// such that their length may be retrieved in a uniform manner.
+	// This comes at the expense of memory (and likely performance),
+	// especially for very large sequences.
+	if (!PySequence_Check(value)) {
+		if (PyIter_Check(value)) {
+			PyObject * temptuple = PyTuple_Pack(1, value);
+			value = PyObject_CallObject((PyObject *)&PyTuple_Type, temptuple);
+			Py_DECREF(temptuple);
+		} else {
+			PyErr_SetString(PyExc_TypeError, "Provided argument must be iterable.");
+			return -1;
+		}
+	} else
+		Py_INCREF(value);  // Iterators will be 1 higher than needed so do the same for sequences.
+
+	int seqlen = PySequence_Fast_GET_SIZE(value);
+
+	// We don't support assigning slices (or anything of the like) yet, so...
+	if (seqlen != param->array_size) {  // Check that the lengths match.
+		if (param->array_size > 0)  // Check that the parameter is an array.
+			PyErr_SetString(PyExc_ValueError, "Provided iterable's length does not match parameter's.");
+		else
+			PyErr_SetString(PyExc_TypeError, "Cannot assign iterable to non-array type parameter.");
+		Py_DECREF(value);
+		return -2;
+	}
+
+	// Check that the iterable only contains valid types.
+	if (_pyparam_typecheck_sequence(value, _pyparam_misc_param_t_type(param))) {
+		Py_DECREF(value);
+		return -3;  // Raises TypeError.
+	}
+
+	// TODO Kevin: This does not allow for queued operations on array parameters.
+	//	This could be implemented by simply replacing 'param_queue_t queue = { };',
+	//	with the global queue, but then we need to handle freeing the buffer.
+	// TODO Kevin: Also this queue is not used for local parameters (and therefore wasted).
+	//	Perhaps structure the function to avoid its unecessary instantiation.
+	void * queuebuffer = malloc(PARAM_SERVER_MTU);
+	param_queue_t queue = { };
+	param_queue_init(&queue, queuebuffer, PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
+	
+	for (int i = 0; i < seqlen; i++) {
+
+		PyObject *item = PySequence_Fast_GET_ITEM(value, i);
+
+		if(!item) {
+			Py_DECREF(value);
+			free(queuebuffer);
+			PyErr_SetString(PyExc_RuntimeError, "Iterator went outside the bounds of the iterable.");
+			Py_DECREF(value);
+			return -4;
+		}
+
+		char valuebuf[128] __attribute__((aligned(16))) = { };
+		PyObject * strvalue = _pyparam_get_str_value(item);
+		param_str_to_value(param->type, (char*)PyUnicode_AsUTF8(strvalue), valuebuf);
+		Py_DECREF(strvalue);
+
+		if (param->node != PARAM_LIST_LOCAL) {
+			if (param_queue_add(&queue, param, i, valuebuf)) {
+				free(queuebuffer);
+				char buf[75];
+				sprintf(buf, "Failed to add sequence index value at %i to parameter queue.", i);
+				PyErr_SetString(PyExc_ValueError, buf);
+				Py_DECREF(value);
+				return -5;
+			}
+		} else
+			param_set(param, i, valuebuf);
+		
+		// 'item' is a borrowed reference, so we don't need to decrement it.
+	}
+	
+	if (param->node != PARAM_LIST_LOCAL)
+		if (param_push_queue(&queue, 1, param->node, 100) < 0) {
+			PyErr_SetString(PyExc_ConnectionError, "No response.");
+			free(queuebuffer);
+			Py_DECREF(value);
+			return -6;
+		}
+	
+	free(queuebuffer);
+	Py_DECREF(value);
+	return 0;
+}
+
+/* Private interface for setting the value of a normal parameter. 
+   Use INT_MIN for offset as NULL. 
+   Use -1 for host as NULL. */
+static int _pyparam_util_set_single(param_t *param, PyObject *value, int host, int offset) {
+
+	if (_pyparam_invalid_index(param, &offset))  // Validate the offset.
+		return -1;  // Raises IndexError.
+
+	char valuebuf[128] __attribute__((aligned(16))) = { };
+	PyObject * strvalue = _pyparam_get_str_value(value);
+	param_str_to_value(param->type, (char*)PyUnicode_AsUTF8(strvalue), valuebuf);
+	Py_DECREF(strvalue);
+
+	/* Remote parameters are sent to a queue or directly */
+	int result = 0;
+	if (param->node != PARAM_LIST_LOCAL) {
+
+		if ((param->node != -1) && (autosend)) {
+			result = param_push_single(param, offset, valuebuf, 1, param->node, 1000, paramver);
+		} else if (host != -1) {
+			result = param_push_single(param, offset, valuebuf, 1, host, 1000, paramver);
+		} else {
+			if (!param_queue_set.buffer) {
+				param_queue_init(&param_queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
+			}
+			if (param_queue_add(&param_queue_set, param, offset, valuebuf) < 0)
+				printf("Queue full\n");
+			param_queue_print(&param_queue_set);
+			return 0;
+		}
+		
+	} else if (autosend) {
+		/* For local parameters, set immediately if autosend is enabled */
+	    if (offset < 0)
+			offset = 0;
+		param_set(param, offset, valuebuf);
+	} else {
+		/* If autosend is off, queue the parameters */
+		if (!param_queue_set.buffer) {
+			param_queue_init(&param_queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
+		}
+		if (param_queue_add(&param_queue_set, param, offset, valuebuf) < 0)
+			printf("Queue full\n");
+		param_queue_print(&param_queue_set);
+		return 0;
+	}
+
+	if (result < 0) {
+		PyErr_SetString(PyExc_ConnectionError, "No response");
+		return -2;
+	}
+
+	param_print(param, offset, NULL, 0, 2);
+
 	return 0;
 }
 
@@ -677,65 +826,9 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args, PyObject *
 	if (param == NULL)  // Did not find a match.
 		return NULL;  // Raises TypeError or ValueError.
 
-	if(PySequence_Check(value) && !PyObject_TypeCheck(value, &PyUnicode_Type)) {
-		if (param->array_size <= 0) {  // Check that the parameter is an array.
-			PyErr_SetString(PyExc_TypeError, "Cannot assign iterable to non-array type parameter.");
-			return NULL;
-		}
-
-		int seqlen = PySequence_Fast_GET_SIZE(value);
-
-		// We don't support assigning slices (or anything of the like) yet, so...
-		if (seqlen != param->array_size) {  // Check that the lengths match.
-			PyErr_SetString(PyExc_ValueError, "Provided iterable's length does not match parameter's.");
-			return NULL;
-		}
-
-		// Check that the iterable only contains valid types.
-		if (_pyparam_typecheck_sequence(value, _pyparam_misc_param_t_type(param))) {
-			return NULL;  // Raises TypeError.
-		}
-		
-		// Handle assignments from iterables index by index.
-		// TODO Kevin: This could be far more efficient if assignment shared a queue.
-		//	But this might incorporate weirdly with a global queue.
-		for (int i = 0; i < seqlen; i++) {
-
-			PyObject *item = PySequence_Fast_GET_ITEM(value, i);
-
-			if(!item) {
-				Py_DECREF(value);
-				PyErr_SetString(PyExc_RuntimeError, "Iterator went outside the bounds of the iterable.");
-				return NULL;
-			}
-
-			PyObject * temp_offset = Py_BuildValue("i", i);
-			PyObject * value_tuple;
-
-			// Setting the value as a method on self.
-			if (self && PyObject_TypeCheck(self, &ParameterType)) {
-				value_tuple = PyTuple_Pack(2, item, temp_offset);
-				pyparam_param_set(self, value_tuple, NULL);
-			} else {  // Calling the function statically, without an instance.
-				value_tuple = PyTuple_Pack(2, param_identifier, item);
-				PyObject * tempdict = PyDict_New();
-
-				PyObject * py_temp_host = Py_BuildValue("i", host);
-				PyDict_SetItemString(tempdict, "host", py_temp_host);
-				Py_DECREF(py_temp_host);  // tempdict contains a reference.
-
-				PyObject * py_temp_node = Py_BuildValue("i", node);
-				PyDict_SetItemString(tempdict, "host", py_temp_node);
-				Py_DECREF(py_temp_node);  // tempdict contains a reference.
-
-				PyDict_SetItemString(tempdict, "offset", temp_offset);
-				pyparam_param_set(NULL, value_tuple, tempdict);
-				Py_DECREF(tempdict);
-			}
-			Py_DECREF(temp_offset);
-			Py_DECREF(value_tuple);
-			// 'item' is a borrowed reference, so we don't need to decrement it.
-		}
+	if(PyIter_Check(value) && !PyObject_TypeCheck(value, &PyUnicode_Type)) {
+		if (_pyparam_util_set_array(param, value))
+			return NULL;  // Raises one of many possible exceptions.
 		Py_RETURN_NONE;
 	}
 
@@ -1387,27 +1480,6 @@ static PyObject * Parameter_getvalue(ParameterObject *self, void *closure) {
 	return pyparam_param_get((PyObject *)self, NULL, NULL);
 }
 
-static int ParameterArray_setvalue(ParameterObject *self, PyObject *value, void *closure) {
-
-	param_t *param = self->param;
-
-	// Transform lazy generators and iterators into sequences,
-	// such that their length may be retrieved.
-	if (!PySequence_Check(value)) {
-		if (PyIter_Check(value)) {
-			value = PyObject_CallObject((PyObject *)&PyTuple_Type, value);  // TODO Kevin: Confirm that this won't segfault.
-			Py_DECREF(value);  // TODO Kevin: Decreasing the reference here will likely have problems with multithreaded garbage collection.
-		} else {
-			PyErr_SetString(PyExc_TypeError, "Provided argument must be iterable.");
-			return -1;
-		}
-	}
-
-	// TODO Kevin: Set index value here.
-	
-	return 0;
-}
-
 static int Parameter_setvalue(ParameterObject *self, PyObject *value, void *closure) {
 
 	if (value == NULL) {
@@ -1415,18 +1487,10 @@ static int Parameter_setvalue(ParameterObject *self, PyObject *value, void *clos
         return -1;
     }
 
-	if (self->param->array_size > 0 && self->param->type != PARAM_TYPE_STRING) {  // Is array parameter
-		return ParameterArray_setvalue(self, value, closure);
-	} else {  // Normal parameter
-		PyObject * value_tuple = PyTuple_Pack(1, value);
-		if (pyparam_param_set((PyObject *)self, value_tuple, NULL) == NULL) {
-			Py_DECREF(value_tuple);
-			return -1;
-		}
-		Py_DECREF(value_tuple);
-	}
-
-	return 0;
+	if (self->param->array_size > 0 && self->param->type != PARAM_TYPE_STRING)  // Is array parameter
+		return _pyparam_util_set_array(self->param, value);
+	else
+		return _pyparam_util_set_single(self->param, value, -1, INT_MIN);
 }
 
 static PyObject * Parameter_is_array(ParameterObject *self, void *closure) {
@@ -1464,13 +1528,23 @@ static int Parameter_SetItem(ParameterObject *self, PyObject* item, PyObject* va
         PyErr_SetString(PyExc_TypeError, "Cannot delete parameter array indexes.");
         return -1;
     }
-	PyObject * value_tuple = PyTuple_Pack(2, value, item);  // value, index
-	if (!pyparam_param_set((PyObject *)self, value_tuple, NULL)) {
-		Py_DECREF(value_tuple);
-		return -1;
+
+	if (!PyLong_Check(item)) {
+		PyErr_SetString(PyExc_TypeError, "Index must be an integer.");
+        return -2;
 	}
-	Py_DECREF(value_tuple);
-	return 0;
+
+	// _PyLong_AsInt is dependant on the Py_LIMITED_API macro, hence the underscore prefix.
+	int index = _PyLong_AsInt(item);
+
+	// We can't use the fact that _PyLong_AsInt() returns -1 for error,
+	// because it may be our desired index. So we check for an exception instead.
+	if (PyErr_Occurred())
+		return -3;  // 'Reraise' the returned exception.
+
+	// _pyparam_util_set_single() uses negative numbers for exceptions,
+	// so we just return its return value.
+	return _pyparam_util_set_single(self->param, value, -1, index);
 }
 
 static Py_ssize_t Parameter_length(ParameterObject *self) {
@@ -1746,7 +1820,7 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 	if (_csp_initialized) {
 		PyErr_SetString(PyExc_RuntimeError,
 			"Cannot initialize multiple instances of libparam bindings. Please use a previous binding.");
-			return 0;
+		return NULL;
 	}
 
 	static char *kwlist[] = {

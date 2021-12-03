@@ -1,35 +1,39 @@
 from __future__ import annotations
 
-import libparam_py3
-import param_binder
+from pyparam_utils import Bindings, temp_autosend_value, ParamMapping
+import time
+
 
 if __name__ == '__main__':
 
-    bindings = param_binder.Bindings()
+    bindings = Bindings(quiet=False)
 
     ParamClass = bindings.Parameter
-    # paramdict = dict(ParamClass.__dict__)
-    # paramdir = dir(ParamClass)
+    ParamListClass = bindings.ParameterList
 
-    bindings.node(1)
+    bindings.autosend(1)
 
-    # test = bindings.get(200, 1)
-    # test2 = bindings.get("col_verbose", 1)
+    param = ParamClass("test_array_param")
+    # param = ParamClass("csp_rtable")
+    # param = ParamClass("col_verbose")
 
-    testparam = ParamClass(202)
+    tempval = param.value
 
-    testval = testparam.value
-    # testnode = testparam.node
+    param.value = reversed(tempval)
 
-    # testparam.node = 3
+    tempval2 = param.value
 
-    testparam.value = "6"
-    # bindings.set(202, "5", 1)
+    exit()
 
-    testval2 = testparam.value
-    # testnode2 = testparam.node
+    def param_timit_func():
+        param.value = reversed(param.value)
 
-    # bindings.ping(1)
-    # bindings.ident(1)
+    before = time.time()
+    for _ in range(400000):
+        param_timit_func()
+    print(f"Execution took {(after := (time.time() - before))}")
+
+    # identlst = bindings.ident(1).splitlines()
+    # vmemlst = bindings.vmem_list(1).splitlines()
 
     print("The End")
