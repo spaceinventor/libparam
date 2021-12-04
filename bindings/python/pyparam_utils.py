@@ -14,7 +14,7 @@ from contextlib import contextmanager as _contextmanager
 _libparam_typehint = libparam_py3
 
 
-def Bindings(csp_address: int = ..., csp_version: int = ..., csp_hostname: str = ..., csp_model: str = ...,
+def Bindings(csp_version: int = ..., csp_hostname: str = ..., csp_model: str = ...,
              use_prometheus: int = ..., rtable: str = ..., yamlname: str = ..., dfl_addr: int = ..., quiet: int = ...,
              *, module_name: str = None) -> _libparam_typehint:
     """
@@ -31,7 +31,6 @@ def Bindings(csp_address: int = ..., csp_version: int = ..., csp_hostname: str =
 
     init_dict = {key: value for key, value in
                  {
-                     'csp_address': csp_address,
                      'csp_version': csp_version,
                      'csp_hostname': csp_hostname,
                      'csp_model': csp_model,

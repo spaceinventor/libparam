@@ -148,13 +148,12 @@ def get(param_identifier: _param_ident_hint, host: int = None, node: int = None,
     :return: The value of the retrieved parameter (As its Python type).
     """
 
-def set(param_identifier: _param_ident_hint, value: _param_value_hint | _Iterable[_param_value_hint], host: int = None, node: int = None, offset: int = None) -> None:
+def set(param_identifier: _param_ident_hint, value: _param_value_hint | _Iterable[_param_value_hint], node: int = None, offset: int = None) -> None:
     """
     Set the value of a parameter.
 
     :param param_identifier: string name, int id or Parameter object of the desired parameter.
     :param value: The new value of the parameter. .__str__() of the provided object will be used.
-    :param host: The host from which the value should be retrieved (has priority over node).
     :param node: The node from which the value should be retrieved.
     :param offset: Index to use for array parameters.
 
@@ -308,12 +307,11 @@ def vmem_unlock(node: int = None, timeout: int = None) -> int:
     """
 
 
-def _param_init(csp_address: int = None, csp_version = None, csp_hostname: str = None, csp_model: str = None,
+def _param_init(csp_version = None, csp_hostname: str = None, csp_model: str = None,
                 use_prometheus: int = None, rtable: str = None, yamlname: str = None, dfl_addr: int = None, quiet: int = None) -> None:
     """
     Initializes the libparam shared object module, with the provided settings.
 
-    :param csp_address: Which CSP address to use in the module.
     :param csp_version: Which CSP version to use in the module.
     :param csp_hostname: Which CSP hostname to use in the module.
     :param csp_model: Which CSP model to use in the module.

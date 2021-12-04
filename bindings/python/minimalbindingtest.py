@@ -15,13 +15,23 @@ if __name__ == '__main__':
 
     param = ParamClass("test_array_param")
     # param = ParamClass("csp_rtable")
-    # param = ParamClass("col_verbose")
+    param2 = ParamClass("col_verbose")
 
     tempval = param.value
 
-    param.value = reversed(tempval)
+    param.value = [1,2,3,"4",5,6,7,8]
 
     tempval2 = param.value
+
+    param[-1] = param[0]
+
+    tempval3 = param.value
+    tempval4 = param[-1]
+
+    tempval5 = param2.value
+    param2.value = 5
+    tempval6 = param2.value
+    param2.value = tempval5
 
     exit()
 
