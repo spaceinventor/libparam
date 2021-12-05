@@ -10,36 +10,21 @@ _param_type_hint = _param_value_hint | bytearray
 
 
 class Parameter:
+    """
+    Wrapper class for Libparam's parameters.
+    Provides an interface to their attributes and values.
+    """
 
-    def __init__(self, param_identifier: _param_ident_hint, node: int = None) -> None: ...
-
-    def __len__(self) -> int:
+    def __init__(self, param_identifier: _param_ident_hint, node: int = None) -> None:
         """
-        Gets the length of array parameters.
+        As stated; this class simply wraps existing parameters,
+        and cannot create new ones. It therefore requires an 'identifier'
+        to the parameter you wish to retrieve.
 
-        :raises PyExc_AttributeError: For non-array type parameters.
-        :return: The value of the wrapped param_t->array_size.
-        """
+        :param param_identifier: an int or string of the parameter ID or name respectively.
+        :param node: Node on which the parameter is located.
 
-    def __getitem__(self, index: int) -> _param_type_hint:
-        """
-        Get the value of an index in a array parameter.
-
-        :param index: Index on which to get the value. Supports backwards subscription (i.e: -1).
-        :raises IndexError: When trying to get a value ouside the bounds of the parameter array.
-        :raises ConnectionError: When autosend is on, and no response is received.
-
-        :return: The value of the specified index, as its Python type.
-        """
-
-    def __setitem__(self, index: int, value: int | float) -> None:
-        """
-        Set the value of an index in a array parameter.
-
-        :param index: Index on which to set the value. Supports backwards subscription (i.e: -1).
-        :param value: New value to set, should match the type of the parameter.
-        :raises IndexError: When trying to set value ouside the bounds the parameter array.
-        :raises ConnectionError: When autosend is on, and no response is received.
+        :raises ValueError: When no parameter can be found from an otherwise valid identifier.
         """
 
     @property
@@ -99,6 +84,45 @@ class Parameter:
     @property
     def timestamp(self) -> int:
         """ Returns the timestamp of the wrapped param_t C struct. """
+
+
+class ParameterArray(Parameter):
+    """
+    Subclass of Parameter specifically designed to provide an interface
+    to array parameters. In practical terms; the class implements:
+        __len__(), __getitem__() and __setitem__().
+    The Parameter class will automatically create instances of this class when relevant,
+    which means that manual instantiation of ParameterArrays is unnecessary.
+    """
+
+    def __len__(self) -> int:
+        """
+        Gets the length of array parameters.
+
+        :raises PyExc_AttributeError: For non-array type parameters.
+        :return: The value of the wrapped param_t->array_size.
+        """
+
+    def __getitem__(self, index: int) -> _param_type_hint:
+        """
+        Get the value of an index in a array parameter.
+
+        :param index: Index on which to get the value. Supports backwards subscription (i.e: -1).
+        :raises IndexError: When trying to get a value ouside the bounds of the parameter array.
+        :raises ConnectionError: When autosend is on, and no response is received.
+
+        :return: The value of the specified index, as its Python type.
+        """
+
+    def __setitem__(self, index: int, value: int | float) -> None:
+        """
+        Set the value of an index in an array parameter.
+
+        :param index: Index on which to set the value. Supports backwards subscription (i.e: -1).
+        :param value: New value to set, should match the type of the parameter.
+        :raises IndexError: When trying to set value ouside the bounds the parameter array.
+        :raises ConnectionError: When autosend is on, and no response is received.
+        """
 
 
 class ParameterList(list[Parameter]):

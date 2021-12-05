@@ -37,8 +37,9 @@
 
 #define PARAMID_CSP_RTABLE					 12
 
+// Here be forward declerations.
 static PyTypeObject ParameterType;
-
+static PyTypeObject ParameterArrayType;
 static PyTypeObject ParameterListType;
 
 VMEM_DEFINE_FILE(csp, "csp", "cspcnf.vmem", 120);
@@ -84,6 +85,9 @@ typedef struct {
 	char valuebuf[128] __attribute__((aligned(16)));
 } ParameterObject;
 
+typedef struct {
+	ParameterObject parameter;
+} ParameterArrayObject;
 
 typedef struct {
 	PyListObject list;
@@ -274,6 +278,7 @@ static PyObject * pyparam_misc_get_type(PyObject * self, PyObject * args) {
 	param_t * param;
 
 	/* Function may be called either as method on 'Parameter' object or standalone function. */
+	
 	if (self && PyObject_TypeCheck(self, &ParameterType)) {
 		ParameterObject *_self = (ParameterObject *)self;
 
@@ -303,6 +308,15 @@ static PyObject * pyparam_misc_get_type(PyObject * self, PyObject * args) {
 static PyObject * _pyparam_Parameter_from_param(PyTypeObject *type, param_t * param) {
 	// TODO Kevin: An internal constructor like this is likely bad practice and not very DRY.
 	//	Perhaps find a better way?
+
+	if (param->array_size <= 0 && type == &ParameterArrayType) {
+		PyErr_SetString(PyExc_TypeError, 
+			"Attempted to create an ParameterArray instance, for a non array parameter.");
+		return NULL;
+	} else if (param->array_size > 0)  // If the parameter is an array.
+		type = &ParameterArrayType;  // We create a ParameterArray instance instead.
+		// If you listen really carefully here, you can hear OOP idealists, screaming in agony.
+		// On a more serious note, I'm amazed that this even works at all.
 
 	ParameterObject *self = (ParameterObject *)type->tp_alloc(type, 0);
 
@@ -1256,12 +1270,8 @@ static void Parameter_dealloc(ParameterObject *self) {
 	Py_TYPE(self)->tp_free((PyObject *) self);
 }
 
+/* May perform black magic and return a ParameterArray instead of the specified type. */
 static PyObject * Parameter_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
-
-	ParameterObject *self = (ParameterObject *) type->tp_alloc(type, 0);
-
-	if (self == NULL)
-		return NULL;
 
 	static char *kwlist[] = {"param_identifier", "node", NULL};
 
@@ -1278,6 +1288,20 @@ static PyObject * Parameter_new(PyTypeObject *type, PyObject *args, PyObject *kw
 
 	if (param == NULL)  // Did not find a match.
 		return NULL;  // Raises TypeError or ValueError.
+
+	if (param->array_size <= 0 && type == &ParameterArrayType) {
+		PyErr_SetString(PyExc_TypeError, 
+			"Attempted to create an ParameterArray instance, for a non array parameter.");
+		return NULL;
+	} else if (param->array_size > 0)  // If the parameter is an array.
+		type = &ParameterArrayType;  // We create a ParameterArray instance instead.
+		// If you listen really carefully here, you can hear OOP idealists, screaming in agony.
+		// On a more serious note, I'm amazed that this even works at all.
+	
+	ParameterObject *self = (ParameterObject *) type->tp_alloc(type, 0);
+
+	if (self == NULL)
+		return NULL;
 
 	self->param = param;
 
@@ -1357,7 +1381,7 @@ static PyObject * Parameter_gettype(ParameterObject *self, void *closure) {
 }
 
 static PyObject * Parameter_getvalue(ParameterObject *self, void *closure) {
-	if (self->param->array_size > 0)
+	if (self->param->array_size > 0 && _pyparam_misc_param_t_type(self->param) != &PyUnicode_Type)
 		return _pyparam_util_get_array(self->param, autosend);
 	return _pyparam_util_get_single(self->param, INT_MIN, autosend);
 }
@@ -1397,60 +1421,6 @@ static PyObject * Parameter_str(ParameterObject *self) {
 	return Py_BuildValue("s", buf);
 }
 
-static PyObject * Parameter_GetItem(ParameterObject *self, PyObject *item) {
-
-	if (!PyLong_Check(item)) {
-		PyErr_SetString(PyExc_TypeError, "Index must be an integer.");
-        return NULL;
-	}
-
-	// _PyLong_AsInt is dependant on the Py_LIMITED_API macro, hence the underscore prefix.
-	int index = _PyLong_AsInt(item);
-
-	// We can't use the fact that _PyLong_AsInt() returns -1 for error,
-	// because it may be our desired index. So we check for an exception instead.
-	if (PyErr_Occurred())
-		return NULL;  // 'Reraise' the current exception.
-
-	return _pyparam_util_get_single(self->param, index, autosend);
-}
-
-static int Parameter_SetItem(ParameterObject *self, PyObject* item, PyObject* value) {
-
-	if (value == NULL) {
-        PyErr_SetString(PyExc_TypeError, "Cannot delete parameter array indexes.");
-        return -1;
-    }
-
-	if (!PyLong_Check(item)) {
-		PyErr_SetString(PyExc_TypeError, "Index must be an integer.");
-        return -2;
-	}
-
-	// _PyLong_AsInt is dependant on the Py_LIMITED_API macro, hence the underscore prefix.
-	int index = _PyLong_AsInt(item);
-
-	// We can't use the fact that _PyLong_AsInt() returns -1 for error,
-	// because it may be our desired index. So we check for an exception instead.
-	if (PyErr_Occurred())
-		return -3;  // 'Reraise' the current exception.
-
-	// _pyparam_util_set_single() uses negative numbers for exceptions,
-	// so we just return its return value.
-	param_queue_t *usequeue = autosend ? NULL : &param_queue_set;
-	return _pyparam_util_set_single(self->param, value, index, usequeue);
-}
-
-static Py_ssize_t Parameter_length(ParameterObject *self) {
-	// We currently raise an exception when getting len() of non-array type parameters.
-	// This stops PyCharm (Perhaps other IDE's) from showing their length as 0. ¯\_(ツ)_/¯
-	if (self->param->array_size <= 0) {
-		PyErr_SetString(PyExc_AttributeError, "Non-array type parameter is not subscriptable");
-		return -1;
-	}
-	return self->param->array_size;
-}
-
 /* 1 for success. Comapares the wrapped param_t for parameters, otherwise 0. Assumes self to be a ParameterObject. */
 static int Parameter_equal(PyObject *self, PyObject *other) {
 	if (PyObject_TypeCheck(other, &ParameterType) && ((ParameterObject *)other)->param == ((ParameterObject *)self)->param)
@@ -1482,12 +1452,6 @@ static PyObject * Parameter_richcompare(PyObject *self, PyObject *other, int op)
     Py_XINCREF(result);
     return result;
 }
-
-static PyMappingMethods Parameter_as_mapping = {
-    (lenfunc)Parameter_length,
-    (binaryfunc)Parameter_GetItem,
-    (objobjargproc)Parameter_SetItem
-};
 
 /* 
 The Python binding 'Parameter' class exposes most of its attributes through getters, 
@@ -1521,21 +1485,91 @@ static PyTypeObject ParameterType = {
     .tp_doc = "Wrapper utility class for libparam parameters.",
     .tp_basicsize = sizeof(ParameterObject),
     .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_new = Parameter_new,
     .tp_dealloc = (destructor)Parameter_dealloc,
 	.tp_getset = Parameter_getsetters,
 	.tp_str = (reprfunc)Parameter_str,
-	.tp_as_mapping = &Parameter_as_mapping,
 	.tp_richcompare = (richcmpfunc)Parameter_richcompare,
 };
 
 
-// static void ParameterList_dealloc(ParameterListObject *self) {
-// 	// Get the type of 'self' in case the user has subclassed 'Parameter'.
-// 	// Not that this makes a lot of sense to do.
-// 	Py_TYPE(self)->tp_free((PyObject *) self);
-// }
+static PyObject * ParameterArray_GetItem(ParameterObject *self, PyObject *item) {
+
+	if (!PyLong_Check(item)) {
+		PyErr_SetString(PyExc_TypeError, "Index must be an integer.");
+        return NULL;
+	}
+
+	// _PyLong_AsInt is dependant on the Py_LIMITED_API macro, hence the underscore prefix.
+	int index = _PyLong_AsInt(item);
+
+	// We can't use the fact that _PyLong_AsInt() returns -1 for error,
+	// because it may be our desired index. So we check for an exception instead.
+	if (PyErr_Occurred())
+		return NULL;  // 'Reraise' the current exception.
+
+	return _pyparam_util_get_single(self->param, index, autosend);
+}
+
+static int ParameterArray_SetItem(ParameterObject *self, PyObject* item, PyObject* value) {
+
+	if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete parameter array indexes.");
+        return -1;
+    }
+
+	if (!PyLong_Check(item)) {
+		PyErr_SetString(PyExc_TypeError, "Index must be an integer.");
+        return -2;
+	}
+
+	// _PyLong_AsInt is dependant on the Py_LIMITED_API macro, hence the underscore prefix.
+	int index = _PyLong_AsInt(item);
+
+	// We can't use the fact that _PyLong_AsInt() returns -1 for error,
+	// because it may be our desired index. So we check for an exception instead.
+	if (PyErr_Occurred())
+		return -3;  // 'Reraise' the current exception.
+
+	// _pyparam_util_set_single() uses negative numbers for exceptions,
+	// so we just return its return value.
+	param_queue_t *usequeue = autosend ? NULL : &param_queue_set;
+	return _pyparam_util_set_single(self->param, value, index, usequeue);
+}
+
+static Py_ssize_t ParameterArray_length(ParameterObject *self) {
+	// We currently raise an exception when getting len() of non-array type parameters.
+	// This stops PyCharm (Perhaps other IDE's) from showing their length as 0. ¯\_(ツ)_/¯
+	if (self->param->array_size <= 0) {
+		PyErr_SetString(PyExc_AttributeError, "Non-array type parameter is not subscriptable");
+		return -1;
+	}
+	return self->param->array_size;
+}
+
+static PyMappingMethods ParameterArray_as_mapping = {
+    (lenfunc)ParameterArray_length,
+    (binaryfunc)ParameterArray_GetItem,
+    (objobjargproc)ParameterArray_SetItem
+};
+
+static PyTypeObject ParameterArrayType = {
+	PyVarObject_HEAD_INIT(NULL, 0)
+	.tp_name = "libparam_py3.ParameterArray",
+	.tp_doc = "Wrapper utility class for libparam array parameters.",
+	.tp_basicsize = sizeof(ParameterArrayObject),
+	.tp_itemsize = 0,
+	.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+	.tp_new = Parameter_new,
+	.tp_dealloc = (destructor)Parameter_dealloc,
+	.tp_getset = Parameter_getsetters,
+	.tp_str = (reprfunc)Parameter_str,
+	.tp_as_mapping = &ParameterArray_as_mapping,
+	.tp_richcompare = (richcmpfunc)Parameter_richcompare,
+	.tp_base = &ParameterType,
+};
+
 
 /* Pulls all Parameters in the list as a single request. */
 static PyObject * ParameterList_pull(ParameterListObject *self, PyObject *args, PyObject *kwds) {
@@ -1853,6 +1887,9 @@ PyMODINIT_FUNC PyInit_libparam_py3(void) {
 	if (PyType_Ready(&ParameterType) < 0)
         return NULL;
 
+	if (PyType_Ready(&ParameterArrayType) < 0)
+        return NULL;
+
 	ParameterListType.tp_base = &PyList_Type;
 	if (PyType_Ready(&ParameterListType) < 0)
 		return NULL;
@@ -1864,6 +1901,13 @@ PyMODINIT_FUNC PyInit_libparam_py3(void) {
 	Py_INCREF(&ParameterType);
 	if (PyModule_AddObject(m, "Parameter", (PyObject *) &ParameterType) < 0) {
 		Py_DECREF(&ParameterType);
+        Py_DECREF(m);
+        return NULL;
+	}
+
+	Py_INCREF(&ParameterArrayType);
+	if (PyModule_AddObject(m, "ParameterArray", (PyObject *) &ParameterArrayType) < 0) {
+		Py_DECREF(&ParameterArrayType);
         Py_DECREF(m);
         return NULL;
 	}
