@@ -215,11 +215,7 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 
 	/* Node/ID */
 	if (verbose >= 1) {
-		if (param->node != PARAM_LIST_LOCAL) {
-			printf(" %3u:%-2u", param->id, param->node);
-		} else {
-			printf(" %3u:L ", param->id);
-		}
+		printf(" %3u:%-2u", param->id, param->node);
 	}
 
 	/* Name */

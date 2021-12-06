@@ -6,7 +6,6 @@
  */
 
 #include <csp/csp.h>
-#include <csp/arch/csp_clock.h>
 #include <csp/arch/csp_time.h>
 #include <unistd.h>
 

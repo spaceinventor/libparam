@@ -112,10 +112,10 @@ int param_list_add(param_t * item) {
 
 param_t * param_list_find_id(int node, int id)
 {
-	if (node == -1)
-		node = PARAM_LIST_LOCAL;
-	if (node == csp_get_address())
-		node = PARAM_LIST_LOCAL;
+	if (node < 0)
+		node = 0;
+	if (node == param_get_local_node())
+		node = 0;
 
 	param_t * found = NULL;
 	param_t * param;
@@ -138,8 +138,8 @@ param_t * param_list_find_id(int node, int id)
 
 param_t * param_list_find_name(int node, char * name)
 {
-	if (node == -1)
-		node = PARAM_LIST_LOCAL;
+	if (node < 0 )
+		node = 0;
 
 	param_t * found = NULL;
 	param_t * param;
@@ -226,7 +226,7 @@ void param_list_download(int node, int timeout, int list_version) {
 			break;
 		}
 
-		printf("Got param: %s[%d]\n", param->name, param->array_size);
+		printf("Got param: %s:%u[%d]\n", param->name, param->node, param->array_size);
 
 		/* Add to list */
 		if (param_list_add(param) != 0)

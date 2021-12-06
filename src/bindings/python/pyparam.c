@@ -56,12 +56,6 @@ uint8_t test_array[] = {1,2,3,4,5,6,7,8};
 PARAM_DEFINE_STATIC_RAM(10001, test_array_param,          PARAM_TYPE_UINT8,  8, sizeof(uint8_t),  PM_DEBUG, NULL, "", test_array, NULL);
 
 
-void * router_task(void * param) {
-	while(1) {
-		csp_route_work();
-	}
-}
-
 static uint8_t _csp_initialized = 0;
 
 param_queue_t param_queue_set = { };
@@ -386,7 +380,7 @@ static PyObject * _pyparam_util_get_single(param_t *param, int offset, int autop
 	} else
 		offset = -1;
 
-	if (autopull && (param->node != PARAM_LIST_LOCAL)) {
+	if (autopull && (param->node != 0)) {
 
 		if (param_pull_single(param, offset, 1, param->node, 1000, paramver)) {
 			PyErr_SetString(PyExc_ConnectionError, "No response");
@@ -468,7 +462,7 @@ static PyObject * _pyparam_util_get_array(param_t *param, int autopull) {
 
 	// Pull the value for each index (if we're allowed to),
 	// instead of pulling them individually.
-	if (autopull && param->node != PARAM_LIST_LOCAL) {
+	if (autopull && param->node != 0) {
 		void * queuebuffer = malloc(PARAM_SERVER_MTU);
 		param_queue_t queue = { };
 		param_queue_init(&queue, queuebuffer, PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_GET, paramver);
@@ -629,7 +623,7 @@ static int _pyparam_util_set_single(param_t *param, PyObject *value, int offset,
 
 	if (queue == NULL) {  // Set the parameter immediately, if no queue is provided.
 
-		if (param->node == PARAM_LIST_LOCAL) {
+		if (param->node == 0) {
 			if (offset < 0)
 				offset = 0;
 			param_set(param, offset, valuebuf);
@@ -718,7 +712,7 @@ static int _pyparam_util_set_array(param_t *param, PyObject *value) {
 		}
 
 		// Set local parameters immediately, use the global queue if autosend if off.
-		param_queue_t *usequeue = (!autosend ? &param_queue_set : ((param->node != PARAM_LIST_LOCAL) ? &queue : NULL));
+		param_queue_t *usequeue = (!autosend ? &param_queue_set : ((param->node != 0) ? &queue : NULL));
 		_pyparam_util_set_single(param, item, i, usequeue);
 		
 		// 'item' is a borrowed reference, so we don't need to decrement it.
@@ -726,7 +720,7 @@ static int _pyparam_util_set_array(param_t *param, PyObject *value) {
 
 	param_queue_print((autosend ? &queue : &param_queue_set));
 	
-	if (param->node != PARAM_LIST_LOCAL)
+	if (param->node != 0)
 		if (param_push_queue(&queue, 1, param->node, 100) < 0) {
 			PyErr_SetString(PyExc_ConnectionError, "No response.");
 			free(queuebuffer);
@@ -1744,6 +1738,12 @@ void * vmem_server_task(void * param) {
 	return NULL;
 }
 
+void * router_task(void * param) {
+	while(1) {
+		csp_route_work();
+	}
+}
+
 
 static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds) {
 
@@ -1796,7 +1796,7 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 	
 	csp_init();
 
-	csp_yaml_init(yamlname, &dfl_addr);
+	csp_yaml_init(yamlname, dfl_addr);
 	// param_set_local_node(dfl_addr);
 
 	csp_rdp_set_opt(3, 10000, 5000, 1, 2000, 2);

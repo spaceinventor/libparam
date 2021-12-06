@@ -60,12 +60,12 @@ static void param_list_to_string(FILE * stream, int node_filter, int remote_only
 		if ((node_filter >= 0) && (param->node != node_filter))
 			continue;
 
-		if ((remote_only) && (param->node == PARAM_LIST_LOCAL))
+		if ((remote_only) && (param->node == 0))
 			continue;
 
 		int node = param->node;
-		if (node == PARAM_LIST_LOCAL)
-			node = csp_get_address();
+		if (node == 0)
+			node = param_get_local_node();
 
 		fprintf(stream, "%u,%u,%s,%u,%d,%x\n", node, param->id, param->name, param->type, param->array_size, param->mask);
 	}
