@@ -21,7 +21,7 @@ from __future__ import annotations
 from pyparam_utils import Bindings, temp_autosend_value, ParamMapping
 
 
-LOCAL_NODE = 1
+LOCAL_NODE = 0
 
 
 def int_param_examples(bindings) -> None:

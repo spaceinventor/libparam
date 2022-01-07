@@ -1,6 +1,5 @@
 """ Interface documentation of the libparam Python bindings. """
 
-
 from typing import \
     Any as _Any, \
     Iterable as _Iterable
@@ -15,7 +14,7 @@ class Parameter:
     Provides an interface to their attributes and values.
     """
 
-    def __init__(self, param_identifier: _param_ident_hint, node: int = None) -> None:
+    def __init__(self, param_identifier: _param_ident_hint, node: int = None, host: int = None) -> None:
         """
         As stated; this class simply wraps existing parameters,
         and cannot create new ones. It therefore requires an 'identifier'
@@ -53,6 +52,14 @@ class Parameter:
         :raises TypeError: When attempting to delete or assign the node to an invalid type.
         :raises ValueError: When a matching parameter cannot be found on the specified node.
         """
+
+    @property
+    def host(self) -> int | None:
+        """ Returns the host the parameter uses for operations. """
+
+    @host.setter
+    def host(self, value: int | None) -> None:
+        """ Naively sets the node used when querying parameters. Uses node when None. """
 
     @property
     def type(self) -> _param_type_hint:
@@ -172,12 +179,13 @@ def get(param_identifier: _param_ident_hint, host: int = None, node: int = None,
     :return: The value of the retrieved parameter (As its Python type).
     """
 
-def set(param_identifier: _param_ident_hint, value: _param_value_hint | _Iterable[_param_value_hint], node: int = None, offset: int = None) -> None:
+def set(param_identifier: _param_ident_hint, value: _param_value_hint | _Iterable[_param_value_hint], host: int = None, node: int = None, offset: int = None) -> None:
     """
     Set the value of a parameter.
 
     :param param_identifier: string name, int id or Parameter object of the desired parameter.
     :param value: The new value of the parameter. .__str__() of the provided object will be used.
+    :param host: The host from which the value should be retrieved (has priority over node).
     :param node: The node from which the value should be retrieved.
     :param offset: Index to use for array parameters.
 

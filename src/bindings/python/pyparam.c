@@ -52,10 +52,13 @@ VMEM_DEFINE_FILE(tfetch, "tfetc", "tfetch.vmem", 120);
 PARAM_DEFINE_STATIC_VMEM(PARAMID_CSP_RTABLE,      csp_rtable,        PARAM_TYPE_STRING, 64, 0, PM_SYSCONF, NULL, "", csp, 0, NULL);
 
 
-uint8_t test_array[] = {1,2,3,4,5,6,7,8};
-PARAM_DEFINE_STATIC_RAM(10001, test_array_param,          PARAM_TYPE_UINT8,  8, sizeof(uint8_t),  PM_DEBUG, NULL, "", test_array, NULL);
+// We include this parameter when testing the behavior of arrays, as none would exist otherwise.
+// uint8_t test_array[] = {1,2,3,4,5,6,7,8};
+// PARAM_DEFINE_STATIC_RAM(10001, test_array_param,          PARAM_TYPE_UINT8,  8, sizeof(uint8_t),  PM_DEBUG, NULL, "", test_array, NULL);
 
 
+// Keep track of whether init has been run,
+// to prevent unexpected behavior from running relevant functions first.
 static uint8_t _csp_initialized = 0;
 
 param_queue_t param_queue_set = { };
@@ -76,6 +79,7 @@ typedef struct {
 	PyObject *unit;
 
 	param_t *param;
+	int host;
 	char valuebuf[128] __attribute__((aligned(16)));
 } ParameterObject;
 
@@ -260,11 +264,12 @@ static PyTypeObject * _pyparam_misc_param_t_type(param_t * param) {
    Increments the reference count of the found type before returning. */
 static PyObject * pyparam_misc_get_type(PyObject * self, PyObject * args) {
 
-	if (!_csp_initialized) {
-		PyErr_SetString(PyExc_RuntimeError,
-			"Cannot perform operations before ._param_init() has been called.");
-		return NULL;
-	}
+	// TODO Kevin: Confirm that csp if unecessary here.
+	// if (!_csp_initialized) {
+	// 	PyErr_SetString(PyExc_RuntimeError,
+	// 		"Cannot perform operations before ._param_init() has been called.");
+	// 	return NULL;
+	// }
 
 	PyObject * param_identifier;
 	int node = default_node;
@@ -372,7 +377,7 @@ static int _pyparam_util_index(int seqlen, int *index) {
 /* Private interface for getting the value of single parameter
    Increases the reference count of the returned item before returning. 
    Use INT_MIN for offset as no offset. */
-static PyObject * _pyparam_util_get_single(param_t *param, int offset, int autopull) {
+static PyObject * _pyparam_util_get_single(param_t *param, int offset, int autopull, int host) {
 
 	if (offset != INT_MIN) {
 		if (_pyparam_util_index(param->array_size, &offset))  // Validate the offset.
@@ -382,7 +387,7 @@ static PyObject * _pyparam_util_get_single(param_t *param, int offset, int autop
 
 	if (autopull && (param->node != 0)) {
 
-		if (param_pull_single(param, offset, 1, param->node, 1000, paramver)) {
+		if (param_pull_single(param, offset, 1, (host != INT_MIN ? host : param->node), 1000, paramver)) {
 			PyErr_SetString(PyExc_ConnectionError, "No response");
 			return NULL;
 		}
@@ -458,7 +463,7 @@ static PyObject * _pyparam_util_get_single(param_t *param, int offset, int autop
 	return NULL;
 }
 
-static PyObject * _pyparam_util_get_array(param_t *param, int autopull) {
+static PyObject * _pyparam_util_get_array(param_t *param, int autopull, int host) {
 
 	// Pull the value for each index (if we're allowed to),
 	// instead of pulling them individually.
@@ -484,7 +489,7 @@ static PyObject * _pyparam_util_get_array(param_t *param, int autopull) {
 	PyObject * value_tuple = PyTuple_New(param->array_size);
 
 	for (int i = 0; i < param->array_size; i++) {
-		PyObject * item = _pyparam_util_get_single(param, i, 0);
+		PyObject * item = _pyparam_util_get_single(param, i, 0, host);
 
 		if (item == NULL) {  // Something went wrong, probably a connectionerror. Let's abandon ship.
 			Py_DECREF(value_tuple);
@@ -507,7 +512,7 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 	}
 
 	PyObject * param_identifier;  // Raw argument object/type passed. Identify its type when needed.
-	int host = -1;
+	int host = INT_MIN;
 	int node = default_node;
 	int offset = INT_MIN;  // Using INT_MIN as the least likely value as Parameter arrays should be backwards subscriptable like lists.
 
@@ -523,8 +528,8 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 
 	// _pyparam_util_get_single() and _pyparam_util_get_array() will return NULL for exceptions, which is fine with us.
 	if (param->array_size > 0)
-		return _pyparam_util_get_array(param, autosend);
-	return _pyparam_util_get_single(param, offset, autosend);
+		return _pyparam_util_get_array(param, autosend, host);
+	return _pyparam_util_get_single(param, offset, autosend, host);
 }
 
 
@@ -538,10 +543,11 @@ static PyObject * _pyparam_get_str_value(PyObject * obj) {
 		// Return the value of the Parameter.
 
 		param_t * param = ((ParameterObject *)obj)->param;
+		int host = ((ParameterObject *)obj)->host;
 
 		PyObject * value = param->array_size > 0 ? 
-			_pyparam_util_get_array(param, autosend) :
-			_pyparam_util_get_single(param, INT_MIN, autosend);
+			_pyparam_util_get_array(param, autosend, host) :
+			_pyparam_util_get_single(param, INT_MIN, autosend, host);
 
 		PyObject * strvalue = PyObject_Str(value);
 		Py_DECREF(value);
@@ -608,7 +614,7 @@ static int _pyparam_typecheck_sequence(PyObject * sequence, PyTypeObject * type)
 //	might not be compatible with how parameters are supposed to be set.
 /* Private interface for setting the value of a normal parameter. 
    Use INT_MIN as no offset. */
-static int _pyparam_util_set_single(param_t *param, PyObject *value, int offset, param_queue_t *queue) {
+static int _pyparam_util_set_single(param_t *param, PyObject *value, int offset, int host, param_queue_t *queue) {
 	
 	if (offset != INT_MIN) {
 		if (_pyparam_util_index(param->array_size, &offset))  // Validate the offset.
@@ -629,7 +635,7 @@ static int _pyparam_util_set_single(param_t *param, PyObject *value, int offset,
 			param_set(param, offset, valuebuf);
 
 		} else {
-			if (param_push_single(param, offset, valuebuf, 1, param->node, 1000, paramver) < 0) {
+			if (param_push_single(param, offset, valuebuf, 1, (host != INT_MIN ? host : param->node), 1000, paramver) < 0) {
 				PyErr_SetString(PyExc_ConnectionError, "No response");
 				return -2;
 			}
@@ -652,7 +658,7 @@ static int _pyparam_util_set_single(param_t *param, PyObject *value, int offset,
 }
 
 /* Private interface for setting the value of an array parameter. */
-static int _pyparam_util_set_array(param_t *param, PyObject *value) {
+static int _pyparam_util_set_array(param_t *param, PyObject *value, int host) {
 
 	// Transform lazy generators and iterators into sequences,
 	// such that their length may be retrieved in a uniform manner.
@@ -713,7 +719,7 @@ static int _pyparam_util_set_array(param_t *param, PyObject *value) {
 
 		// Set local parameters immediately, use the global queue if autosend if off.
 		param_queue_t *usequeue = (!autosend ? &param_queue_set : ((param->node != 0) ? &queue : NULL));
-		_pyparam_util_set_single(param, item, i, usequeue);
+		_pyparam_util_set_single(param, item, i, host, usequeue);
 		
 		// 'item' is a borrowed reference, so we don't need to decrement it.
 	}
@@ -744,13 +750,14 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args, PyObject *
 
 	PyObject * param_identifier;  // Raw argument object/type passed. Identify its type when needed.
 	PyObject * value;
+	int host = INT_MIN;
 	int node = default_node;
 	int offset = INT_MIN;  // Using INT_MIN as the least likely value as Parameter arrays should be backwards subscriptable like lists.
 
 
-	static char *kwlist[] = {"param_identifier", "value", "node", "offset", NULL};
+	static char *kwlist[] = {"param_identifier", "value", "host", "node", "offset", NULL};
 	
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|iii", kwlist, &param_identifier, &value, &node, &offset)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|iii", kwlist, &param_identifier, &value, &host, &node, &offset)) {
 		return NULL;  // TypeError is thrown
 	}
 
@@ -760,11 +767,11 @@ static PyObject * pyparam_param_set(PyObject * self, PyObject * args, PyObject *
 		return NULL;  // Raises TypeError or ValueError.
 
 	if((PyIter_Check(value) || PySequence_Check(value)) && !PyObject_TypeCheck(value, &PyUnicode_Type)) {
-		if (_pyparam_util_set_array(param, value))
+		if (_pyparam_util_set_array(param, value, host))
 			return NULL;  // Raises one of many possible exceptions.
 	} else {
 		param_queue_t *usequeue = autosend ? NULL : &param_queue_set;
-		if (_pyparam_util_set_single(param, value, offset, usequeue))
+		if (_pyparam_util_set_single(param, value, offset, host, usequeue))
 			return NULL;  // Raises one of many possible exceptions.
 		param_print(param, -1, NULL, 0, 2);
 	}
@@ -1267,14 +1274,14 @@ static void Parameter_dealloc(ParameterObject *self) {
 /* May perform black magic and return a ParameterArray instead of the specified type. */
 static PyObject * Parameter_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 
-	static char *kwlist[] = {"param_identifier", "node", NULL};
+	static char *kwlist[] = {"param_identifier", "node", "host", NULL};
 
 	PyObject * param_identifier;  // Raw argument object/type passed. Identify its type when needed.
-	//int host = -1;
 	int node = default_node;
+	int host = INT_MIN;
 	//int offset = -1;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|H", kwlist, &param_identifier, &node)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|Hi", kwlist, &param_identifier, &node, &host)) {
 		return NULL;  // TypeError is thrown
 	}
 
@@ -1298,6 +1305,7 @@ static PyObject * Parameter_new(PyTypeObject *type, PyObject *args, PyObject *kw
 		return NULL;
 
 	self->param = param;
+	self->host = host;
 
 	self->name = PyUnicode_FromString(param->name);
 	if (self->name == NULL) {
@@ -1335,8 +1343,6 @@ static PyObject * Parameter_getnode(ParameterObject *self, void *closure) {
 
 /* This will change self->param to be one by the same name at the specified node. */
 static int Parameter_setnode(ParameterObject *self, PyObject *value, void *closure) {
-	// It seems that exceptions created in C setters aren't raised immediately after return,
-	// they are usually raised on the following expression in Python instead.
 
 	if (value == NULL) {
         PyErr_SetString(PyExc_TypeError, "Cannot delete the node attribute");
@@ -1369,6 +1375,42 @@ static int Parameter_setnode(ParameterObject *self, PyObject *value, void *closu
 	return 0;
 }
 
+static PyObject * Parameter_gethost(ParameterObject *self, void *closure) {
+	if (self->host != INT_MIN)
+		return Py_BuildValue("i", self->host);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+/* This will change self->param to be one by the same name at the specified node. */
+static int Parameter_sethost(ParameterObject *self, PyObject *value, void *closure) {
+
+	if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the host attribute");
+        return -1;
+    }
+
+	if (value == Py_None) {  // Set the host to INT_MIN, which we use as no host.
+		self->host = INT_MIN;
+		return 0;
+	}
+
+	if(!PyLong_Check(value)) {
+		PyErr_SetString(PyExc_TypeError,
+                        "The host attribute must be set to an int or None");
+        return -1;
+	}
+
+	int host = _PyLong_AsInt(value);
+
+	if (PyErr_Occurred())
+		return -1;  // 'Reraise' the current exception.
+
+	self->host = host;
+
+	return 0;
+}
+
 static PyObject * Parameter_gettype(ParameterObject *self, void *closure) {
 	Py_INCREF(self->type);
 	return (PyObject *)self->type;
@@ -1376,8 +1418,8 @@ static PyObject * Parameter_gettype(ParameterObject *self, void *closure) {
 
 static PyObject * Parameter_getvalue(ParameterObject *self, void *closure) {
 	if (self->param->array_size > 0 && _pyparam_misc_param_t_type(self->param) != &PyUnicode_Type)
-		return _pyparam_util_get_array(self->param, autosend);
-	return _pyparam_util_get_single(self->param, INT_MIN, autosend);
+		return _pyparam_util_get_array(self->param, autosend, self->host);
+	return _pyparam_util_get_single(self->param, INT_MIN, autosend, self->host);
 }
 
 static int Parameter_setvalue(ParameterObject *self, PyObject *value, void *closure) {
@@ -1388,9 +1430,9 @@ static int Parameter_setvalue(ParameterObject *self, PyObject *value, void *clos
     }
 
 	if (self->param->array_size > 0 && self->param->type != PARAM_TYPE_STRING)  // Is array parameter
-		return _pyparam_util_set_array(self->param, value);
+		return _pyparam_util_set_array(self->param, value, self->host);
 	param_queue_t *usequeue = autosend ? NULL : &param_queue_set;
-	return _pyparam_util_set_single(self->param, value, INT_MIN, usequeue);  // Normal parameter
+	return _pyparam_util_set_single(self->param, value, INT_MIN, self->host, usequeue);  // Normal parameter
 }
 
 static PyObject * Parameter_is_array(ParameterObject *self, void *closure) {
@@ -1449,7 +1491,7 @@ static PyObject * Parameter_richcompare(PyObject *self, PyObject *other, int op)
 
 /* 
 The Python binding 'Parameter' class exposes most of its attributes through getters, 
-as only its 'value' and 'node' are mutable, and even those are through setters.
+as only its 'value', 'host' and 'node' are mutable, and even those are through setters.
 */
 static PyGetSetDef Parameter_getsetters[] = {
     {"name", (getter)Parameter_getname, NULL,
@@ -1460,6 +1502,8 @@ static PyGetSetDef Parameter_getsetters[] = {
      "id of the parameter", NULL},
 	{"node", (getter)Parameter_getnode, (setter)Parameter_setnode,
      "node of the parameter", NULL},
+	{"host", (getter)Parameter_gethost, (setter)Parameter_sethost,
+     "host of the parameter", NULL},
 	{"type", (getter)Parameter_gettype, NULL,
      "type of the parameter", NULL},
 	{"value", (getter)Parameter_getvalue, (setter)Parameter_setvalue,
@@ -1503,7 +1547,7 @@ static PyObject * ParameterArray_GetItem(ParameterObject *self, PyObject *item) 
 	if (PyErr_Occurred())
 		return NULL;  // 'Reraise' the current exception.
 
-	return _pyparam_util_get_single(self->param, index, autosend);
+	return _pyparam_util_get_single(self->param, index, autosend, self->host);
 }
 
 static int ParameterArray_SetItem(ParameterObject *self, PyObject* item, PyObject* value) {
@@ -1529,7 +1573,7 @@ static int ParameterArray_SetItem(ParameterObject *self, PyObject* item, PyObjec
 	// _pyparam_util_set_single() uses negative numbers for exceptions,
 	// so we just return its return value.
 	param_queue_t *usequeue = autosend ? NULL : &param_queue_set;
-	return _pyparam_util_set_single(self->param, value, index, usequeue);
+	return _pyparam_util_set_single(self->param, value, index, self->host, usequeue);
 }
 
 static Py_ssize_t ParameterArray_length(ParameterObject *self) {
@@ -1796,7 +1840,7 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 	
 	csp_init();
 
-	csp_yaml_init(yamlname, dfl_addr);
+	csp_yaml_init(yamlname, &dfl_addr);
 	// param_set_local_node(dfl_addr);
 
 	csp_rdp_set_opt(3, 10000, 5000, 1, 2000, 2);

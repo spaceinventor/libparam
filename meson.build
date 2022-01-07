@@ -124,7 +124,11 @@ param_dep = declare_dependency(include_directories : param_inc, link_with : para
 
 if get_option('enable_python3_bindings')
 
-	py = import('python').find_installation('python3')
+	# The Python version specified in .find_installtion(),
+	# may be changed freely between 3.8, 3.9 and 3.10,
+	# such that it matches the version expected to be used.
+	# This is required for the extension module to be importable.
+	py = import('python').find_installation('python3.9')
 	# py.dependency() doesn't work with version constraint. Use plain
 	# dependency() instead
 	pydep = dependency('python3', version : '>=3.5', required : true)
