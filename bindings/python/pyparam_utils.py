@@ -50,10 +50,6 @@ def Bindings(csp_version: int = ..., csp_hostname: str = ..., csp_model: str = .
     # Initialize this instance of the module with the provided settings.
     libparam_py3._param_init(**init_dict)
 
-    # Delete the imported module from the cache, to force a new import next time.
-    # TODO Kevin: This is not really necessary until we have support for multiple shared objects.
-    #del _sys.modules[module_name or 'libparam_py3']
-
     return libparam_py3
 
 

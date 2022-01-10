@@ -264,13 +264,6 @@ static PyTypeObject * _pyparam_misc_param_t_type(param_t * param) {
    Increments the reference count of the found type before returning. */
 static PyObject * pyparam_misc_get_type(PyObject * self, PyObject * args) {
 
-	// TODO Kevin: Confirm that csp if unecessary here.
-	// if (!_csp_initialized) {
-	// 	PyErr_SetString(PyExc_RuntimeError,
-	// 		"Cannot perform operations before ._param_init() has been called.");
-	// 	return NULL;
-	// }
-
 	PyObject * param_identifier;
 	int node = default_node;
 
@@ -610,8 +603,6 @@ static int _pyparam_typecheck_sequence(PyObject * sequence, PyTypeObject * type)
 	return PyErr_Occurred() ? -3 : 0;
 }
 
-// TODO Kevin: Some of the changes this function makes, 
-//	might not be compatible with how parameters are supposed to be set.
 /* Private interface for setting the value of a normal parameter. 
    Use INT_MIN as no offset. */
 static int _pyparam_util_set_single(param_t *param, PyObject *value, int offset, int host, param_queue_t *queue) {
@@ -627,6 +618,8 @@ static int _pyparam_util_set_single(param_t *param, PyObject *value, int offset,
 	param_str_to_value(param->type, (char*)PyUnicode_AsUTF8(strvalue), valuebuf);
 	Py_DECREF(strvalue);
 
+	// TODO Kevin: The structure of setting the parameters has been refactored,
+	//	confirm that it still behaves like the original (especially for remote host parameters).
 	if (queue == NULL) {  // Set the parameter immediately, if no queue is provided.
 
 		if (param->node == 0) {
