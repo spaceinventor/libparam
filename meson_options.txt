@@ -7,4 +7,5 @@ option('scheduler', type: 'boolean', value: false, description: 'Build scheduler
 option('commands', type: 'boolean', value: false, description: 'Build command server')
 option('scheduler_client', type: 'boolean', value: false, description: 'Build scheduler client')
 option('commands_client', type: 'boolean', value: false, description: 'Build command client')
-option('enable_python3_bindings', type: 'boolean', value: true, description: 'Build Python 3 binding')
+option('enable_python3_bindings', type: 'boolean', value: false, description: 'Build Python 3 binding')
+option('python3_binding_versions', type: 'array', value: ['python3.8', 'python3.9'], description: 'Which versions of Python to compile bindings for')
