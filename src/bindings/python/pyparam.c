@@ -301,11 +301,11 @@ static PyObject * _pyparam_Parameter_from_param(PyTypeObject *type, param_t * pa
 	// TODO Kevin: An internal constructor like this is likely bad practice and not very DRY.
 	//	Perhaps find a better way?
 
-	if (param->array_size <= 0 && type == &ParameterArrayType) {
+	if (param->array_size <= 1 && type == &ParameterArrayType) {
 		PyErr_SetString(PyExc_TypeError, 
 			"Attempted to create an ParameterArray instance, for a non array parameter.");
 		return NULL;
-	} else if (param->array_size > 0)  // If the parameter is an array.
+	} else if (param->array_size > 1)  // If the parameter is an array.
 		type = &ParameterArrayType;  // We create a ParameterArray instance instead.
 		// If you listen really carefully here, you can hear OOP idealists, screaming in agony.
 		// On a more serious note, I'm amazed that this even works at all.
@@ -368,7 +368,7 @@ static int _pyparam_util_index(int seqlen, int *index) {
 }
 
 /* Private interface for getting the value of single parameter
-   Increases the reference count of the returned item before returning. 
+   Increases the reference count of the returned item before returning.
    Use INT_MIN for offset as no offset. */
 static PyObject * _pyparam_util_get_single(param_t *param, int offset, int autopull, int host) {
 
@@ -446,7 +446,7 @@ static PyObject * _pyparam_util_get_single(param_t *param, int offset, int autop
 			// TODO Kevin: No idea if this has any chance of working.
 			//	I hope it will raise a reasonable exception if it doesn't,
 			//	instead of just segfaulting :P
-			unsigned int size = (param->array_size > 0) ? param->array_size : 1;
+			unsigned int size = (param->array_size > 1) ? param->array_size : 1;
 			char buf[size];
 			param_get_data(param, buf, size);
 			return Py_BuildValue("O&", buf);
@@ -456,9 +456,11 @@ static PyObject * _pyparam_util_get_single(param_t *param, int offset, int autop
 	return NULL;
 }
 
+/* Private interface for getting the value of an array parameter
+   Increases the reference count of the returned tuple before returning.  */
 static PyObject * _pyparam_util_get_array(param_t *param, int autopull, int host) {
 
-	// Pull the value for each index (if we're allowed to),
+	// Pull the value for every index using a queue (if we're allowed to),
 	// instead of pulling them individually.
 	if (autopull && param->node != 0) {
 		void * queuebuffer = malloc(PARAM_SERVER_MTU);
@@ -520,7 +522,7 @@ static PyObject * pyparam_param_get(PyObject * self, PyObject * args, PyObject *
 		return NULL;  // Raises TypeError or ValueError.
 
 	// _pyparam_util_get_single() and _pyparam_util_get_array() will return NULL for exceptions, which is fine with us.
-	if (param->array_size > 0)
+	if (param->array_size > 1 && param->type != PARAM_TYPE_STRING)
 		return _pyparam_util_get_array(param, autosend, host);
 	return _pyparam_util_get_single(param, offset, autosend, host);
 }
@@ -639,8 +641,12 @@ static int _pyparam_util_set_single(param_t *param, PyObject *value, int offset,
 	} else {  // Otherwise; use the queue.
 
 		if (!queue->buffer) {
-			PyErr_SetString(PyExc_SystemError, "Attempted to add parameter to uninitialized queue");
-			return -3;
+			if (queue == &param_queue_set)  // We can initialize the global static queue.
+				param_queue_init(&param_queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
+			else {  // But not dynamically allocated queues, because we can't free them ourselves.
+				PyErr_SetString(PyExc_SystemError, "Attempted to add parameter to uninitialized queue");
+				return -3;
+			}
 		}
 		if (param_queue_add(queue, param, offset, valuebuf) < 0)
 			printf("Queue full\n");
@@ -673,7 +679,7 @@ static int _pyparam_util_set_array(param_t *param, PyObject *value, int host) {
 
 	// We don't support assigning slices (or anything of the like) yet, so...
 	if (seqlen != param->array_size) {
-		if (param->array_size > 0) {  // Check that the lengths match.
+		if (param->array_size > 1) {  // Check that the lengths match.
 			char buf[120];
 			sprintf(buf, "Provided iterable's length does not match parameter's. <iterable length: %i> <param length: %i>", seqlen, param->array_size);
 			PyErr_SetString(PyExc_ValueError, buf);
@@ -1283,11 +1289,11 @@ static PyObject * Parameter_new(PyTypeObject *type, PyObject *args, PyObject *kw
 	if (param == NULL)  // Did not find a match.
 		return NULL;  // Raises TypeError or ValueError.
 
-	if (param->array_size <= 0 && type == &ParameterArrayType) {
+	if (param->array_size <= 1 && type == &ParameterArrayType) {
 		PyErr_SetString(PyExc_TypeError, 
 			"Attempted to create an ParameterArray instance, for a non array parameter.");
 		return NULL;
-	} else if (param->array_size > 0)  // If the parameter is an array.
+	} else if (param->array_size > 1)  // If the parameter is an array.
 		type = &ParameterArrayType;  // We create a ParameterArray instance instead.
 		// If you listen really carefully here, you can hear OOP idealists, screaming in agony.
 		// On a more serious note, I'm amazed that this even works at all.
@@ -1410,7 +1416,7 @@ static PyObject * Parameter_gettype(ParameterObject *self, void *closure) {
 }
 
 static PyObject * Parameter_getvalue(ParameterObject *self, void *closure) {
-	if (self->param->array_size > 0 && _pyparam_misc_param_t_type(self->param) != &PyUnicode_Type)
+	if (self->param->array_size > 1 && self->param->type != PARAM_TYPE_STRING)
 		return _pyparam_util_get_array(self->param, autosend, self->host);
 	return _pyparam_util_get_single(self->param, INT_MIN, autosend, self->host);
 }
@@ -1422,7 +1428,7 @@ static int Parameter_setvalue(ParameterObject *self, PyObject *value, void *clos
         return -1;
     }
 
-	if (self->param->array_size > 0 && self->param->type != PARAM_TYPE_STRING)  // Is array parameter
+	if (self->param->array_size > 1 && self->param->type != PARAM_TYPE_STRING)  // Is array parameter
 		return _pyparam_util_set_array(self->param, value, self->host);
 	param_queue_t *usequeue = autosend ? NULL : &param_queue_set;
 	return _pyparam_util_set_single(self->param, value, INT_MIN, self->host, usequeue);  // Normal parameter
@@ -1431,7 +1437,7 @@ static int Parameter_setvalue(ParameterObject *self, PyObject *value, void *clos
 static PyObject * Parameter_is_array(ParameterObject *self, void *closure) {
 	// I believe this is the most appropriate way to check whether the parameter is an array.
 	// Additionally; this seems a decent substitute for an array parameter subclass.
-	PyObject * result = self->param->array_size > 0 ? Py_True : Py_False;
+	PyObject * result = self->param->array_size > 1 ? Py_True : Py_False;
 	Py_INCREF(result);
 	return result;
 }
@@ -1572,7 +1578,7 @@ static int ParameterArray_SetItem(ParameterObject *self, PyObject* item, PyObjec
 static Py_ssize_t ParameterArray_length(ParameterObject *self) {
 	// We currently raise an exception when getting len() of non-array type parameters.
 	// This stops PyCharm (Perhaps other IDE's) from showing their length as 0. ¯\_(ツ)_/¯
-	if (self->param->array_size <= 0) {
+	if (self->param->array_size <= 1) {
 		PyErr_SetString(PyExc_AttributeError, "Non-array type parameter is not subscriptable");
 		return -1;
 	}
