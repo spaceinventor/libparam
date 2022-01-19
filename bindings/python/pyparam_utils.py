@@ -20,7 +20,6 @@ def Bindings(csp_version: int = ..., csp_hostname: str = ..., csp_model: str = .
     """
     Imports and customizes a new instance of the libparam bindings module based on the provided arguments.
 
-    :param csp_address: Which CSP address to use in the module.
     :param csp_version: Which CSP version to use in the module.
     :param csp_hostname: Which CSP hostname to use in the module.
     :param csp_model: Which CSP model to use in the module.

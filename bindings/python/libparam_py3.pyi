@@ -98,7 +98,7 @@ class ParameterArray(Parameter):
     Subclass of Parameter specifically designed to provide an interface
     to array parameters. In practical terms; the class implements:
         __len__(), __getitem__() and __setitem__().
-    The Parameter class will automatically create instances of this class when relevant,
+    The Parameter class will automatically create instances of this class when needed,
     which means that manual instantiation of ParameterArrays is unnecessary.
     """
 
@@ -133,6 +133,10 @@ class ParameterArray(Parameter):
 
 
 class ParameterList(list[Parameter]):
+    """
+    Convenience class providing an interface for pulling and pushing the value of multiple parameters
+    in a single request using param_queue_t's
+    """
 
     def __init__(self, *args: Parameter) -> None:
         """ Accepts a sequence of Parameter object as is initial values. """
@@ -144,7 +148,7 @@ class ParameterList(list[Parameter]):
         :raises TypeError: When attempting to append a non-Parameter object.
         """
 
-    def pull(self) -> None:
+    def pull(self, host: int, timeout: int = None) -> None:
         """
         Pulls all Parameters in the list as a single request.
 
@@ -196,13 +200,14 @@ def set(param_identifier: _param_ident_hint, value: _param_value_hint | _Iterabl
 
 def push(node: int, timeout: int = None) -> None:
     """
-    Push the current queue
+    Push the current queue.
 
     :param timeout: Timeout in milliseconds of the push request.
     :raises ConnectionError: when no response is received.
     """
 
-def pull(host: int, include_mask: str = None, exclude_mask: str = None, timeout: int = None) -> None: ...
+def pull(host: int, include_mask: str = None, exclude_mask: str = None, timeout: int = None) -> None:
+    """ Pull all or a specific set of parameters. """
 
 def clear() -> None:
     """ Clears the queue. """
@@ -241,7 +246,8 @@ def list(mask: str) -> ParameterList:
     :param mask: Mask on which to filter the list.
     """
 
-def list_download(node: int, timeout: int = None, version: int = None) -> ParameterList: ...
+def list_download(node: int, timeout: int = None, version: int = None) -> ParameterList:
+    """ Download all parameters on the specified node. """
 
 
 # Commands from CSP
@@ -342,7 +348,7 @@ def vmem_unlock(node: int = None, timeout: int = None) -> int:
 def _param_init(csp_version = None, csp_hostname: str = None, csp_model: str = None,
                 use_prometheus: int = None, rtable: str = None, yamlname: str = None, dfl_addr: int = None, quiet: int = None) -> None:
     """
-    Initializes the libparam shared object module, with the provided settings.
+    Initializes the module, with the provided settings.
 
     :param csp_version: Which CSP version to use in the module.
     :param csp_hostname: Which CSP hostname to use in the module.

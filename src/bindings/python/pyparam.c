@@ -1879,37 +1879,37 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 static PyMethodDef methods[] = {
 
 	/* Converted CSH commands from param/param_slash.c */
-	{"set", 		(PyCFunction)pyparam_param_set, METH_VARARGS | METH_KEYWORDS, 	""},
-	{"get", 		(PyCFunction)pyparam_param_get, METH_VARARGS | METH_KEYWORDS, 	""},
-	{"push", 		pyparam_param_push, 			METH_VARARGS, 					""},
-	{"pull", 		(PyCFunction)pyparam_param_pull,METH_VARARGS | METH_KEYWORDS, 	""},
-	{"clear", 		pyparam_param_clear, 			METH_NOARGS, 					""},
-	{"node", 		pyparam_param_node, 			METH_VARARGS, 					""},
-	{"paramver", 	pyparam_param_paramver, 		METH_VARARGS, 					""},
-	{"autosend", 	pyparam_param_autosend, 		METH_VARARGS, 					""},
-	{"queue", 		pyparam_param_queue, 			METH_NOARGS, 					""},
+	{"get", 		(PyCFunction)pyparam_param_get, METH_VARARGS | METH_KEYWORDS, 	"Set the value of a parameter."},
+	{"set", 		(PyCFunction)pyparam_param_set, METH_VARARGS | METH_KEYWORDS, 	"Get the value of a parameter."},
+	{"push", 		pyparam_param_push, 			METH_VARARGS, 					"Push the current queue."},
+	{"pull", 		(PyCFunction)pyparam_param_pull,METH_VARARGS | METH_KEYWORDS, 	"Pull all or a specific set of parameters."},
+	{"clear", 		pyparam_param_clear, 			METH_NOARGS, 					"Clears the queue."},
+	{"node", 		pyparam_param_node, 			METH_VARARGS, 					"Used to get or change the default node."},
+	{"paramver", 	pyparam_param_paramver, 		METH_VARARGS, 					"Used to get or change the parameter version."},
+	{"autosend", 	pyparam_param_autosend, 		METH_VARARGS, 					"Used to get or change whether autosend is enabled."},
+	{"queue", 		pyparam_param_queue, 			METH_NOARGS, 					"Print the current status of the queue."},
 
 	/* Converted CSH commands from param/param_list_slash.c */
-	{"list", 		pyparam_param_list, 			METH_VARARGS, 					""},
-	{"list_download", (PyCFunction)pyparam_param_list_download, METH_VARARGS | METH_KEYWORDS, ""},
+	{"list", 		pyparam_param_list, 			METH_VARARGS, 					"List all known parameters."},
+	{"list_download", (PyCFunction)pyparam_param_list_download, METH_VARARGS | METH_KEYWORDS, "Download all parameters on the specified node."},
 
 	/* Converted CSH commands from slash_csp.c */
 	/* Including these here is not entirely optimal, they may be removed. */
-	{"ping", 		(PyCFunction)pyparam_csp_ping, 	METH_VARARGS | METH_KEYWORDS, 	""},
-	{"ident", 		(PyCFunction)pyparam_csp_ident, METH_VARARGS | METH_KEYWORDS, 	""},
-	{"reboot", 		pyparam_csp_reboot, 			METH_VARARGS, 					""},
+	{"ping", 		(PyCFunction)pyparam_csp_ping, 	METH_VARARGS | METH_KEYWORDS, 	"Ping the specified node."},
+	{"ident", 		(PyCFunction)pyparam_csp_ident, METH_VARARGS | METH_KEYWORDS, 	"Print the identity of the specified node."},
+	{"reboot", 		pyparam_csp_reboot, 			METH_VARARGS, 					"Reboot the specified node."},
 
 	/* Miscellaneous utility functions */
-	{"get_type", 	pyparam_misc_get_type, 			METH_VARARGS, 					""},
+	{"get_type", 	pyparam_misc_get_type, 			METH_VARARGS, 					"Gets the type of the specified parameter."},
 
 	/* Converted vmem commands. */
-	{"vmem_list", 	(PyCFunction)pyparam_vmem_list,   METH_VARARGS | METH_KEYWORDS,	""},
-	{"vmem_restore",(PyCFunction)pyparam_vmem_restore,METH_VARARGS | METH_KEYWORDS, ""},
-	{"vmem_backup", (PyCFunction)pyparam_vmem_backup, METH_VARARGS | METH_KEYWORDS, ""},
-	{"vmem_unlock", (PyCFunction)pyparam_vmem_unlock, METH_VARARGS | METH_KEYWORDS, ""},
+	{"vmem_list", 	(PyCFunction)pyparam_vmem_list,   METH_VARARGS | METH_KEYWORDS,	"Builds a string of the vmem at the specified node."},
+	{"vmem_restore",(PyCFunction)pyparam_vmem_restore,METH_VARARGS | METH_KEYWORDS, "Restore the configuration on the specified node."},
+	{"vmem_backup", (PyCFunction)pyparam_vmem_backup, METH_VARARGS | METH_KEYWORDS, "Back up the configuration on the specified node."},
+	{"vmem_unlock", (PyCFunction)pyparam_vmem_unlock, METH_VARARGS | METH_KEYWORDS, "Unlock the vmem on the specified node, such that it may be changed by a backup (for example)."},
 
 	/* Misc */
-	{"_param_init", (PyCFunction)pyparam_init, 		METH_VARARGS | METH_KEYWORDS, 	""},
+	{"_param_init", (PyCFunction)pyparam_init, 		METH_VARARGS | METH_KEYWORDS, 	"Initializes the module, with the provided settings."},
 
 	/* sentinel */
 	{NULL, NULL, 0, NULL}};
@@ -1917,7 +1917,7 @@ static PyMethodDef methods[] = {
 static struct PyModuleDef moduledef = {
 	PyModuleDef_HEAD_INIT,
 	"libparam_py3",
-	"Module ",
+	"Bindings primarily dedicated to the libparam shell interface commands",
 	-1,
 	methods,
 	NULL,

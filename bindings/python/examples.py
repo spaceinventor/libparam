@@ -7,7 +7,7 @@ Please note that the 'PYTHONPATH' and 'LD_LIBRARY_PATH' environment variables mu
 set to point at the directory of the python bindings shared object before they may be imported.
 
 Compiling and importing the bindings and running these examples:
-    - Set 'enable_python3_bindings' to <true> in 'meson_options.txt'.
+    - Set 'enable_python3_bindings' to true in 'meson_options.txt'.
     - cd into project directory.
     - Compile with meson using: "meson . builddir && ninja -C builddir clean && ninja -C builddir".
     - Run these examples (with the proper environment variables) using:
@@ -169,7 +169,7 @@ def misc_param_examples(bindings) -> None:
     # Lucky you; there is a utility context manager for exactly this purpose!
     with temp_autosend_value(1):
         print(f"We have now changed it back to {bindings.autosend()} for a short while.")
-    print(f"And have now reset if to {bindings.autosend()}.")
+    print(f"And have now reset it to {bindings.autosend()}.")
 
     # We can 'stage' changes to parameters because autosend is 0.
     new_value = "This value will not be applied."
