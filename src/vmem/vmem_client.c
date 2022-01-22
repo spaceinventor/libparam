@@ -12,7 +12,7 @@
 #include <vmem/vmem_server.h>
 #include <vmem/vmem_client.h>
 
-void vmem_download(int node, int timeout, uint32_t address, uint32_t length, char * dataout)
+void vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version)
 {
 	uint32_t time_begin = csp_get_ms();
 
@@ -28,8 +28,13 @@ void vmem_download(int node, int timeout, uint32_t address, uint32_t length, cha
 	vmem_request_t * request = (void *) packet->data;
 	request->version = VMEM_VERSION;
 	request->type = VMEM_SERVER_DOWNLOAD;
-	request->data.address = htobe32(address);
-	request->data.length = htobe32(length);
+	if (version == 2) {
+		request->data2.address = htobe64(address);
+		request->data2.length = htobe32(length);
+	} else {
+		request->data.address = htobe32((uint32_t)address);
+		request->data.length = htobe32(length);
+	}
 	packet->length = sizeof(vmem_request_t);
 
 	/* Send request */
@@ -70,7 +75,7 @@ void vmem_download(int node, int timeout, uint32_t address, uint32_t length, cha
 
 }
 
-void vmem_upload(int node, int timeout, uint32_t address, char * datain, uint32_t length)
+void vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version)
 {
 	uint32_t time_begin = csp_get_ms();
 
@@ -86,8 +91,14 @@ void vmem_upload(int node, int timeout, uint32_t address, char * datain, uint32_
 	vmem_request_t * request = (void *) packet->data;
 	request->version = VMEM_VERSION;
 	request->type = VMEM_SERVER_UPLOAD;
-	request->data.address = htobe32(address);
-	request->data.length = htobe32(length);
+
+	if (version == 2) {
+		request->data2.address = htobe64(address);
+		request->data2.length = htobe32(length);
+	} else {
+		request->data.address = htobe32(address);
+		request->data.length = htobe32(length);
+	}
 	packet->length = sizeof(vmem_request_t);
 
 	/* Send request */
@@ -129,7 +140,7 @@ void vmem_upload(int node, int timeout, uint32_t address, char * datain, uint32_
 
 }
 
-void vmem_client_list(int node, int timeout) {
+void vmem_client_list(int node, int timeout, int version) {
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_NONE);
 	if (conn == NULL)
@@ -140,7 +151,7 @@ void vmem_client_list(int node, int timeout) {
 		return;
 
 	vmem_request_t * request = (void *) packet->data;
-	request->version = VMEM_VERSION;
+	request->version = version;
 	request->type = VMEM_SERVER_LIST;
 	packet->length = sizeof(vmem_request_t);
 
@@ -154,9 +165,17 @@ void vmem_client_list(int node, int timeout) {
 		return;
 	}
 
-	for (vmem_list_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
-		printf(" %u: %-5.5s 0x%08X - %u typ %u\r\n", vmem->vmem_id, vmem->name, (unsigned int) be32toh(vmem->vaddr), (unsigned int) be32toh(vmem->size), vmem->type);
+	if (request->version == 2) {
+		for (vmem_list2_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
+			printf(" %u: %-5.5s 0x%lX - %u typ %u\r\n", vmem->vmem_id, vmem->name, be64toh(vmem->vaddr), (unsigned int) be32toh(vmem->size), vmem->type);
+		}
+	} else {
+		for (vmem_list_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
+			printf(" %u: %-5.5s 0x%08X - %u typ %u\r\n", vmem->vmem_id, vmem->name, (unsigned int) be32toh(vmem->vaddr), (unsigned int) be32toh(vmem->size), vmem->type);
+		}
+
 	}
+
 
 	csp_buffer_free(packet);
 	csp_close(conn);
