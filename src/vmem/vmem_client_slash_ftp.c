@@ -68,12 +68,15 @@ static int vmem_client_slash_download(struct slash *slash)
 
 	/* Open file (truncate or create) */
 	FILE * fd = fopen(file, "w+");
-	if (fd == NULL)
+	if (fd == NULL) {
+		free(data);
 		return SLASH_EINVAL;
+	}
 
 	/* Write data */
 	int written = fwrite(data, 1, length, fd);
 	fclose(fd);
+	free(data);
 
 	printf("Downloaded %u bytes in %.03f s at %u Bps\n", written, time_total / 1000.0, (unsigned int) (written / ((float)time_total / 1000.0)) );
 
