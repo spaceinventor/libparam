@@ -1,4 +1,13 @@
-""" Interface documentation of the libparam Python bindings. """
+"""
+Interface documentation of the libparam Python bindings.
+
+The bindings API largely mimics the shell interface to CSH,
+meaning that the same commands (with their respective parameters), are available as functions here.
+Wrapper classes for param_t's and a class providing an interface to param_queue_t are also made available.
+These provide an object-oriented interface to libparam, but are largely meant for convenience.
+"""
+
+from __future__ import annotations
 
 from typing import \
     Any as _Any, \
@@ -66,14 +75,14 @@ class Parameter:
         """ Returns the best Python representation type object of the param_t c struct type. i.e int for uint32. """
 
     @property
-    def value(self) -> _param_value_hint | tuple[_param_value_hint]:
+    def value(self) -> int | float:
         """
-        Returns the value of the parameter from the specified node in the Python representation of its type.
+        Returns the value of the parameter from its specified node in the Python representation of its type.
         Array parameters return a tuple of values, whereas normal parameters return only a single value.
         """
 
     @value.setter
-    def value(self, value: _param_value_hint | _Iterable[_param_value_hint]) -> None:
+    def value(self, value: int | float) -> None:
         """
         Sets the value of the parameter.
 
@@ -106,16 +115,16 @@ class ParameterArray(Parameter):
         """
         Gets the length of array parameters.
 
-        :raises PyExc_AttributeError: For non-array type parameters.
+        :raises AttributeError: For non-array type parameters.
         :return: The value of the wrapped param_t->array_size.
         """
 
     def __getitem__(self, index: int) -> _param_type_hint:
         """
-        Get the value of an index in a array parameter.
+        Get the value of an index in an array parameter.
 
         :param index: Index on which to get the value. Supports backwards subscription (i.e: -1).
-        :raises IndexError: When trying to get a value ouside the bounds of the parameter array.
+        :raises IndexError: When trying to get a value outside the bounds of the parameter array.
         :raises ConnectionError: When autosend is on, and no response is received.
 
         :return: The value of the specified index, as its Python type.
@@ -131,8 +140,23 @@ class ParameterArray(Parameter):
         :raises ConnectionError: When autosend is on, and no response is received.
         """
 
+    @property
+    def value(self) -> str | tuple[int | float]:
+        """
+        Returns the value of the parameter from its specified node in the Python representation of its type.
+        Array parameters return a tuple of values, whereas normal parameters return only a single value.
+        """
 
-class ParameterList(list[Parameter]):
+    @value.setter
+    def value(self, value: str | _Iterable[int | float]) -> None:
+        """
+        Sets the value of the parameter.
+
+        :param value: New desired value. Assignments to other parameters, use their value instead, Otherwise uses .__str__().
+        """
+
+
+class ParameterList(list[Parameter, ParameterArray]):
     """
     Convenience class providing an interface for pulling and pushing the value of multiple parameters
     in a single request using param_queue_t's
@@ -183,7 +207,7 @@ def get(param_identifier: _param_ident_hint, host: int = None, node: int = None,
     :return: The value of the retrieved parameter (As its Python type).
     """
 
-def set(param_identifier: _param_ident_hint, value: _param_value_hint | _Iterable[_param_value_hint], host: int = None, node: int = None, offset: int = None) -> None:
+def set(param_identifier: _param_ident_hint, value: _param_value_hint | _Iterable[int | float], host: int = None, node: int = None, offset: int = None) -> None:
     """
     Set the value of a parameter.
 
@@ -202,6 +226,7 @@ def push(node: int, timeout: int = None) -> None:
     """
     Push the current queue.
 
+    :param node: Node to which the current queue should be pushed.
     :param timeout: Timeout in milliseconds of the push request.
     :raises ConnectionError: when no response is received.
     """
@@ -239,7 +264,7 @@ def autosend(autosend: int = None) -> int:
 def queue() -> None:
     """ Print the current status of the queue. """
 
-def list(mask: str) -> ParameterList:
+def list(mask: str = None) -> ParameterList:
     """
     List all known parameters.
 
