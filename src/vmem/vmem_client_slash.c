@@ -26,6 +26,7 @@ static int vmem_client_slash_list(struct slash *slash)
 {
 	int node = 0;
 	int timeout = 2000;
+	int version = 1;
 	char * endptr;
 
 	if (slash->argc >= 2) {
@@ -40,12 +41,18 @@ static int vmem_client_slash_list(struct slash *slash)
 			return SLASH_EUSAGE;
 	}
 
-	printf("Requesting vmem list from node %u timeout %u\n", node, timeout);
+	if (slash->argc >= 4) {
+		version = strtoul(slash->argv[3], &endptr, 10);
+		if (*endptr != '\0')
+			return SLASH_EUSAGE;
+	}
 
-	vmem_client_list(node, timeout);
+	printf("Requesting vmem list from node %u timeout %u version %d\n", node, timeout, version);
+
+	vmem_client_list(node, timeout, version);
 	return SLASH_SUCCESS;
 }
-slash_command_sub(vmem, list, vmem_client_slash_list, "[node] [timeout]", NULL);
+slash_command_sub(vmem, list, vmem_client_slash_list, "[node] [timeout] [version]", NULL);
 
 static int vmem_client_slash_fram(struct slash *slash, int backup) {
 

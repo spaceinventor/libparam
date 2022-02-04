@@ -38,9 +38,18 @@ void vmem_server_handler(csp_conn_t * conn)
 	 */
 	if (type == VMEM_SERVER_DOWNLOAD) {
 
-		uint32_t address = be32toh(request->data.address);
-		uint32_t length = be32toh(request->data.length);
+		uint32_t length;
+		uint64_t address;
+		
+		if (request->version == 2) {
+			address = be64toh(request->data2.address);
+			length = be32toh(request->data2.length);
+		} else {
+			address = be32toh(request->data.address);
+			length = be32toh(request->data.length);
+		}
 		csp_buffer_free(packet);
+		printf("Addr %lx len %x\n", address, length);
 
 		unsigned int count = 0;
 		while(count < length) {
@@ -67,7 +76,13 @@ void vmem_server_handler(csp_conn_t * conn)
 	 */
 	} else if (request->type == VMEM_SERVER_UPLOAD) {
 
-		uint32_t address = be32toh(request->data.address);
+		uint64_t address;
+		
+		if (request->version == 2) {
+			address = be64toh(request->data2.address);
+		} else {
+			address = be32toh(request->data.address);
+		}
 		csp_buffer_free(packet);
 
 		int count = 0;
@@ -86,18 +101,37 @@ void vmem_server_handler(csp_conn_t * conn)
 
 	} else if (request->type == VMEM_SERVER_LIST) {
 
-		vmem_list_t * list = (vmem_list_t *) packet->data;
+		if (request->version == 1) {
 
-		int i = 0;
-		packet->length = 0;
-		for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++, i++) {
-			list[i].vaddr = htobe32((intptr_t) vmem->vaddr);
-			list[i].size = htobe32(vmem->size);
-			list[i].vmem_id = i;
-			list[i].type = vmem->type;
-			strncpy(list[i].name, vmem->name, 5);
-			packet->length += sizeof(vmem_list_t);
-		}
+			vmem_list_t * list = (vmem_list_t *) packet->data;
+
+			int i = 0;
+			packet->length = 0;
+			for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++, i++) {
+				list[i].vaddr = htobe32((intptr_t) vmem->vaddr);
+				list[i].size = htobe32(vmem->size);
+				list[i].vmem_id = i;
+				list[i].type = vmem->type;
+				strncpy(list[i].name, vmem->name, 5);
+				packet->length += sizeof(vmem_list_t);
+			}
+		} else if (request->version == 2) {
+			
+			vmem_list2_t * list = (vmem_list2_t *) packet->data;
+
+			int i = 0;
+			packet->length = 0;
+			for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++, i++) {
+				list[i].vaddr = htobe64((intptr_t) vmem->vaddr);
+				list[i].size = htobe32(vmem->size);
+				list[i].vmem_id = i;
+				list[i].type = vmem->type;
+				strncpy(list[i].name, vmem->name, 5);
+				packet->length += sizeof(vmem_list_t);
+			}
+
+		}	
+		
 
 		csp_send(conn, packet);
 
