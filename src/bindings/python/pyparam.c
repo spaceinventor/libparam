@@ -45,8 +45,9 @@ static PyTypeObject ParameterListType;
 VMEM_DEFINE_FILE(csp, "csp", "cspcnf.vmem", 120);
 VMEM_DEFINE_FILE(params, "param", "params.csv", 50000);
 VMEM_DEFINE_FILE(col, "col", "colcnf.vmem", 120);
-VMEM_DEFINE_FILE(crypto, "crypto", "crypto.csv", 50000);
-VMEM_DEFINE_FILE(tfetch, "tfetc", "tfetch.vmem", 120);
+//VMEM_DEFINE_FILE(crypto, "crypto", "crypto.csv", 50000);
+//VMEM_DEFINE_FILE(tfetch, "tfetc", "tfetch.vmem", 120);
+VMEM_DEFINE_FILE(dummy, "dummy", "dummy.txt", 1000000);
 
 
 PARAM_DEFINE_STATIC_VMEM(PARAMID_CSP_RTABLE,      csp_rtable,        PARAM_TYPE_STRING, 64, 0, PM_SYSCONF, NULL, "", csp, 0, NULL);
@@ -1678,6 +1679,9 @@ static PyObject * ParameterList_push(ParameterListObject *self, PyObject *args, 
 	param_queue_t queue = { };
 	param_queue_init(&queue, queuebuffer, PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
 
+	// Would likely segfault if 'self' is not a sequence, not that this ever seems be possible.
+	// Python seems to perform a sanity check on the type of 'self' before running the method.
+	// Source: cpython/Objects/descrobject.c->descr_check().
 	int seqlen = PySequence_Fast_GET_SIZE(self);
 
 	for (int i = 0; i < seqlen; i++) {
@@ -1728,6 +1732,7 @@ static int ParameterList_init(ParameterListObject *self, PyObject *args, PyObjec
 		// (((((1)), 2))), but this initializes a ParameterList incorrectly anyway. 
 		return ParameterList_init(self, PySequence_Fast_GET_ITEM(args, 0), kwds);
 
+	// Call list init without any arguments, in case it's needed.
 	if (PyList_Type.tp_init((PyObject *) self, PyTuple_Pack(0), kwds) < 0)
         return -1;
         
@@ -1807,7 +1812,8 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 
 	int use_prometheus = 0;
 	char * rtable = NULL;
-	char * yamlname = "can.yaml";
+	char * yamlname = "csh.yaml";
+	char * dirname = getenv("HOME");
 	unsigned int dfl_addr = 0;
 	
 	int quiet = 0;
@@ -1820,6 +1826,9 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 	)
 		return NULL;  // TypeError is thrown
 
+	if (strcmp(yamlname, "csh.yaml"))
+		dirname = "";
+
 	if (quiet) {
 		static FILE * devnull;
 		if ((devnull = fopen("/dev/null", "w")) == NULL) {
@@ -1829,30 +1838,39 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 		stdout = devnull;
 	}
 
-	/* Get csp config from file */
-	vmem_file_init(&vmem_csp);
-
 	/* Parameters */
 	vmem_file_init(&vmem_params);
 	param_list_store_vmem_load(&vmem_params);
 
-	
+	csp_conf.dedup = CSP_DEDUP_OFF;
 	csp_init();
 
-	csp_yaml_init(yamlname, &dfl_addr);
-	// param_set_local_node(dfl_addr);
+	if (strlen(dirname)) {
+		char buildpath[100];
+		snprintf(buildpath, 100, "%s/%s", dirname, yamlname);
+		csp_yaml_init(buildpath, &dfl_addr);
+	} else {
+		csp_yaml_init(yamlname, &dfl_addr);
+
+	}
+	param_set_local_node(dfl_addr);
 
 	csp_rdp_set_opt(3, 10000, 5000, 1, 2000, 2);
 
+#if (CSP_HAVE_STDIO)
 	if (rtable && csp_rtable_check(rtable)) {
 		int error = csp_rtable_load(rtable);
 		if (error < 1) {
 			printf("csp_rtable_load(%s) failed, error: %d\n", rtable, error);
 		}
 	}
+#endif
+	(void) rtable;
 
 	csp_bind_callback(csp_service_handler, CSP_ANY);
 	csp_bind_callback(param_serve, PARAM_PORT_SERVER);
+
+	vmem_file_init(&vmem_dummy);
 
 	/* Start a collector task */
 	vmem_file_init(&vmem_col);
