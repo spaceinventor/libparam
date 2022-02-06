@@ -49,7 +49,7 @@ void vmem_server_handler(csp_conn_t * conn)
 			length = be32toh(request->data.length);
 		}
 		csp_buffer_free(packet);
-		printf("Addr %lx len %x\n", address, length);
+		printf("Addr %"PRIx64" len %"PRIu32"\n", address, length);
 
 		unsigned int count = 0;
 		while(count < length) {
