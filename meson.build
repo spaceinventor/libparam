@@ -8,6 +8,11 @@ conf.set('PARAM_HAVE_SYS_QUEUE', get_option('list_dynamic'))
 conf.set('PARAM_LIST_DYNAMIC', get_option('list_dynamic'))
 conf.set('PARAM_HAVE_SCHEDULER', get_option('scheduler'))
 conf.set('PARAM_HAVE_COMMANDS', get_option('commands'))
+
+if get_option('have_float') == false
+	conf.set('MPACK_FLOAT', 0)
+endif
+
 if get_option('have_fopen') == true
 	conf.set('MPACK_STDIO', 1)
 endif

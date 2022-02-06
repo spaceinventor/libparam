@@ -221,6 +221,7 @@ int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * write
 				mpack_write_int(writer, param_get_int64_array(param, i));
 			}
 			break;
+#if MPACK_FLOAT
 		case PARAM_TYPE_FLOAT:
 			if (value) {
 				mpack_write_float(writer, *(float *) value);
@@ -235,7 +236,7 @@ int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * write
 				mpack_write_double(writer, param_get_double_array(param, i));
 			}
 			break;
-
+#endif
 		case PARAM_TYPE_STRING: {
 			size_t len;
 			if (value) {
@@ -344,10 +345,12 @@ void param_deserialize_from_mpack_to_param(void * context, void * queue, param_t
 			param_set_int32_array(param, i, (int32_t) mpack_expect_int(reader)); break;
 		case PARAM_TYPE_INT64:
 			param_set_int64_array(param, i, mpack_expect_i64(reader)); break;
+#if MPACK_FLOAT
 		case PARAM_TYPE_FLOAT:
 			param_set_float_array(param, i, mpack_expect_float(reader)); break;
 		case PARAM_TYPE_DOUBLE:
 			param_set_double_array(param, i, mpack_expect_double(reader)); break;
+#endif
 		case PARAM_TYPE_STRING: {
 			int len = mpack_expect_str(reader);
 			if (len == 0) {
