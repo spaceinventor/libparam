@@ -95,7 +95,7 @@ void vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_
 		return;
 
 	vmem_request_t * request = (void *) packet->data;
-	request->version = VMEM_VERSION;
+	request->version = version;
 	request->type = VMEM_SERVER_UPLOAD;
 
 	if (version == 2) {
