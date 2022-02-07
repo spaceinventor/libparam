@@ -26,7 +26,7 @@ void vmem_download(int node, int timeout, uint64_t address, uint32_t length, cha
 		return;
 
 	vmem_request_t * request = (void *) packet->data;
-	request->version = VMEM_VERSION;
+	request->version = version;
 	request->type = VMEM_SERVER_DOWNLOAD;
 	if (version == 2) {
 		request->data2.address = htobe64(address);
@@ -46,6 +46,12 @@ void vmem_download(int node, int timeout, uint64_t address, uint32_t length, cha
 	while((packet = csp_read(conn, timeout)) != NULL) {
 
 		//csp_hex_dump("Download", packet->data, packet->length);
+
+		/* RX overflow check */
+		if (count + packet->length > length) {
+			csp_buffer_free(packet);
+			break;
+		}
 
 		if (dotcount % 32 == 0)
 			printf("  ");
