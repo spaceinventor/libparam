@@ -35,7 +35,7 @@ typedef struct vmem_s {
 	int size;
 	const char *name;
 	int big_endian;
-	const void * driver;
+	void * driver;
 } vmem_t;
 
 void * vmem_memcpy(void * to, void * from, size_t size);
