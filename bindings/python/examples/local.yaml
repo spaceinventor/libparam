@@ -1,0 +1,9 @@
+# Interfaces
+#
+- name: "ZMQ"
+  driver: "zmq"
+  server: "localhost"
+  addr: 17
+  netmask: 8
+  default: true
+  promisc: false
