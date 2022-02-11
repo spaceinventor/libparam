@@ -6,10 +6,11 @@ See: 'libparam_py3.pyi' for functions and classes available once the bindings ha
 Please note that the 'PYTHONPATH' and 'LD_LIBRARY_PATH' environment variables must be
 set to point at the directory of the python bindings shared object before they may be imported.
 
-Compiling and importing the bindings and running these examples:
+Compiling, importing the bindings and running these examples:
     - Set 'enable_python3_bindings' to true in 'meson_options.txt'.
     - cd into project directory.
-    - Compile with meson using: "meson . builddir && ninja -C builddir clean && ninja -C builddir".
+    - (If submodules are absent) Run: "git submodule update --init --recursive"
+    - Compile with meson using: "./configure && ./build".
     - Run these examples (with the proper environment variables) using:
     "PYTHONPATH=builddir/lib/param LD_LIBRARY_PATH=builddir/lib/param python3 lib/param/bindings/python/examples.py"
 
@@ -17,9 +18,12 @@ The examples start executing at "if __name__ == '__main__'".
 """
 
 from __future__ import annotations
-
+# Python hates relative imports with no known parent package (Importing from parent directory),
+# but we will force it to make them anyway!
+import os
+current_directory = os.path.dirname(os.path.realpath(__file__))
+import sys; sys.path.append(current_directory[:current_directory.rindex('/')])
 from pyparam_utils import Bindings, temp_autosend_value, ParamMapping
-
 
 LOCAL_NODE = 0
 

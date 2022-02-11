@@ -49,6 +49,21 @@ VMEM_DEFINE_FILE(col, "col", "colcnf.vmem", 120);
 //VMEM_DEFINE_FILE(tfetch, "tfetc", "tfetch.vmem", 120);
 VMEM_DEFINE_FILE(dummy, "dummy", "dummy.txt", 1000000);
 
+void * param_collector_task(void * param) {
+	param_collector_loop(param);
+	return NULL;
+}
+
+void * router_task(void * param) {
+	while(1) {
+		csp_route_work();
+	}
+}
+
+void * vmem_server_task(void * param) {
+	vmem_server_loop(param);
+	return NULL;
+}
 
 PARAM_DEFINE_STATIC_VMEM(PARAMID_CSP_RTABLE,      csp_rtable,        PARAM_TYPE_STRING, 64, 0, PM_SYSCONF, NULL, "", csp, 0, NULL);
 
@@ -965,6 +980,30 @@ static PyObject * pyparam_param_list_download(PyObject * self, PyObject * args, 
 
 }
 
+static PyObject * pyparam_param_list_save(PyObject * self, PyObject * args) {
+
+	int id;
+
+	if (!PyArg_ParseTuple(args, "i", &id))
+		return NULL;  // Raises TypeError.
+
+	param_list_store_vmem_save(vmem_index_to_ptr(id));
+
+	Py_RETURN_NONE;
+}
+
+static PyObject * pyparam_param_list_load(PyObject * self, PyObject * args) {
+	
+	int id;
+
+	if (!PyArg_ParseTuple(args, "i", &id))
+		return NULL;  // Raises TypeError.
+
+	param_list_store_vmem_load(vmem_index_to_ptr(id));
+
+	Py_RETURN_NONE;
+}
+
 
 static PyObject * pyparam_csp_ping(PyObject * self, PyObject * args, PyObject * kwds) {
 
@@ -1051,14 +1090,14 @@ static PyObject * pyparam_vmem_list(PyObject * self, PyObject * args, PyObject *
 
 	int node = csp_get_address();
 	int timeout = 2000;
+	int version = 1;
 
-	static char *kwlist[] = {"node", "timeout", NULL};
+	static char *kwlist[] = {"node", "timeout", "version", NULL};
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|ii", kwlist, &node, &timeout))
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iii", kwlist, &node, &timeout, &version))
 		return NULL;  // Raises TypeError.
 
 	printf("Requesting vmem list from node %u timeout %u\n", node, timeout);
-
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_NONE);
 	if (conn == NULL) {
@@ -1073,7 +1112,7 @@ static PyObject * pyparam_vmem_list(PyObject * self, PyObject * args, PyObject *
 	}
 
 	vmem_request_t * request = (void *) packet->data;
-	request->version = VMEM_VERSION;
+	request->version = version;
 	request->type = VMEM_SERVER_LIST;
 	packet->length = sizeof(vmem_request_t);
 
@@ -1089,11 +1128,20 @@ static PyObject * pyparam_vmem_list(PyObject * self, PyObject * args, PyObject *
 
 	PyObject * list_string = PyUnicode_New(0, 0);
 
-	for (vmem_list_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
-		char buf[300];
-		sprintf(buf, " %u: %-5.5s 0x%08X - %u typ %u\r\n", vmem->vmem_id, vmem->name, (unsigned int) be32toh(vmem->vaddr), (unsigned int) be32toh(vmem->size), vmem->type);
-		printf("%s", buf);
-		PyUnicode_AppendAndDel(&list_string, PyUnicode_FromString(buf));
+	if (request->version == 2) {
+		for (vmem_list2_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
+			char buf[500];
+			sprintf(buf, " %u: %-5.5s 0x%lX - %u typ %u\r\n", vmem->vmem_id, vmem->name, be64toh(vmem->vaddr), (unsigned int) be32toh(vmem->size), vmem->type);
+			printf("%s", buf);
+			PyUnicode_AppendAndDel(&list_string, PyUnicode_FromString(buf));
+		}
+	} else {
+		for (vmem_list_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
+			char buf[500];
+			sprintf(buf, " %u: %-5.5s 0x%08X - %u typ %u\r\n", vmem->vmem_id, vmem->name, (unsigned int) be32toh(vmem->vaddr), (unsigned int) be32toh(vmem->size), vmem->type);
+			printf("%s", buf);
+			PyUnicode_AppendAndDel(&list_string, PyUnicode_FromString(buf));
+		}
 	}
 
 	csp_buffer_free(packet);
@@ -1776,23 +1824,6 @@ static PyTypeObject ParameterListType = {
 };
 
 
-void * param_collector_task(void * param) {
-	param_collector_loop(param);
-	return NULL;
-}
-
-void * vmem_server_task(void * param) {
-	vmem_server_loop(param);
-	return NULL;
-}
-
-void * router_task(void * param) {
-	while(1) {
-		csp_route_work();
-	}
-}
-
-
 static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds) {
 
 	if (_csp_initialized) {
@@ -1910,6 +1941,8 @@ static PyMethodDef methods[] = {
 	/* Converted CSH commands from param/param_list_slash.c */
 	{"list", 		pyparam_param_list, 			METH_VARARGS, 					"List all known parameters."},
 	{"list_download", (PyCFunction)pyparam_param_list_download, METH_VARARGS | METH_KEYWORDS, "Download all parameters on the specified node."},
+	{"list_save", pyparam_param_list_save, METH_VARARGS, "Save a list of parameters to a file."},
+	{"list_load", pyparam_param_list_load, METH_VARARGS, "Load a list of parameters from a file."},
 
 	/* Converted CSH commands from slash_csp.c */
 	/* Including these here is not entirely optimal, they may be removed. */

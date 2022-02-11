@@ -266,13 +266,31 @@ def queue() -> None:
 
 def list(mask: str = None) -> ParameterList:
     """
-    List all known parameters.
+    List all known parameters, remote and local alike.
 
     :param mask: Mask on which to filter the list.
     """
 
 def list_download(node: int, timeout: int = None, version: int = None) -> ParameterList:
-    """ Download all parameters on the specified node. """
+    """
+    Download all parameters on the specified node. Does not raise an exception on failure.
+
+    :returns: The output of list().
+    """
+
+def list_save(vmem_id: int) -> None:
+    """
+    Save a list of parameters to a file.
+
+    :param vmem_id: Use vmem_list() for examples.
+    """
+
+def list_load(vmem_id: int) -> None:
+    """
+    Load a list of parameters from a file. Parameters will be loaded automatically when the module is initialized.
+
+    :param vmem_id: Use vmem_list() for examples.
+    """
 
 
 # Commands from CSP
@@ -315,7 +333,7 @@ def get_type(param_identifier: _param_ident_hint, node: int = None) -> _param_ty
 
 
 # Vmem commands
-def vmem_list(node: int = None, timeout: int = None) -> str:
+def vmem_list(node: int = None, timeout: int = None, version: int = None) -> str:
     """
     Builds a string of the vmem at the specified node.
 
@@ -378,4 +396,6 @@ def _param_init(csp_version = None, csp_hostname: str = None, csp_model: str = N
     :param csp_version: Which CSP version to use in the module.
     :param csp_hostname: Which CSP hostname to use in the module.
     :param csp_model: Which CSP model to use in the module.
+    :param quiet: Whether to redirect CSH stdout to /dev/null.
+    :param yamlname: Name and path to the .yaml file with which the bindings/CSH-session should be configured.
     """
