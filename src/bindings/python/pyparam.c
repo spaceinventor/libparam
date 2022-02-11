@@ -69,8 +69,11 @@ PARAM_DEFINE_STATIC_VMEM(PARAMID_CSP_RTABLE,      csp_rtable,        PARAM_TYPE_
 
 
 // We include this parameter when testing the behavior of arrays, as none would exist otherwise.
-// uint8_t test_array[] = {1,2,3,4,5,6,7,8};
-// PARAM_DEFINE_STATIC_RAM(10001, test_array_param,          PARAM_TYPE_UINT8,  8, sizeof(uint8_t),  PM_DEBUG, NULL, "", test_array, NULL);
+uint8_t _test_array[] = {1,2,3,4,5,6,7,8};
+PARAM_DEFINE_STATIC_RAM(1001, test_array_param,          PARAM_TYPE_UINT8,  8, sizeof(uint8_t),  PM_DEBUG, NULL, "", _test_array, NULL);
+
+static char _test_str[80];
+PARAM_DEFINE_STATIC_RAM(1002, test_str,          PARAM_TYPE_STRING,  80, 1,  PM_DEBUG, NULL, "", _test_str, NULL);
 
 
 // Keep track of whether init has been run,
@@ -626,6 +629,11 @@ static int _pyparam_typecheck_sequence(PyObject * sequence, PyTypeObject * type)
 static int _pyparam_util_set_single(param_t *param, PyObject *value, int offset, int host, param_queue_t *queue) {
 	
 	if (offset != INT_MIN) {
+		if (param->type == PARAM_TYPE_STRING) {
+			PyErr_SetString(PyExc_NotImplementedError, "Cannot set string parameters by index.");
+			return -1;
+		}
+
 		if (_pyparam_util_index(param->array_size, &offset))  // Validate the offset.
 			return -1;  // Raises IndexError.
 	} else
@@ -1327,9 +1335,8 @@ static PyObject * Parameter_new(PyTypeObject *type, PyObject *args, PyObject *kw
 	PyObject * param_identifier;  // Raw argument object/type passed. Identify its type when needed.
 	int node = default_node;
 	int host = INT_MIN;
-	//int offset = -1;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|Hi", kwlist, &param_identifier, &node, &host)) {
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|ii", kwlist, &param_identifier, &node, &host)) {
 		return NULL;  // TypeError is thrown
 	}
 
