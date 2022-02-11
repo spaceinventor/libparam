@@ -27,7 +27,7 @@ typedef struct {
 		.size = size_in, \
 		.read = vmem_fram_read, \
 		.write = vmem_fram_write, \
-		.driver = &vmem_##name_in##_driver, \
+		.driver = (vmem_fram_driver_t *) &vmem_##name_in##_driver, \
 		.vaddr = (void *) _vaddr, \
 	};
 
