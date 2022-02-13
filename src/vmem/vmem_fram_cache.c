@@ -18,7 +18,7 @@ void fram_write_data(uint16_t addr, void *data, uint16_t len);
 void fram_read_data(uint16_t addr, void *data, uint16_t len);
 
 
-void vmem_fram_cache_read(const vmem_t * vmem, uint32_t addr, void * dataout, int len) {
+void vmem_fram_cache_read(vmem_t * vmem, uint32_t addr, void * dataout, int len) {
 
 	vmem_fram_cache_driver_t * driver = vmem->driver;
 
@@ -34,7 +34,7 @@ void vmem_fram_cache_read(const vmem_t * vmem, uint32_t addr, void * dataout, in
 
 }
 
-void vmem_fram_cache_write(const vmem_t * vmem, uint32_t addr, void * datain, int len) {
+void vmem_fram_cache_write(vmem_t * vmem, uint32_t addr, void * datain, int len) {
 
 	vmem_fram_cache_driver_t * driver = vmem->driver;
 

@@ -21,7 +21,7 @@ void fram_read_data(uint16_t addr, void *data, uint16_t len);
 void fram_unlock_upper(void);
 void fram_lock_upper(void);
 
-void vmem_fram_secure_init(const vmem_t * vmem)
+void vmem_fram_secure_init(vmem_t * vmem)
 {
 	uint32_t fram_crc, ram_crc;
 	vmem_fram_secure_driver_t * driver = vmem->driver;
@@ -43,7 +43,7 @@ void vmem_fram_secure_init(const vmem_t * vmem)
 
 }
 
-int vmem_fram_secure_backup(const vmem_t * vmem)
+int vmem_fram_secure_backup(vmem_t * vmem)
 {
 	if (vmem->type != VMEM_TYPE_FRAM_SECURE) {
 		printf("Invalid vmem type\n");
@@ -67,7 +67,7 @@ int vmem_fram_secure_backup(const vmem_t * vmem)
 	return 0;
 }
 
-int vmem_fram_secure_restore(const vmem_t * vmem)
+int vmem_fram_secure_restore(vmem_t * vmem)
 {
 	if (vmem->type != VMEM_TYPE_FRAM_SECURE) {
 		printf("Invalid vmem type\n");
@@ -108,13 +108,13 @@ int vmem_fram_secure_restore(const vmem_t * vmem)
 	return 0;
 }
 
-void vmem_fram_secure_read(const vmem_t * vmem, uint32_t addr, void * dataout, int len)
+void vmem_fram_secure_read(vmem_t * vmem, uint32_t addr, void * dataout, int len)
 {
 	vmem_fram_secure_driver_t * driver = vmem->driver;
 	memcpy(dataout, driver->data + addr, len);
 }
 
-void vmem_fram_secure_write(const vmem_t * vmem, uint32_t addr, void * datain, int len)
+void vmem_fram_secure_write(vmem_t * vmem, uint32_t addr, void * datain, int len)
 {
 	vmem_fram_secure_driver_t * driver = vmem->driver;
 	memcpy(driver->data + addr, datain, len);

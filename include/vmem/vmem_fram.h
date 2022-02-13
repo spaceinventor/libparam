@@ -15,13 +15,13 @@ typedef struct {
 } vmem_fram_driver_t;
 
 #define VMEM_DEFINE_FRAM(name_in, strname, fram_addr_in, size_in, _vaddr) \
-	static const vmem_fram_driver_t vmem_##name_in##_driver = { \
+	static vmem_fram_driver_t vmem_##name_in##_driver = { \
 		.fram_addr = fram_addr_in, \
 	}; \
 	__attribute__((section("vmem"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
-	const vmem_t vmem_##name_in = { \
+	vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_FRAM, \
 		.name = strname, \
 		.size = size_in, \
@@ -31,8 +31,8 @@ typedef struct {
 		.vaddr = (void *) _vaddr, \
 	};
 
-void vmem_fram_read(const vmem_t * vmem, uint32_t addr, void * dataout, int len);
-void vmem_fram_write(const vmem_t * vmem, uint32_t addr, void * datain, int len);
+void vmem_fram_read(vmem_t * vmem, uint32_t addr, void * dataout, int len);
+void vmem_fram_write(vmem_t * vmem, uint32_t addr, void * datain, int len);
 
 
 #endif /* SRC_PARAM_VMEM_FRAM_H_ */

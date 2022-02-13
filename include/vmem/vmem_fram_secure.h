@@ -10,13 +10,13 @@
 
 #include <vmem/vmem.h>
 
-void vmem_fram_secure_init(const vmem_t * vmem);
-void vmem_fram_secure_read(const vmem_t * vmem, uint32_t addr, void * dataout, int len);
-void vmem_fram_secure_write(const vmem_t * vmem, uint32_t addr, void * datain, int len);
-int vmem_fram_secure_backup(const vmem_t * vmem);
-int vmem_fram_secure_restore(const vmem_t * vmem);
+void vmem_fram_secure_init(vmem_t * vmem);
+void vmem_fram_secure_read(vmem_t * vmem, uint32_t addr, void * dataout, int len);
+void vmem_fram_secure_write(vmem_t * vmem, uint32_t addr, void * datain, int len);
+int vmem_fram_secure_backup(vmem_t * vmem);
+int vmem_fram_secure_restore(vmem_t * vmem);
 
-typedef const struct {
+typedef struct {
 	uint8_t *data;
 	int fram_primary_addr;
 	int fram_backup_addr;
@@ -25,7 +25,7 @@ typedef const struct {
 
 #define VMEM_DEFINE_FRAM_SECURE(name_in, strname, fram_primary_addr_in, fram_backup_addr_in, _fallback_fct, size_in, _vaddr) \
 	uint8_t vmem_##name_in##_heap[size_in] = {}; \
-	static const vmem_fram_secure_driver_t vmem_##name_in##_driver = { \
+	static vmem_fram_secure_driver_t vmem_##name_in##_driver = { \
 		.data = vmem_##name_in##_heap, \
 		.fram_primary_addr = fram_primary_addr_in, \
 		.fram_backup_addr = fram_backup_addr_in, \
@@ -34,7 +34,7 @@ typedef const struct {
 	__attribute__((section("vmem"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
-	const vmem_t vmem_##name_in= { \
+	vmem_t vmem_##name_in= { \
 		.type = VMEM_TYPE_FRAM_SECURE, \
 		.name = strname, \
 		.size = size_in, \

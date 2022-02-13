@@ -30,7 +30,7 @@ typedef struct {
 	__attribute__((section("vmem"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
-	const vmem_t vmem_##name_in = { \
+	vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_FRAM_CACHE, \
 		.name = strname, \
 		.size = size_in, \
@@ -40,5 +40,5 @@ typedef struct {
 		.vaddr = (void *) _vaddr, \
 	};
 
-void vmem_fram_cache_read(const vmem_t * vmem, uint32_t addr, void * dataout, int len);
-void vmem_fram_cache_write(const vmem_t * vmem, uint32_t addr, void * datain, int len);
+void vmem_fram_cache_read(vmem_t * vmem, uint32_t addr, void * dataout, int len);
+void vmem_fram_cache_write(vmem_t * vmem, uint32_t addr, void * datain, int len);

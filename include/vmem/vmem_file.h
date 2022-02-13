@@ -15,20 +15,20 @@ typedef struct {
 	char * filename;
 } vmem_file_driver_t;
 
-void vmem_file_init(const vmem_t * vmem);
-void vmem_file_read(const vmem_t * vmem, uint32_t addr, void * dataout, int len);
-void vmem_file_write(const vmem_t * vmem, uint32_t addr, void * datain, int len);
+void vmem_file_init(vmem_t * vmem);
+void vmem_file_read(vmem_t * vmem, uint32_t addr, void * dataout, int len);
+void vmem_file_write(vmem_t * vmem, uint32_t addr, void * datain, int len);
 
 #define VMEM_DEFINE_FILE(name_in, strname, filename_in, size_in) \
 	uint8_t vmem_##name_in##_buf[size_in] = {}; \
-	static const vmem_file_driver_t vmem_##name_in##_driver = { \
+	static vmem_file_driver_t vmem_##name_in##_driver = { \
 		.physaddr = vmem_##name_in##_buf, \
 		.filename = filename_in, \
 	}; \
 	__attribute__((section("vmem"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
-	const vmem_t vmem_##name_in = { \
+	vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_FILE, \
 		.name = strname, \
 		.size = size_in, \

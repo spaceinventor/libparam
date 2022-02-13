@@ -10,7 +10,7 @@
 #include <vmem/vmem.h>
 #include <vmem/vmem_file.h>
 
-void vmem_file_init(const vmem_t * vmem) {
+void vmem_file_init(vmem_t * vmem) {
 
 	/* Read from file */
 	FILE * stream = fopen(((vmem_file_driver_t *) vmem->driver)->filename, "r+");
@@ -23,11 +23,11 @@ void vmem_file_init(const vmem_t * vmem) {
 
 }
 
-void vmem_file_read(const vmem_t * vmem, uint32_t addr, void * dataout, int len) {
+void vmem_file_read(vmem_t * vmem, uint32_t addr, void * dataout, int len) {
 	memcpy(dataout, ((vmem_file_driver_t *) vmem->driver)->physaddr + addr, len);
 }
 
-void vmem_file_write(const vmem_t * vmem, uint32_t addr, void * datain, int len) {
+void vmem_file_write(vmem_t * vmem, uint32_t addr, void * datain, int len) {
 	memcpy(((vmem_file_driver_t *) vmem->driver)->physaddr + addr, datain, len);
 
 	/* Flush back to file */

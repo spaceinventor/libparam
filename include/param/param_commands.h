@@ -11,7 +11,7 @@
 #include <param/param_server.h>
 #include <csp/csp.h>
 
-extern const vmem_t vmem_commands;
+extern vmem_t vmem_commands;
 
 struct param_command_s {
 	param_queue_t queue;
