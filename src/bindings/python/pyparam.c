@@ -1492,8 +1492,14 @@ static int Parameter_setvalue(ParameterObject *self, PyObject *value, void *clos
 
 static PyObject * Parameter_is_array(ParameterObject *self, void *closure) {
 	// I believe this is the most appropriate way to check whether the parameter is an array.
-	// Additionally; this seems a decent substitute for an array parameter subclass.
 	PyObject * result = self->param->array_size > 1 ? Py_True : Py_False;
+	Py_INCREF(result);
+	return result;
+}
+
+static PyObject * Parameter_is_vmem(ParameterObject *self, void *closure) {
+	// I believe this is the most appropriate way to check for vmem parameters.
+	PyObject * result = self->param->vmem == NULL ? Py_False : Py_True;
 	Py_INCREF(result);
 	return result;
 }
@@ -1565,6 +1571,8 @@ static PyGetSetDef Parameter_getsetters[] = {
      "value of the parameter", NULL},
 	{"is_array", (getter)Parameter_is_array, NULL,
      "whether the parameter is an array", NULL},
+	{"is_vmem", (getter)Parameter_is_vmem, NULL,
+     "whether the parameter is a vmem parameter", NULL},
 	{"mask", (getter)Parameter_getmask, NULL,
      "mask of the parameter", NULL},
 	{"timestamp", (getter)Parameter_gettimestamp, NULL,

@@ -94,6 +94,10 @@ class Parameter:
         """ Returns True or False based on whether the parameter is an array (Strings count as arrays)."""
 
     @property
+    def is_vmem(self) -> bool:
+        """ Returns True or False based on whether the parameter is a vmem parameter. """
+
+    @property
     def mask(self) -> int:
         """ Returns the mask of the wrapped param_t C struct. """
 
