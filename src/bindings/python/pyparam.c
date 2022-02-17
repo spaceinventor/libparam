@@ -1939,7 +1939,7 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 }
 
 static PyObject * _pyparam_init(PyObject * self, PyObject * args, PyObject *kwds) {
-	sprintf(stderr, "_param_init() (with underscore) is deprecated. Please use the public API (param_init()) instead.");
+	fprintf(stderr, "_param_init() (with underscore) is deprecated. Please use the public API (param_init()) instead.");
 	return pyparam_init(self, args, kwds);
 }
 
