@@ -392,10 +392,23 @@ def vmem_unlock(node: int = None, timeout: int = None) -> int:
     """
 
 
-def _param_init(csp_version = None, csp_hostname: str = None, csp_model: str = None,
+def param_init(csp_version = None, csp_hostname: str = None, csp_model: str = None,
                 use_prometheus: int = None, rtable: str = None, yamlname: str = None, dfl_addr: int = None, quiet: int = None) -> None:
     """
     Initializes the module, with the provided settings.
+
+    :param csp_version: Which CSP version to use in the module.
+    :param csp_hostname: Which CSP hostname to use in the module.
+    :param csp_model: Which CSP model to use in the module.
+    :param quiet: Whether to redirect CSH stdout to /dev/null.
+    :param yamlname: Name and path to the .yaml file with which the bindings/CSH-session should be configured.
+    """
+
+
+def _param_init(csp_version = None, csp_hostname: str = None, csp_model: str = None,
+                use_prometheus: int = None, rtable: str = None, yamlname: str = None, dfl_addr: int = None, quiet: int = None) -> None:
+    """
+    Deprecated private init API.
 
     :param csp_version: Which CSP version to use in the module.
     :param csp_hostname: Which CSP hostname to use in the module.

@@ -45,8 +45,6 @@ static PyTypeObject ParameterListType;
 VMEM_DEFINE_FILE(csp, "csp", "cspcnf.vmem", 120);
 VMEM_DEFINE_FILE(params, "param", "params.csv", 50000);
 VMEM_DEFINE_FILE(col, "col", "colcnf.vmem", 120);
-//VMEM_DEFINE_FILE(crypto, "crypto", "crypto.csv", 50000);
-//VMEM_DEFINE_FILE(tfetch, "tfetc", "tfetch.vmem", 120);
 VMEM_DEFINE_FILE(dummy, "dummy", "dummy.txt", 1000000);
 
 void * param_collector_task(void * param) {
@@ -1940,6 +1938,11 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 
 }
 
+static PyObject * _pyparam_init(PyObject * self, PyObject * args, PyObject *kwds) {
+	sprintf(stderr, "_param_init() (with underscore) is deprecated. Please use the public API (param_init()) instead.");
+	return pyparam_init(self, args, kwds);
+}
+
 static PyMethodDef methods[] = {
 
 	/* Converted CSH commands from param/param_slash.c */
@@ -1955,9 +1958,9 @@ static PyMethodDef methods[] = {
 
 	/* Converted CSH commands from param/param_list_slash.c */
 	{"list", 		pyparam_param_list, 			METH_VARARGS, 					"List all known parameters."},
-	{"list_download", (PyCFunction)pyparam_param_list_download, METH_VARARGS | METH_KEYWORDS, "Download all parameters on the specified node."},
-	{"list_save", pyparam_param_list_save, METH_VARARGS, "Save a list of parameters to a file."},
-	{"list_load", pyparam_param_list_load, METH_VARARGS, "Load a list of parameters from a file."},
+	{"list_download", (PyCFunction)pyparam_param_list_download, METH_VARARGS | METH_KEYWORDS, "Download all parameters on the specified node. Does not raise an exception on failure."},
+	{"list_save", 	pyparam_param_list_save, 		METH_VARARGS, 					"Save a list of parameters to a file."},
+	{"list_load", 	pyparam_param_list_load, 		METH_VARARGS, 					"Load a list of parameters from a file."},
 
 	/* Converted CSH commands from slash_csp.c */
 	/* Including these here is not entirely optimal, they may be removed. */
@@ -1975,7 +1978,8 @@ static PyMethodDef methods[] = {
 	{"vmem_unlock", (PyCFunction)pyparam_vmem_unlock, METH_VARARGS | METH_KEYWORDS, "Unlock the vmem on the specified node, such that it may be changed by a backup (for example)."},
 
 	/* Misc */
-	{"_param_init", (PyCFunction)pyparam_init, 		METH_VARARGS | METH_KEYWORDS, 	"Initializes the module, with the provided settings."},
+	{"param_init", (PyCFunction)pyparam_init, 		METH_VARARGS | METH_KEYWORDS, 	"Initializes the module, with the provided settings."},
+	{"_param_init", (PyCFunction)_pyparam_init, 	METH_VARARGS | METH_KEYWORDS, 	"Deprecated private init API."},
 
 	/* sentinel */
 	{NULL, NULL, 0, NULL}};
