@@ -3,34 +3,35 @@
 #include <Python.h>
 #include "structmember.h"
 
-#include <fcntl.h>
+// #include <fcntl.h>
 #include <stdio.h>
+#include <sys/utsname.h>
 
 
-#include <param/param.h>
+// #include <param/param.h>
 #include <vmem/vmem_server.h>
 #include <vmem/vmem_client.h>
-#include <vmem/vmem_ram.h>
+// #include <vmem/vmem_ram.h>
 #include <vmem/vmem_file.h>
 
-#include <csp/csp.h>
+// #include <csp/csp.h>
 #include <csp/csp_yaml.h>
 #include <csp/csp_cmp.h>
-#include <pthread.h>
-#include <csp/interfaces/csp_if_can.h>
-#include <csp/interfaces/csp_if_kiss.h>
-#include <csp/interfaces/csp_if_udp.h>
-#include <csp/interfaces/csp_if_zmqhub.h>
-#include <csp/drivers/usart.h>
-#include <csp/drivers/can_socketcan.h>
+// #include <pthread.h>
+// #include <csp/interfaces/csp_if_can.h>
+// #include <csp/interfaces/csp_if_kiss.h>
+// #include <csp/interfaces/csp_if_udp.h>
+// #include <csp/interfaces/csp_if_zmqhub.h>
+// #include <csp/drivers/usart.h>
+// #include <csp/drivers/can_socketcan.h>
 #include <param/param_list.h>
 #include <param/param_server.h>
 #include <param/param_client.h>
 #include <param/param.h>
 #include <param/param_collector.h>
-#include <param/param_queue.h>
+// #include <param/param_queue.h>
 
-#include <sys/types.h>
+// #include <sys/types.h>
 
 #include "../../param/param_string.h"
 
@@ -1850,9 +1851,14 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 		"use_prometheus", "rtable", "yamlname", "dfl_addr", "quiet", NULL,
 	};
 
-	csp_conf.version = 2;
+	static struct utsname info;
+	uname(&info);
+
 	csp_conf.hostname = "python_bindings";
-	csp_conf.model = "linux";
+	csp_conf.model = info.version;
+	csp_conf.revision = info.release;
+	csp_conf.version = 2;
+	csp_conf.dedup = CSP_DEDUP_OFF;
 
 	int use_prometheus = 0;
 	char * rtable = NULL;
@@ -1886,7 +1892,6 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 	vmem_file_init(&vmem_params);
 	param_list_store_vmem_load(&vmem_params);
 
-	csp_conf.dedup = CSP_DEDUP_OFF;
 	csp_init();
 
 	if (strlen(dirname)) {
@@ -1939,7 +1944,7 @@ static PyObject * pyparam_init(PyObject * self, PyObject * args, PyObject *kwds)
 }
 
 static PyObject * _pyparam_init(PyObject * self, PyObject * args, PyObject *kwds) {
-	fprintf(stderr, "_param_init() (with underscore) is deprecated. Please use the public API (param_init()) instead.");
+	fprintf(stderr, "_param_init() (with underscore) is deprecated. Please use the public API (param_init()) instead.\n");
 	return pyparam_init(self, args, kwds);
 }
 
