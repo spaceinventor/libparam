@@ -137,20 +137,3 @@ param_lib = static_library('param',
 )
 
 param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib)
-
-if get_option('enable_python3_bindings')
-
-	# Compile bindings for the versions specified in 'python3_binding_versions'.
-	# They may only be imported for these versions.
-	foreach python_version : get_option('python3_binding_versions')
-
-		py = import('python').find_installation(python_version)
-		# py.dependency() doesn't work with version constraint. Use plain
-		# dependency() instead
-		pydep = dependency('python3', version : '>=3.5', required : true)
-		py.extension_module('libparam_py3', 'src/bindings/python/pyparam.c',
-							dependencies : [param_dep, pydep, csp_dep],
-							install : true)
-
-	endforeach
-endif
