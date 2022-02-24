@@ -1,8 +1,5 @@
 project('param', 'c')
 
-
-add_project_arguments('-Wno-discarded-qualifiers', language: 'c')
-
 conf = configuration_data()
 conf.set('PARAM_STORE_FILE', false)
 conf.set('PARAM_STORE_VMEM', false)

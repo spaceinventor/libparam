@@ -81,7 +81,7 @@ typedef struct param_s {
 
 	/* Storage */
 	void * addr;
-	const struct vmem_s * vmem;
+	struct vmem_s * vmem;
 	int array_size;
 	int array_step;
 
