@@ -21,6 +21,7 @@
 
 #include "param_string.h"
 #include "param_slash.h"
+#include "param_wildcard.h"
 
 param_queue_t param_queue_set = { };
 param_queue_t param_queue_get = { };
@@ -127,6 +128,130 @@ static void param_completer(struct slash *slash, char * token) {
 
 }
 
+static int param_get_glob(char *name, int host, int node, int offset) {
+	// Decide on which queue to use for the transaction.
+	param_queue_t * queue = malloc(sizeof(param_queue_t));
+	if (autosend) {  // Use our own queue when autosend is on.
+		param_queue_init(queue, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_GET, paramver);
+	} else {  // Otherwise use the global queue.
+		if (!param_queue_get.buffer) {
+			param_queue_init(&param_queue_get, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_GET, paramver);
+		}
+
+		queue = &param_queue_get;
+	}
+	int local_queue_used = queue != &param_queue_get;
+
+	if (node < 0)
+		node = 0;
+
+	// Find all matching parameters.
+	param_t * currparam;
+	param_list_iterator i = {};
+	while ((currparam = param_list_iterate(&i)) != NULL)
+		if (strmatch(currparam->name, name, strlen(currparam->name), strlen(name)) && (currparam->node == node)) {
+			if (param_queue_add(queue, currparam, offset, NULL) < 0) {
+				printf("Queue full\n");
+				break;
+			}
+		}
+
+	if (local_queue_used) {
+		if (param_pull_queue(queue, 0, (host != -1 ? host : (node < 0 ? 0 : node)), 1000)) {
+			printf("No response\n");
+			free(queue->buffer);
+			free(queue);
+			return SLASH_EIO;
+		}
+
+		// Print with values when autosend is used
+
+		/* Loop over paramid's in pull response */
+		PARAM_QUEUE_FOREACH(param, reader, (queue), offset)
+
+			/* Print the local RAM copy of the remote parameter */
+			if (param)
+				param_print(param, -1, NULL, 0, 2);
+
+		}
+
+		// Using our own queue. Clear the buffer.
+		free(queue->buffer);
+		free(queue);
+
+	} else {  // Haven't pulled global queue yet, just print the parameters.
+		param_queue_print(queue);
+	}
+
+	return SLASH_SUCCESS;
+}
+
+static int param_set_glob(char *name, char *value, int host, int node, int offset) {
+	// Decide on which queue to use for the transaction.
+	param_queue_t * queue = malloc(sizeof(param_queue_t));
+	if (autosend) {  // Use our own queue when autosend is on.
+		param_queue_init(queue, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
+	} else {  // Otherwise use the global queue.
+		if (!param_queue_set.buffer) {
+			param_queue_init(&param_queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
+		}
+
+		queue = &param_queue_set;
+	}
+	int local_queue_used = queue != &param_queue_set;
+
+	if (node < 0)
+		node = 0;
+
+	// Find all matching parameters.
+	param_t * currparam;
+	param_list_iterator i = {};
+	while ((currparam = param_list_iterate(&i)) != NULL)
+		if (strmatch(currparam->name, name, strlen(currparam->name), strlen(name)) && (currparam->node == node)) {
+
+			char valuebuf[128] __attribute__((aligned(16))) = { };
+			param_str_to_value(currparam->type, value, valuebuf);
+
+			if (param_queue_add(queue, currparam, offset, valuebuf) < 0) {
+				printf("Queue full\n");
+				break;
+			}
+		}
+
+	if (local_queue_used) {
+		if (param_push_queue(queue, 0, (host != -1 ? host : node), 1000)) {
+			printf("No response\n");
+			free(queue->buffer);
+			free(queue);
+			return SLASH_EIO;
+		}
+
+		// Print with values when autosend is used
+
+		char * lastname = "";
+
+		/* Loop over paramid's in pull response */
+		PARAM_QUEUE_FOREACH(param, reader, (queue), offset)
+
+			/* Print the local RAM copy of the remote parameter */
+			// The last parameter may occour twice for some reason.
+			if (param && ((strlen(lastname) == 0) || (strcmp(lastname, param->name)))) {
+				param_print(param, -1, NULL, 0, 2);
+				lastname = param->name;
+			}
+		}
+
+		// Using our own queue. Clear the buffer.
+		free(queue->buffer);
+		free(queue);
+
+	} else {  // Haven't pulled global queue yet, just print the parameters.
+		param_queue_print(queue);
+	}
+
+	return SLASH_SUCCESS;
+}
+
 static int cmd_get(struct slash *slash) {
 	if (slash->argc != 2)
 		return SLASH_EUSAGE;
@@ -136,6 +261,9 @@ static int cmd_get(struct slash *slash) {
 	int node = default_node;
 	int offset = -1;
 	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
+
+	if (has_wildcard(slash->argv[1], strlen(slash->argv[1])))
+		return param_get_glob(slash->argv[1], host, node, offset);
 
 	if (param == NULL) {
 		printf("%s not found\n", slash->argv[1]);
@@ -192,6 +320,9 @@ static int cmd_set(struct slash *slash) {
 	int node = default_node;
 	int offset = -1;
 	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
+
+	if (has_wildcard(slash->argv[1], strlen(slash->argv[1])))
+		return param_set_glob(slash->argv[1], slash->argv[2], host, node, offset);
 
 	if (param == NULL) {
 		printf("%s not found\n", slash->argv[1]);
