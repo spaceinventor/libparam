@@ -86,6 +86,14 @@ static void param_completer(struct slash *slash, char * token) {
 
 	param_t * param;
 	param_list_iterator i = { };
+	if (has_wildcard(token, strlen(token))) {
+		// Only print parameters when globbing is involved.
+		while ((param = param_list_iterate(&i)) != NULL)
+			if (strmatch(param->name, token, strlen(param->name), strlen(token)))
+				param_print(param, -1, NULL, 0, 2);
+		return;
+	}
+
 	while ((param = param_list_iterate(&i)) != NULL) {
 
 		if (tokenlen > strlen(param->name))

@@ -39,15 +39,13 @@ int strmatch(char *str, char *pattern, int n, int m)  // Source: https://www.gee
             // b) '*' character matches with ith
             //     character in input
             if (pattern[j - 1] == '*')
-                lookup[i][j]
-                    = lookup[i][j - 1] || lookup[i - 1][j];
+                lookup[i][j] = lookup[i][j - 1] || lookup[i - 1][j];
  
             // Current characters are considered as
             // matching in two cases
             // (a) current character of pattern is '?'
             // (b) characters actually match
-            else if (pattern[j - 1] == '?'
-                     || str[i - 1] == pattern[j - 1])
+            else if (pattern[j - 1] == '?' || str[i - 1] == pattern[j - 1])
                 lookup[i][j] = lookup[i - 1][j - 1];
  
             // If characters don't match
