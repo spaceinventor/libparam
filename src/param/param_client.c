@@ -158,7 +158,7 @@ int param_pull_single(param_t *param, int offset, int verbose, int host, int tim
 }
 
 
-int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
+int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, uint32_t hwid) {
 
 	if ((queue == NULL) || (queue->used == 0))
 		return 0;
@@ -178,6 +178,17 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 	memcpy(&packet->data[2], queue->buffer, queue->used);
 
 	packet->length = queue->used + 2;
+
+	/* Append hwid, no care given to endian at this point */
+	if (hwid > 0) {
+		packet->data[0] = PARAM_PUSH_REQUEST_V2_HWID;
+		//printf("Add hwid %x\n", hwid);
+		//csp_hex_dump("tx", packet->data, packet->length);
+		memcpy(&packet->data[packet->length], &hwid, sizeof(hwid));
+		packet->length += sizeof(hwid);
+
+	}
+
 	int result = param_transaction(packet, host, timeout, NULL, verbose, queue->version, NULL);
 
 	if (result < 0) {

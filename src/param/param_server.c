@@ -142,6 +142,7 @@ static void param_serve_push(csp_packet_t * packet, int send_ack, int version)
 
 }
 
+
 void param_serve(csp_packet_t * packet) {
 	switch(packet->data[0]) {
 		case PARAM_PULL_REQUEST:
@@ -171,6 +172,26 @@ void param_serve(csp_packet_t * packet) {
 		case PARAM_PUSH_REQUEST_V2:
 			param_serve_push(packet, 1, 2);
 			break;
+		case PARAM_PUSH_REQUEST_V2_HWID: {
+
+			/* Strip hwid off the end */
+			uint32_t hwid;
+			memcpy(&hwid, &packet->data[packet->length-sizeof(uint32_t)], sizeof(uint32_t));
+			packet->length -= sizeof(uint32_t);
+
+			//printf("hwid %x\n", hwid);
+			int serial_get(void);
+			if (hwid != serial_get()) {
+				//printf("hwid did not match\n");
+				csp_buffer_free(packet);
+				break;
+			}
+
+			param_serve_push(packet, 1, 2);
+
+			break;
+		}
+
 
 #ifdef PARAM_HAVE_SCHEDULER
 

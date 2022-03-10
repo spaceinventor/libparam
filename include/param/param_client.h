@@ -25,25 +25,25 @@
  *
  * Executes an immediate parameter fetch of a single parameter from a remote system.
  *
- * @param param pointer to parameter description
- * @param array offset (-1 for all)
- * @param verbose printout when received
- * @param host remote csp node
- * @param timeout in ms
- * @param version 1 or 2
- * @return 0 = ok, -1 on network error
+ * @param param         pointer to parameter description
+ * @param array         offset (-1 for all)
+ * @param verbose       printout when received
+ * @param host          remote csp node
+ * @param timeout       in ms
+ * @param version       1 or 2
+ * @return              0 = ok, -1 on network error
  */
 int param_pull_single(param_t *param, int offset, int verbose, int host, int timeout, int version);
 
 /**
  * PULL all
- * @param verbose printout when received
- * @param host remote csp node
- * @param include_mask parameter mask
- * @param exclude_mask parameter mask
- * @param timeout in ms
- * @param version 1 or 2
- * @return 0 = OK, -1 on network error
+ * @param verbose       printout when received
+ * @param host          remote csp node
+ * @param include_mask  parameter mask
+ * @param exclude_mask  parameter mask
+ * @param timeout       in ms
+ * @param version       1 or 2
+ * @return              0 = OK, -1 on network error
  */
 int param_pull_all(int verbose, int host, uint32_t include_mask, uint32_t exclude_mask, int timeout, int version);
 
@@ -51,15 +51,15 @@ int param_pull_all(int verbose, int host, uint32_t include_mask, uint32_t exclud
  * PUSH single:
  *
  * Executes an immediate parameter push of a single value.
- *
- * @param param pointer to parameter description
- * @param offset array offset
- * @param value pointer to value (must be aligned type)
- * @param verbose printout when received
- * @param host remote csp node
- * @param timeout in ms
- * @param version 1 or 2
- * @return 0 = OK, -1 on network error
+ * 
+ * @param param         pointer to parameter description
+ * @param offset        array offset
+ * @param value         pointer to value (must be aligned type)
+ * @param verbose       printout when received
+ * @param host          remote csp node
+ * @param timeout       in ms
+ * @param version       1 or 2
+ * @return              0 = OK, -1 on network error
  */
 int param_push_single(param_t *param, int offset, void *value, int verbose, int host, int timeout, int version);
 
@@ -78,14 +78,15 @@ int param_push_single(param_t *param, int offset, void *value, int verbose, int 
 
 /**
  * PULL/PUSH queue:
- * @param queue pointer to queue
- * @param verbose printout level
- * @param host remote csp node
- * @param timeout in ms
- * @return 0 = OK, -1 on network error
+ * @param queue         pointer to queue
+ * @param verbose       printout level
+ * @param host          remote csp node
+ * @param timeout       in ms
+ * @param hwid          32-bit unique hwid of the target. Used in combination with push to broadcast address. Set to 0 if not used
+ * @return              0 = OK, -1 on network error
  */
 int param_pull_queue(param_queue_t *queue, int verbose, int host, int timeout);
-int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout);
+int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, uint32_t hwid);
 
 
 #endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_CLIENT_H_ */

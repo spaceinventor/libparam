@@ -227,7 +227,7 @@ static int param_set_glob(char *name, char *value, int host, int node, int offse
 		}
 
 	if (local_queue_used) {
-		if (param_push_queue(queue, 0, (host != -1 ? host : node), 1000)) {
+		if (param_push_queue(queue, 0, (host != -1 ? host : node), 1000, 0)) {
 			printf("No response\n");
 			free(queue->buffer);
 			free(queue);
@@ -389,6 +389,7 @@ slash_command_completer(set, cmd_set, param_completer, "<param> <value>",
 static int cmd_push(struct slash *slash) {
 	unsigned int node = 0;
 	unsigned int timeout = 100;
+	uint32_t hwid = 0;
 
 	if (slash->argc < 2)
 		return SLASH_EUSAGE;
@@ -396,15 +397,19 @@ static int cmd_push(struct slash *slash) {
 		node = atoi(slash->argv[1]);
 	if (slash->argc >= 3)
 		timeout = atoi(slash->argv[2]);
+	if (slash->argc >= 4)
+		hwid = atoi(slash->argv[3]);
 
-	if (param_push_queue(&param_queue_set, 1, node, timeout) < 0) {
+	printf("Push hwid %u\n", hwid);
+
+	if (param_push_queue(&param_queue_set, 1, node, timeout, hwid) < 0) {
 		printf("No response\n");
 		return SLASH_EIO;
 	}
 
 	return SLASH_SUCCESS;
 }
-slash_command(push, cmd_push, "<node> [timeout]", NULL);
+slash_command(push, cmd_push, "<node> [timeout] [hwid]", NULL);
 
 static int cmd_pull(struct slash *slash) {
 	unsigned int host = 0;
