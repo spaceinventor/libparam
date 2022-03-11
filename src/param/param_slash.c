@@ -400,8 +400,6 @@ static int cmd_push(struct slash *slash) {
 	if (slash->argc >= 4)
 		hwid = atoi(slash->argv[3]);
 
-	printf("Push hwid %u\n", hwid);
-
 	if (param_push_queue(&param_queue_set, 1, node, timeout, hwid) < 0) {
 		printf("No response\n");
 		return SLASH_EIO;
