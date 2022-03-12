@@ -25,7 +25,7 @@
 
 param_queue_t param_queue_set = { };
 param_queue_t param_queue_get = { };
-static int default_node = -1;
+static int default_node = 0;
 static int autosend = 1;
 static int paramver = 2;
 
@@ -329,6 +329,8 @@ static int cmd_set(struct slash *slash) {
 	int offset = -1;
 	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
 
+	//printf("set %s node %d host %d\n", param->name, node, host);
+
 	if (has_wildcard(slash->argv[1], strlen(slash->argv[1])))
 		return param_set_glob(slash->argv[1], slash->argv[2], host, node, offset);
 
@@ -342,12 +344,12 @@ static int cmd_set(struct slash *slash) {
 
 	/* Remote parameters are sent to a queue or directly */
 	int result = 0;
-	if (param->node != 0) {
+	if (host != -1) {
+		result = param_push_single(param, offset, valuebuf, 1, host, 1000, paramver);
+	} else if (param->node != 0) {
 
-		if ((node != -1) && (autosend)) {
+		if (autosend) {
 			result = param_push_single(param, offset, valuebuf, 1, node, 1000, paramver);
-		} else if (host != -1) {
-			result = param_push_single(param, offset, valuebuf, 1, host, 1000, paramver);
 		} else {
 			if (!param_queue_set.buffer) {
 				param_queue_init(&param_queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);

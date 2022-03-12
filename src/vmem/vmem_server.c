@@ -211,9 +211,6 @@ static void rparam_list_handler(csp_conn_t * conn)
 		    break;
 		param_transfer2_t * rparam = (void *) packet->data;
 		int node = param->node;
-		if (node == 0) {
-			node = param_get_local_node();
-		}
 		rparam->id = htobe16(param->id);
 		rparam->node = htobe16(node);
 		rparam->type = param->type;

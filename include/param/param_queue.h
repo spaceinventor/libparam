@@ -17,25 +17,29 @@ typedef enum {
 	PARAM_QUEUE_TYPE_SET,
 } param_queue_type_e;
 
-struct param_queue_s {
+typedef struct param_queue_s {
 	char *buffer;
-	//int buffer_internal;
 	uint16_t buffer_size;
 	uint16_t used;
 	uint8_t version;
 	uint8_t type;
 
 	/* State used by serializer */
-	//uint32_t last_timestamp;
 	uint16_t last_node;
-	//uint16_t last_timediff_ms;
-} __attribute__((packed, aligned(1)));
-typedef struct param_queue_s param_queue_t;
+} param_queue_t;
 
 void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int used, param_queue_type_e type, int version);
 
 int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value);
-int param_queue_apply(param_queue_t *queue);
+
+/**
+ * @brief 						Applies the content of a queue to memory.
+ * @param queue[in]				Pointer to queue
+ * @param apply_local[in]	 	If the apply local flag is set the node will be set to 0.
+ * @param from[in]              If from is set and the node is 0, it will be set to from
+ * @return 						0 OK, -1 ERROR
+ */
+int param_queue_apply(param_queue_t *queue, int apply_local, int from);
 
 void param_queue_print(param_queue_t *queue);
 void param_queue_print_local(param_queue_t *queue);

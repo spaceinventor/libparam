@@ -51,7 +51,7 @@ static void param_list_from_string(FILE *stream) {
 	}
 }
 
-static void param_list_to_string(FILE * stream, int node_filter, int remote_only) {
+static void param_list_to_string(FILE * stream, int node_filter) {
 
 	param_t * param;
 	param_list_iterator i = {};
@@ -60,14 +60,11 @@ static void param_list_to_string(FILE * stream, int node_filter, int remote_only
 		if ((node_filter >= 0) && (param->node != node_filter))
 			continue;
 
-		if ((remote_only) && (param->node == 0))
+		/* Only store remote parameters */
+		if (param->node == 0)
 			continue;
 
-		int node = param->node;
-		if (node == 0)
-			node = param_get_local_node();
-
-		fprintf(stream, "%u,%u,%s,%u,%d,%x\n", node, param->id, param->name, param->type, param->array_size, param->mask);
+		fprintf(stream, "%u,%u,%s,%u,%d,%x\n", param->node, param->id, param->name, param->type, param->array_size, param->mask);
 	}
 
 }
@@ -76,7 +73,7 @@ void param_list_store_vmem_save(vmem_t * vmem) {
 	char * hk_list = calloc(vmem->size, 1);
 
 	FILE *stream = fmemopen(hk_list, vmem->size, "w");
-	param_list_to_string(stream, -1, 1);
+	param_list_to_string(stream, -1);
 	fclose(stream);
 
 	vmem_memcpy((void *) vmem->vaddr, hk_list, vmem->size);

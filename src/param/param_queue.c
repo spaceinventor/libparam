@@ -48,10 +48,35 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	return 0;
 }
 
-int param_queue_apply(param_queue_t *queue) {
+int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
 	int return_code = 0;
 	int atomic_write = 0;
-	PARAM_QUEUE_FOREACH(param, reader, queue, offset)
+
+	mpack_reader_t reader;
+	mpack_reader_init_data(&reader, queue->buffer, queue->used);
+	while(reader.data < reader.end) {
+		int id, node, offset = -1;
+		param_deserialize_id(&reader, &id, &node, &offset, queue);
+
+		/* If the from address is set, and the nodeid is 0, substitue with the source address */
+		if (node == 0)
+			node = from;
+
+		/* First we search on the specified node in the request or response */
+		param_t * param = param_list_find_id(node, id);
+
+		if (!param) {
+
+			/* If the apply_local flag is set (true for push messages) and the parameter not found,
+			   try a search in the local parameters: This enables the re-use of packets from one node
+			   to another. But be very carefull with this. */
+			if (apply_local == 1) {
+				node = 0;
+			}
+
+			param = param_list_find_id(node, id);
+		}
+
 		if (param) {
 			if ((param->mask & PM_ATOMIC_WRITE) && (atomic_write == 0)) {
 				atomic_write = 1;

@@ -110,16 +110,15 @@ int param_list_add(param_t * item) {
 	return 0;
 }
 
-param_t * param_list_find_id(int node, int id)
-{
+param_t * param_list_find_id(int node, int id) {
+	
 	if (node < 0)
-		node = 0;
-	if (node == param_get_local_node())
 		node = 0;
 
 	param_t * found = NULL;
 	param_t * param;
 	param_list_iterator i = {};
+
 	while ((param = param_list_iterate(&i)) != NULL) {
 
 		if (param->node != node)
@@ -136,8 +135,8 @@ param_t * param_list_find_id(int node, int id)
 	return found;
 }
 
-param_t * param_list_find_name(int node, char * name)
-{
+param_t * param_list_find_name(int node, char * name) {
+	
 	if (node < 0 )
 		node = 0;
 
@@ -216,6 +215,9 @@ void param_list_download(int node, int timeout, int list_version) {
             mask = be32toh(new_param->mask) | PM_REMOTE;
 
 	    }
+
+		if (addr == 0)
+			addr = node;
 
 		if (size == 255)
 			size = 1;

@@ -71,13 +71,22 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 		return;
 	}
 
+	int server_addr = request->id.dst;
+
 	if (all == 0) {
 
 		/* Loop list in request */
 		param_queue_t q_request;
 		param_queue_init(&q_request, &ctx.request->data[2], ctx.request->length - 2, ctx.request->length - 2, PARAM_QUEUE_TYPE_SET, version);
 
-		PARAM_QUEUE_FOREACH(param, reader, (&q_request), offset)
+		mpack_reader_t reader;
+		mpack_reader_init_data(&reader, q_request.buffer, q_request.used);
+		while(reader.data < reader.end) {
+			int id, node, offset = -1;
+			param_deserialize_id(&reader, &id, &node, &offset, &q_request);
+			if (server_addr == node)
+				node = 0;
+			param_t * param = param_list_find_id(node, id);
 			if (param) {
 				if (__add(&ctx, param, offset) < 0) {
 					csp_buffer_free(request);
@@ -119,13 +128,13 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 
 }
 
-static void param_serve_push(csp_packet_t * packet, int send_ack, int version)
-{
+static void param_serve_push(csp_packet_t * packet, int send_ack, int version, int node_override) {
+
 	//csp_hex_dump("set handler", packet->data, packet->length);
 
 	param_queue_t queue;
 	param_queue_init(&queue, &packet->data[2], packet->length - 2, packet->length - 2, PARAM_QUEUE_TYPE_SET, version);
-	int result = param_queue_apply(&queue);
+	int result = param_queue_apply(&queue, node_override, 0);
 
 	if ((result != 0) || (send_ack == 0)) {
 		printf("Param serve push error, result = %d\n", result);
@@ -160,17 +169,17 @@ void param_serve(csp_packet_t * packet) {
 			break;
 
 		case PARAM_PULL_RESPONSE:
-			param_serve_push(packet, 0, 1);
+			param_serve_push(packet, 0, 1, 0);
 			break;
 		case PARAM_PULL_RESPONSE_V2:
-			param_serve_push(packet, 0, 2);
+			param_serve_push(packet, 0, 2, 0);
 			break;
 
 		case PARAM_PUSH_REQUEST:
-			param_serve_push(packet, 1, 1);
+			param_serve_push(packet, 1, 1, 1);
 			break;
 		case PARAM_PUSH_REQUEST_V2:
-			param_serve_push(packet, 1, 2);
+			param_serve_push(packet, 1, 2, 1);
 			break;
 		case PARAM_PUSH_REQUEST_V2_HWID: {
 
@@ -179,15 +188,15 @@ void param_serve(csp_packet_t * packet) {
 			memcpy(&hwid, &packet->data[packet->length-sizeof(uint32_t)], sizeof(uint32_t));
 			packet->length -= sizeof(uint32_t);
 
-			//printf("hwid %x\n", hwid);
+			//printf("hwid %d\n", hwid);
 			int serial_get(void);
-			if (hwid != serial_get()) {
-				//printf("hwid did not match\n");
+			if ((hwid != serial_get()) && (hwid != 1234)) {
+				printf("hwid did not match\n");
 				csp_buffer_free(packet);
 				break;
 			}
 
-			param_serve_push(packet, 1, 2);
+			param_serve_push(packet, 1, 2, 1);
 
 			break;
 		}

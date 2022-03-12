@@ -21,18 +21,29 @@
 typedef void (*param_transaction_callback_f)(csp_packet_t *response, int verbose, int version, void * context);
 
 static void param_transaction_callback_pull(csp_packet_t *response, int verbose, int version, void * context) {
-	//csp_hex_dump("pull response", response->data, response->length);
+
+	int from = response->id.src;
+	csp_hex_dump("pull response", response->data, response->length);
+	printf("From %d\n", from);
+
 	param_queue_t queue;
 	param_queue_init(&queue, &response->data[2], response->length - 2, response->length - 2, PARAM_QUEUE_TYPE_SET, version);
 	queue.last_node = response->id.src;
 
 	/* Write data to local memory */
-	param_queue_apply(&queue);
+	param_queue_apply(&queue, 0, from);
 
 	if (verbose) {
 
 		/* Loop over paramid's in pull response */
-		PARAM_QUEUE_FOREACH(param, reader, (&queue), offset)
+		mpack_reader_t reader;
+		mpack_reader_init_data(&reader, queue.buffer, queue.used);
+		while(reader.data < reader.end) {
+			int id, node, offset = -1;
+			param_deserialize_id(&reader, &id, &node, &offset, &queue);
+			if (node == 0)
+				node = from;
+			param_t * param = param_list_find_id(node, id);
 
 			/* We need to discard the data field, to get to next paramid */
 			mpack_discard		(&reader);
@@ -196,9 +207,10 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, u
 		return -1;
 	}
 	if (verbose) {
+		//printf("  ACK from %d\n", host);
 		param_queue_print(queue);
 	}
-	param_queue_apply(queue);
+	param_queue_apply(queue, 0, host);
 
 	return 0;
 }
@@ -229,7 +241,10 @@ int param_push_single(param_t *param, int offset, void *value, int verbose, int 
 
 	if (offset < 0)
 		offset = 0;
-	param_set(param, offset, value);
+
+	/* If it was a remote parameter, set the value after the ack */
+	if (param->node != 0)
+		param_set(param, offset, value);
 
 	return 0;
 }

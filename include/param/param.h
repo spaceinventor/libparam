@@ -231,8 +231,4 @@ void param_copy(param_t * dest, param_t * src);
 extern __attribute__((weak)) void param_enter_critical(void);
 extern __attribute__((weak)) void param_exit_critical(void);
 
-
-void param_set_local_node(uint16_t node);
-uint16_t param_get_local_node(void);
-
 #endif /* SRC_PARAM_PARAM_H_ */
