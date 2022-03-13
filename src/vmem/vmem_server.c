@@ -209,15 +209,33 @@ static void rparam_list_handler(csp_conn_t * conn)
 		csp_packet_t * packet = csp_buffer_get(256);
 		if (packet == NULL)
 		    break;
-		param_transfer2_t * rparam = (void *) packet->data;
+
+		memset(packet->data, 0, 256);
+
+		param_transfer3_t * rparam = (void *) packet->data;
 		int node = param->node;
 		rparam->id = htobe16(param->id);
 		rparam->node = htobe16(node);
 		rparam->type = param->type;
 		rparam->size = param->array_size;
 		rparam->mask = htobe32(param->mask);
+		
 		strncpy(rparam->name, param->name, 35);
-		packet->length = offsetof(param_transfer2_t, name) + MIN(strlen(param->name), 35);
+
+		if (param->vmem) {
+			rparam->storage_type = param->vmem->type;
+		}
+
+		if (param->unit != NULL) {
+			strncpy(rparam->unit, param->unit, 9);
+		}
+		int helplen = 0;
+		if (param->docstr != NULL) {
+			strncpy(rparam->help, param->docstr, 149);
+			helplen = strnlen(param->docstr, 149);
+		}
+		//packet->length = sizeof(param_transfer3_t);
+		packet->length = offsetof(param_transfer3_t, help) + helplen + 1;
 		
 		csp_send(conn, packet);
 	}

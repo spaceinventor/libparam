@@ -138,22 +138,22 @@ void param_type_str(param_type_e type, char * out, int len)
 		snprintf(out, len, "%s", #name); \
 		break;
 
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT8, uint8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT16, uint16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT32, uint32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT64, uint64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT8, int8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT16, int16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT32, int32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT64, int64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT8, uint8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT16, uint16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT32, uint32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT64, uint64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_FLOAT, float)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DOUBLE, double)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_STRING, string)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DATA, data)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT8,  u08)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT16, u16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT32, u32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT64, u64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT8,   i08)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT16,  i16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT32,  i32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT64,  i64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT8,  ut8)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT16, u16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT32, u32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT64, u64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_FLOAT,  flt)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DOUBLE, dbl)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_STRING, str)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DATA,   dat)
 #undef PARAM_SWITCH_SNPRINTF
 	}
 }
@@ -189,7 +189,11 @@ static void param_print_value(param_t * param, int offset) {
 		char value_str[128] = {};
 		param_value_str(param, i, value_str, 128);
 		if (param->type == PARAM_TYPE_STRING) {
-			printf("\"%s\"", value_str);
+			printf("%s", value_str);
+			int remain = 20 - strlen(value_str);
+			while(remain--) {
+				printf(" ");
+			}
 		} else {
 			if (count <= 1) {
 			    printf("%-20s", value_str);
@@ -243,15 +247,15 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 		/* Type */
 		char type_str[11] = {};
 		param_type_str(param->type, type_str, 10);
-		printf(" %-7s", type_str);
+		printf(" %s", type_str);
 
 		/* Size */
 		if (param->array_size > 1) {
-			printf(" [%u]", param->array_size);
-		} else {
-			printf("    ");
+			printf("[%u]", param->array_size);
 		}
 
+		printf("\t");
+		
 		if (param->mask > 0) {
 			unsigned int mask = param->mask;
 
@@ -319,6 +323,10 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 
 
 
+	}
+
+	if ((verbose >= 3) && (param->docstr != NULL)) {
+		printf("\t\t%s", param->docstr);
 	}
 
 	printf("%s", param_mask_color_off());

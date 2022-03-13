@@ -22,10 +22,20 @@ static int list(struct slash *slash)
     uint32_t mask = 0xFFFFFFFF;
     if (slash->argc > 1)
         mask = param_maskstr_to_mask(slash->argv[1]);
-    param_list_print(mask);
+    param_list_print(mask, 1);
     return SLASH_SUCCESS;
 }
 slash_command(list, list, "[str]", "List parameters");
+
+static int list_help(struct slash *slash)
+{
+    uint32_t mask = 0xFFFFFFFF;
+    if (slash->argc > 1)
+        mask = param_maskstr_to_mask(slash->argv[1]);
+    param_list_print(mask, 3);
+    return SLASH_SUCCESS;
+}
+slash_command_sub(list, help, list_help, "[str]", "List parameters (with help text)");
 
 static int list_download(struct slash *slash)
 {

@@ -35,7 +35,7 @@ param_t * param_list_from_line(char * line) {
 	param_t * param = param_list_find_id(node, id);
 
 	if (param == NULL) {
-		param = param_list_create_remote(id, node, type, mask, size, name, strlen(name));
+		param = param_list_create_remote(id, node, type, mask, size, name, NULL, NULL, -1);
 		param_list_add(param);
 	}
 

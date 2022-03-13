@@ -21,11 +21,27 @@ param_t * param_list_iterate(param_list_iterator * iterator);
 int param_list_add(param_t * item);
 param_t * param_list_find_id(int node, int id);
 param_t * param_list_find_name(int node, char * name);
-void param_list_print(uint32_t mask);
+void param_list_print(uint32_t mask, int verbosity);
 uint32_t param_maskstr_to_mask(char * str);
 
 param_t * param_list_from_line(char * line);
-param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, int array_size, char * name, int namelen);
+
+/**
+ * @brief 
+ * 
+ * @param id 					parameter is 0-1023
+ * @param node 					csp node, 0 = local, 1+ = remote
+ * @param type 					PARAM_TYPE_.... enum
+ * @param mask 					PM_CONF, PM_TELEM, and friends
+ * @param array_size 			Number of elements in array
+ * @param name 					name, max 36 long
+ * @param unit 					unit, max 10 long
+ * @param help 					Help string, max 150 long
+ * @param storage_type 			Set to -1 for unspecified, 0 = RAM, 1-... see vmem types
+ * @return param_t*             Pointer to created object in memory. Must be freed again
+ */
+param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, int array_size, char * name, char * unit, char * help, int storage_type);
+
 void param_list_destroy(param_t * param);
 void param_print(param_t * param, int offset, int nodes[], int nodes_count, int verbose);
 

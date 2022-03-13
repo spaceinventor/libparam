@@ -78,6 +78,7 @@ typedef struct param_s {
 	uint32_t mask;
 	char *name;
 	char *unit;
+	char *docstr;
 
 	/* Storage */
 	void * addr;
@@ -111,7 +112,7 @@ typedef struct param_s {
  * The size field is only important for non-native types such as string, data and vector.
  *
  */
-#define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _log) \
+#define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr) \
 	__attribute__((section("param"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
@@ -127,9 +128,10 @@ typedef struct param_s {
 		.unit = _unit, \
 		.callback = _callback, \
 		.addr = _physaddr, \
+		.docstr = _docstr, \
 	}
 
-#define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _log) \
+#define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
 	__attribute__((section("param"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
@@ -145,9 +147,10 @@ typedef struct param_s {
 		.unit = _unit, \
 		.addr = (void *) _vmem_addr, \
 		.vmem = &vmem_##_vmem_name, \
+		.docstr = _docstr, \
 	}
 
-#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_size, _array_step, _flags, _physaddr) \
+#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_size, _array_step, _flags, _physaddr, _docstr) \
 	__attribute__((section("param"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
@@ -160,9 +163,10 @@ typedef struct param_s {
 		.name = (char *) #_name, \
 		.mask = _flags, \
 		.addr = _physaddr, \
+		.docstr = _docstr, \
 	};
 
-#define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_size, _array_step, _flags, _physaddr) \
+#define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_size, _array_step, _flags, _physaddr, _docstr) \
 	param_t _name = { \
 		.node = _node, \
 		.id = _id, \
@@ -172,6 +176,7 @@ typedef struct param_s {
 		.name = (char *) #_name, \
 		.mask = _flags, \
 		.addr = _physaddr, \
+		.docstr = _docstr, \
 	};
 
 /* Native getter functions, will return native types */

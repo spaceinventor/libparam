@@ -159,12 +159,12 @@ param_t * param_list_find_name(int node, char * name) {
 	return found;
 }
 
-void param_list_print(uint32_t mask) {
+void param_list_print(uint32_t mask, int verbosity) {
 	param_t * param;
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 		if ((param->mask & mask) || (mask == 0xFFFFFFFF)) {
-			param_print(param, -1, NULL, 0, 2);
+			param_print(param, -1, NULL, 0, verbosity);
 		}
 	}
 }
@@ -180,7 +180,7 @@ void param_list_download(int node, int timeout, int list_version) {
 	csp_packet_t * packet;
 	while((packet = csp_read(conn, timeout)) != NULL) {
 
-		//csp_hex_dump("Response", packet->data, packet->length);
+		csp_hex_dump("Response", packet->data, packet->length);
 
 		int strlen;
 		int addr;
@@ -188,33 +188,53 @@ void param_list_download(int node, int timeout, int list_version) {
 		int type;
 		int size;
 		int mask;
+		int storage_type = -1;
 		char * name;
+		char * unit;
+		char * help;
 
 	    if (list_version == 1) {
 
 	        param_transfer_t * new_param = (void *) packet->data;
-
 	        name = new_param->name;
-	        strlen = packet->length - offsetof(param_transfer_t, name);
+			strlen = packet->length - offsetof(param_transfer_t, name);
+			name[strlen] = '\0';
 	        addr = be16toh(new_param->id) >> 11;
             id = be16toh(new_param->id) & 0x7FF;
             type = new_param->type;
             size = new_param->size;
             mask = be32toh(new_param->mask) | PM_REMOTE;
+			unit = NULL;
+			help = NULL;
 
-	    } else {
+	    } else if (list_version == 2) {
 
 	        param_transfer2_t * new_param = (void *) packet->data;
-
 	        name = new_param->name;
-	        strlen = packet->length - offsetof(param_transfer2_t, name);
+			strlen = packet->length - offsetof(param_transfer2_t, name);
+			name[strlen] = '\0';			
             addr = be16toh(new_param->node);
             id = be16toh(new_param->id) & 0x7FF;
             type = new_param->type;
             size = new_param->size;
             mask = be32toh(new_param->mask) | PM_REMOTE;
+			unit = NULL;
+			help = NULL;
 
-	    }
+	    } else {
+
+			param_transfer3_t * new_param = (void *) packet->data;
+	        name = new_param->name;
+            addr = be16toh(new_param->node);
+            id = be16toh(new_param->id) & 0x7FF;
+            type = new_param->type;
+            size = new_param->size;
+            mask = be32toh(new_param->mask) | PM_REMOTE;
+			storage_type = new_param->storage_type;
+			unit = new_param->unit;
+			help = new_param->help;
+
+		}
 
 		if (addr == 0)
 			addr = node;
@@ -222,7 +242,9 @@ void param_list_download(int node, int timeout, int list_version) {
 		if (size == 255)
 			size = 1;
 
-		param_t * param = param_list_create_remote(id, addr, type, mask, size, name, strlen);
+		printf("Storage type %d\n", storage_type);
+
+		param_t * param = param_list_create_remote(id, addr, type, mask, size, name, unit, help, storage_type);
 		if (param == NULL) {
 			csp_buffer_free(packet);
 			break;
@@ -247,7 +269,7 @@ void param_list_destroy(param_t * param) {
 	free(param);
 }
 
-param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, int array_size, char * name, int namelen) {
+param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, int array_size, char * name, char * unit, char * help, int storage_type) {
 
 	if (array_size < 1)
 		array_size = 1;
@@ -258,7 +280,9 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 			uint64_t alignme;
 			uint8_t buffer[param_typesize(type) * array_size];
 		};
-		char name[namelen+1];
+		char name[36];
+		char unit[10];
+		char help[150];
 	} *param_heap = calloc(sizeof(struct param_heap_s), 1);
 
 	param_t * param = &param_heap->param;
@@ -269,7 +293,8 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	param->vmem = NULL;
 	param->name = param_heap->name;
 	param->addr = param_heap->buffer;
-	param->unit = NULL;
+	param->unit = param_heap->unit;
+	param->docstr = param_heap->help;
 
 	param->id = id;
 	param->node = node;
@@ -278,10 +303,30 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	param->array_size = array_size;
 	param->array_step = param_typesize(type);
 
-	strncpy(param->name, name, namelen);
-	param->name[namelen] = '\0';
+	strncpy(param->name, name, 36);
+	if (unit != NULL)
+		strncpy(param->unit, unit, 10);
 
-	//printf("Created %s\n", param->name);
+	switch(storage_type) {
+		case 0:
+		case 1:
+			sprintf(param->docstr, "RAM\t"); break;
+		case 2:
+		case 3:
+			sprintf(param->docstr, "FRAM\t"); break;
+		case 4:
+			sprintf(param->docstr, "FLASH\t"); break;
+		case 5:
+			sprintf(param->docstr, "DRIVER\t"); break;
+		case 6:
+			sprintf(param->docstr, "QSPIFL\t"); break;
+		case 7:
+			sprintf(param->docstr, "FILE\t"); break;
+		default:
+			break;
+	}
+	if (help != NULL)
+		strncat(param->docstr, help, 150);
 
 	return param;
 
