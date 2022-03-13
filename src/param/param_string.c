@@ -182,31 +182,31 @@ static void param_print_value(param_t * param, int offset) {
 		offset = 0;
 	}
 
+	char value_str[128] = {};
+
 	if (count > 1)
-		printf("[");
+		sprintf(value_str + strlen(value_str), "[");
 
 	for(int i = offset; i < offset + count; i++) {
-		char value_str[128] = {};
-		param_value_str(param, i, value_str, 128);
-		if (param->type == PARAM_TYPE_STRING) {
-			printf("%s", value_str);
-			int remain = 20 - strlen(value_str);
-			while(remain--) {
-				printf(" ");
-			}
-		} else {
-			if (count <= 1) {
-			    printf("%-20s", value_str);
-			} else {
-				printf("%s", value_str);
-			}
-		}
+		
+		param_value_str(param, i, value_str + strlen(value_str), 128 - strlen(value_str));
+
 		if (i + 1 < count)
-			printf(" ");
+			sprintf(value_str + strlen(value_str), " ");
 	}
 
 	if (count > 1)
-		printf("]");
+		sprintf(value_str + strlen(value_str), "]");
+
+	if (param->unit != NULL && strlen(param->unit))
+		sprintf(value_str + strlen(value_str), " %s", param->unit);
+
+	int remain = 20 - strlen(value_str);
+	while(remain--) {
+		sprintf(value_str + strlen(value_str), " ");
+	}
+
+	printf("%s", value_str);
 
 }
 
@@ -235,12 +235,6 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 	/* Single value */
 	} else {
 		param_print_value(param, offset);
-	}
-
-	/* Unit */
-	if (verbose >= 1) {
-		if (param->unit != NULL && strlen(param->unit))
-			printf(" %s", param->unit);
 	}
 
 	if (verbose >= 2) {
@@ -316,6 +310,11 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 				printf("o");
 			}
 
+			if (mask & PM_CALIB) {
+				mask &= ~ PM_CALIB;
+				printf("q");
+			}
+
 			if (mask)
 				printf("+%x", mask);
 
@@ -358,6 +357,7 @@ uint32_t param_maskstr_to_mask(char * str) {
 	if (strchr(str, 'C')) mask |= PM_SYSCONF;
 	if (strchr(str, 'w')) mask |= PM_WDT;
 	if (strchr(str, 'd')) mask |= PM_DEBUG;
+	if (strchr(str, 'q')) mask |= PM_CALIB;
 	if (strchr(str, 'o')) mask |= PM_ATOMIC_WRITE;
 	if (strchr(str, 'A')) mask |= 0xFFFFFFFF;
 

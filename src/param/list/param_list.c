@@ -180,7 +180,7 @@ void param_list_download(int node, int timeout, int list_version) {
 	csp_packet_t * packet;
 	while((packet = csp_read(conn, timeout)) != NULL) {
 
-		csp_hex_dump("Response", packet->data, packet->length);
+		//csp_hex_dump("Response", packet->data, packet->length);
 
 		int strlen;
 		int addr;
@@ -242,7 +242,7 @@ void param_list_download(int node, int timeout, int list_version) {
 		if (size == 255)
 			size = 1;
 
-		printf("Storage type %d\n", storage_type);
+		//printf("Storage type %d\n", storage_type);
 
 		param_t * param = param_list_create_remote(id, addr, type, mask, size, name, unit, help, storage_type);
 		if (param == NULL) {
@@ -314,6 +314,8 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 		case 2:
 		case 3:
 			sprintf(param->docstr, "FRAM\t"); break;
+		case 8:
+			sprintf(param->docstr, "FRAM+C\t"); break;
 		case 4:
 			sprintf(param->docstr, "FLASH\t"); break;
 		case 5:
@@ -323,6 +325,7 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 		case 7:
 			sprintf(param->docstr, "FILE\t"); break;
 		default:
+			sprintf(param->docstr, "%d\t", storage_type); break;
 			break;
 	}
 	if (help != NULL)
