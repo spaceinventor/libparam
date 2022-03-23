@@ -202,7 +202,7 @@ static void param_print_value(param_t * param, int offset) {
 		sprintf(value_str + strlen(value_str), " %s", param->unit);
 
 	int remain = 20 - strlen(value_str);
-	while(remain--) {
+	while(remain-- > 0) {
 		sprintf(value_str + strlen(value_str), " ");
 	}
 
