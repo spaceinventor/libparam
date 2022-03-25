@@ -182,7 +182,7 @@ static void param_print_value(param_t * param, int offset) {
 		offset = 0;
 	}
 
-	char value_str[128] = {};
+	char value_str[1024] = {};
 
 	if (count > 1)
 		sprintf(value_str + strlen(value_str), "[");
