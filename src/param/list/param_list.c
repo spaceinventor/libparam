@@ -169,12 +169,12 @@ void param_list_print(uint32_t mask, int verbosity) {
 	}
 }
 
-void param_list_download(int node, int timeout, int list_version) {
+int param_list_download(int node, int timeout, int list_version) {
 
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_LIST, timeout, CSP_O_RDP | CSP_O_CRC32);
 	if (conn == NULL)
-		return;
+		return -1;
 
 	int count = 0;
 	csp_packet_t * packet;
@@ -262,6 +262,8 @@ void param_list_download(int node, int timeout, int list_version) {
 
 	printf("Received %u parameters\n", count);
 	csp_close(conn);
+
+	return count;
 }
 
 #ifdef PARAM_LIST_DYNAMIC
