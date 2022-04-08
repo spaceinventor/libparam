@@ -19,6 +19,15 @@ typedef struct param_list_iterator_s {
 param_t * param_list_iterate(param_list_iterator * iterator);
 
 int param_list_add(param_t * item);
+
+/**
+ * @brief Remove remote parameters matching the specified arguments from the global list.
+ *
+ * @param node Remove parameters from this node. Use <1 for all nodes.
+ * @param name Optional wildcard name to filter parameters by.
+ * @return Count of parameters affected.
+ */
+int param_list_remove_glob(int node, char * name, uint8_t verbose);
 param_t * param_list_find_id(int node, int id);
 param_t * param_list_find_name(int node, char * name);
 void param_list_print(uint32_t mask, int verbosity);

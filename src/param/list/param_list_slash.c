@@ -55,3 +55,19 @@ static int list_download(struct slash *slash)
     return SLASH_SUCCESS;
 }
 slash_command_sub(list, download, list_download, "<node> [timeout] [version]", NULL);
+
+static int list_forget(struct slash *slash)
+{
+    int node = -1;
+    char * name = NULL;
+
+    if (slash->argc >= 2)
+        node = atoi(slash->argv[1]);
+    if (slash->argc >= 3)
+        name = slash->argv[2];
+
+    printf("Removed %i parameters\n", param_list_remove_glob(node, name, 1));
+
+    return SLASH_SUCCESS;
+}
+slash_command_sub(list, forget, list_forget, "[node] [name-filter]", "Forget remote parameters. Omit or set node to -1 to include all.");
