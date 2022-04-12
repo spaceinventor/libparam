@@ -110,6 +110,7 @@ int param_list_add(param_t * item) {
 	return 0;
 }
 
+#ifdef PARAM_HAVE_SYS_QUEUE
 int param_list_remove_glob(int node, char * name, uint8_t verbose) {
 
 	param_t * param = param_list_head.slh_first;
@@ -143,6 +144,7 @@ int param_list_remove_glob(int node, char * name, uint8_t verbose) {
 
 	return count;
 }
+#endif
 
 param_t * param_list_find_id(int node, int id) {
 	
