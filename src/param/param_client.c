@@ -64,6 +64,12 @@ int param_transaction(csp_packet_t *packet, int host, int timeout, param_transac
 
 	//csp_hex_dump("transaction", packet->data, packet->length);
 
+	/* Parameters can be setup with a special nodeid, which caused all transaction to be ignored
+	   and return failure immediately */
+	if (host == PARAM_REMOTE_NODE_IGNORE) {
+		return -1;
+	}
+
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
 	if (conn == NULL) {
 		printf("param transaction failure\n");
