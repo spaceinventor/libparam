@@ -150,7 +150,7 @@ typedef struct param_s {
 		.docstr = _docstr, \
 	}
 
-#define PARAM_REMOTE_NODE_IGNORE 16367
+#define PARAM_REMOTE_NODE_IGNORE 16382
 
 #define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_size, _array_step, _flags, _physaddr, _docstr) \
 	__attribute__((section("param"))) \
