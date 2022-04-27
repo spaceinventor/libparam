@@ -21,10 +21,10 @@ param_t * param_list_iterate(param_list_iterator * iterator);
 int param_list_add(param_t * item);
 
 /**
- * @brief Remove remote parameters matching the specified arguments from the global list.
+ * @brief Remove remote parameters, matching the provided arguments, from the global list.
  *
  * @param node Remove parameters from this node. Use <1 for all nodes.
- * @param name Optional wildcard name to filter parameters by.
+ * @param name Optional wildcard name pattern to filter parameters by.
  * @return Count of parameters affected.
  */
 int param_list_remove_glob(int node, char * name, uint8_t verbose);

@@ -113,11 +113,15 @@ int param_list_add(param_t * item) {
 #ifdef PARAM_HAVE_SYS_QUEUE
 int param_list_remove_glob(int node, char * name, uint8_t verbose) {
 
-	param_t * param = param_list_head.slh_first;
-
 	int count = 0;
 
-	while (param) {
+	param_list_iterator i = {};
+	param_t * iter_param = param_list_iterate(&i);
+
+	while (iter_param) {
+
+		param_t * param = iter_param;  // Free the current parameter after we have used it to iterate.
+		iter_param = param_list_iterate(&i);
 
 		if (param->node == 0)
 			continue;
@@ -129,15 +133,12 @@ int param_list_remove_glob(int node, char * name, uint8_t verbose) {
 		if (match && name != NULL)  // Don't bother with wildcard if the nodes don't match.
 			match = strmatch(param->name, name, strlen(param->name), strlen(name));
 
-		param_t * temp_param = param;  // Free the current parameter after we have used it to iterate.
-		param = param->next.sle_next;
-
 		if (match) {
 			if (verbose)
-				printf("Removing param: %s:%u[%d]\n", temp_param->name, temp_param->node, temp_param->array_size);
+				printf("Removing param: %s:%u[%d]\n", param->name, param->node, param->array_size);
 			// Using SLIST_REMOVE() means we iterate twice, but it is simpler.
-			SLIST_REMOVE(&param_list_head, temp_param, param_s, next);
-			param_list_destroy(temp_param);
+			SLIST_REMOVE(&param_list_head, param, param_s, next);
+			param_list_destroy(param);
 			count++;
 		}
 	}
