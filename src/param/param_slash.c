@@ -23,9 +23,12 @@
 #include "param_slash.h"
 #include "param_wildcard.h"
 
+/* Global used for prompt */
+int param_slash_node = 0;
+
 param_queue_t param_queue_set = { };
 param_queue_t param_queue_get = { };
-static int default_node = 0;
+
 static int autosend = 1;
 static int paramver = 2;
 
@@ -266,7 +269,7 @@ static int cmd_get(struct slash *slash) {
 
 	param_t * param;
 	int host = -1;
-	int node = default_node;
+	int node = param_slash_node;
 	int offset = -1;
 	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
 
@@ -325,7 +328,7 @@ static int cmd_set(struct slash *slash) {
 
 	param_t * param;
 	int host = -1;
-	int node = default_node;
+	int node = param_slash_node;
 	int offset = -1;
 	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
 
@@ -457,12 +460,16 @@ slash_command(clear, cmd_clear, NULL, NULL);
 static int cmd_node(struct slash *slash) {
 
 	if (slash->argc < 1) {
-		printf("Default node = %d\n", default_node);
+		printf("Default node = %d\n", param_slash_node);
 	}
 
 	if (slash->argc >= 1) {
-		default_node = atoi(slash->argv[1]);
-		printf("Set default node to %d\n", default_node);
+
+		/* We rely on user to provide known hosts implemetnation */
+		int known_hosts_get_node(char * find_name);
+		param_slash_node = known_hosts_get_node(slash->argv[1]);
+		if (param_slash_node == 0)
+			param_slash_node = atoi(slash->argv[1]);
 	}
 
 	return SLASH_SUCCESS;
