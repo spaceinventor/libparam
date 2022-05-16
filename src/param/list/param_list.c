@@ -111,7 +111,7 @@ int param_list_add(param_t * item) {
 }
 
 #ifdef PARAM_HAVE_SYS_QUEUE
-int param_list_remove_glob(int node, char * name, uint8_t verbose) {
+int param_list_remove(int node, uint8_t verbose) {
 
 	int count = 0;
 
@@ -130,8 +130,6 @@ int param_list_remove_glob(int node, char * name, uint8_t verbose) {
 
 		if (node > 0)
 			match = param->node == node;
-		if (match && name != NULL)  // Don't bother with wildcard if the nodes don't match.
-			match = strmatch(param->name, name, strlen(param->name), strlen(name));
 
 		if (match) {
 			if (verbose)
@@ -196,13 +194,22 @@ param_t * param_list_find_name(int node, char * name) {
 	return found;
 }
 
-void param_list_print(uint32_t mask, int verbosity) {
+void param_list_print(uint32_t mask, int node, char * globstr, int verbosity) {
 	param_t * param;
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
-		if ((param->mask & mask) || (mask == 0xFFFFFFFF)) {
-			param_print(param, -1, NULL, 0, verbosity);
+		if ((node >= 0) && (param->node != node)) {
+			continue;
 		}
+		if ((param->mask & mask) == 0) {
+			continue;
+		}
+		if ((globstr != NULL) && strmatch(param->name, globstr, strlen(param->name), strlen(globstr)) == 0) {
+			continue;
+		}
+
+		param_print(param, -1, NULL, 0, verbosity);
+		
 	}
 }
 

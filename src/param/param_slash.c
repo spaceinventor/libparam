@@ -10,6 +10,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <slash/slash.h>
+#include <slash/dflopt.h>
 
 #include <csp/csp.h>
 
@@ -22,9 +23,6 @@
 #include "param_string.h"
 #include "param_slash.h"
 #include "param_wildcard.h"
-
-/* Global used for prompt */
-int param_slash_node = 0;
 
 param_queue_t param_queue_set = { };
 param_queue_t param_queue_get = { };
@@ -269,7 +267,7 @@ static int cmd_get(struct slash *slash) {
 
 	param_t * param;
 	int host = -1;
-	int node = param_slash_node;
+	int node = slash_dfl_node;
 	int offset = -1;
 	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
 
@@ -328,7 +326,7 @@ static int cmd_set(struct slash *slash) {
 
 	param_t * param;
 	int host = -1;
-	int node = param_slash_node;
+	int node = slash_dfl_node;
 	int offset = -1;
 	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
 
@@ -460,16 +458,16 @@ slash_command(clear, cmd_clear, NULL, NULL);
 static int cmd_node(struct slash *slash) {
 
 	if (slash->argc < 1) {
-		printf("Default node = %d\n", param_slash_node);
+		printf("Default node = %d\n", slash_dfl_node);
 	}
 
 	if (slash->argc >= 1) {
 
 		/* We rely on user to provide known hosts implemetnation */
 		int known_hosts_get_node(char * find_name);
-		param_slash_node = known_hosts_get_node(slash->argv[1]);
-		if (param_slash_node == 0)
-			param_slash_node = atoi(slash->argv[1]);
+		slash_dfl_node = known_hosts_get_node(slash->argv[1]);
+		if (slash_dfl_node == 0)
+			slash_dfl_node = atoi(slash->argv[1]);
 	}
 
 	return SLASH_SUCCESS;

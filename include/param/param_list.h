@@ -27,10 +27,10 @@ int param_list_add(param_t * item);
  * @param name Optional wildcard name pattern to filter parameters by.
  * @return Count of parameters affected.
  */
-int param_list_remove_glob(int node, char * name, uint8_t verbose);
+int param_list_remove(int node, uint8_t verbose);
 param_t * param_list_find_id(int node, int id);
 param_t * param_list_find_name(int node, char * name);
-void param_list_print(uint32_t mask, int verbosity);
+void param_list_print(uint32_t mask, int node, char * globstr, int verbosity);
 uint32_t param_maskstr_to_mask(char * str);
 
 param_t * param_list_from_line(char * line);
