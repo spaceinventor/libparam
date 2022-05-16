@@ -24,14 +24,15 @@
 #include "param_slash.h"
 #include "param_wildcard.h"
 
-param_queue_t param_queue_set = { };
-param_queue_t param_queue_get = { };
+char queue_set_buf[PARAM_SERVER_MTU];
+char queue_get_buf[PARAM_SERVER_MTU];
+
+param_queue_t param_queue_set = { .buffer = queue_set_buf, .buffer_size = PARAM_SERVER_MTU, .type = PARAM_QUEUE_TYPE_SET, .version = 2 };
+param_queue_t param_queue_get = { .buffer = queue_get_buf, .buffer_size = PARAM_SERVER_MTU, .type = PARAM_QUEUE_TYPE_GET, .version = 2 };
 
 static int autosend = 1;
-static int paramver = 2;
 
-void param_slash_parse(char * arg, param_t **param, int *node, int *host,
-		int *offset) {
+void param_slash_parse(char * arg, param_t **param, int *node, int *host, int *offset) {
 
 	/* Search for the '@' symbol:
 	 * Call strtok twice in order to skip the stuff head of '@' */
@@ -137,186 +138,63 @@ static void param_completer(struct slash *slash, char * token) {
 
 }
 
-static int param_get_glob(char *name, int host, int node, int offset) {
-	// Decide on which queue to use for the transaction.
-	param_queue_t * queue = malloc(sizeof(param_queue_t));
-	if (autosend) {  // Use our own queue when autosend is on.
-		param_queue_init(queue, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_GET, paramver);
-	} else {  // Otherwise use the global queue.
-		if (!param_queue_get.buffer) {
-			param_queue_init(&param_queue_get, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_GET, paramver);
-		}
-
-		queue = &param_queue_get;
-	}
-	int local_queue_used = queue != &param_queue_get;
-
-	if (node < 0)
-		node = 0;
-
-	// Find all matching parameters.
-	param_t * currparam;
-	param_list_iterator i = {};
-	while ((currparam = param_list_iterate(&i)) != NULL)
-		if (strmatch(currparam->name, name, strlen(currparam->name), strlen(name)) && (currparam->node == node)) {
-			if (param_queue_add(queue, currparam, offset, NULL) < 0) {
-				printf("Queue full\n");
-				break;
-			}
-		}
-
-	if (local_queue_used) {
-		if (param_pull_queue(queue, 0, (host != -1 ? host : (node < 0 ? 0 : node)), 1000)) {
-			printf("No response\n");
-			free(queue->buffer);
-			free(queue);
-			return SLASH_EIO;
-		}
-
-		// Print with values when autosend is used
-
-		/* Loop over paramid's in pull response */
-		PARAM_QUEUE_FOREACH(param, reader, (queue), offset)
-
-			/* Print the local RAM copy of the remote parameter */
-			if (param)
-				param_print(param, -1, NULL, 0, 2);
-
-		}
-
-		// Using our own queue. Clear the buffer.
-		free(queue->buffer);
-		free(queue);
-
-	} else {  // Haven't pulled global queue yet, just print the parameters.
-		param_queue_print(queue);
-	}
-
-	return SLASH_SUCCESS;
-}
-
-static int param_set_glob(char *name, char *value, int host, int node, int offset) {
-	// Decide on which queue to use for the transaction.
-	param_queue_t * queue = malloc(sizeof(param_queue_t));
-	if (autosend) {  // Use our own queue when autosend is on.
-		param_queue_init(queue, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
-	} else {  // Otherwise use the global queue.
-		if (!param_queue_set.buffer) {
-			param_queue_init(&param_queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
-		}
-
-		queue = &param_queue_set;
-	}
-	int local_queue_used = queue != &param_queue_set;
-
-	if (node < 0)
-		node = 0;
-
-	// Find all matching parameters.
-	param_t * currparam;
-	param_list_iterator i = {};
-	while ((currparam = param_list_iterate(&i)) != NULL)
-		if (strmatch(currparam->name, name, strlen(currparam->name), strlen(name)) && (currparam->node == node)) {
-
-			char valuebuf[128] __attribute__((aligned(16))) = { };
-			param_str_to_value(currparam->type, value, valuebuf);
-
-			if (param_queue_add(queue, currparam, offset, valuebuf) < 0) {
-				printf("Queue full\n");
-				break;
-			}
-		}
-
-	if (local_queue_used) {
-		if (param_push_queue(queue, 0, (host != -1 ? host : node), 1000, 0)) {
-			printf("No response\n");
-			free(queue->buffer);
-			free(queue);
-			return SLASH_EIO;
-		}
-
-		// Print with values when autosend is used
-
-		char * lastname = "";
-
-		/* Loop over paramid's in pull response */
-		PARAM_QUEUE_FOREACH(param, reader, (queue), offset)
-
-			/* Print the local RAM copy of the remote parameter */
-			// The last parameter may occour twice for some reason.
-			if (param && ((strlen(lastname) == 0) || (strcmp(lastname, param->name)))) {
-				param_print(param, -1, NULL, 0, 2);
-				lastname = param->name;
-			}
-		}
-
-		// Using our own queue. Clear the buffer.
-		free(queue->buffer);
-		free(queue);
-
-	} else {  // Haven't pulled global queue yet, just print the parameters.
-		param_queue_print(queue);
-	}
-
-	return SLASH_SUCCESS;
-}
-
 static int cmd_get(struct slash *slash) {
-	if (slash->argc != 2)
-		return SLASH_EUSAGE;
+	//if (slash->argc != 2)
+	//	return SLASH_EUSAGE;
 
 	param_t * param;
 	int host = -1;
 	int node = slash_dfl_node;
 	int offset = -1;
+	int paramver = 2;
+	char * name = slash->argv[1];
 	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
 
-	if (has_wildcard(slash->argv[1], strlen(slash->argv[1])))
-		return param_get_glob(slash->argv[1], host, node, offset);
+	/* Go through the list of parameters */
+	param_list_iterator i = {};
+	while ((param = param_list_iterate(&i)) != NULL) {
 
-	if (param == NULL) {
-		printf("%s not found\n", slash->argv[1]);
-		return SLASH_EINVAL;
-	}
+		/* Name match (with wildcard) */
+		if (strmatch(param->name, name, strlen(param->name), strlen(name)) == 0) {
+			continue;
+		}
 
-	/* Remote parameters are sent to a queue or directly */
-	int result = 0;
-	if (param->node != 0) {
+		/* Node match */
+		if (param->node != node) {
+			continue;
+		}
 
-		if (autosend) {
-			if (host != -1) {
-				result = param_pull_single(param, offset, 1, host, 1000, paramver);
-			} else if (node != -1) {
-				result = param_pull_single(param, offset, 1, node, 1000, paramver);
-			}
-		} else {
-			if (!param_queue_get.buffer) {
-			    param_queue_init(&param_queue_get, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_GET, paramver);
-			}
+		/* Local parameters are printed directly */
+		if ((param->node == 0) && (autosend)) {
+			param_print(param, -1, NULL, 0, 0);
+			continue;
+		}
+
+		/* Queue */
+		if (autosend == 0) {
 			if (param_queue_add(&param_queue_get, param, offset, NULL) < 0)
 				printf("Queue full\n");
-			param_queue_print(&param_queue_get);
-			return SLASH_SUCCESS;
+			continue;	
 		}
 
-	} else if (autosend) {
-		param_print(param, -1, NULL, 0, 0);
-	} else {
-		if (!param_queue_get.buffer) {
-			param_queue_init(&param_queue_get, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_GET, paramver);
+		/* Select destination, host overrides parameter node */
+		int dest = node;
+		if (host != -1)
+			dest = host;
+
+		if (param_pull_single(param, offset, 1, dest, slash_dfl_timeout, paramver) < 0) {
+			printf("No response\n");
+			continue;
 		}
-		if (param_queue_add(&param_queue_get, param, offset, NULL) < 0)
-			printf("Queue full\n");
-		param_queue_print(&param_queue_get);
-		return SLASH_SUCCESS;
+		
 	}
 
-	if (result < 0) {
-		printf("No response\n");
-		return SLASH_EIO;
+	if (autosend == 0) {
+		param_queue_print(&param_queue_get);
 	}
 
 	return SLASH_SUCCESS;
+
 }
 slash_command_completer(get, cmd_get, param_completer, "<param>", "Get");
 
@@ -328,12 +206,10 @@ static int cmd_set(struct slash *slash) {
 	int host = -1;
 	int node = slash_dfl_node;
 	int offset = -1;
+	int paramver = 2;
 	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
 
 	//printf("set %s node %d host %d\n", param->name, node, host);
-
-	if (has_wildcard(slash->argv[1], strlen(slash->argv[1])))
-		return param_set_glob(slash->argv[1], slash->argv[2], host, node, offset);
 
 	if (param == NULL) {
 		printf("%s not found\n", slash->argv[1]);
@@ -343,41 +219,29 @@ static int cmd_set(struct slash *slash) {
 	char valuebuf[128] __attribute__((aligned(16))) = { };
 	param_str_to_value(param->type, slash->argv[2], valuebuf);
 
-	/* Remote parameters are sent to a queue or directly */
-	int result = 0;
-	if (host != -1) {
-		result = param_push_single(param, offset, valuebuf, 1, host, 1000, paramver);
-	} else if (param->node != 0) {
+	/* Local parameters are set directly */
+	if ((param->node == 0) && autosend) {
 
-		if (autosend) {
-			result = param_push_single(param, offset, valuebuf, 1, node, 1000, paramver);
-		} else {
-			if (!param_queue_set.buffer) {
-				param_queue_init(&param_queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
-			}
-			if (param_queue_add(&param_queue_set, param, offset, valuebuf) < 0)
-				printf("Queue full\n");
-			param_queue_print(&param_queue_set);
-			return SLASH_SUCCESS;
-		}
-		
-	} else if (autosend) {
-		/* For local parameters, set immediately if autosend is enabled */
+		/* Ensure offset is positive for local parametrs */
 	    if (offset < 0)
 			offset = 0;
+
 		param_set(param, offset, valuebuf);
-	} else {
-		/* If autosend is off, queue the parameters */
-		if (!param_queue_set.buffer) {
-			param_queue_init(&param_queue_set, malloc(PARAM_SERVER_MTU), PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, paramver);
-		}
+	}
+
+	if (autosend == 0) {
 		if (param_queue_add(&param_queue_set, param, offset, valuebuf) < 0)
 			printf("Queue full\n");
 		param_queue_print(&param_queue_set);
 		return SLASH_SUCCESS;
 	}
 
-	if (result < 0) {
+	/* Select destination, host overrides parameter node */
+	int dest = node;
+	if (host != -1)
+		dest = host;
+
+	if (param_push_single(param, offset, valuebuf, 1, dest, 1000, paramver) < 0) {
 		printf("No response\n");
 		return SLASH_EIO;
 	}
@@ -386,12 +250,11 @@ static int cmd_set(struct slash *slash) {
 
 	return SLASH_SUCCESS;
 }
-slash_command_completer(set, cmd_set, param_completer, "<param> <value>",
-		"Set");
+slash_command_completer(set, cmd_set, param_completer, "<param> <value>", "Set");
 
 static int cmd_push(struct slash *slash) {
-	unsigned int node = 0;
-	unsigned int timeout = 100;
+	unsigned int node = slash_dfl_node;
+	unsigned int timeout = slash_dfl_timeout;
 	uint32_t hwid = 0;
 
 	if (slash->argc < 2)
@@ -413,10 +276,11 @@ static int cmd_push(struct slash *slash) {
 slash_command(push, cmd_push, "<node> [timeout] [hwid]", NULL);
 
 static int cmd_pull(struct slash *slash) {
-	unsigned int host = 0;
-	unsigned int timeout = 1000;
+	unsigned int host = slash_dfl_node;
+	unsigned int timeout = slash_dfl_timeout;
 	uint32_t include_mask = 0xFFFFFFFF;
 	uint32_t exclude_mask = PM_REMOTE | PM_HWREG;
+	int paramver = 2;
 
 	if (slash->argc < 2)
 		return SLASH_EUSAGE;
@@ -448,48 +312,14 @@ slash_command(pull, cmd_pull, "<node> [mask] [timeout]", NULL);
 static int cmd_clear(struct slash *slash) {
 	param_queue_get.used = 0;
 	param_queue_set.used = 0;
-    param_queue_get.version = paramver;
-    param_queue_set.version = paramver;
 	printf("Queue cleared\n");
 	return SLASH_SUCCESS;
 }
 slash_command(clear, cmd_clear, NULL, NULL);
 
-static int cmd_node(struct slash *slash) {
-
-	if (slash->argc < 1) {
-		printf("Default node = %d\n", slash_dfl_node);
-	}
-
-	if (slash->argc >= 1) {
-
-		/* We rely on user to provide known hosts implemetnation */
-		int known_hosts_get_node(char * find_name);
-		slash_dfl_node = known_hosts_get_node(slash->argv[1]);
-		if (slash_dfl_node == 0)
-			slash_dfl_node = atoi(slash->argv[1]);
-	}
-
-	return SLASH_SUCCESS;
-}
-slash_command(node, cmd_node, "[node]", NULL);
-
-static int cmd_paramver(struct slash *slash) {
-
-    if (slash->argc < 1) {
-        printf("Parameter client version = %d\n", paramver);
-    }
-
-    if (slash->argc >= 1) {
-        paramver = atoi(slash->argv[1]);
-        printf("Set parameter client version to %d\n", paramver);
-    }
-
-    return SLASH_SUCCESS;
-}
-slash_command(paramver, cmd_paramver, "[1|2]", NULL);
-
 static int cmd_autosend(struct slash *slash) {
+
+	int paramver = 2;
 
 	if (slash->argc < 1) {
 		printf("autosend = %d\n", autosend);
@@ -499,6 +329,11 @@ static int cmd_autosend(struct slash *slash) {
 		autosend = atoi(slash->argv[1]);
 		printf("Set autosend to %d\n", autosend);
 	}
+
+	param_queue_get.used = 0;
+	param_queue_get.version = paramver;
+	param_queue_set.used = 0;
+	param_queue_set.version = paramver;
 
 	return SLASH_SUCCESS;
 }
