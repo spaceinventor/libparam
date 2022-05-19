@@ -32,11 +32,27 @@ static int vmem_client_slash_download(struct slash *slash)
     optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
     optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 1)");
+
+	/* RDPOPT */
+	unsigned int window = 3;
+	unsigned int conn_timeout = 10000;
+	unsigned int packet_timeout = 5000;
+	unsigned int ack_timeout = 2000;
+	unsigned int ack_count = 2;
+	optparse_add_unsigned(parser, 'w', "window", "NUM", 0, &window, "rdp window (default = 3 packets)");
+	optparse_add_unsigned(parser, 'c', "conn_timeout", "NUM", 0, &conn_timeout, "rdp connection timeout (default = 10 seconds)");
+	optparse_add_unsigned(parser, 'p', "packet_timeout", "NUM", 0, &packet_timeout, "rdp packet timeout (default = 5 seconds)");
+	optparse_add_unsigned(parser, 'k', "ack_timeout", "NUM", 0, &ack_timeout, "rdp max acknowledgement interval (default = 2 seconds)");
+	optparse_add_unsigned(parser, 'a', "ack_count", "NUM", 0, &ack_count, "rdp ack for each (default = 2 packets)");
+
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
         optparse_del(parser);
 	    return SLASH_EINVAL;
     }
+
+	printf("Setting rdp options: %u %u %u %u %u\n", window, conn_timeout, packet_timeout, ack_timeout, ack_count);
+	csp_rdp_set_opt(window, conn_timeout, packet_timeout, 1, ack_timeout, ack_count);
 
 	/* Expect address */
 	if (++argi >= slash->argc) {
@@ -111,11 +127,28 @@ static int vmem_client_slash_upload(struct slash *slash)
     optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
     optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 1)");
+
+
+	/* RDPOPT */
+	unsigned int window = 3;
+	unsigned int conn_timeout = 10000;
+	unsigned int packet_timeout = 5000;
+	unsigned int ack_timeout = 2000;
+	unsigned int ack_count = 2;
+	optparse_add_unsigned(parser, 'w', "window", "NUM", 0, &window, "rdp window (default = 3 packets)");
+	optparse_add_unsigned(parser, 'c', "conn_timeout", "NUM", 0, &conn_timeout, "rdp connection timeout (default = 10 seconds)");
+	optparse_add_unsigned(parser, 'p', "packet_timeout", "NUM", 0, &packet_timeout, "rdp packet timeout (default = 5 seconds)");
+	optparse_add_unsigned(parser, 'k', "ack_timeout", "NUM", 0, &ack_timeout, "rdp max acknowledgement interval (default = 2 seconds)");
+	optparse_add_unsigned(parser, 'a', "ack_count", "NUM", 0, &ack_count, "rdp ack for each (default = 2 packets)");
+
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
         optparse_del(parser);
 	    return SLASH_EINVAL;
     }
+
+	printf("Setting rdp options: %u %u %u %u %u\n", window, conn_timeout, packet_timeout, ack_timeout, ack_count);
+	csp_rdp_set_opt(window, conn_timeout, packet_timeout, 1, ack_timeout, ack_count);
 
 	/* Expect filename */
 	if (++argi >= slash->argc) {
