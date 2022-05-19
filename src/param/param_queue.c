@@ -148,6 +148,14 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
 }
 
 void param_queue_print(param_queue_t *queue) {
+	printf("COMMAND: \n");
+	printf("  Name: %s\n", queue->name);
+	printf("  Type: ");
+	if (queue->type == PARAM_QUEUE_TYPE_GET) {
+		printf("GET\n");
+	} else if (queue->type == PARAM_QUEUE_TYPE_SET) {
+		printf("SET\n");
+	}
 	PARAM_QUEUE_FOREACH(param, reader, queue, offset)
 		if (param) {
 			printf("%s", param_mask_color(param));
