@@ -33,6 +33,12 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 		queue->last_node = UINT16_MAX;
 	}
 
+	if ((queue->type == PARAM_QUEUE_TYPE_GET) && (value != NULL)) {
+		printf("Cannot mix GET/SET commands\n");
+		printf("Queue type %u value %p\n", queue->type, value);
+		return -1;
+	}
+
 	mpack_writer_t writer;
 	mpack_writer_init(&writer, queue->buffer, queue->buffer_size);
 	writer.position = queue->buffer + queue->used;

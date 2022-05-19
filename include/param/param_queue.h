@@ -15,6 +15,7 @@
 typedef enum {
 	PARAM_QUEUE_TYPE_GET,
 	PARAM_QUEUE_TYPE_SET,
+	PARAM_QUEUE_TYPE_EMPTY,
 } param_queue_type_e;
 
 typedef struct param_queue_s {
@@ -23,6 +24,7 @@ typedef struct param_queue_s {
 	uint16_t used;
 	uint8_t version;
 	uint8_t type;
+	char name[20];
 
 	/* State used by serializer */
 	uint16_t last_node;

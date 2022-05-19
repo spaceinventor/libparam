@@ -10,6 +10,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <slash/slash.h>
+#include <slash/optparse.h>
 #include <slash/dflopt.h>
 
 #include <csp/csp.h>
@@ -24,39 +25,15 @@
 #include "param_slash.h"
 #include "param_wildcard.h"
 
-char queue_set_buf[PARAM_SERVER_MTU];
-char queue_get_buf[PARAM_SERVER_MTU];
+static char queue_buf[PARAM_SERVER_MTU];
+param_queue_t param_queue = { .buffer = queue_buf, .buffer_size = PARAM_SERVER_MTU, .type = PARAM_QUEUE_TYPE_EMPTY, .version = 2 };
 
-param_queue_t param_queue_set = { .buffer = queue_set_buf, .buffer_size = PARAM_SERVER_MTU, .type = PARAM_QUEUE_TYPE_SET, .version = 2 };
-param_queue_t param_queue_get = { .buffer = queue_get_buf, .buffer_size = PARAM_SERVER_MTU, .type = PARAM_QUEUE_TYPE_GET, .version = 2 };
-
-static int autosend = 1;
-
-void param_slash_parse(char * arg, param_t **param, int *node, int *host, int *offset) {
+static void param_slash_parse(char * arg, int node, param_t **param, int *offset) {
 
 	/* Search for the '@' symbol:
 	 * Call strtok twice in order to skip the stuff head of '@' */
 	char * saveptr;
 	char * token;
-
-	strtok_r(arg, "@", &saveptr);
-	token = strtok_r(NULL, "@", &saveptr);
-	if (token != NULL) {
-		sscanf(token, "%d", host);
-		*token = '\0';
-	} else {
-		*host = -1;
-	}
-
-	/* Search for the ':' symbol: */
-	strtok_r(arg, ":", &saveptr);
-	token = strtok_r(NULL, ":", &saveptr);
-	if (token != NULL) {
-		sscanf(token, "%d", node);
-		*token = '\0';
-	} else if (*host != -1) {
-		*node = *host;
-	}
 
 	/* Search for the '[' symbol: */
 	strtok_r(arg, "[", &saveptr);
@@ -70,9 +47,9 @@ void param_slash_parse(char * arg, param_t **param, int *node, int *host, int *o
 	int id = strtoul(arg, &endptr, 10);
 
 	if (*endptr == '\0') {
-		*param = param_list_find_id(*node, id);
+		*param = param_list_find_id(node, id);
 	} else {
-		*param = param_list_find_name(*node, arg);
+		*param = param_list_find_name(node, arg);
 	}
 
 	return;
@@ -139,16 +116,40 @@ static void param_completer(struct slash *slash, char * token) {
 }
 
 static int cmd_get(struct slash *slash) {
-	//if (slash->argc != 2)
-	//	return SLASH_EUSAGE;
 
-	param_t * param;
-	int host = -1;
 	int node = slash_dfl_node;
-	int offset = -1;
 	int paramver = 2;
-	char * name = slash->argv[1];
-	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
+	int server = 0;
+	int enqueue = 0;
+
+    optparse_t * parser = optparse_new("get", "<name>[offset]");
+    optparse_add_help(parser);
+	optparse_add_set(parser, 'q', "enqueue", 1, &enqueue, "enqueue get command");
+    optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
+	optparse_add_int(parser, 's', "server", "NUM", 0, &server, "server to get parameters from (default = node))");
+    optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system verison (default = 2)");
+
+    int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+    if (argi < 0) {
+        optparse_del(parser);
+	    return SLASH_EINVAL;
+    }
+
+	/* Check if name is present */
+	if (++argi >= slash->argc) {
+		printf("missing parameter name\n");
+		return SLASH_EINVAL;
+	}
+
+	char * name = slash->argv[argi];
+	int offset = -1;
+	param_t * param = NULL;
+	param_slash_parse(name, node, &param, &offset);
+
+	if (param == NULL) {
+		printf("%s not found\n", name);
+		return SLASH_EINVAL;
+	}	
 
 	/* Go through the list of parameters */
 	param_list_iterator i = {};
@@ -165,22 +166,22 @@ static int cmd_get(struct slash *slash) {
 		}
 
 		/* Local parameters are printed directly */
-		if ((param->node == 0) && (autosend)) {
+		if ((param->node == 0) && (enqueue == 0) && (server == 0)) {
 			param_print(param, -1, NULL, 0, 0);
 			continue;
 		}
 
 		/* Queue */
-		if (autosend == 0) {
-			if (param_queue_add(&param_queue_get, param, offset, NULL) < 0)
+		if (enqueue == 1) {
+			if (param_queue_add(&param_queue, param, offset, NULL) < 0)
 				printf("Queue full\n");
 			continue;	
 		}
 
 		/* Select destination, host overrides parameter node */
 		int dest = node;
-		if (host != -1)
-			dest = host;
+		if (server > 0)
+			dest = server;
 
 		if (param_pull_single(param, offset, 1, dest, slash_dfl_timeout, paramver) < 0) {
 			printf("No response\n");
@@ -189,8 +190,8 @@ static int cmd_get(struct slash *slash) {
 		
 	}
 
-	if (autosend == 0) {
-		param_queue_print(&param_queue_get);
+	if (enqueue == 1) {
+		param_queue_print(&param_queue);
 	}
 
 	return SLASH_SUCCESS;
@@ -199,28 +200,53 @@ static int cmd_get(struct slash *slash) {
 slash_command_completer(get, cmd_get, param_completer, "<param>", "Get");
 
 static int cmd_set(struct slash *slash) {
-	if (slash->argc != 3)
-		return SLASH_EUSAGE;
 
-	param_t * param;
-	int host = -1;
+	
 	int node = slash_dfl_node;
-	int offset = -1;
 	int paramver = 2;
-	param_slash_parse(slash->argv[1], &param, &node, &host, &offset);
+	int server = 0;
+	int enqueue = 0;
 
-	//printf("set %s node %d host %d\n", param->name, node, host);
+    optparse_t * parser = optparse_new("get", "<name>[offset]");
+    optparse_add_help(parser);
+	optparse_add_set(parser, 'q', "enqueue", 1, &enqueue, "enqueue get command");
+    optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
+	optparse_add_int(parser, 's', "server", "NUM", 0, &server, "server to get parameters from (default = node))");
+    optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system verison (default = 2)");
 
-	if (param == NULL) {
-		printf("%s not found\n", slash->argv[1]);
+    int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+    if (argi < 0) {
+        optparse_del(parser);
+	    return SLASH_EINVAL;
+    }
+
+	/* Check if name is present */
+	if (++argi >= slash->argc) {
+		printf("missing parameter name\n");
 		return SLASH_EINVAL;
 	}
 
+	char * name = slash->argv[argi];
+	int offset = -1;
+	param_t * param = NULL;
+	param_slash_parse(name, node, &param, &offset);
+
+	if (param == NULL) {
+		printf("%s not found\n", name);
+		return SLASH_EINVAL;
+	}
+
+	/* Check if Value is present */
+	if (++argi >= slash->argc) {
+		printf("missing parameter value\n");
+		return SLASH_EINVAL;
+	}
+	
 	char valuebuf[128] __attribute__((aligned(16))) = { };
-	param_str_to_value(param->type, slash->argv[2], valuebuf);
+	param_str_to_value(param->type, slash->argv[argi], valuebuf);
 
 	/* Local parameters are set directly */
-	if ((param->node == 0) && autosend) {
+	if ((param->node == 0) && (enqueue == 0)) {
 
 		/* Ensure offset is positive for local parametrs */
 	    if (offset < 0)
@@ -229,17 +255,17 @@ static int cmd_set(struct slash *slash) {
 		param_set(param, offset, valuebuf);
 	}
 
-	if (autosend == 0) {
-		if (param_queue_add(&param_queue_set, param, offset, valuebuf) < 0)
+	if (enqueue == 1) {
+		if (param_queue_add(&param_queue, param, offset, valuebuf) < 0)
 			printf("Queue full\n");
-		param_queue_print(&param_queue_set);
+		param_queue_print(&param_queue);
 		return SLASH_SUCCESS;
 	}
 
 	/* Select destination, host overrides parameter node */
 	int dest = node;
-	if (host != -1)
-		dest = host;
+	if (server > 0)
+		dest = server;
 
 	if (param_push_single(param, offset, valuebuf, 1, dest, 1000, paramver) < 0) {
 		printf("No response\n");
@@ -253,27 +279,31 @@ static int cmd_set(struct slash *slash) {
 slash_command_completer(set, cmd_set, param_completer, "<param> <value>", "Set");
 
 static int cmd_push(struct slash *slash) {
-	unsigned int node = slash_dfl_node;
+
 	unsigned int timeout = slash_dfl_timeout;
+	unsigned int server = slash_dfl_node;
 	uint32_t hwid = 0;
 
-	if (slash->argc < 2)
-		return SLASH_EUSAGE;
-	if (slash->argc >= 2)
-		node = atoi(slash->argv[1]);
-	if (slash->argc >= 3)
-		timeout = atoi(slash->argv[2]);
-	if (slash->argc >= 4)
-		hwid = atoi(slash->argv[3]);
+    optparse_t * parser = optparse_new("get", "<name>[offset]");
+    optparse_add_help(parser);
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
+	optparse_add_unsigned(parser, 'h', "hwid", "NUM", 16, &hwid, "include hardware id filter (default = off)");
 
-	if (param_push_queue(&param_queue_set, 1, node, timeout, hwid) < 0) {
+    int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+    if (argi < 0) {
+        optparse_del(parser);
+	    return SLASH_EINVAL;
+    }
+
+	if (param_push_queue(&param_queue, 1, server, timeout, hwid) < 0) {
 		printf("No response\n");
 		return SLASH_EIO;
 	}
 
 	return SLASH_SUCCESS;
 }
-slash_command(push, cmd_push, "<node> [timeout] [hwid]", NULL);
+slash_command_sub(cmd, push, cmd_push, "<node> [timeout] [hwid]", NULL);
 
 static int cmd_pull(struct slash *slash) {
 	unsigned int host = slash_dfl_node;
@@ -294,10 +324,10 @@ static int cmd_pull(struct slash *slash) {
 		timeout = atoi(slash->argv[4]);
 
 	int result = -1;
-	if (param_queue_get.used == 0) {
+	if (param_queue.used == 0) {
 		result = param_pull_all(1, host, include_mask, exclude_mask, timeout, paramver);
 	} else {
-		result = param_pull_queue(&param_queue_get, 1, host, timeout);
+		result = param_pull_queue(&param_queue, 1, host, timeout);
 	}
 
 	if (result) {
@@ -309,48 +339,70 @@ static int cmd_pull(struct slash *slash) {
 }
 slash_command(pull, cmd_pull, "<node> [mask] [timeout]", NULL);
 
-static int cmd_clear(struct slash *slash) {
-	param_queue_get.used = 0;
-	param_queue_set.used = 0;
-	printf("Queue cleared\n");
-	return SLASH_SUCCESS;
-}
-slash_command(clear, cmd_clear, NULL, NULL);
-
-static int cmd_autosend(struct slash *slash) {
+static int cmd_new(struct slash *slash) {
 
 	int paramver = 2;
+	char *name = NULL;
 
-	if (slash->argc < 1) {
-		printf("autosend = %d\n", autosend);
+    optparse_t * parser = optparse_new("cmd new", "<get/set> <cmd name>");
+    optparse_add_help(parser);
+    optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system verison (default = 2)");
+
+    int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+    if (argi < 0) {
+        optparse_del(parser);
+	    return SLASH_EINVAL;
+    }
+
+	if (++argi >= slash->argc) {
+		printf("Must specify 'get' or 'set'\n");
+		return SLASH_EINVAL;
 	}
 
-	if (slash->argc >= 1) {
-		autosend = atoi(slash->argv[1]);
-		printf("Set autosend to %d\n", autosend);
+	/* Set/get */
+	if (strcmp(slash->argv[argi], "get") == 0) {
+		param_queue.type = PARAM_QUEUE_TYPE_GET;
+	} else if (strcmp(slash->argv[argi], "set") == 0) {
+		param_queue.type = PARAM_QUEUE_TYPE_SET;
+	} else {
+		printf("Must specify 'get' or 'set'\n");
+		return SLASH_EINVAL;
 	}
 
-	param_queue_get.used = 0;
-	param_queue_get.version = paramver;
-	param_queue_set.used = 0;
-	param_queue_set.version = paramver;
+	if (++argi >= slash->argc) {
+		printf("Must specify a command name\n");
+		return SLASH_EINVAL;
+	}
+
+	/* Command name */
+	name = slash->argv[argi];
+	strncpy(param_queue.name, name, sizeof(param_queue.name));
+
+	param_queue.used = 0;
+	param_queue.version = paramver;
+
+	printf("Initialized new command: %s\n", name);
 
 	return SLASH_SUCCESS;
 }
-slash_command(autosend, cmd_autosend, "[1|0]", NULL);
 
-static int cmd_queue(struct slash *slash) {
-	if ( (param_queue_get.used == 0) && (param_queue_set.used == 0) ) {
-		printf("Nothing queued\n");
-	}
-	if (param_queue_get.used > 0) {
-		printf("Get Queue\n");
-		param_queue_print(&param_queue_get);
-	}
-	if (param_queue_set.used > 0) {
-		printf("Set Queue\n");
-		param_queue_print(&param_queue_set);
-	}
+slash_command_sub(cmd, new, cmd_new, "<get/set> <cmd name>", "Create a new command");
+
+
+static int cmd_done(struct slash *slash) {
+	param_queue.type = PARAM_QUEUE_TYPE_EMPTY;
 	return SLASH_SUCCESS;
 }
-slash_command(queue, cmd_queue, NULL, NULL);
+
+slash_command_sub(cmd, done, cmd_done, "", "Exit cmd edit mode");
+
+
+static int cmd_print(struct slash *slash) {
+	if (param_queue.used == 0) {
+		printf("Command queue empty\n");
+		return SLASH_SUCCESS;
+	}
+	param_queue_print(&param_queue);
+	return SLASH_SUCCESS;
+}
+slash_command(cmd, cmd_print, NULL, NULL);
