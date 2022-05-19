@@ -21,39 +21,35 @@
 #include <sys/types.h>
 
 #include <slash/slash.h>
+#include <slash/optparse.h>
+#include <slash/dflopt.h>
 
 static int vmem_client_slash_list(struct slash *slash)
 {
-	int node = 0;
-	int timeout = 2000;
-	int version = 1;
-	char * endptr;
+	unsigned int node = slash_dfl_node;
+    unsigned int timeout = slash_dfl_timeout;
+    unsigned int version = 2;
 
-	if (slash->argc >= 2) {
-		node = strtoul(slash->argv[1], &endptr, 10);
-		if (*endptr != '\0')
-			return SLASH_EUSAGE;
-	}
-
-	if (slash->argc >= 3) {
-		timeout = strtoul(slash->argv[2], &endptr, 10);
-		if (*endptr != '\0')
-			return SLASH_EUSAGE;
-	}
-
-	if (slash->argc >= 4) {
-		version = strtoul(slash->argv[3], &endptr, 10);
-		if (*endptr != '\0')
-			return SLASH_EUSAGE;
-	}
+    optparse_t * parser = optparse_new("vmem", NULL);
+    optparse_add_help(parser);
+    optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
+    optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
+    optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 2)");
+    int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+    if (argi < 0) {
+        optparse_del(parser);
+	    return SLASH_EINVAL;
+    }
 
 	printf("Requesting vmem list from node %u timeout %u version %d\n", node, timeout, version);
 
 	vmem_client_list(node, timeout, version);
 	return SLASH_SUCCESS;
-}
-slash_command_sub(vmem, list, vmem_client_slash_list, "[node] [timeout] [version]", NULL);
 
+}
+slash_command(vmem, vmem_client_slash_list, "", "List virtual memory");
+
+#if 0
 static int vmem_client_slash_fram(struct slash *slash, int backup) {
 
 	int node = 0;
@@ -216,3 +212,4 @@ static int vmem_client_slash_unlock(struct slash *slash)
 
 }
 slash_command_sub(vmem, unlock, vmem_client_slash_unlock, "[node] [timeout]", NULL);
+#endif

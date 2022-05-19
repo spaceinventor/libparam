@@ -17,45 +17,60 @@
 #include <vmem/vmem_client.h>
 
 #include <slash/slash.h>
+#include <slash/optparse.h>
+#include <slash/dflopt.h>
 
 static int vmem_client_slash_download(struct slash *slash)
 {
-	int node;
-	int timeout = 10000;
-	uint64_t address;
-	uint32_t length;
-	char * file;
+
+	unsigned int node = slash_dfl_node;
+    unsigned int timeout = slash_dfl_timeout;
+    unsigned int version = 1;
+
+    optparse_t * parser = optparse_new("download", "<address> <length> <file>");
+    optparse_add_help(parser);
+    optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
+    optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
+    optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 1)");
+    int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+    if (argi < 0) {
+        optparse_del(parser);
+	    return SLASH_EINVAL;
+    }
+
+	/* Expect address */
+	if (++argi >= slash->argc) {
+		printf("missing address\n");
+		return SLASH_EINVAL;
+	}
+
 	char * endptr;
-	int version = 1;
-
-	if (slash->argc < 5)
+	uint64_t address = strtoul(slash->argv[argi], &endptr, 16);
+	if (*endptr != '\0') {
+		printf("Failed to parse address\n");
 		return SLASH_EUSAGE;
-
-	node = strtoul(slash->argv[1], &endptr, 10);
-	if (*endptr != '\0')
-		return SLASH_EUSAGE;
-
-	address = strtoul(slash->argv[2], &endptr, 16);
-	if (*endptr != '\0')
-		return SLASH_EUSAGE;
-
-	length = strtoul(slash->argv[3], &endptr, 10);
-	if (*endptr != '\0')
-		return SLASH_EUSAGE;
-
-	file = slash->argv[4];
-
-	if (slash->argc > 5) {
-		timeout = strtoul(slash->argv[5], &endptr, 10);
-		if (*endptr != '\0')
-			return SLASH_EUSAGE;
 	}
 
-	if (slash->argc > 6) {
-		version = strtoul(slash->argv[6], &endptr, 10);
-		if (*endptr != '\0')
-			return SLASH_EUSAGE;
+	/* Expect length */
+	if (++argi >= slash->argc) {
+		printf("missing length\n");
+		return SLASH_EINVAL;
 	}
+
+	uint32_t length = strtoul(slash->argv[argi], &endptr, 10);
+	if (*endptr != '\0') {
+		printf("Failed to parse length\n");
+		return SLASH_EUSAGE;
+	}
+
+	/* Expect filename */
+	if (++argi >= slash->argc) {
+		printf("missing filename\n");
+		return SLASH_EINVAL;
+	}
+
+	char * file;
+	file = slash->argv[argi];
 
 	printf("Download from %u addr 0x%"PRIX64" to %s with timeout %u version %u\n", node, address, file, timeout, version);
 
@@ -82,40 +97,46 @@ static int vmem_client_slash_download(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command(download, vmem_client_slash_download, "<node> <address> <length> <file> [timeout] [version]", "Download from VMEM to FILE");
+slash_command(download, vmem_client_slash_download, "<address> <length> <file>", "Download from VMEM to FILE");
 
 static int vmem_client_slash_upload(struct slash *slash)
 {
-	int node;
-	int timeout = 2000;
-	uint64_t address;
-	char * file;
-	char * endptr;
-	int version = 1;
 
-	if (slash->argc < 4)
-		return SLASH_EUSAGE;
+	unsigned int node = slash_dfl_node;
+    unsigned int timeout = slash_dfl_timeout;
+    unsigned int version = 1;
 
-	file = slash->argv[1];
+    optparse_t * parser = optparse_new("download", "<file> <address>");
+    optparse_add_help(parser);
+    optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
+    optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
+    optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 1)");
+    int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+    if (argi < 0) {
+        optparse_del(parser);
+	    return SLASH_EINVAL;
+    }
 
-	node = strtoul(slash->argv[2], &endptr, 10);
-	if (*endptr != '\0')
-		return SLASH_EUSAGE;
-
-	address = strtoull(slash->argv[3], &endptr, 16);
-	if (*endptr != '\0')
-		return SLASH_EUSAGE;
-
-	if (slash->argc > 4) {
-		timeout = strtoul(slash->argv[4], &endptr, 10);
-		if (*endptr != '\0')
-			return SLASH_EUSAGE;
+	/* Expect filename */
+	if (++argi >= slash->argc) {
+		printf("missing filename\n");
+		return SLASH_EINVAL;
 	}
 
-	if (slash->argc > 5) {
-		version = strtoul(slash->argv[5], &endptr, 10);
-		if (*endptr != '\0')
-			return SLASH_EUSAGE;
+	char * file;
+	file = slash->argv[argi];
+
+	/* Expect address */
+	if (++argi >= slash->argc) {
+		printf("missing address\n");
+		return SLASH_EINVAL;
+	}
+
+	char * endptr;
+	uint64_t address = strtoul(slash->argv[argi], &endptr, 16);
+	if (*endptr != '\0') {
+		printf("Failed to parse address\n");
+		return SLASH_EUSAGE;
 	}
 
 	printf("Upload from %s to node %u addr 0x%"PRIX64" with timeout %u, version %u\n", file, node, address, timeout, version);
@@ -142,4 +163,4 @@ static int vmem_client_slash_upload(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command(upload, vmem_client_slash_upload, "<file> <node> <address> [timeout] [version]", "Upload from FILE to VMEM");
+slash_command(upload, vmem_client_slash_upload, "<file> <address>", "Upload from FILE to VMEM");
