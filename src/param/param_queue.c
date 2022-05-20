@@ -148,25 +148,23 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
 }
 
 void param_queue_print(param_queue_t *queue) {
-	printf("COMMAND: \n");
-	printf("  Name: %s\n", queue->name);
-	printf("  Type: ");
 	if (queue->type == PARAM_QUEUE_TYPE_GET) {
-		printf("GET\n");
+		printf("cmd new get %s\n", queue->name);
 	} else if (queue->type == PARAM_QUEUE_TYPE_SET) {
-		printf("SET\n");
+		printf("cmd new set %s\n", queue->name);
 	}
 	PARAM_QUEUE_FOREACH(param, reader, queue, offset)
 		if (param) {
-			printf("%s", param_mask_color(param));
-			printf(" %5u", param->node);
-			printf	("  %-20s", param->name);
+			printf("cmd add ");
+			if (param->node > 0) {
+				printf("-n %d ", param->node);
+			}
+			printf("%s ", param->name);
 			if (offset >= 0) {
 				printf("[%u]", offset);
 			}
 			if (queue->type == PARAM_QUEUE_TYPE_SET) {
 #if MPACK_STDIO
-				printf(" = ");
 
 				char buffer[20] = {0};
 				mpack_print_t print;
@@ -179,7 +177,6 @@ void param_queue_print(param_queue_t *queue) {
 				mpack_discard(&reader);
 #endif
 			}
-			printf("%s", param_mask_color_off());
 			printf("\n");
 		}
 	}
