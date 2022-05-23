@@ -254,16 +254,28 @@ slash_command_completer(set, cmd_set, param_completer, "<param> <value>", "Set")
 static int cmd_add(struct slash *slash) {
 	
 	int node = slash_dfl_node;
+	char * include_mask_str = NULL;
+	char * exclude_mask_str = NULL;
 
     optparse_t * parser = optparse_new("cmd add", "<name>[offset] [value]");
     optparse_add_help(parser);
     optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
+	optparse_add_string(parser, 'm', "imask", "MASK", &include_mask_str, "Include mask (param letters) (used for get with wildcard)");
+	optparse_add_string(parser, 'e', "emask", "MASK", &exclude_mask_str, "Exclude mask (param letters) (used for get with wildcard)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
         optparse_del(parser);
 	    return SLASH_EINVAL;
     }
+
+	uint32_t include_mask = 0xFFFFFFFF;
+	uint32_t exclude_mask = PM_HWREG;
+
+	if (include_mask_str)
+		include_mask = param_maskstr_to_mask(include_mask_str);
+	if (exclude_mask_str)
+	    exclude_mask = param_maskstr_to_mask(exclude_mask_str);
 
 	/* Check if name is present */
 	if (++argi >= slash->argc) {
@@ -316,6 +328,14 @@ static int cmd_add(struct slash *slash) {
 			if (param->node != node) {
 				continue;
 			}
+
+			if (param->mask & exclude_mask) {
+				continue;
+			}
+
+			if ((param->mask & include_mask) == 0) {
+				continue;
+			} 
 
 			/* Queue */
 			if (param_queue_add(&param_queue, param, offset, NULL) < 0)
