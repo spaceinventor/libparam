@@ -34,6 +34,7 @@ typedef enum {
 	PARAM_TYPE_DOUBLE,
 	PARAM_TYPE_STRING,
 	PARAM_TYPE_DATA,
+	PARAM_TYPE_INVALID,
 } param_type_e;
 
 /**

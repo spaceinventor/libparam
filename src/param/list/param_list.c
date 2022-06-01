@@ -16,9 +16,9 @@
 #include <param/param.h>
 #include <param/param_list.h>
 #include <param/param_server.h>
+#include <param/param_string.h>
 
 #include "../param_wildcard.h"
-#include "../param_string.h"
 #include "param_list.h"
 
 
@@ -354,6 +354,8 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 		strncpy(param->unit, unit, 10);
 
 	switch(storage_type) {
+		case -1:
+			break;
 		case 0:
 		case 1:
 			sprintf(param->docstr, "RAM\t"); break;

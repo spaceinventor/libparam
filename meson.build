@@ -52,7 +52,7 @@ param_src = files([
 if get_option('have_fopen') == true
 	param_src += files([
 		'src/vmem/vmem_file.c',
-		'src/param/list/param_list_store_vmem.c',
+		#'src/param/list/param_list_store_vmem.c',
 	])
 endif
 
@@ -108,7 +108,7 @@ if get_option('slash') == true
 		if get_option('have_fopen') == true
 			param_src += files([
 				'src/vmem/vmem_client_slash_ftp.c',
-				'src/param/list/param_list_store_slash.c'
+				#'src/param/list/param_list_store_slash.c'
 			])
 		endif
 		if get_option('scheduler_client') == true

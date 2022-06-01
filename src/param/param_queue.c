@@ -14,9 +14,9 @@
 #include <param/param_server.h>
 #include <param/param_queue.h>
 #include <param/param_list.h>
+#include <param/param_string.h>
 
 #include "param_serializer.h"
-#include "param_string.h"
 
 void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int used, param_queue_type_e type, int version) {
 	queue->buffer = buffer;

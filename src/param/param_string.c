@@ -5,6 +5,8 @@
  *      Author: johan
  */
 
+#include <param/param_string.h>
+
 #include <stdio.h>
 #include <inttypes.h>
 #include <math.h>
@@ -15,7 +17,6 @@
 #include <param/param.h>
 #include <param/param_list.h>
 
-#include "param_string.h"
 
 #ifndef MIN
 #define MIN(a,b) (((a)<(b))?(a):(b))
@@ -69,6 +70,7 @@ void param_value_str(param_t *param, unsigned int i, char * out, int len)
 		break;
 	}
 
+	default:
 	case PARAM_TYPE_STRING:
 		param_get_string(param, out, MIN(param->array_size, len));
 		break;
@@ -88,6 +90,7 @@ int param_str_to_value(param_type_e type, char *in, void *out) {
 		return sizeof(cast); \
 	}
 
+	default:
 	PARAM_SCANF(PARAM_TYPE_UINT8, "%"SCNu8, uint8_t, uint8)
 	PARAM_SCANF(PARAM_TYPE_UINT16, "%"SCNu16, uint16_t, uint16)
 	PARAM_SCANF(PARAM_TYPE_UINT32, "%"SCNu32, uint32_t, uint32)
@@ -138,6 +141,7 @@ void param_type_str(param_type_e type, char * out, int len)
 		snprintf(out, len, "%s", #name); \
 		break;
 
+	default:
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT8,  u08)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT16, u16)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_UINT32, u32)
@@ -146,10 +150,10 @@ void param_type_str(param_type_e type, char * out, int len)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT16,  i16)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT32,  i32)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_INT64,  i64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT8,  ut8)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT16, u16)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT32, u32)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT64, u64)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT8,  x08)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT16, x16)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT32, x32)
+	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT64, x64)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_FLOAT,  flt)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DOUBLE, dbl)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_STRING, str)
@@ -362,6 +366,49 @@ uint32_t param_maskstr_to_mask(char * str) {
 	if (strchr(str, 'A')) mask |= 0xFFFFFFFF;
 
 	return mask;
+
+}
+
+uint32_t param_typestr_to_typeid(char * str) {
+
+	if (str == NULL)
+		return PARAM_TYPE_INVALID;
+
+	if (strcmp(str, "uint8") == 0) return PARAM_TYPE_UINT8;
+	if (strcmp(str, "uint16") == 0) return PARAM_TYPE_UINT16;
+	if (strcmp(str, "uint32") == 0) return PARAM_TYPE_UINT32;
+	if (strcmp(str, "uint64") == 0) return PARAM_TYPE_UINT64;
+	if (strcmp(str, "int8") == 0) return PARAM_TYPE_INT8;
+	if (strcmp(str, "int16") == 0) return PARAM_TYPE_INT16;
+	if (strcmp(str, "int32") == 0) return PARAM_TYPE_INT32;
+	if (strcmp(str, "int64") == 0) return PARAM_TYPE_INT64;
+	if (strcmp(str, "xint8") == 0) return PARAM_TYPE_XINT8;
+	if (strcmp(str, "xint16") == 0) return PARAM_TYPE_XINT16;
+	if (strcmp(str, "xint32") == 0) return PARAM_TYPE_XINT32;
+	if (strcmp(str, "xint64") == 0) return PARAM_TYPE_XINT64;
+	if (strcmp(str, "float") == 0) return PARAM_TYPE_FLOAT;
+	if (strcmp(str, "double") == 0) return PARAM_TYPE_DOUBLE;
+	if (strcmp(str, "string") == 0) return PARAM_TYPE_STRING;
+	if (strcmp(str, "data") == 0) return PARAM_TYPE_DATA;
+
+	if (strcmp(str, "u08") == 0) return PARAM_TYPE_UINT8;
+	if (strcmp(str, "u16") == 0) return PARAM_TYPE_UINT16;
+	if (strcmp(str, "u32") == 0) return PARAM_TYPE_UINT32;
+	if (strcmp(str, "u64") == 0) return PARAM_TYPE_UINT64;
+	if (strcmp(str, "i08") == 0) return PARAM_TYPE_INT8;
+	if (strcmp(str, "i16") == 0) return PARAM_TYPE_INT16;
+	if (strcmp(str, "i32") == 0) return PARAM_TYPE_INT32;
+	if (strcmp(str, "i64") == 0) return PARAM_TYPE_INT64;
+	if (strcmp(str, "x08") == 0) return PARAM_TYPE_XINT8;
+	if (strcmp(str, "x16") == 0) return PARAM_TYPE_XINT16;
+	if (strcmp(str, "x32") == 0) return PARAM_TYPE_XINT32;
+	if (strcmp(str, "x64") == 0) return PARAM_TYPE_XINT64;
+	if (strcmp(str, "flt") == 0) return PARAM_TYPE_FLOAT;
+	if (strcmp(str, "dbl") == 0) return PARAM_TYPE_DOUBLE;
+	if (strcmp(str, "str") == 0) return PARAM_TYPE_STRING;
+	if (strcmp(str, "dat") == 0) return PARAM_TYPE_DATA;
+
+	return PARAM_TYPE_INVALID;
 
 }
 
