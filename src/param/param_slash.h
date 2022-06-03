@@ -1,12 +1,5 @@
-/*
- * param_slash.h
- *
- *  Created on: Jan 2, 2017
- *      Author: johan
- */
+#pragma once 
 
-#ifndef LIB_PARAM_SRC_PARAM_PARAM_SLASH_H_
-#define LIB_PARAM_SRC_PARAM_PARAM_SLASH_H_
+#include <param/param_queue.h>
 
-
-#endif /* LIB_PARAM_SRC_PARAM_PARAM_SLASH_H_ */
+extern param_queue_t param_queue;

@@ -46,7 +46,7 @@ static int cmd_schedule_push(struct slash *slash) {
         timeout = atoi(slash->argv[5]);
 	}
 
-	if (param_schedule_push(&param_queue_set, 1, server, host, time, latency_buffer, timeout) < 0) {
+	if (param_schedule_push(&param_queue, 1, server, host, time, latency_buffer, timeout) < 0) {
 		printf("No response\n");
 		return SLASH_EIO;
 	}

@@ -18,6 +18,7 @@
 #include <param/param_server.h>
 #include <param/param_client.h>
 #include <param/param_queue.h>
+#include "../param_slash.h"
 
 typedef void (*param_transaction_callback_f)(csp_packet_t *response, int verbose, int version);
 int param_transaction(csp_packet_t *packet, int host, int timeout, param_transaction_callback_f callback, int verbose, int version, void * context);
@@ -81,7 +82,7 @@ static void name_copy(char output[], char input[], int length) {
     output[length] = '\0';
 }
 
-static void param_transaction_callback_show(csp_packet_t *response, int verbose, int version) {
+static void param_transaction_callback_download(csp_packet_t *response, int verbose, int version) {
     if (response->data[0] != PARAM_COMMAND_SHOW_RESPONSE){
         return;
 	}
@@ -91,23 +92,24 @@ static void param_transaction_callback_show(csp_packet_t *response, int verbose,
 		if (name_length > 13) {
 			printf("Error: Requested command name not found.\n");
 		} else {
-			char name[14];
-			name_copy(name, (char *) &response->data[4], name_length);
 
-			param_queue_t queue;
-			param_queue_init(&queue, &response->data[4+name_length], response->length - (4+name_length), response->length - (4+name_length), response->data[3], version);
+			int size = response->length - (4 + name_length);
+			char * data = (char *) &response->data[4 + name_length];
+			memcpy(param_queue.buffer, data, size);
+			param_queue.used = size;
+			param_queue.type = response->data[3];
+			param_queue.version = version;
+			memcpy(param_queue.name, (char *) &response->data[4], name_length);
+			param_queue.name[name_length] = '\0';
 
-			/* Show the requested queue */
-			printf("Requested command: %s\n", name);
-
-			param_queue_print(&queue);
+			param_queue_print(&param_queue);
 		}
 	}
 
 	csp_buffer_free(response);
 }
 
-int param_command_show(int server, int verbose, char command_name[], int timeout) {
+int param_command_download(int server, int verbose, char command_name[], int timeout) {
 
     csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
@@ -124,7 +126,7 @@ int param_command_show(int server, int verbose, char command_name[], int timeout
 
 	packet->length = 3+name_length;
 
-    int result = param_transaction(packet, server, timeout, param_transaction_callback_show, verbose, 2, NULL);
+    int result = param_transaction(packet, server, timeout, param_transaction_callback_download, verbose, 2, NULL);
 
 	if (result < 0) {
 		return -1;

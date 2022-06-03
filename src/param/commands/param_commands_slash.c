@@ -12,6 +12,8 @@
 #include <string.h>
 #include <inttypes.h>
 #include <slash/slash.h>
+#include <slash/optparse.h>
+#include <slash/dflopt.h>
 
 #include <csp/csp.h>
 
@@ -24,80 +26,88 @@
 #include "param_commands_client.h"
 #include "../param_slash.h"
 
-static void parse_name(char out[], char in[]) {
-	for (int i = 0; i < strlen(in); i++) {
-			out[i] = in[i];
-		}
-	out[strlen(in)] = '\0';
-}
 
-static int cmd_command_push(struct slash *slash) {
-    unsigned int server = 0;
-	char name[14] = {0};
-	unsigned int timeout = 100;
+static int cmd_server_upload(struct slash *slash) {
 
-	if (slash->argc < 3)
-		return SLASH_EUSAGE;
-	if (slash->argc >= 2)
-		server = atoi(slash->argv[1]);
-	if (slash->argc >= 3) {
-		if (strlen(slash->argv[2]) > 13) {
-			return SLASH_EUSAGE;
-		}
-		parse_name(name, slash->argv[2]);
-	}
-    if (slash->argc >= 4) {
-        timeout = atoi(slash->argv[3]);
+	unsigned int timeout = slash_dfl_timeout;
+	unsigned int server = slash_dfl_node;
+
+    optparse_t * parser = optparse_new("cmd server upload", "<name>");
+    optparse_add_help(parser);
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
+
+    int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+    if (argi < 0) {
+        optparse_del(parser);
+	    return SLASH_EINVAL;
+    }
+
+
+	if (++argi >= slash->argc) {
+		printf("Must specify <name>\n");
+		return SLASH_EINVAL;
 	}
 
-	if (param_command_push(&param_queue_set, 1, server, name, timeout) < 0) {
+	char *name = slash->argv[argi];
+
+	if (param_command_push(&param_queue, 1, server, name, timeout) < 0) {
 		printf("No response\n");
 		return SLASH_EIO;
 	}
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(command, push, cmd_command_push, "<server> <name> [timeout]", NULL);
+slash_command_subsub(cmd, server, upload, cmd_server_upload, "", NULL);
 
-static int cmd_command_show(struct slash *slash) {
-    unsigned int server = 0;
-	char name[14] = {0};
-	unsigned int timeout = 100;
+static int cmd_server_download(struct slash *slash) {
 
-	if (slash->argc < 3)
-		return SLASH_EUSAGE;
-	if (slash->argc >= 2)
-		server = atoi(slash->argv[1]);
-	if (slash->argc >= 3) {
-		if (strlen(slash->argv[2]) > 13) {
-			return SLASH_EUSAGE;
-		}
-		parse_name(name, slash->argv[2]);
+	unsigned int timeout = slash_dfl_timeout;
+	unsigned int server = slash_dfl_node;
+
+    optparse_t * parser = optparse_new("cmd server download", "<name>");
+    optparse_add_help(parser);
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
+
+    int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+    if (argi < 0) {
+        optparse_del(parser);
+	    return SLASH_EINVAL;
+    }
+
+
+	if (++argi >= slash->argc) {
+		printf("Must specify <name>\n");
+		return SLASH_EINVAL;
 	}
-    if (slash->argc >= 4) {
-        timeout = atoi(slash->argv[3]);
-	}
 
-	if (param_command_show(server, 1, name, timeout) < 0) {
+	char *name = slash->argv[argi];
+
+	if (param_command_download(server, 1, name, timeout) < 0) {
 		printf("No response\n");
 		return SLASH_EIO;
 	}
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(command, show, cmd_command_show, "<server> <name> [timeout]", NULL);
+slash_command_subsub(cmd, server, download, cmd_server_download, "<name>", NULL);
 
-static int cmd_command_list(struct slash *slash) {
-    unsigned int server = 0;
-	unsigned int timeout = 100;
+static int cmd_server_list(struct slash *slash) {
 
-	if (slash->argc < 2)
-		return SLASH_EUSAGE;
-	if (slash->argc >= 2)
-		server = atoi(slash->argv[1]);
-    if (slash->argc >= 3) {
-        timeout = atoi(slash->argv[2]);
-	}
+unsigned int timeout = slash_dfl_timeout;
+	unsigned int server = slash_dfl_node;
+
+    optparse_t * parser = optparse_new("cmd server list", NULL);
+    optparse_add_help(parser);
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
+
+    int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+    if (argi < 0) {
+        optparse_del(parser);
+	    return SLASH_EINVAL;
+    }
 
 	if (param_command_list(server, 1, timeout) < 0) {
 		printf("No response\n");
@@ -106,43 +116,33 @@ static int cmd_command_list(struct slash *slash) {
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(command, list, cmd_command_list, "<server> [timeout]", NULL);
+slash_command_subsub(cmd, server, list, cmd_server_list, "", NULL);
 
-static int cmd_command_rm(struct slash *slash) {
-    unsigned int server = 0;
-    char name[14] = {0};
-	unsigned int timeout = 100;
+static int cmd_server_rm(struct slash *slash) {
 
-	if (slash->argc < 3)
-		return SLASH_EUSAGE;
-	if (slash->argc >= 2)
-		server = atoi(slash->argv[1]);
-    if (slash->argc >= 3) {
-		if (strlen(slash->argv[2]) > 13) {
-			return SLASH_EUSAGE;
-		}
-		parse_name(name, slash->argv[2]);
-	}
-    if (slash->argc >= 4){
-        timeout = atoi(slash->argv[3]);
-	}
-
+	unsigned int timeout = slash_dfl_timeout;
+	unsigned int server = slash_dfl_node;
 	int rm_all = 0;
-	int count = 0;
-	char rmallcmds[] = "RMALLCMDS";
-	if (strlen(name) == strlen(rmallcmds)) {
-		for (int i = 0; i < strlen(name); i++) {
-			if (name[i] == rmallcmds[i]) {
-				count++;
-			} else {
-				break;
-			}
-		}
-		if (count == strlen(rmallcmds)) {
-			rm_all = 1;
-		}
+
+    optparse_t * parser = optparse_new("cmd server download", "<name>");
+    optparse_add_help(parser);
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_set(parser, 'a', "all", 1, &rm_all, "delete all");
+	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
+
+    int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+    if (argi < 0) {
+        optparse_del(parser);
+	    return SLASH_EINVAL;
+    }
+
+
+	if (++argi >= slash->argc) {
+		printf("Must specify <name>\n");
+		return SLASH_EINVAL;
 	}
 
+	char *name = slash->argv[argi];
 
 	if (rm_all == 1) {
 		if (param_command_rm_all(server, 1, name, timeout) < 0) {
@@ -158,4 +158,4 @@ static int cmd_command_rm(struct slash *slash) {
 
 	return SLASH_SUCCESS;
 }
-slash_command_sub(command, rm, cmd_command_rm, "<server> <name> [timeout]", NULL);
+slash_command_subsub(cmd, server, rm, cmd_server_rm, "<name>", NULL);
