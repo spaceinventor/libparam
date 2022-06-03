@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <csp/csp.h>
 #include <csp/arch/csp_time.h>
-#include <csp/arch/csp_semaphore.h>
 #include <sys/types.h>
 #include <string.h>
 
@@ -31,9 +30,6 @@ static param_command_buf_t temp_command;
 static param_scheduler_meta_t meta_obj;
 
 static param_schedule_buf_t temp_schedule;
-
-static csp_mutex_t schedule_mtx;
-static csp_mutex_buffer_t schedule_mtx_buffer;
 
 static int find_meta_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
     int type = objstore_read_obj_type(vmem, offset);
@@ -63,12 +59,12 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
     /* Determine schedule size and allocate VMEM */
     int obj_length = (int) sizeof(param_schedule_t) + queue_size - (int) sizeof(char *);
 
-    if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR)
-        return UINT16_MAX;
+    //if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR)
+    //    return UINT16_MAX;
     
     int obj_offset = objstore_alloc(&vmem_schedule, obj_length, 0);
     if (obj_offset < 0) {
-        csp_mutex_unlock(&schedule_mtx);
+        //csp_mutex_unlock(&schedule_mtx);
         return UINT16_MAX;
     }
     
@@ -80,7 +76,7 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
 
     int meta_offset = objstore_scan(&vmem_schedule, find_meta_scancb, 0, NULL);
     if (meta_offset < 0) {
-        csp_mutex_unlock(&schedule_mtx);
+        //csp_mutex_unlock(&schedule_mtx);
         return UINT16_MAX;
     }
     
@@ -111,7 +107,7 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
     void * write_ptr = (void *) (long int) &temp_schedule + sizeof(temp_schedule.header.queue.buffer);
     objstore_write_obj(&vmem_schedule, obj_offset, (uint8_t) OBJ_TYPE_SCHEDULE, (uint8_t) obj_length, write_ptr);
 
-    csp_mutex_unlock(&schedule_mtx);
+    //csp_mutex_unlock(&schedule_mtx);
     
     return meta_obj.last_id;
 }
@@ -190,8 +186,8 @@ int param_serve_schedule_show(csp_packet_t *packet) {
     uint16_t id = be16toh(packet->data16[1]);
     int status = 0;
 
-    if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR)
-        status = -1;
+    //if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR)
+    //    status = -1;
 
     int offset, length;
     if (status == 0) {
@@ -213,7 +209,7 @@ int param_serve_schedule_show(csp_packet_t *packet) {
         void * read_ptr = (void*) ( (long int) &temp_schedule + sizeof(temp_schedule.header.queue.buffer));
         objstore_read_obj(&vmem_schedule, offset, read_ptr, 0);
 
-        csp_mutex_unlock(&schedule_mtx);
+        //csp_mutex_unlock(&schedule_mtx);
 
         temp_schedule.header.queue.buffer = (char *) ((long int) &temp_schedule + (long int) (sizeof(param_schedule_t)));
 
@@ -231,7 +227,7 @@ int param_serve_schedule_show(csp_packet_t *packet) {
         
         memcpy(&packet->data[10], temp_schedule.header.queue.buffer, temp_schedule.header.queue.used);
     } else {
-        csp_mutex_unlock(&schedule_mtx);
+        //csp_mutex_unlock(&schedule_mtx);
 
         /* Respond with an error code */
         packet->data[0] = PARAM_SCHEDULE_SHOW_RESPONSE;
@@ -250,23 +246,23 @@ int param_serve_schedule_show(csp_packet_t *packet) {
 int param_serve_schedule_rm_single(csp_packet_t *packet) {
     /* Disable the specified schedule id */
     uint16_t id = be16toh(packet->data16[1]);
-    if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR)
-        return -1;
+    //if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR)
+    //    return -1;
     
     int offset = obj_offset_from_id(&vmem_schedule, id);
     if (offset < 0) {
-        csp_mutex_unlock(&schedule_mtx);
+        //csp_mutex_unlock(&schedule_mtx);
         csp_buffer_free(packet);
         return -1;
     }
 
     if (objstore_rm_obj(&vmem_schedule, offset, 0) < 0) {
-        csp_mutex_unlock(&schedule_mtx);
+        //csp_mutex_unlock(&schedule_mtx);
         csp_buffer_free(packet);
         return -1;
     }
 
-    csp_mutex_unlock(&schedule_mtx);
+    //csp_mutex_unlock(&schedule_mtx);
     
     /* Respond with the id again to verify which ID was erased */
 	packet->data[0] = PARAM_SCHEDULE_RM_RESPONSE;
@@ -325,8 +321,8 @@ int param_serve_schedule_rm_all(csp_packet_t *packet) {
         csp_buffer_free(packet);
         return -1;
     }
-    if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR)
-        return -1;
+    //if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR)
+    //    return -1;
     
     int num_schedules = get_number_of_schedule_objs(&vmem_schedule);
     uint16_t deleted_schedules = 0;
@@ -344,7 +340,7 @@ int param_serve_schedule_rm_all(csp_packet_t *packet) {
         deleted_schedules++;
     }
 
-    csp_mutex_unlock(&schedule_mtx);
+    //csp_mutex_unlock(&schedule_mtx);
 
     /** Respond with id = UINT16_MAX again to verify that the schedule was cleared
      * include the number of schedules deleted in the response
@@ -362,8 +358,8 @@ int param_serve_schedule_rm_all(csp_packet_t *packet) {
 }
 
 int param_serve_schedule_list(csp_packet_t *request) {
-    if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR)
-        return -1;
+    //if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR)
+    //    return -1;
     
     int num_schedules = get_number_of_schedule_objs(&vmem_schedule);
     unsigned int counter = 0;
@@ -415,7 +411,7 @@ int param_serve_schedule_list(csp_packet_t *request) {
 
         response->data[0] = PARAM_SCHEDULE_LIST_RESPONSE;
         if (end == 1) {
-            csp_mutex_unlock(&schedule_mtx);
+            //csp_mutex_unlock(&schedule_mtx);
             response->data[1] = PARAM_FLAG_END;
         } else {
             response->data[1] = 0;
@@ -428,7 +424,7 @@ int param_serve_schedule_list(csp_packet_t *request) {
         big_count++;
     }
 
-    csp_mutex_unlock(&schedule_mtx);
+    //csp_mutex_unlock(&schedule_mtx);
     csp_buffer_free(request);
 
     return 0;
@@ -439,12 +435,12 @@ void param_serve_schedule_reset(csp_packet_t *packet) {
         meta_obj.last_id = be16toh(packet->data16[1]);
     }
 
-    if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR)
-        return;
+    //if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR)
+    //    return;
 
     meta_obj_save(&vmem_schedule);
 
-    csp_mutex_unlock(&schedule_mtx);
+    //csp_mutex_unlock(&schedule_mtx);
 
     packet->data[0] = PARAM_SCHEDULE_RESET_RESPONSE;
 	packet->data[1] = PARAM_FLAG_END;
@@ -473,13 +469,13 @@ static uint16_t schedule_command(csp_packet_t *packet) {
     char name[14] = {0};
     name_copy(name, (char *) &packet->data[12], name_length);
 
-    if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR) {
-        return UINT16_MAX;
-    }
+    //if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR) {
+    //    return UINT16_MAX;
+    //}
 
     memset(&temp_command, 0, sizeof(temp_command));
     if(param_command_read(name, &temp_command) < 0) {
-        csp_mutex_unlock(&schedule_mtx);
+        //csp_mutex_unlock(&schedule_mtx);
         return UINT16_MAX;
     }
 
@@ -490,7 +486,7 @@ static uint16_t schedule_command(csp_packet_t *packet) {
 
     int obj_offset = objstore_alloc(&vmem_schedule, obj_length, 0);
     if (obj_offset < 0) {
-        csp_mutex_unlock(&schedule_mtx);
+        //csp_mutex_unlock(&schedule_mtx);
         return UINT16_MAX;
     }
 
@@ -502,7 +498,7 @@ static uint16_t schedule_command(csp_packet_t *packet) {
 
     int meta_offset = objstore_scan(&vmem_schedule, find_meta_scancb, 0, NULL);
     if (meta_offset < 0) {
-        csp_mutex_unlock(&schedule_mtx);
+        //csp_mutex_unlock(&schedule_mtx);
         return UINT16_MAX;
     }
     
@@ -533,7 +529,7 @@ static uint16_t schedule_command(csp_packet_t *packet) {
     void * write_ptr = (void *) (long int) &temp_schedule + sizeof(temp_schedule.header.queue.buffer);
     objstore_write_obj(&vmem_schedule, obj_offset, (uint8_t) OBJ_TYPE_SCHEDULE, (uint8_t) obj_length, write_ptr);
     
-    csp_mutex_unlock(&schedule_mtx);
+    //csp_mutex_unlock(&schedule_mtx);
 
     return meta_obj.last_id;
 }
@@ -585,8 +581,8 @@ int param_schedule_server_update(void) {
     uint64_t clock_get_nsec(void);
 	uint64_t timestamp = clock_get_nsec();
 
-    if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR)
-        return -1;
+    //if (csp_mutex_lock(&schedule_mtx, 100) == CSP_SEMAPHORE_ERROR)
+    //    return -1;
 
     int num_schedules = get_number_of_schedule_objs(&vmem_schedule);
     /* Check the time on each schedule and execute if deadline is exceeded */ 
@@ -621,7 +617,7 @@ int param_schedule_server_update(void) {
                     temp_schedule.header.queue.buffer = (char *) ((long int) &temp_schedule + (long int) (sizeof(param_schedule_t)));
 
                     /* Execute the scheduled queue */
-                    if (param_push_queue(&temp_schedule.header.queue, 0, temp_schedule.header.host, 100) == 0){
+                    if (param_push_queue(&temp_schedule.header.queue, 0, temp_schedule.header.host, 100, 0) == 0){
                         temp_schedule.header.completed = 0x55;
                         temp_schedule.header.time = timestamp;
                     } else {
@@ -648,11 +644,11 @@ int param_schedule_server_update(void) {
         }
     }
 
-    csp_mutex_unlock(&schedule_mtx);
+    //csp_mutex_unlock(&schedule_mtx);
 
     /* Deleting inactive schedules is low priority, only run if no other tasks are waiting to use the vmem */
-    if (csp_mutex_lock(&schedule_mtx, 0) == CSP_SEMAPHORE_ERROR)
-        return -1;
+    //if (csp_mutex_lock(&schedule_mtx, 0) == CSP_SEMAPHORE_ERROR)
+    //    return -1;
 
     /* Delete inactive schedules */
     for (int i = 0; i < num_schedules; i++) {
@@ -663,7 +659,7 @@ int param_schedule_server_update(void) {
         objstore_rm_obj(&vmem_schedule, offset, 0);
     }
 
-    csp_mutex_unlock(&schedule_mtx);
+    //csp_mutex_unlock(&schedule_mtx);
 
     //printf("Schedule server update completed.\n");
     return 0;
@@ -671,8 +667,8 @@ int param_schedule_server_update(void) {
 
 static void meta_obj_init(vmem_t * vmem) {
     /* Search for scheduler meta object */
-    if (csp_mutex_lock(&schedule_mtx, CSP_MAX_TIMEOUT) == CSP_SEMAPHORE_ERROR)
-        return;
+    //if (csp_mutex_lock(&schedule_mtx, CSP_MAX_TIMEOUT) == CSP_SEMAPHORE_ERROR)
+    //    return;
     
     int offset = objstore_scan(vmem, find_meta_scancb, 0, NULL);
     
@@ -710,11 +706,11 @@ static void meta_obj_init(vmem_t * vmem) {
         }
     }
 
-    csp_mutex_unlock(&schedule_mtx);
+    //csp_mutex_unlock(&schedule_mtx);
 }
 
 void param_schedule_server_init(void) {
-    csp_mutex_create_static(&schedule_mtx, &schedule_mtx_buffer);
+    //csp_mutex_create_static(&schedule_mtx, &schedule_mtx_buffer);
 
     meta_obj_init(&vmem_schedule);
 }
