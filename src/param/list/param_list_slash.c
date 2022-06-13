@@ -316,6 +316,11 @@ static int list_save(struct slash *slash) {
 
 	}
 
+    if (out != stdout) {
+        fflush(out);
+        fclose(out);
+    }
+
 
     optparse_del(parser);
     return SLASH_SUCCESS;
