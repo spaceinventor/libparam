@@ -64,7 +64,10 @@ void param_get(param_t * param, unsigned int offset, void * value) {
 	case PARAM_TYPE_DATA:
 		param_get_data(param, value, param->array_size);
 		break;
+    case PARAM_TYPE_INVALID:
+        break;     
 	}
+    
 }
 
 void param_get_data(param_t * param, void * outbuf, int len)
@@ -156,7 +159,8 @@ void param_set(param_t * param, unsigned int offset, void * value) {
 	case PARAM_TYPE_DATA:
 		param_set_data(param, value, param->array_size);
 		break;
-
+    case PARAM_TYPE_INVALID:
+        break;
 	}
 }
 
@@ -205,6 +209,7 @@ int param_typesize(param_type_e type) {
 	case PARAM_TYPE_DOUBLE: return sizeof(double); break;
 	case PARAM_TYPE_STRING: return 1; break;
 	case PARAM_TYPE_DATA: return 1; break;
+    case PARAM_TYPE_INVALID: return 0; break;
 	}
 	return -1;
 }
@@ -265,6 +270,8 @@ void param_copy(param_t * dest, param_t * src) {
 			param_set_data(dest, stack_buffer, dest->array_size);
 			break;
 		}
+        case PARAM_TYPE_INVALID:
+            break;
 	}
 
 }
