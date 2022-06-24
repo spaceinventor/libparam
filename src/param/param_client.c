@@ -67,6 +67,7 @@ int param_transaction(csp_packet_t *packet, int host, int timeout, param_transac
 	/* Parameters can be setup with a special nodeid, which caused all transaction to be ignored
 	   and return failure immediately */
 	if (host == PARAM_REMOTE_NODE_IGNORE) {
+		csp_buffer_free(packet);
 		return -1;
 	}
 
