@@ -357,7 +357,7 @@ static int cmd_run(struct slash *slash) {
 
 	unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;
-	uint32_t hwid = 0;
+	unsigned int hwid = 0;
 
     optparse_t * parser = optparse_new("run", "");
     optparse_add_help(parser);
