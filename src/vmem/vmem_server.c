@@ -197,6 +197,8 @@ void vmem_server_handler(csp_conn_t * conn)
 
 	}
 
+	csp_buffer_free(packet);
+
 }
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
