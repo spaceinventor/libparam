@@ -218,6 +218,7 @@ PARAM_SET(double, double)
 
 /* Non-native types needs to go through a function which includes a void pointer and the length */
 void param_set_data(param_t * param, void * inbuf, int len);
+void param_set_data_nocallback(param_t * param, void * inbuf, int len);
 void param_get_data(param_t * param, void * outbuf, int len);
 void param_set_string(param_t * param, void * inbuf, int len);
 #define param_get_string param_get_data
