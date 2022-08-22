@@ -148,7 +148,7 @@ void vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_
 
 void vmem_client_list(int node, int timeout, int version) {
 
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_NONE);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_CRC32);
 	if (conn == NULL)
 		return;
 
@@ -200,7 +200,7 @@ int vmem_client_backup(int node, int vmem_id, int timeout, int backup_or_restore
 	request.vmem.vmem_id = vmem_id;
 
 	int8_t response = -1;
-	if (!csp_transaction(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, &request, sizeof(vmem_request_t), &response, 1)) {
+	if (!csp_transaction_w_opts(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, &request, sizeof(vmem_request_t), &response, 1, CSP_O_CRC32)) {
 		return -2;
 	}
 
