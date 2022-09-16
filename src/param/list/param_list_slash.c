@@ -12,6 +12,7 @@
 #include <slash/slash.h>
 #include <slash/optparse.h>
 #include <slash/dflopt.h>
+#include <vmem/vmem_client.h>
 
 #include <libparam.h>
 #include <param/param.h>
@@ -85,6 +86,64 @@ static int list_download(struct slash *slash)
     return SLASH_SUCCESS;
 }
 slash_command_sub(list, download, list_download, "[node]", NULL);
+
+static int list_upload(struct slash *slash)
+{
+    unsigned int node = slash_dfl_node;
+    unsigned int timeout = slash_dfl_timeout;
+    unsigned int list_version = 2;
+    unsigned int vmem_version = 1;
+    unsigned int remote_only = 1;
+    int prio_only = 0;
+
+    optparse_t * parser = optparse_new("list upload <address>", NULL);
+    optparse_add_help(parser);
+    optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
+    optparse_add_set(parser, 'p', "prio", 0, &prio_only, "upload params with priority configured only (default false)");
+    optparse_add_unsigned(parser, 'r', "remote_only", "NUM", 0, &remote_only, "upload only remote parameters (default true)");
+    optparse_add_unsigned(parser, 'l', "list_version", "NUM", 0, &vmem_version, "list version (default = 2)");
+    optparse_add_unsigned(parser, 'v', "vmem_version", "NUM", 0, &vmem_version, "vmem version (default = 1)");
+    int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+    if (argi < 0) {
+        optparse_del(parser);
+	    return SLASH_EINVAL;
+    }
+
+    char data[4096];
+
+    int num_params = param_list_pack(data, sizeof(data), prio_only, remote_only, list_version);
+
+	/* Expect address */
+	if (++argi >= slash->argc) {
+		printf("missing address\n");
+		return SLASH_EINVAL;
+	}
+
+	char * endptr;
+	uint64_t address = strtoul(slash->argv[argi], &endptr, 16);
+	if (*endptr != '\0') {
+		printf("Failed to parse address\n");
+		return SLASH_EUSAGE;
+	}
+
+	printf("About to upload %lu bytes\n", param_list_packed_size(list_version) * num_params);
+	printf("Type 'yes' + enter to continue: ");
+	char * c = slash_readline(slash);
+    
+    if (strcmp(c, "yes") != 0) {
+        printf("Abort\n");
+        return SLASH_EUSAGE;
+    }
+
+    vmem_upload(node, timeout, address, data, param_list_packed_size(list_version) * num_params, vmem_version);
+
+    printf("Uploaded %i parameters\n", num_params);
+    printf("Please configure remote module to enable new list\n");
+
+    optparse_del(parser);
+    return SLASH_SUCCESS;
+}
+slash_command_sub(list, upload, list_upload, "", NULL);
 
 static int list_forget(struct slash *slash)
 {
@@ -233,7 +292,10 @@ static int list_save(struct slash *slash) {
             fprintf(out, "-c \"%s\" ", param->docstr);
         }
         if ((param->unit != NULL) && (strlen(param->unit) > 0)) {
-            fprintf(out, "-u \"%s\"", param->unit);
+            fprintf(out, "-u \"%s\" ", param->unit);
+        }
+        if (param->node != 0) {
+            fprintf(out, "-n %u ", param->node);
         }
         
 		if (param->mask > 0) {
