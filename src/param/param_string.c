@@ -363,6 +363,9 @@ uint32_t param_maskstr_to_mask(char * str) {
 	if (strchr(str, 'd')) mask |= PM_DEBUG;
 	if (strchr(str, 'q')) mask |= PM_CALIB;
 	if (strchr(str, 'o')) mask |= PM_ATOMIC_WRITE;
+	if (strchr(str, '1')) mask |= PM_PRIO1;
+	if (strchr(str, '2')) mask |= PM_PRIO2;
+	if (strchr(str, '3')) mask |= PM_PRIO3;
 	if (strchr(str, 'A')) mask |= 0xFFFFFFFF;
 
 	return mask;

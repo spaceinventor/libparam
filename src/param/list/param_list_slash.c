@@ -301,6 +301,12 @@ static int list_save(struct slash *slash) {
 				fprintf(out, "q");
 			}
 
+            switch(mask & PM_PRIO_MASK) {
+                case PM_PRIO1: fprintf(out, "1"); mask &= ~ PM_PRIO_MASK; break;
+                case PM_PRIO2: fprintf(out, "2"); mask &= ~ PM_PRIO_MASK; break;
+                case PM_PRIO3: fprintf(out, "3"); mask &= ~ PM_PRIO_MASK; break;				
+			}
+
 			//if (mask)
 			//	fprintf(out, "+%x", mask);
 
