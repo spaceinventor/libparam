@@ -396,6 +396,53 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 	
 }
 
+#if defined PARAM_LIST_DYNAMIC && PARAM_LIST_POOL > 0
+#error Dynamic and static param lists cannot co-exist
+#endif
+
+#if PARAM_LIST_POOL > 0
+
+typedef struct param_heap_s {
+	param_t param;
+	union {
+		uint64_t alignme;
+		uint8_t *buffer;
+	};
+	char name[36];
+	char unit[10];
+	char help[150];
+} param_heap_t;
+
+static param_heap_t param_heap[PARAM_LIST_POOL];
+static uint32_t param_heap_used = 0;
+static uint8_t param_buffer[PARAM_LIST_POOL * 8]; /* Estimated average size of buffers */
+static uint32_t param_buffer_used = 0;
+
+static param_heap_t * param_list_alloc(int type, int array_size) {
+
+	int buffer_required = param_typesize(type) * array_size;
+
+	if (param_heap_used >= PARAM_LIST_POOL || param_buffer_used + buffer_required > sizeof(param_buffer)) {
+		return NULL;
+	}
+
+	param_heap_t* param = &param_heap[param_heap_used];
+	param_heap_used++;
+
+	param->buffer = &param_buffer[param_buffer_used];
+	param_buffer_used += buffer_required;
+	return param;
+}
+
+/* WARNING: This function resets complete list */
+static void param_list_destroy_impl(param_t * param) {
+
+	param_heap_used = 0;
+	param_buffer_used = 0;
+}
+
+#endif
+
 #ifdef PARAM_LIST_DYNAMIC
 
 typedef struct param_heap_s {
@@ -417,10 +464,13 @@ static param_heap_t * param_list_alloc(int type, int array_size) {
 	return param_heap;
 }
 
-void param_list_destroy_impl(param_t * param) {
+static void param_list_destroy_impl(param_t * param) {
 	free(param->addr);
 	free(param);
 }
+#endif
+
+#if defined PARAM_LIST_DYNAMIC || PARAM_LIST_POOL > 0
 
 void param_list_destroy(param_t * param) {
 	param_list_destroy_impl(param);
