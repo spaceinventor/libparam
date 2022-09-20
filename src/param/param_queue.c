@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <csp/csp.h>
 #include <mpack/mpack.h>
-#include <mpack/mpack-config.h>
 
 #include <param/param.h>
 #include <param/param_server.h>
