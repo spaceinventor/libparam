@@ -57,7 +57,7 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 		int node_flag = (queue->last_node != node) ? 1 : 0;
 		int timestamp_flag = (queue->last_timestamp != timestamp) ? 1 : 0;
 
-		uint16_t header = array_flag << 15 | node_flag << 14 | (param->id & 0x3ff);
+		uint16_t header = array_flag << 15 | node_flag << 14 | timestamp_flag << 13 | (param->id & 0x3ff);
 		header = htobe16(header);
 		mpack_write_u16(writer, header);
 
