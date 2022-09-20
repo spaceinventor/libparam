@@ -369,6 +369,11 @@ static int list_save(struct slash *slash) {
                 case PM_PRIO3: fprintf(out, "3"); mask &= ~ PM_PRIO_MASK; break;				
 			}
 
+			if (mask & PM_EXTENDED_ID) {
+				mask &= ~ PM_EXTENDED_ID;
+				fprintf(out, "E");
+			}
+
 			//if (mask)
 			//	fprintf(out, "+%x", mask);
 

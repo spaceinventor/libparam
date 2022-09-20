@@ -319,6 +319,17 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 				printf("q");
 			}
 
+            switch(mask & PM_PRIO_MASK) {
+                case PM_PRIO1: printf("1"); mask &= ~ PM_PRIO_MASK; break;
+                case PM_PRIO2: printf("2"); mask &= ~ PM_PRIO_MASK; break;
+                case PM_PRIO3: printf("3"); mask &= ~ PM_PRIO_MASK; break;				
+			}
+
+			if (mask & PM_EXTENDED_ID) {
+				mask &= ~ PM_EXTENDED_ID;
+				printf("E");
+			}
+
 			if (mask)
 				printf("+%x", mask);
 
@@ -366,6 +377,7 @@ uint32_t param_maskstr_to_mask(char * str) {
 	if (strchr(str, '1')) mask |= PM_PRIO1;
 	if (strchr(str, '2')) mask |= PM_PRIO2;
 	if (strchr(str, '3')) mask |= PM_PRIO3;
+	if (strchr(str, 'E')) mask |= PM_EXTENDED_ID;
 	if (strchr(str, 'A')) mask |= 0xFFFFFFFF;
 
 	return mask;
