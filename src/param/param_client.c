@@ -31,7 +31,7 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 	queue.last_node = response->id.src;
 
 	/* Write data to local memory */
-	param_queue_apply(&queue, 0, from);
+	param_queue_apply(&queue, 0, from, 0);
 
 	if (verbose) {
 
@@ -40,7 +40,8 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 		mpack_reader_init_data(&reader, queue.buffer, queue.used);
 		while(reader.data < reader.end) {
 			int id, node, offset = -1;
-			param_deserialize_id(&reader, &id, &node, &offset, &queue);
+			long unsigned int timestamp = 0;
+			param_deserialize_id(&reader, &id, &node, &timestamp, &offset, &queue);
 			if (node == 0)
 				node = from;
 			param_t * param = param_list_find_id(node, id);
@@ -217,7 +218,7 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, u
 		//printf("  ACK from %d\n", host);
 		param_queue_print(queue);
 	}
-	param_queue_apply(queue, 0, host);
+	param_queue_apply(queue, 0, host, 0);
 
 	return 0;
 }
