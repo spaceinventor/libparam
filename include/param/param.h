@@ -60,10 +60,11 @@ typedef enum {
  * spent in critical region.
  */
 #define PM_ATOMIC_WRITE        (1 << 11) //! o: Parameter must be written atomically.
-#define PM_PRIO1               (1 << 12) //! q: Priority of parameter for telemetry logging (two bits)
-#define PM_PRIO2               (2 << 12) //! q: Priority of parameter for logging and retrieval (two bits)
-#define PM_PRIO3               (3 << 12) //! q: Priority of parameter for logging and retrieval (two bits)
-#define PM_PRIO_MASK           (3 << 12) //! q: Priority of parameter for logging and retrieval (two bits)
+#define PM_PRIO1               (1 << 12) //! 1: Priority of parameter for telemetry logging (two bits)
+#define PM_PRIO2               (2 << 12) //! 2: Priority of parameter for logging and retrieval (two bits)
+#define PM_PRIO3               (3 << 12) //! 3: Priority of parameter for logging and retrieval (two bits)
+#define PM_PRIO_MASK           (3 << 12) //!    Priority of parameter for logging and retrieval (two bits)
+#define PM_EXTENDED_ID         (3 << 14) //! E: Support for IDs larger than 1023
 
 /* Reserved flags:
  * Lower 16 is parameter system, upper 16 are user flags  */
