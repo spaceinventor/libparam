@@ -94,12 +94,12 @@ static int list_upload(struct slash *slash)
     unsigned int list_version = 2;
     unsigned int vmem_version = 1;
     unsigned int remote_only = 1;
-    int prio_only = 0;
+    int prio_only = 1;
 
     optparse_t * parser = optparse_new("list upload <address>", NULL);
     optparse_add_help(parser);
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
-    optparse_add_set(parser, 'p', "prio", 0, &prio_only, "upload params with priority configured only (default false)");
+    // optparse_add_set(parser, 'p', "prio", 0, &prio_only, "upload params with priority configured only (default true)");
     optparse_add_unsigned(parser, 'r', "remote_only", "NUM", 0, &remote_only, "upload only remote parameters (default true)");
     optparse_add_unsigned(parser, 'l', "list_version", "NUM", 0, &vmem_version, "list version (default = 2)");
     optparse_add_unsigned(parser, 'v', "vmem_version", "NUM", 0, &vmem_version, "vmem version (default = 1)");
