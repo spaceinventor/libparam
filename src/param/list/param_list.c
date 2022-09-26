@@ -213,7 +213,7 @@ void param_list_print(uint32_t mask, int node, char * globstr, int verbosity) {
 	}
 }
 
-size_t param_list_packed_size(int list_version) {
+unsigned int param_list_packed_size(int list_version) {
 	switch (list_version) {
 		case 1: return sizeof(param_transfer_t);
 		case 2: return sizeof(param_transfer2_t);
