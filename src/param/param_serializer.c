@@ -134,7 +134,7 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, long unsig
 			mpack_read_bytes(reader, (char*) &_timestamp, 4);
 			_timestamp = be32toh(_timestamp);
 			*timestamp = _timestamp;
-			queue->last_node = _timestamp;
+			queue->last_timestamp = _timestamp;
 		} else {
 			*timestamp = queue->last_timestamp;
 		}
