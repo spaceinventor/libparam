@@ -162,13 +162,13 @@ void param_type_str(param_type_e type, char * out, int len)
 	}
 }
 
-static void param_print_value(param_t * param, int offset) {
+static void param_print_value(FILE * file, param_t * param, int offset) {
 
 	if (param == NULL) {
 		return;
 	}
 
-	printf(" = ");
+	fprintf(file, " = ");
 
 	int count = (param->array_size > 0) ? param->array_size : 1;
 
@@ -210,117 +210,117 @@ static void param_print_value(param_t * param, int offset) {
 		sprintf(value_str + strlen(value_str), " ");
 	}
 
-	printf("%s", value_str);
+	fprintf(file, "%s", value_str);
 
 }
 
-void param_print(param_t * param, int offset, int nodes[], int nodes_count, int verbose)
+void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int nodes_count, int verbose)
 {
 	if (param == NULL)
 		return;
 
-	printf("%s", param_mask_color(param));
+	fprintf(file, "%s", param_mask_color(param));
 
 	/* Node/ID */
 	if (verbose >= 1) {
-		printf(" %3u:%-2u", param->id, param->node);
+		fprintf(file, " %3u:%-2u", param->id, param->node);
 	}
 
 	/* Name */
-	printf("  %-20s", param->name);
+	fprintf(file, "  %-20s", param->name);
 
 	/* Value table */
 	if (nodes_count > 0 && nodes != NULL) {
 		for(int i = 0; i < nodes_count; i++) {
 			param_t * specific_param = param_list_find_id(nodes[i], param->id);
-			param_print_value(specific_param, offset);
+			param_print_value(file, specific_param, offset);
 		}
 
 	/* Single value */
 	} else {
-		param_print_value(param, offset);
+		param_print_value(file, param, offset);
 	}
 
 	if (verbose >= 2) {
 		/* Type */
 		char type_str[11] = {};
 		param_type_str(param->type, type_str, 10);
-		printf(" %s", type_str);
+		fprintf(file, " %s", type_str);
 
 		/* Size */
 		if (param->array_size > 1) {
-			printf("[%u]", param->array_size);
+			fprintf(file, "[%u]", param->array_size);
 		}
 
-		printf("\t");
+		fprintf(file, "\t");
 		
 		if (param->mask > 0) {
 			unsigned int mask = param->mask;
 
-			printf(" ");
+			fprintf(file, " ");
 
 			if (mask & PM_READONLY) {
 				mask &= ~ PM_READONLY;
-				printf("r");
+				fprintf(file, "r");
 			}
 
 			if (mask & PM_REMOTE) {
 				mask &= ~ PM_REMOTE;
-				printf("R");
+				fprintf(file, "R");
 			}
 
 			if (mask & PM_CONF) {
 				mask &= ~ PM_CONF;
-				printf("c");
+				fprintf(file, "c");
 			}
 
 			if (mask & PM_TELEM) {
 				mask &= ~ PM_TELEM;
-				printf("t");
+				fprintf(file, "t");
 			}
 
 			if (mask & PM_HWREG) {
 				mask &= ~ PM_HWREG;
-				printf("h");
+				fprintf(file, "h");
 			}
 
 			if (mask & PM_ERRCNT) {
 				mask &= ~ PM_ERRCNT;
-				printf("e");
+				fprintf(file, "e");
 			}
 
 			if (mask & PM_SYSINFO) {
 				mask &= ~ PM_SYSINFO;
-				printf("i");
+				fprintf(file, "i");
 			}
 
 			if (mask & PM_SYSCONF) {
 				mask &= ~ PM_SYSCONF;
-				printf("C");
+				fprintf(file, "C");
 			}
 
 			if (mask & PM_WDT) {
 				mask &= ~ PM_WDT;
-				printf("w");
+				fprintf(file, "w");
 			}
 
 			if (mask & PM_DEBUG) {
 				mask &= ~ PM_DEBUG;
-				printf("d");
+				fprintf(file, "d");
 			}
 
 			if (mask & PM_ATOMIC_WRITE) {
 				mask &= ~ PM_ATOMIC_WRITE;
-				printf("o");
+				fprintf(file, "o");
 			}
 
 			if (mask & PM_CALIB) {
 				mask &= ~ PM_CALIB;
-				printf("q");
+				fprintf(file, "q");
 			}
 
 			if (mask)
-				printf("+%x", mask);
+				fprintf(file, "+%x", mask);
 
 		}
 
@@ -329,13 +329,18 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 	}
 
 	if ((verbose >= 3) && (param->docstr != NULL)) {
-		printf("\t\t%s", param->docstr);
+		fprintf(file, "\t\t%s", param->docstr);
 	}
 
-	printf("%s", param_mask_color_off());
+	fprintf(file, "%s", param_mask_color_off());
 
-	printf("\n");
+	fprintf(file, "\n");
 
+}
+
+void param_print(param_t * param, int offset, int nodes[], int nodes_count, int verbose) {
+
+	param_print_file(stdout, param, offset, nodes, nodes_count, verbose);
 }
 
 uint32_t param_maskstr_to_mask(char * str) {
