@@ -256,7 +256,7 @@ int param_list_unpack(int node, void * data, int length, int list_version) {
 		strlen = length - offsetof(param_transfer2_t, name);
 		name[strlen] = '\0';			
 		addr = be16toh(new_param->node);
-		id = be16toh(new_param->id) & 0x7FF;
+		id = be16toh(new_param->id);
 		type = new_param->type;
 		size = new_param->size;
 		mask = be32toh(new_param->mask) | PM_REMOTE;
@@ -268,7 +268,7 @@ int param_list_unpack(int node, void * data, int length, int list_version) {
 		param_transfer3_t * new_param = data;
 		name = new_param->name;
 		addr = be16toh(new_param->node);
-		id = be16toh(new_param->id) & 0x7FF;
+		id = be16toh(new_param->id);
 		type = new_param->type;
 		size = new_param->size;
 		mask = be32toh(new_param->mask) | PM_REMOTE;

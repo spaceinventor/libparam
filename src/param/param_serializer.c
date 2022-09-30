@@ -56,8 +56,9 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 		int array_flag = (offset >= 0) ? 1 : 0;
 		int node_flag = (queue->last_node != node) ? 1 : 0;
 		int timestamp_flag = (queue->last_timestamp != timestamp) ? 1 : 0;
+		int extendedid_flag = (param->id > 0x3ff) ? 1 : 0;
 
-		uint16_t header = array_flag << 15 | node_flag << 14 | timestamp_flag << 13 | (param->id & 0x3ff);
+		uint16_t header = array_flag << 15 | node_flag << 14 | timestamp_flag << 13 | extendedid_flag << 12 | (param->id & 0x3ff);
 		header = htobe16(header);
 		mpack_write_u16(writer, header);
 
@@ -76,6 +77,11 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 			queue->last_timestamp = timestamp;
 			uint32_t _timestamp = htobe32(timestamp);
 			mpack_write_bytes(writer, (char*) &_timestamp, 4);
+		}
+
+		if (extendedid_flag) {
+			char _extendedid = (param->id&0xfc00) >> 8;
+			mpack_write_bytes(writer, &_extendedid, 1);
 		}
 
 	}
@@ -110,6 +116,7 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, long unsig
 		int array_flag = header & 0x8000;
 		int node_flag = header & 0x4000;
 		int timestamp_flag = header & 0x2000;
+		int extendedid_flag = header & 0x1000;
 		*id = header & 0x3ff;
 
 		if (array_flag) {
@@ -137,6 +144,14 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, long unsig
 			queue->last_timestamp = _timestamp;
 		} else {
 			*timestamp = queue->last_timestamp;
+		}
+
+		if (extendedid_flag) {
+			char _extendedid;
+			mpack_read_bytes(reader, &_extendedid, 1);
+			printf("Found extended ID %d\n", _extendedid);
+			*id |= (uint16_t)_extendedid << 8;
+			printf("ID is now %d\n", *id);
 		}
 
 	}
