@@ -130,11 +130,10 @@ void vmem_server_handler(csp_conn_t * conn)
 				list[i].vmem_id = i;
 				list[i].type = vmem->type;
 				strncpy(list[i].name, vmem->name, 5);
-				packet->length += sizeof(vmem_list_t);
+				packet->length += sizeof(vmem_list2_t);
 			}
 
-		}	
-		
+		}
 
 		csp_send(conn, packet);
 
@@ -195,9 +194,13 @@ void vmem_server_handler(csp_conn_t * conn)
 
 		csp_send(conn, packet);
 
+	} else {
+
+		/* Free packet if not valid VMEM service request */
+		csp_buffer_free(packet);
+
 	}
 
-	csp_buffer_free(packet);
 
 }
 
