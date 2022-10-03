@@ -434,6 +434,13 @@ static param_heap_t * param_list_alloc(int type, int array_size) {
 	return param;
 }
 
+void param_list_clear() {
+
+	SLIST_INIT(&param_list_head);
+	param_heap_used = 0;
+	param_buffer_used = 0;
+}
+
 /* WARNING: This function resets complete list */
 static void param_list_destroy_impl(param_t * param) {
 
