@@ -14,8 +14,8 @@
  * Driver API declaration from:
  * <drivers/fram.h>
  */
-void fram_write_data(uint16_t addr, void *data, uint16_t len);
-void fram_read_data(uint16_t addr, void *data, uint16_t len);
+void fram_write_data(uint32_t addr, void *data, uint16_t len);
+void fram_read_data(uint32_t addr, void *data, uint16_t len);
 
 
 void vmem_fram_read(vmem_t * vmem, uint32_t addr, void * dataout, int len) {
