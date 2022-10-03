@@ -149,9 +149,7 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, long unsig
 		if (extendedid_flag) {
 			char _extendedid;
 			mpack_read_bytes(reader, &_extendedid, 1);
-			printf("Found extended ID %d\n", _extendedid);
 			*id |= (uint16_t)_extendedid << 8;
-			printf("ID is now %d\n", *id);
 		}
 
 	}
