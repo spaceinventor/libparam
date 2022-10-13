@@ -514,6 +514,7 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 
 	switch(storage_type) {
 		case -1:
+		case 65535:
 			break;
 		case 0:
 		case 1:

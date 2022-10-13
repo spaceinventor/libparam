@@ -14,6 +14,7 @@
 #include <slash/dflopt.h>
 #include <vmem/vmem_client.h>
 
+#include <csp/csp_crc32.h>
 #include <libparam.h>
 #include <param/param.h>
 #include <param/param_list.h>
@@ -109,9 +110,14 @@ static int list_upload(struct slash *slash)
 	    return SLASH_EINVAL;
     }
 
-    char data[4096];
+    const uint32_t header_size = 4;
 
-    int num_params = param_list_pack(data, sizeof(data), prio_only, remote_only, list_version);
+    char data[0x4000+header_size];
+
+    int num_params = param_list_pack(data+header_size, sizeof(data)-header_size, prio_only, remote_only, list_version);
+
+	uint32_t crc = csp_crc32_memory((uint8_t*)data+header_size, param_list_packed_size(list_version) * num_params);
+    *(uint32_t*)data = htobe32(crc);
 
 	/* Expect address */
 	if (++argi >= slash->argc) {
@@ -126,7 +132,7 @@ static int list_upload(struct slash *slash)
 		return SLASH_EUSAGE;
 	}
 
-	printf("About to upload %u bytes\n", param_list_packed_size(list_version) * num_params);
+	printf("About to upload %u bytes\n", param_list_packed_size(list_version) * num_params + header_size);
 	printf("Type 'yes' + enter to continue: ");
 	char * c = slash_readline(slash);
     
@@ -135,7 +141,7 @@ static int list_upload(struct slash *slash)
         return SLASH_EUSAGE;
     }
 
-    vmem_upload(node, timeout, address, data, param_list_packed_size(list_version) * num_params, vmem_version);
+    vmem_upload(node, timeout, address, data, param_list_packed_size(list_version) * num_params + header_size, vmem_version);
 
     printf("Uploaded %i parameters\n", num_params);
     printf("Please configure remote module to enable new list\n");
