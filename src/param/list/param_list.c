@@ -254,7 +254,7 @@ int param_list_unpack(int node, void * data, int length, int list_version) {
 		param_transfer2_t * new_param = data;
 		name = new_param->name;
 		strlen = length - offsetof(param_transfer2_t, name);
-		name[strlen] = '\0';			
+		name[strlen-1] = '\0';			
 		addr = be16toh(new_param->node);
 		id = be16toh(new_param->id);
 		type = new_param->type;
