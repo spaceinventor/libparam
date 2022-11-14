@@ -466,7 +466,13 @@ typedef struct param_heap_s {
 static param_heap_t * param_list_alloc(int type, int array_size) {
 
 	param_heap_t * param_heap = calloc(1, sizeof(param_heap_t));
+	if (param_heap == NULL) {
+		return NULL;
+	}
 	param_heap->buffer = calloc(param_typesize(type), array_size);
+	if (param_heap->buffer == NULL) {
+		return NULL;
+	}
 
 	return param_heap;
 }
@@ -489,7 +495,10 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 		array_size = 1;
 
 	param_heap_t * param_heap = param_list_alloc(type, array_size);
-
+	if (param_heap == NULL) {
+		return NULL;
+	}
+	
 	param_t * param = &param_heap->param;
 	if (param == NULL) {
 		return NULL;
