@@ -251,7 +251,7 @@ int param_push_single(param_t *param, int offset, void *value, int verbose, int 
 		offset = 0;
 
 	/* If it was a remote parameter, set the value after the ack */
-	if (param->node != 0)
+	if (param->node != 0 && value != NULL)
 		param_set(param, offset, value);
 
 	return 0;
