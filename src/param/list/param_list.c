@@ -240,6 +240,8 @@ int param_list_unpack(int node, void * data, int length, int list_version) {
 		param_transfer_t * new_param = data;
 		name = new_param->name;
 		strlen = length - offsetof(param_transfer_t, name);
+		if (strlen >= sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name))
+			strlen = sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name) - 1;
 		name[strlen] = '\0';
 		addr = be16toh(new_param->id) >> 11;
 		id = be16toh(new_param->id) & 0x7FF;
@@ -254,7 +256,9 @@ int param_list_unpack(int node, void * data, int length, int list_version) {
 		param_transfer2_t * new_param = data;
 		name = new_param->name;
 		strlen = length - offsetof(param_transfer2_t, name);
-		name[strlen-1] = '\0';			
+		if (strlen >= sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name))
+			strlen = sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name) - 1;
+		name[strlen] = '\0';			
 		addr = be16toh(new_param->node);
 		id = be16toh(new_param->id);
 		type = new_param->type;
@@ -356,7 +360,9 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 			rparam->size = param->array_size;
 			rparam->mask = htobe32(param->mask);
 			
-			strncpy(rparam->name, param->name, strlen(rparam->name));
+			strncpy(rparam->name, param->name, strlen(param->name));
+			if (strlen(rparam->name) < sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name))
+				rparam->name[strlen(rparam->name)] = '\0';
 
 		} else {
 
@@ -368,18 +374,18 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 			rparam->size = param->array_size;
 			rparam->mask = htobe32(param->mask);
 			
-			strncpy(rparam->name, param->name, strlen(rparam->name));
+			strncpy(rparam->name, param->name, strlen(param->name));
 
 			if (param->vmem) {
 				rparam->storage_type = param->vmem->type;
 			}
 
 			if (param->unit != NULL) {
-				strncpy(rparam->unit, param->unit, strlen(rparam->unit));
+				strncpy(rparam->unit, param->unit, strlen(param->unit));
 			}
 
 			if (param->docstr != NULL) {
-				strncpy(rparam->help, param->docstr, strlen(rparam->help));
+				strncpy(rparam->help, param->docstr, strlen(param->docstr));
 			}
 		}
 		
