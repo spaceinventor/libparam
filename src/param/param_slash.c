@@ -238,7 +238,7 @@ static int cmd_set(struct slash *slash) {
 	if (server > 0)
 		dest = server;
 
-	if (param_push_single(param, offset, valuebuf, 1, dest, 1000, paramver) < 0) {
+	if (param_push_single(param, offset, valuebuf, 1, dest, slash_dfl_timeout, paramver) < 0) {
 		printf("No response\n");
 		return SLASH_EIO;
 	}
