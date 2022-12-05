@@ -132,7 +132,7 @@ static int list_upload(struct slash *slash)
 		return SLASH_EUSAGE;
 	}
 
-	printf("About to upload %u bytes\n", param_list_packed_size(list_version) * num_params + header_size);
+	printf("About to upload %u bytes\n", (unsigned)(param_list_packed_size(list_version) * num_params + header_size));
 	printf("Type 'yes' + enter to continue: ");
 	char * c = slash_readline(slash);
     
