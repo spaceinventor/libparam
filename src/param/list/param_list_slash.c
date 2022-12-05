@@ -22,6 +22,8 @@
 #include "param_list.h"
 #include "../param_slash.h"
 
+#include <endian.h>
+
 static int list(struct slash *slash)
 {
     int node = slash_dfl_node;
