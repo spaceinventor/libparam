@@ -360,7 +360,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 			rparam->size = param->array_size;
 			rparam->mask = htobe32(param->mask);
 			
-			strncpy(rparam->name, param->name, strlen(param->name));
+			strncpy(rparam->name, param->name, sizeof(rparam->name) - 1);
 			if (strlen(rparam->name) < sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name))
 				rparam->name[strlen(rparam->name)] = '\0';
 
@@ -374,18 +374,18 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 			rparam->size = param->array_size;
 			rparam->mask = htobe32(param->mask);
 			
-			strncpy(rparam->name, param->name, strlen(param->name));
+			strncpy(rparam->name, param->name, sizeof(rparam->name) - 1);
 
 			if (param->vmem) {
 				rparam->storage_type = param->vmem->type;
 			}
 
 			if (param->unit != NULL) {
-				strncpy(rparam->unit, param->unit, strlen(param->unit));
+				strncpy(rparam->unit, param->unit, sizeof(rparam->unit) - 1);
 			}
 
 			if (param->docstr != NULL) {
-				strncpy(rparam->help, param->docstr, strlen(param->docstr));
+				strncpy(rparam->help, param->docstr, sizeof(rparam->help) - 1);
 			}
 		}
 		
