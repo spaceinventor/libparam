@@ -104,7 +104,7 @@ static int list_upload(struct slash *slash)
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
     // optparse_add_set(parser, 'p', "prio", 0, &prio_only, "upload params with priority configured only (default true)");
     optparse_add_unsigned(parser, 'r', "remote_only", "NUM", 0, &remote_only, "upload only remote parameters (default true)");
-    optparse_add_unsigned(parser, 'l', "list_version", "NUM", 0, &vmem_version, "list version (default = 2)");
+    optparse_add_unsigned(parser, 'l', "list_version", "NUM", 0, &list_version, "list version (default = 2)");
     optparse_add_unsigned(parser, 'v', "vmem_version", "NUM", 0, &vmem_version, "vmem version (default = 1)");
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
