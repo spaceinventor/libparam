@@ -170,7 +170,7 @@ static int cmd_get(struct slash *slash) {
 
 		if (param_pull_single(param, offset, 1, dest, slash_dfl_timeout, paramver) < 0) {
 			printf("No response\n");
-			continue;
+			return SLASH_EIO;
 		}
 		
 	}
