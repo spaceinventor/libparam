@@ -46,7 +46,13 @@ int param_serve_schedule_rm_all(csp_packet_t *packet);
 int param_serve_schedule_list(csp_packet_t *packet);
 void param_serve_schedule_reset(csp_packet_t *packet);
 
-int param_schedule_server_update(void);
+/**
+ * @brief Check and execute current scheduled tasks whose timestamp has been exceeded.
+ * 
+ * @param timestamp_nsec Timestamp to compare scheduled tasks against, ought to be the current system timestamp.
+ * @return int 0 when scheduled tasks were successfully checked or executed.
+ */
+int param_schedule_server_update(uint64_t timestamp_nsec);
 void param_schedule_server_init(void);
 
 

@@ -579,10 +579,7 @@ static int find_inactive_scancb(vmem_t * vmem, int offset, int verbose, void * c
     return 0;
 }
 
-int param_schedule_server_update(void) {
-
-    uint64_t clock_get_nsec(void);
-	uint64_t timestamp = clock_get_nsec();
+int param_schedule_server_update(uint64_t timestamp_nsec) {
 
     if (param_schedule_lock_take(100) != 0)
        return -1;  /* Failed to retrieve lock */
@@ -602,11 +599,11 @@ int param_schedule_server_update(void) {
         vmem_schedule.read(&vmem_schedule, offset+OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t,time), &time, sizeof(time));
 
         if (completed == 0) {
-            if (time <= timestamp) {
+            if (time <= timestamp_nsec) {
                 uint32_t latency_buffer;
                 vmem_schedule.read(&vmem_schedule, offset+OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t,latency_buffer), &latency_buffer, sizeof(latency_buffer));
 
-                if ( (latency_buffer*1E9 >= (timestamp - time))  || (latency_buffer == 0) ) {
+                if ( (latency_buffer*1E9 >= (timestamp_nsec - time))  || (latency_buffer == 0) ) {
                     /* Read the whole schedule object */
                     int length = objstore_read_obj_length(&vmem_schedule, offset);
                     if (length < 0) {
@@ -622,7 +619,7 @@ int param_schedule_server_update(void) {
                     /* Execute the scheduled queue */
                     if (param_push_queue(&temp_schedule.header.queue, 0, temp_schedule.header.host, 100, 0) == 0){
                         temp_schedule.header.completed = 0x55;
-                        temp_schedule.header.time = timestamp;
+                        temp_schedule.header.time = timestamp_nsec;
                     } else {
                         /* Postpone 10 seconds to retry in case of network errors */
                         temp_schedule.header.time += 10*1E9;
@@ -635,11 +632,11 @@ int param_schedule_server_update(void) {
                     /* Latency buffer exceeded */
                     completed = 0xAA;
                     objstore_write_data(&vmem_schedule, offset, OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t, completed), sizeof(completed), &completed);
-                    objstore_write_data(&vmem_schedule, offset, OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t, time), sizeof(time), &timestamp);
+                    objstore_write_data(&vmem_schedule, offset, OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t, time), sizeof(time), &timestamp_nsec);
                 }
             }
         } else {
-            if (time <= (timestamp - (uint64_t) 86400*1E9)) {
+            if (time <= (timestamp_nsec - (uint64_t) 86400*1E9)) {
                 /* Deactivate completed schedule entries after 24 hrs */
                 uint8_t active = 0;
                 objstore_write_data(&vmem_schedule, offset, OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t, active), sizeof(active), &active);
