@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <csp/csp.h>
+#include <csp/csp_hooks.h>
 #include <csp/arch/csp_time.h>
 #include <sys/types.h>
 #include <string.h>
@@ -38,6 +39,13 @@ static int find_meta_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) 
         return -1;
 
     return 0;
+}
+
+/* Return CSP timestamp as uint64_t nanoseconds */
+static uint64_t csp_clock_get_nsec(void) {
+    csp_timestamp_t localtime;
+	csp_clock_get_time(&localtime);
+    return localtime.tv_sec * 1E9 + localtime.tv_nsec;
 }
 
 /* No internal mutex lock */
@@ -90,8 +98,7 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
     meta_obj_save(&vmem_schedule);
     temp_schedule.header.id = meta_obj.last_id;
 
-    uint64_t clock_get_nsec(void);
-	uint64_t timestamp = clock_get_nsec();
+	uint64_t timestamp = csp_clock_get_nsec();
 
     temp_schedule.header.time = (uint64_t) be32toh(packet->data32[1])*1E9;
     if (temp_schedule.header.time <= 1E18) {
@@ -514,8 +521,7 @@ static uint16_t schedule_command(csp_packet_t *packet) {
     meta_obj_save(&vmem_schedule);
     temp_schedule.header.id = meta_obj.last_id;
 
-    uint64_t clock_get_nsec(void);
-	uint64_t timestamp = clock_get_nsec();
+	uint64_t timestamp = csp_clock_get_nsec();
 
     temp_schedule.header.time = (uint64_t) be32toh(packet->data32[1])*1E9;
     if (temp_schedule.header.time <= 1E18) {
