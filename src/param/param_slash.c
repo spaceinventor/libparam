@@ -493,4 +493,4 @@ static int cmd_print(struct slash *slash) {
 	param_queue_print(&param_queue);
 	return SLASH_SUCCESS;
 }
-slash_command(cmd, cmd_print, NULL, NULL);
+slash_command(cmd, cmd_print, NULL, "Show current queue");
