@@ -147,7 +147,7 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, long unsig
 		}
 
 		if (extendedid_flag) {
-			uint8_t _extendedid;
+			char _extendedid;
 			mpack_read_bytes(reader, &_extendedid, 1);
 			*id |= ((uint16_t)_extendedid << 8)&0xFFFF;
 		}
