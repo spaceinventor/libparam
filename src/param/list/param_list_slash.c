@@ -30,9 +30,11 @@ static int list(struct slash *slash)
     int verbosity = 1;
     char * maskstr = NULL;
 
-    optparse_t * parser = optparse_new("list", "[name wildcard=*]");
+    optparse_t * parser = optparse_new("list", "[name wildcard=*]\n\
+Will show a (filtered) list of known parameters on the specified node(s).\n\
+Shows cached/known values. Use -v to include parameter type and help text.");
     optparse_add_help(parser);
-    optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
+    optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (-1 for all) (default = <env>)");
     optparse_add_int(parser, 'v', "verbosity", "NUM", 0, &verbosity, "verbosity (default = 1, max = 3)");
     optparse_add_string(parser, 'm', "mask", "STR", &maskstr, "mask string");
 
@@ -67,7 +69,11 @@ static int list_download(struct slash *slash)
     unsigned int timeout = slash_dfl_timeout;
     unsigned int version = 2;
 
-    optparse_t * parser = optparse_new("list download", NULL);
+    optparse_t * parser = optparse_new("list download", "[node]\n\
+Downloads a list of remote parameters.\n\
+Fetches metadata such as name and type\n\
+Metadata must be known before values can be pulled.\n\
+Parameters can be manually added with 'list add'.");
     optparse_add_help(parser);
     optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
@@ -88,7 +94,7 @@ static int list_download(struct slash *slash)
     optparse_del(parser);
     return SLASH_SUCCESS;
 }
-slash_command_sub(list, download, list_download, "[node]", NULL);
+slash_command_sub(list, download, list_download, "[OPTIONS...] [node]", "Download a list of remote parameters");
 
 static int list_upload(struct slash *slash)
 {
@@ -99,7 +105,7 @@ static int list_upload(struct slash *slash)
     unsigned int remote_only = 1;
     int prio_only = 1;
 
-    optparse_t * parser = optparse_new("list upload <address>", NULL);
+    optparse_t * parser = optparse_new("list upload", "<address>");
     optparse_add_help(parser);
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
     // optparse_add_set(parser, 'p', "prio", 0, &prio_only, "upload params with priority configured only (default true)");
@@ -151,16 +157,18 @@ static int list_upload(struct slash *slash)
     optparse_del(parser);
     return SLASH_SUCCESS;
 }
-slash_command_sub(list, upload, list_upload, "", NULL);
+slash_command_sub(list, upload, list_upload, "[OPTIONS...] <address>", NULL);
 
 static int list_forget(struct slash *slash)
 {
 
     int node = slash_dfl_node;
 
-    optparse_t * parser = optparse_new("list forget", NULL);
+    optparse_t * parser = optparse_new("list forget", "[node]\n\
+Will remove remote parameters from the local parameter list.\n\
+This makes it possible to download them again, in cases where they've changed.");
     optparse_add_help(parser);
-    optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
+    optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (-1 for all) (default = <env>)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
