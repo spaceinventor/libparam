@@ -143,7 +143,9 @@ static uint16_t command_add(csp_packet_t * request, param_queue_type_e q_type) {
     temp_command.header.id = meta_obj.last_id;
     
     /* Initialize command queue and copy queue buffer from CSP packet */
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
     param_queue_init(&temp_command.header.queue, (char *) &temp_command + sizeof(param_command_t), queue_size, queue_size, q_type, 2);
+#pragma GCC diagnostic pop
     memcpy(temp_command.header.queue.buffer, &request->data[3+name_length], temp_command.header.queue.used);
 
     void * write_ptr = (void *) (long int) &temp_command + sizeof(temp_command.header.queue.buffer);
