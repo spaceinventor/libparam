@@ -224,7 +224,6 @@ unsigned int param_list_packed_size(int list_version) {
 
 int param_list_unpack(int node, void * data, int length, int list_version) {
 
-	uint16_t strlen;
 	uint16_t addr;
 	uint16_t id;
 	uint8_t type;
@@ -239,10 +238,6 @@ int param_list_unpack(int node, void * data, int length, int list_version) {
 
 		param_transfer_t * new_param = data;
 		name = new_param->name;
-		strlen = length - offsetof(param_transfer_t, name);
-		if (strlen >= sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name))
-			strlen = sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name) - 1;
-		name[strlen] = '\0';
 		addr = be16toh(new_param->id) >> 11;
 		id = be16toh(new_param->id) & 0x7FF;
 		type = new_param->type;
@@ -251,14 +246,13 @@ int param_list_unpack(int node, void * data, int length, int list_version) {
 		unit = NULL;
 		help = NULL;
 
+		/* Ensure strings are null terminated */
+		name[sizeof(new_param->name)-1] = '\0';
+
 	} else if (list_version == 2) {
 
 		param_transfer2_t * new_param = data;
 		name = new_param->name;
-		strlen = length - offsetof(param_transfer2_t, name);
-		if (strlen >= sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name))
-			strlen = sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name) - 1;
-		name[strlen] = '\0';			
 		addr = be16toh(new_param->node);
 		id = be16toh(new_param->id);
 		type = new_param->type;
@@ -266,6 +260,9 @@ int param_list_unpack(int node, void * data, int length, int list_version) {
 		mask = be32toh(new_param->mask) | PM_REMOTE;
 		unit = NULL;
 		help = NULL;
+
+		/* Ensure strings are null terminated */
+		name[sizeof(new_param->name)-1] = '\0';
 
 	} else {
 
@@ -279,6 +276,11 @@ int param_list_unpack(int node, void * data, int length, int list_version) {
 		storage_type = new_param->storage_type;
 		unit = new_param->unit;
 		help = new_param->help;
+
+		/* Ensure strings are null terminated */
+		name[sizeof(new_param->name)-1] = '\0';
+		unit[sizeof(new_param->unit)-1] = '\0';
+		help[sizeof(new_param->help)-1] = '\0';
 
 	}
 
@@ -556,8 +558,10 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 			sprintf(param->docstr, "%d\t", storage_type); break;
 			break;
 	}
-	if (help != NULL)
-		strncat(param->docstr, help, 150);
+	if (help != NULL) {
+		/* Ensure storage type and help text doesn't overrun the provided 150 character buffer */
+		strncat(param->docstr, help, 150-strnlen(param->docstr, 150));
+	}
 
 	return param;
 
