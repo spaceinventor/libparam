@@ -40,33 +40,3 @@ int param_serve_command_rm_single(csp_packet_t *packet);
 int param_serve_command_rm_all(csp_packet_t *packet);
 
 int param_command_read(char command_name[], param_command_buf_t * cmd_buffer);
-
-
-/**
- * NOTE: The commands lock functions are external hooks,
- * and must therefore be implemented by the user.
- */
-
-/**
- * take:
- *
- * Lock the command API from use from other functions
- *
- * Return 0 on success
- * The return value MUST be checked and the lock_give function
- * MUST be called
- */
-int param_commands_lock_take(int block_time_ms);
-
-/**
- * give:
- *
- * Releases the lock.
- *
- * This may only be called by the task that holds the lock.
- * Giving the semaphore without holding the lock will cause
- * a failed priority inheritance release and crash the system
- */
-void param_commands_lock_give(void);
-
-void param_commands_lock_init(void);

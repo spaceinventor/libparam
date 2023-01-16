@@ -56,36 +56,6 @@ int param_schedule_server_update(uint64_t timestamp_nsec);
 void param_schedule_server_init(void);
 
 
-/**
- * NOTE: The scheduler lock functions are external hooks,
- * and must therefore be implemented by the user.
- */
-
-/**
- * take:
- *
- * Lock the scheduler from use from other functions
- *
- * Return 0 on success
- * The return value MUST be checked and the lock_give function
- * MUST be called
- */
-int param_schedule_lock_take(int block_time_ms);
-
-/**
- * give:
- *
- * Releases the lock.
- *
- * This may only be called by the task that holds the lock.
- * Giving the semaphore without holding the lock will cause
- * a failed priority inheritance release and crash the system
- */
-void param_schedule_lock_give(void);
-
-void param_schedule_lock_init(void);
-
-
 #ifdef PARAM_HAVE_COMMANDS
 int param_serve_schedule_command(csp_packet_t *request);
 #endif
