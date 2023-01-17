@@ -224,6 +224,7 @@ unsigned int param_list_packed_size(int list_version) {
 
 int param_list_unpack(int node, void * data, int length, int list_version) {
 
+	uint16_t strlen;
 	uint16_t addr;
 	uint16_t id;
 	uint8_t type;
@@ -238,6 +239,10 @@ int param_list_unpack(int node, void * data, int length, int list_version) {
 
 		param_transfer_t * new_param = data;
 		name = new_param->name;
+		strlen = length - offsetof(param_transfer_t, name);
+		if (strlen >= sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name))
+			strlen = sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name) - 1;
+		name[strlen] = '\0';
 		addr = be16toh(new_param->id) >> 11;
 		id = be16toh(new_param->id) & 0x7FF;
 		type = new_param->type;
@@ -253,6 +258,10 @@ int param_list_unpack(int node, void * data, int length, int list_version) {
 
 		param_transfer2_t * new_param = data;
 		name = new_param->name;
+		strlen = length - offsetof(param_transfer2_t, name);
+		if (strlen >= sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name))
+			strlen = sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name) - 1;
+		name[strlen] = '\0';
 		addr = be16toh(new_param->node);
 		id = be16toh(new_param->id);
 		type = new_param->type;
