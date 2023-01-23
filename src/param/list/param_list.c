@@ -448,7 +448,7 @@ static param_heap_t * param_list_alloc(int type, int array_size) {
 
 	/* MCU expects floats to be word-aligned */
 	if ((param_buffer_used%4) != 0 && (type == PARAM_TYPE_FLOAT || type == PARAM_TYPE_DOUBLE)) {
-		param_buffer_used += 4-(param_heap_used%4);
+		param_buffer_used += 4-(param_buffer_used%4);
 	}
 
 	param->buffer = &param_buffer[param_buffer_used];
