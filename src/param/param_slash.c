@@ -226,11 +226,12 @@ static int cmd_set(struct slash *slash) {
 	/* Local parameters are set directly */
 	if (param->node == 0) {
 
-		/* Ensure offset is positive for local parametrs */
-	    if (offset < 0)
-			offset = 0;
-
-		param_set(param, offset, valuebuf);
+		if (offset < 0) {
+			for (int i = 0; i < param->array_size; i++)
+				param_set(param, i, valuebuf);
+		} else {
+			param_set(param, offset, valuebuf);
+		}
 	}
 
 	/* Select destination, host overrides parameter node */
