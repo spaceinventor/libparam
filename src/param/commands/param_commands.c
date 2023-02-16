@@ -102,6 +102,9 @@ static uint16_t command_add(csp_packet_t * request, param_queue_type_e q_type) {
     char tmp_name[14];
     int name_length = request->data[2];
 
+    if (name_length > 13)
+        return UINT16_MAX;
+
     name_copy(tmp_name, (char *) &request->data[3], name_length);
 
     /* Check if a command with this name already exists and remove it if it does */
