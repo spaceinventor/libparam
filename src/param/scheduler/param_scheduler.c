@@ -626,7 +626,6 @@ int param_schedule_server_update(uint64_t timestamp_nsec) {
                         continue;
                     }
                     memset(&temp_schedule, 0, sizeof(temp_schedule));
-                    //param_schedule_t * temp_schedule = malloc((long int) length + sizeof(temp_schedule->queue.buffer));
                     void * read_ptr = (void*) ( (long int) &temp_schedule + sizeof(temp_schedule.header.queue.buffer));
                     objstore_read_obj(&vmem_schedule, offset, read_ptr, 0);
 
@@ -695,10 +694,9 @@ static void meta_obj_init(vmem_t * vmem) {
         objstore_write_obj(vmem, offset, OBJ_TYPE_SCHEDULER_META, sizeof(meta_obj), (void *) &meta_obj);
     } else {
         if (objstore_read_obj(vmem, offset, (void *) &meta_obj, 0) < 0) {
-            /* Invalid meta object checksum, reset to highest ID among active schedules */
+            /* Invalid meta object checksum, reset to highest ID among schedules */
             uint16_t max_id = 0;
             int num_schedules = get_number_of_schedule_objs(vmem);
-            /* Check the time on each schedule and execute if deadline is exceeded */ 
             for (int i = 0; i < num_schedules; i++) {
                 int obj_skips = i;
                 int offset = objstore_scan(vmem, next_schedule_scancb, 0, (void *) &obj_skips);
