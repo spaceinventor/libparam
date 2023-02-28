@@ -55,13 +55,13 @@ void param_list_destroy(param_t * param);
 void param_print(param_t * param, int offset, int nodes[], int nodes_count, int verbose);
 
 unsigned int param_list_packed_size(int list_version);
-int param_list_unpack(int node, void * data, int length, int list_version);
+int param_list_unpack(int node, void * data, int length, int list_version, int include_remotes);
 int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int list_version);
 
 /**
  * @return -1 for connection errors, otherwise returns the number of parameters downloaded.
  */
-int param_list_download(int node, int timeout, int list_version);
+int param_list_download(int node, int timeout, int list_version, int include_remotes);
 
 /* From param_list_store_file.c */
 void param_list_store_file_save(char * filename);

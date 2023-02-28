@@ -68,6 +68,7 @@ static int list_download(struct slash *slash)
     unsigned int node = slash_dfl_node;
     unsigned int timeout = slash_dfl_timeout;
     unsigned int version = 2;
+    int include_remotes = 0;
 
     optparse_t * parser = optparse_new("list download", "[node]\n\
 Downloads a list of remote parameters.\n\
@@ -78,6 +79,9 @@ Parameters can be manually added with 'list add'.");
     optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
     optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 2)");
+    optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 2)");
+    optparse_add_set(parser, 'r', "remote", 1, &include_remotes, "Include remote params when storing list");
+
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
         optparse_del(parser);
@@ -89,7 +93,7 @@ Parameters can be manually added with 'list add'.");
         node = atoi(slash->argv[argi]);
     }
 
-    param_list_download(node, timeout, version);
+    param_list_download(node, timeout, version, include_remotes);
 
     optparse_del(parser);
     return SLASH_SUCCESS;
