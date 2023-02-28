@@ -100,14 +100,27 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 }
 
 int param_list_add(param_t * item) {
-	if (param_list_find_id(item->node, item->id) != NULL)
-		return -1;
+
+	param_t * param;
+	if ((param = param_list_find_id(item->node, item->id)) != NULL) {
+
+		param->mask = item->mask;
+		param->type = item->type;
+		param->array_size = item->array_size;
+		param->array_step = item->array_step;
+		strcpy(param->name, item->name);
+		strcpy(param->unit, item->unit);
+		strcpy(param->docstr, item->docstr);
+
+		return 1;
+	} else {
 #ifdef PARAM_HAVE_SYS_QUEUE
-	SLIST_INSERT_HEAD(&param_list_head, item, next);
+		SLIST_INSERT_HEAD(&param_list_head, item, next);
 #else
-	return -1;
+		return -1;
 #endif
-	return 0;
+		return 0;
+	}
 }
 
 #ifdef PARAM_HAVE_SYS_QUEUE
@@ -222,7 +235,7 @@ unsigned int param_list_packed_size(int list_version) {
 	}
 }
 
-int param_list_unpack(int node, void * data, int length, int list_version) {
+int param_list_unpack(int node, void * data, int length, int list_version, int include_remotes) {
 
 	uint16_t strlen;
 	uint16_t addr;
@@ -299,6 +312,10 @@ int param_list_unpack(int node, void * data, int length, int list_version) {
 	if (size == 255)
 		size = 1;
 
+	if(!include_remotes && node != addr) {
+		return 1;
+	}
+
 	//printf("Storage type %d\n", storage_type);
 
 	param_t * param = param_list_create_remote(id, addr, type, mask, size, name, unit, help, storage_type);
@@ -316,7 +333,7 @@ int param_list_unpack(int node, void * data, int length, int list_version) {
 	}
 }
 
-int param_list_download(int node, int timeout, int list_version) {
+int param_list_download(int node, int timeout, int list_version, int include_remotes) {
 
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_LIST, timeout, CSP_O_RDP | CSP_O_CRC32);
@@ -324,11 +341,12 @@ int param_list_download(int node, int timeout, int list_version) {
 		return -1;
 
 	int count = 0;
+	int count_remotes = 0;
 	csp_packet_t * packet;
 	while((packet = csp_read(conn, timeout)) != NULL) {
 
 		//csp_hex_dump("Response", packet->data, packet->length);
-		if (param_list_unpack(node, packet->data, packet->length, list_version) < 0) {
+		if ((count_remotes += param_list_unpack(node, packet->data, packet->length, list_version, include_remotes)) < 0) {
 			csp_buffer_free(packet);
 			break;
 		}
@@ -337,7 +355,7 @@ int param_list_download(int node, int timeout, int list_version) {
 		count++;
 	}
 
-	printf("Received %u parameters\n", count);
+	printf("Received %u parameters, of which %u remote parameters were skipped\n", count, count_remotes);
 	csp_close(conn);
 
 	return count;
@@ -549,27 +567,30 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 			break;
 		case 0:
 		case 1:
-			sprintf(param->docstr, "RAM\t"); break;
+			sprintf(param->docstr, "RAM"); break;
 		case 2:
 		case 3:
-			sprintf(param->docstr, "FRAM\t"); break;
+			sprintf(param->docstr, "FRAM"); break;
 		case 8:
-			sprintf(param->docstr, "FRAM+C\t"); break;
+			sprintf(param->docstr, "FRAM+C"); break;
 		case 4:
-			sprintf(param->docstr, "FLASH\t"); break;
+			sprintf(param->docstr, "FLASH"); break;
 		case 5:
-			sprintf(param->docstr, "DRIVER\t"); break;
+			sprintf(param->docstr, "DRIVER"); break;
 		case 6:
-			sprintf(param->docstr, "QSPIFL\t"); break;
+			sprintf(param->docstr, "QSPIFL"); break;
 		case 7:
-			sprintf(param->docstr, "FILE\t"); break;
+			sprintf(param->docstr, "FILE"); break;
 		default:
-			sprintf(param->docstr, "%d\t", storage_type); break;
+			sprintf(param->docstr, "%d", storage_type); break;
 			break;
 	}
-	if (help != NULL) {
+	if (help != NULL && strlen(help) != 0) {
+		size_t len = strnlen(param->docstr, 150);
+		param->docstr[len++] = ' ';
+		param->docstr[len] = '\0';
 		/* Ensure storage type and help text doesn't overrun the provided 150 character buffer */
-		strncat(param->docstr, help, 150-strnlen(param->docstr, 150));
+		strncat(param->docstr, help, 150-len);
 	}
 
 	return param;

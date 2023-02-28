@@ -262,7 +262,8 @@ static int list_add(struct slash *slash)
         return SLASH_EINVAL;
     }
 
-    param_list_add(param);
+    if (param_list_add(param) != 0)
+        param_list_destroy(param);
 
     optparse_del(parser);
     return SLASH_SUCCESS;

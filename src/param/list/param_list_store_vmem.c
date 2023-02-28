@@ -32,12 +32,9 @@ param_t * param_list_from_line(char * line) {
 		size = param_typesize(type);
 	}
 
-	param_t * param = param_list_find_id(node, id);
-
-	if (param == NULL) {
-		param = param_list_create_remote(id, node, type, mask, size, name, NULL, NULL, -1);
-		param_list_add(param);
-	}
+	param_t * param = param_list_create_remote(id, node, type, mask, size, name, NULL, NULL, -1);
+	if (param_list_add(param) != 0)
+		param_list_destroy(param);
 
 	return param;
 
