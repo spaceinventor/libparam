@@ -40,6 +40,18 @@ static param_t param_size_set[2] __attribute__((aligned(1)));
 static SLIST_HEAD(param_list_head_s, param_s) param_list_head = {};
 #endif
 
+uint8_t param_is_static(param_t * param) {
+
+	__attribute__((weak)) extern param_t __start_param;
+	__attribute__((weak)) extern param_t __stop_param;
+
+	if ((&__start_param != NULL) && (&__start_param != &__stop_param)) {
+		if (param >= &__start_param && param < &__stop_param)
+			return 1;
+	}
+	return 0;
+}
+
 param_t * param_list_iterate(param_list_iterator * iterator) {
 
 	/**
@@ -104,13 +116,17 @@ int param_list_add(param_t * item) {
 	param_t * param;
 	if ((param = param_list_find_id(item->node, item->id)) != NULL) {
 
-		param->mask = item->mask;
-		param->type = item->type;
-		param->array_size = item->array_size;
-		param->array_step = item->array_step;
-		strcpy(param->name, item->name);
-		strcpy(param->unit, item->unit);
-		strcpy(param->docstr, item->docstr);
+		/* To protect against updating local static params */
+		if (!param_is_static(param)) {
+			param->mask = item->mask;
+			param->type = item->type;
+			param->array_size = item->array_size;
+			param->array_step = item->array_step;
+
+			strcpy(param->name, item->name);
+			strcpy(param->unit, item->unit);
+			strcpy(param->docstr, item->docstr);
+		}
 
 		return 1;
 	} else {
