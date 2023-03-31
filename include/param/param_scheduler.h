@@ -23,7 +23,6 @@ struct param_schedule_s {
     uint8_t active;
     // manual alignment
     uint16_t reserved_1;
-    uint32_t reserved_2;
 } __attribute__((packed, aligned(1)));
 typedef struct param_schedule_s param_schedule_t;
 
