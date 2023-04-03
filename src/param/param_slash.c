@@ -478,7 +478,6 @@ static int cmd_new(struct slash *slash) {
 
 	return SLASH_SUCCESS;
 }
-
 slash_command_sub(cmd, new, cmd_new, "<get/set> <cmd name>", "Create a new command");
 
 
@@ -486,12 +485,16 @@ static int cmd_done(struct slash *slash) {
 	param_queue.type = PARAM_QUEUE_TYPE_EMPTY;
 	return SLASH_SUCCESS;
 }
-
 slash_command_sub(cmd, done, cmd_done, "", "Exit cmd edit mode");
 
 
 static int cmd_print(struct slash *slash) {
-	param_queue_print(&param_queue);
+	if (param_queue.type == PARAM_QUEUE_TYPE_EMPTY) {
+		printf("No active command\n");
+	} else {
+		printf("Current command size: %d bytes\n", param_queue.used);
+		param_queue_print(&param_queue);
+	}
 	return SLASH_SUCCESS;
 }
-slash_command(cmd, cmd_print, NULL, "Show current queue");
+slash_command(cmd, cmd_print, NULL, "Show current command");
