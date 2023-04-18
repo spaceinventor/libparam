@@ -26,7 +26,6 @@
 #include <param/param_commands.h>
 
 static param_command_buf_t temp_command;
-#endif
 
 static param_scheduler_meta_t meta_obj;
 
@@ -727,3 +726,4 @@ void param_schedule_server_init(void) {
     lock = si_lock_init();
     meta_obj_init(&vmem_schedule);
 }
+#endif
