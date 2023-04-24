@@ -226,8 +226,6 @@ int param_serve_schedule_show(csp_packet_t *packet) {
         void * read_ptr = (void*) ( (long int) &temp_schedule + sizeof(temp_schedule.header.queue.buffer));
         objstore_read_obj(&vmem_schedule, offset, read_ptr, 0);
 
-        si_lock_give(lock);
-
         temp_schedule.header.queue.buffer = (char *) ((long int) &temp_schedule + (long int) (sizeof(param_schedule_t)));
 
         /* Respond with the requested schedule entry */
@@ -243,6 +241,9 @@ int param_serve_schedule_show(csp_packet_t *packet) {
         packet->length = temp_schedule.header.queue.used + 10;
         
         memcpy(&packet->data[10], temp_schedule.header.queue.buffer, temp_schedule.header.queue.used);
+        
+        si_lock_give(lock);
+        
     } else {
         si_lock_give(lock);
 
