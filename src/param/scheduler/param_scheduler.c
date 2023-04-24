@@ -243,7 +243,7 @@ int param_serve_schedule_show(csp_packet_t *packet) {
         memcpy(&packet->data[10], temp_schedule.header.queue.buffer, temp_schedule.header.queue.used);
         
         si_lock_give(lock);
-        
+
     } else {
         si_lock_give(lock);
 
@@ -632,7 +632,7 @@ int param_schedule_server_update(uint64_t timestamp_nsec) {
                     temp_schedule.header.queue.buffer = (char *) ((long int) &temp_schedule + (long int) (sizeof(param_schedule_t)));
 
                     /* Execute the scheduled queue */
-                    if (param_push_queue(&temp_schedule.header.queue, 0, temp_schedule.header.host, 100, 0) == 0){
+                    if (param_push_queue(&temp_schedule.header.queue, 0, temp_schedule.header.host, 1000, 0) == 0){
                         temp_schedule.header.completed = 0x55;
                         temp_schedule.header.time = timestamp_nsec;
                     } else {
