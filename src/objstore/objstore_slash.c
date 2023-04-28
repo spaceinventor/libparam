@@ -27,7 +27,7 @@ static int cmd_schedule_push(struct slash *slash) {
     unsigned int server = 0;
     unsigned int time = 0;
 	unsigned int host = 0;
-	unsigned int timeout = 100;
+	unsigned int timeout = slash_dfl_timeout;
 
 	if (slash->argc < 4)
 		return SLASH_EUSAGE;
