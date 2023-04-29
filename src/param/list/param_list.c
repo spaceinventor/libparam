@@ -152,7 +152,7 @@ int param_list_remove(int node, uint8_t verbose) {
 		param_t * param = iter_param;  // Free the current parameter after we have used it to iterate.
 		iter_param = param_list_iterate(&i);
 
-		if (param->node == 0)
+		if (i.phase == 0)  // Protection against removing static parameters
 			continue;
 
 		uint8_t match = 1;
@@ -171,6 +171,27 @@ int param_list_remove(int node, uint8_t verbose) {
 	}
 
 	return count;
+}
+
+int param_list_remove_specific(param_t * param, uint8_t verbose) {
+
+	param_list_iterator i = {};
+	param_t * iter_param = param_list_iterate(&i);
+
+	while ((iter_param = param_list_iterate(&i)) != NULL) {
+		
+		if (iter_param != param)
+			continue;
+
+		if (verbose)
+			printf("Removing param: %s:%u[%d]\n", param->name, param->node, param->array_size);
+		// Using SLIST_REMOVE() means we iterate twice, but it is simpler.
+		SLIST_REMOVE(&param_list_head, param, param_s, next);
+		param_list_destroy(param);
+		return 1;
+	}
+
+	return 0;
 }
 #endif
 
