@@ -189,8 +189,8 @@ static int cmd_set(struct slash *slash) {
     optparse_t * parser = optparse_new("set", "<name>[offset] <value>");
     optparse_add_help(parser);
     optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
-	optparse_add_int(parser, 's', "server", "NUM", 0, &server, "server to get parameters from (default = node))");
-    optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system verison (default = 2)");
+	optparse_add_int(parser, 's', "server", "NUM", 0, &server, "server to set parameters on (default = node)");
+    optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system version (default = 2)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -404,7 +404,7 @@ static int cmd_pull(struct slash *slash) {
     optparse_t * parser = optparse_new("pull", "");
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
-	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
+	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to pull parameters from (default = <env>))");
 	optparse_add_string(parser, 'm', "imask", "MASK", &include_mask_str, "Include mask (param letters)");
 	optparse_add_string(parser, 'e', "emask", "MASK", &exclude_mask_str, "Exclude mask (param letters)");
     optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system verison (default = 2)");
@@ -453,9 +453,9 @@ static int cmd_new(struct slash *slash) {
 	}
 
 	/* Set/get */
-	if (strcmp(slash->argv[argi], "get") == 0) {
+	if (strncmp(slash->argv[argi], "get", 4) == 0) {
 		param_queue.type = PARAM_QUEUE_TYPE_GET;
-	} else if (strcmp(slash->argv[argi], "set") == 0) {
+	} else if (strncmp(slash->argv[argi], "set", 4) == 0) {
 		param_queue.type = PARAM_QUEUE_TYPE_SET;
 	} else {
 		printf("Must specify 'get' or 'set'\n");
