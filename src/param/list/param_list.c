@@ -173,7 +173,7 @@ int param_list_remove(int node, uint8_t verbose) {
 	return count;
 }
 
-int param_list_remove_specific(param_t * param, uint8_t verbose) {
+int param_list_remove_specific(param_t * param, uint8_t verbose, int destroy) {
 
 	param_list_iterator i = {};
 	param_t * iter_param = param_list_iterate(&i);
@@ -187,7 +187,8 @@ int param_list_remove_specific(param_t * param, uint8_t verbose) {
 			printf("Removing param: %s:%u[%d]\n", param->name, param->node, param->array_size);
 		// Using SLIST_REMOVE() means we iterate twice, but it is simpler.
 		SLIST_REMOVE(&param_list_head, param, param_s, next);
-		param_list_destroy(param);
+		if (destroy)
+			param_list_destroy(param);
 		return 1;
 	}
 
