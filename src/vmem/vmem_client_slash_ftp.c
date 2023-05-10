@@ -39,11 +39,13 @@ static int vmem_client_slash_download(struct slash *slash)
 	unsigned int packet_timeout = 5000;
 	unsigned int ack_timeout = 2000;
 	unsigned int ack_count = 2;
+	unsigned int use_rdp = 1;
 	optparse_add_unsigned(parser, 'w', "window", "NUM", 0, &window, "rdp window (default = 3 packets)");
-	optparse_add_unsigned(parser, 'c', "conn_timeout", "NUM", 0, &conn_timeout, "rdp connection timeout (default = 10 seconds)");
-	optparse_add_unsigned(parser, 'p', "packet_timeout", "NUM", 0, &packet_timeout, "rdp packet timeout (default = 5 seconds)");
-	optparse_add_unsigned(parser, 'k', "ack_timeout", "NUM", 0, &ack_timeout, "rdp max acknowledgement interval (default = 2 seconds)");
+	optparse_add_unsigned(parser, 'c', "conn_timeout", "NUM", 0, &conn_timeout, "rdp connection timeout in ms (default = 10 seconds)");
+	optparse_add_unsigned(parser, 'p', "packet_timeout", "NUM", 0, &packet_timeout, "rdp packet timeout in ms (default = 5 seconds)");
+	optparse_add_unsigned(parser, 'k', "ack_timeout", "NUM", 0, &ack_timeout, "rdp max acknowledgement interval in ms (default = 2 seconds)");
 	optparse_add_unsigned(parser, 'a', "ack_count", "NUM", 0, &ack_count, "rdp ack for each (default = 2 packets)");
+	optparse_add_unsigned(parser, 'r', "use_rdp", "NUM", 0, &use_rdp, "rdp ack for each (default = 1)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -93,9 +95,7 @@ static int vmem_client_slash_download(struct slash *slash)
 	/* Allocate memory for reply */
 	char * data = malloc(length);
 
-	uint32_t time_begin = csp_get_ms();
-	vmem_download(node, timeout, address, length, data, version);
-	uint32_t time_total = csp_get_ms() - time_begin;
+	vmem_download(node, timeout, address, length, data, version, use_rdp);
 
 	/* Open file (truncate or create) */
 	FILE * fd = fopen(file, "w+");
@@ -109,7 +109,7 @@ static int vmem_client_slash_download(struct slash *slash)
 	fclose(fd);
 	free(data);
 
-	printf("Downloaded %u bytes in %.03f s at %u Bps\n", written, time_total / 1000.0, (unsigned int) (written / ((float)time_total / 1000.0)) );
+	printf("wrote %u bytes to %s\n", written, file);
 
 	return SLASH_SUCCESS;
 }
@@ -122,7 +122,7 @@ static int vmem_client_slash_upload(struct slash *slash)
     unsigned int timeout = slash_dfl_timeout;
     unsigned int version = 1;
 
-    optparse_t * parser = optparse_new("download", "<file> <address>");
+    optparse_t * parser = optparse_new("upload", "<file> <address>");
     optparse_add_help(parser);
     optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
