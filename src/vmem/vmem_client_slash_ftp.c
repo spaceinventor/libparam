@@ -27,7 +27,7 @@ static int vmem_client_slash_download(struct slash *slash)
     unsigned int timeout = slash_dfl_timeout;
     unsigned int version = 1;
 
-    optparse_t * parser = optparse_new("download", "<address> <length> <file>");
+    optparse_t * parser = optparse_new("download", "<address> <length base10 or base16> <file>");
     optparse_add_help(parser);
     optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
@@ -77,8 +77,11 @@ static int vmem_client_slash_download(struct slash *slash)
 
 	uint32_t length = strtoul(slash->argv[argi], &endptr, 10);
 	if (*endptr != '\0') {
-		printf("Failed to parse length\n");
-		return SLASH_EUSAGE;
+		length = strtoul(slash->argv[argi], &endptr, 16);
+		if (*endptr != '\0') {
+			printf("Failed to parse length in base 10 or base 16\n");
+			return SLASH_EUSAGE;
+		}
 	}
 
 	/* Expect filename */
