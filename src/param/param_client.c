@@ -31,7 +31,7 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 	queue.last_node = response->id.src;
 
 	/* Write data to local memory */
-	param_queue_apply(&queue, 0, from, 0);
+	param_queue_apply(&queue, 0, from);
 
 	if (verbose) {
 
@@ -218,7 +218,7 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, u
 		//printf("  ACK from %d\n", host);
 		param_queue_print(queue);
 	}
-	param_queue_apply(queue, 0, host, 0);
+	param_queue_apply(queue, 0, host);
 
 	return 0;
 }

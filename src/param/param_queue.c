@@ -54,7 +54,7 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	return 0;
 }
 
-int param_queue_apply(param_queue_t *queue, int apply_local, int from, int store_timestamp) {
+int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
 	int return_code = 0;
 	int atomic_write = 0;
 
@@ -91,8 +91,7 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from, int store
 					param_enter_critical();
 			}
 
-			if (store_timestamp)
-				param->timestamp = timestamp;
+			param->timestamp = timestamp;
 
 			param_deserialize_from_mpack_to_param(NULL, queue, param, offset, &reader);
 		} else {
