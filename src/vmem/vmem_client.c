@@ -95,8 +95,8 @@ void vmem_download(int node, int timeout, uint64_t address, uint32_t length, cha
 
 }
 
-void vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version)
-{
+void vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version) {
+
 	uint32_t time_begin = csp_get_ms();
 
 	/* Establish RDP connection */
@@ -156,7 +156,7 @@ void vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_
 
 	uint32_t time_total = csp_get_ms() - time_begin;
 
-	printf("  Uploaded %u bytes in %.03f s at %u Bps\n", (unsigned int) length, time_total / 1000.0, (unsigned int) (length / ((float)time_total / 1000.0)) );
+	printf("  Uploaded %u bytes in %.03f s at %u Bps\n", (unsigned int) count, time_total / 1000.0, (unsigned int) (count / ((float)time_total / 1000.0)) );
 
 }
 

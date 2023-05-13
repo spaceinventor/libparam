@@ -26,12 +26,14 @@ static int vmem_client_slash_download(struct slash *slash)
 	unsigned int node = slash_dfl_node;
     unsigned int timeout = slash_dfl_timeout;
     unsigned int version = 1;
+	unsigned int offset = 0;
 
     optparse_t * parser = optparse_new("download", "<address> <length base10 or base16> <file>");
     optparse_add_help(parser);
     optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
     optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 1)");
+	optparse_add_unsigned(parser, 'o', "offset", "NUM", 0, &offset, "byte offset in file (default = 0)");
 
 	/* RDPOPT */
 	unsigned int window = 3;
@@ -124,12 +126,14 @@ static int vmem_client_slash_upload(struct slash *slash)
 	unsigned int node = slash_dfl_node;
     unsigned int timeout = slash_dfl_timeout;
     unsigned int version = 1;
+	unsigned int offset = 0;
 
     optparse_t * parser = optparse_new("upload", "<file> <address>");
     optparse_add_help(parser);
     optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
     optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 1)");
+	optparse_add_unsigned(parser, 'o', "offset", "NUM", 0, &offset, "byte offset in file (default = 0)");
 
 
 	/* RDPOPT */
@@ -186,12 +190,18 @@ static int vmem_client_slash_upload(struct slash *slash)
 	struct stat file_stat;
 	stat(file, &file_stat);
 
+	fseek(fd, offset, SEEK_SET);
+
 	/* Copy to memory */
 	char * data = malloc(file_stat.st_size);
-	int size = fread(data, 1, file_stat.st_size, fd);
+	int size = fread(data, 1, file_stat.st_size - offset, fd);
 	fclose(fd);
 
-	//csp_hex_dump("file", data, size);
+	address += offset;
+
+	printf("File size %ld, offset %d, to upload %d to address %lx\n", file_stat.st_size, offset, size, address);
+
+	csp_hex_dump("File head", data, 256);
 
 	printf("Size %u\n", size);
 
