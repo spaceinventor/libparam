@@ -91,7 +91,9 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
 					param_enter_critical();
 			}
 
-			param->timestamp = timestamp;
+			/* TODO: Update param structure to have timestamp in a ram area with a pointer, so it works for static params too 
+			 * We cannot universally apply timestamps here before that has been done */
+			//param->timestamp = timestamp;
 
 			param_deserialize_from_mpack_to_param(NULL, queue, param, offset, &reader);
 		} else {
