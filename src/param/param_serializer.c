@@ -52,7 +52,7 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 	} else {
 
 		int node = param->node;
-		uint32_t timestamp = param->timestamp;
+		uint32_t timestamp = *param->timestamp;
 		int array_flag = (offset >= 0) ? 1 : 0;
 		int node_flag = (queue->last_node != node) ? 1 : 0;
 		int timestamp_flag = (queue->last_timestamp != timestamp) ? 1 : 0;

@@ -93,7 +93,7 @@ typedef struct param_s {
 
 	/* Local info */
 	void (*callback)(struct param_s * param, int offset);
-	uint32_t timestamp;
+	uint32_t * timestamp;
 
 #ifdef PARAM_HAVE_SYS_QUEUE
 	/* single linked list:
@@ -118,6 +118,7 @@ typedef struct param_s {
  *
  */
 #define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr) \
+	uint32_t _timestamp_##_name = 0; \
 	__attribute__((section("param"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
@@ -132,11 +133,13 @@ typedef struct param_s {
 		.mask = _flags, \
 		.unit = _unit, \
 		.callback = _callback, \
+		.timestamp = &_timestamp_##_name, \
 		.addr = _physaddr, \
 		.docstr = _docstr, \
 	}
 
 #define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
+	uint32_t _timestamp_##_name = 0; \
 	__attribute__((section("param"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
@@ -149,6 +152,7 @@ typedef struct param_s {
 		.array_step = _array_step, \
 		.mask = _flags, \
 		.callback = _callback, \
+		.timestamp = &_timestamp_##_name, \
 		.unit = _unit, \
 		.addr = (void *) _vmem_addr, \
 		.vmem = &vmem_##_vmem_name, \
@@ -158,6 +162,7 @@ typedef struct param_s {
 #define PARAM_REMOTE_NODE_IGNORE 16382
 
 #define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_size, _array_step, _flags, _physaddr, _docstr) \
+	uint32_t _timestamp_##_name = 0; \
 	__attribute__((section("param"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
@@ -170,10 +175,12 @@ typedef struct param_s {
 		.name = (char *) #_name, \
 		.mask = _flags, \
 		.addr = _physaddr, \
+		.timestamp = &_timestamp_##_name, \
 		.docstr = _docstr, \
 	};
 
 #define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_size, _array_step, _flags, _physaddr, _docstr) \
+	uint32_t _timestamp_##_name = 0; \
 	param_t _name = { \
 		.node = _node, \
 		.id = _id, \
@@ -183,6 +190,7 @@ typedef struct param_s {
 		.name = (char *) #_name, \
 		.mask = _flags, \
 		.addr = _physaddr, \
+		.timestamp = &_timestamp_##_name, \
 		.docstr = _docstr, \
 	};
 
