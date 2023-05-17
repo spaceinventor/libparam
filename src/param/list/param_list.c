@@ -483,6 +483,7 @@ typedef struct param_heap_s {
 		uint64_t alignme;
 		uint8_t *buffer;
 	};
+	uint32_t timestamp;
 	char name[36];
 	char unit[10];
 	char help[150];
@@ -538,6 +539,7 @@ typedef struct param_heap_s {
 		uint64_t alignme;
 		uint8_t *buffer;
 	};
+	uint32_t timestamp;
 	char name[36];
 	char unit[10];
 	char help[150];
@@ -587,6 +589,7 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	param->vmem = NULL;
 	param->name = param_heap->name;
 	param->addr = param_heap->buffer;
+	param->timestamp = &param_heap->timestamp;
 	param->unit = param_heap->unit;
 	param->docstr = param_heap->help;
 
