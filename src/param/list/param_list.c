@@ -601,40 +601,10 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	param->array_step = param_typesize(type);
 
 	strncpy(param->name, name, 36);
-	if (unit != NULL)
+	if (unit)
 		strncpy(param->unit, unit, 10);
-
-	switch(storage_type) {
-		case -1:
-		case 65535:
-			break;
-		case 0:
-		case 1:
-			sprintf(param->docstr, "RAM"); break;
-		case 2:
-		case 3:
-			sprintf(param->docstr, "FRAM"); break;
-		case 8:
-			sprintf(param->docstr, "FRAM+C"); break;
-		case 4:
-			sprintf(param->docstr, "FLASH"); break;
-		case 5:
-			sprintf(param->docstr, "DRIVER"); break;
-		case 6:
-			sprintf(param->docstr, "QSPIFL"); break;
-		case 7:
-			sprintf(param->docstr, "FILE"); break;
-		default:
-			sprintf(param->docstr, "%d", storage_type); break;
-			break;
-	}
-	if (help != NULL && strlen(help) != 0) {
-		size_t len = strnlen(param->docstr, 150);
-		param->docstr[len++] = ' ';
-		param->docstr[len] = '\0';
-		/* Ensure storage type and help text doesn't overrun the provided 150 character buffer */
-		strncat(param->docstr, help, 150-len);
-	}
+	if (help)
+		strncpy(param->docstr, help, 150);
 
 	return param;
 
