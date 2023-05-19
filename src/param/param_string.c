@@ -49,8 +49,25 @@ void param_value_str(param_t *param, unsigned int i, char * out, int len)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT16, "0x%"PRIX16, uint16_t, uint16)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT32, "0x%"PRIX32, uint32_t, uint32)
 	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_XINT64, "0x%"PRIX64, uint64_t, uint64)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_FLOAT, "%f", float, float)
-	PARAM_SWITCH_SNPRINTF(PARAM_TYPE_DOUBLE, "%f", double, double)
+	case PARAM_TYPE_FLOAT: {
+		float val = param_get_float_array(param, i);
+		if ((fabsf(val) < 0.00001) && (val != 0)) {
+			snprintf(out, len, "%e", val);
+		} else {
+			snprintf(out, len, "%f", val);
+		}
+		break;
+	}
+	
+	case PARAM_TYPE_DOUBLE: {
+		double val = param_get_double_array(param, i);
+		if ((fabs(val) < 0.00001) && (val != 0)) {
+			snprintf(out, len, "%e", val);
+		} else {
+			snprintf(out, len, "%f", val);
+		}
+		break;
+	}
 
 	case PARAM_TYPE_DATA: {
 
