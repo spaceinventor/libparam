@@ -123,11 +123,9 @@ int param_list_add(param_t * item) {
 			param->array_size = item->array_size;
 			param->array_step = item->array_step;
 
-			/* Max parameter string lengths are specified in libparam/src/param/list/param_list.h */
-			param_transfer3_t param_maxlen;
-			strncpy(param->name, item->name, sizeof(param_maxlen.name));
-			strncpy(param->unit, item->unit, sizeof(param_maxlen.unit));
-			strncpy(param->docstr, item->docstr, sizeof(param_maxlen.help));
+			strcpy(param->name, item->name);
+			strcpy(param->unit, item->unit);
+			strcpy(param->docstr, item->docstr);
 		}
 
 		return 1;
