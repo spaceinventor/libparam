@@ -28,6 +28,9 @@ if not clib.found()
 	clib_dep = dependency('libc', fallback: ['picolibc', 'picolibc_dep'], required: true)
 endif
 
+# On linux include bsd libraries for strlcpy function (which is non standard)
+bsd_dep = dependency('libbsd-overlay', required: false)
+
 param_src = files([
 	'src/param/list/param_list.c',
 
@@ -130,7 +133,7 @@ param_inc = include_directories('.', 'include')
 param_lib = static_library('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
-	dependencies : [clib_dep, csp_dep, slash_dep],
+	dependencies : [clib_dep, bsd_dep, csp_dep, slash_dep],
 	install : false
 )
 

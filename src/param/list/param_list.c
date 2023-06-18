@@ -6,6 +6,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include "libparam.h"
 #ifdef PARAM_LIST_DYNAMIC
 #include <malloc.h>
@@ -427,9 +428,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 			rparam->size = param->array_size;
 			rparam->mask = htobe32(param->mask);
 			
-			strncpy(rparam->name, param->name, sizeof(rparam->name) - 1);
-			if (strlen(rparam->name) < sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name))
-				rparam->name[strlen(rparam->name)] = '\0';
+			strlcpy(rparam->name, param->name, sizeof(rparam->name));
 
 		} else {
 
@@ -441,18 +440,18 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 			rparam->size = param->array_size;
 			rparam->mask = htobe32(param->mask);
 			
-			strncpy(rparam->name, param->name, sizeof(rparam->name) - 1);
+			strlcpy(rparam->name, param->name, sizeof(rparam->name));
 
 			if (param->vmem) {
 				rparam->storage_type = param->vmem->type;
 			}
 
 			if (param->unit != NULL) {
-				strncpy(rparam->unit, param->unit, sizeof(rparam->unit) - 1);
+				strlcpy(rparam->unit, param->unit, sizeof(rparam->unit));
 			}
 
 			if (param->docstr != NULL) {
-				strncpy(rparam->help, param->docstr, sizeof(rparam->help) - 1);
+				strlcpy(rparam->help, param->docstr, sizeof(rparam->help));
 			}
 		}
 		
@@ -598,11 +597,13 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	param->array_size = array_size;
 	param->array_step = param_typesize(type);
 
-	strncpy(param->name, name, 36);
-	if (unit)
-		strncpy(param->unit, unit, 10);
-	if (help)
-		strncpy(param->docstr, help, 150);
+	strlcpy(param->name, name, 36);
+	if (unit) {
+		strlcpy(param->unit, unit, 10);
+	}
+	if (help) {
+		strlcpy(param->docstr, help, 150);
+	}
 
 	return param;
 
