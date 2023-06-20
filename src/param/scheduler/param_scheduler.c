@@ -109,8 +109,9 @@ static void schedule_rm_complete(void) {
     int num_schedules = get_number_of_schedule_objs(&vmem_schedule);
     
     /* Iterate over the number of schedules and erase each completed one */
-    int obj_skips = 0;
+    int uncomplete_scheds_found = 0;
     for (int i = 0; i < num_schedules; i++) {
+        int obj_skips = uncomplete_scheds_found;
         int offset = objstore_scan(&vmem_schedule, next_schedule_scancb, 0, (void *) &obj_skips);
         if (offset < 0) {
             continue;
@@ -121,7 +122,7 @@ static void schedule_rm_complete(void) {
         if (completed != 0) {
             objstore_rm_obj(&vmem_schedule, offset, 0);
         } else {
-            obj_skips++;
+            uncomplete_scheds_found++;
         }
     }
 }
