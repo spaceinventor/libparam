@@ -108,7 +108,7 @@ static int get_number_of_schedule_objs(vmem_t * vmem) {
 static void schedule_rm_complete(void) {
     int num_schedules = get_number_of_schedule_objs(&vmem_schedule);
     
-    /* Iterate over the number of schedules and erase each */
+    /* Iterate over the number of schedules and erase each completed one */
     for (int i = 0; i < num_schedules; i++) {
         int obj_skips = 0;
         int offset = objstore_scan(&vmem_schedule, next_schedule_scancb, 0, (void *) &obj_skips);
@@ -125,26 +125,33 @@ static void schedule_rm_complete(void) {
 }
 
 static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
-    /* Construct a temporary schedule structure */
-    if (packet->length < 12)
+    /* Return if packet length is too short to be valid */
+    if (packet->length < 12){
         return UINT16_MAX;
+    }
     
     int queue_size = packet->length - 12;
 
     /* Determine schedule size and allocate VMEM */
     int obj_length = (int) sizeof(param_schedule_t) + queue_size - (int) sizeof(char *);
 
-    /* Failure to retrieve lock */
-    if (si_lock_take(lock, 100) != 0)
+    /* Return in case of failure to retrieve lock */
+    if (si_lock_take(lock, 100) != 0){
        return UINT16_MAX;
+    }
     
     int obj_offset = objstore_alloc(&vmem_schedule, obj_length, 0);
     if (obj_offset < 0) {
-        si_lock_give(lock);
-        return UINT16_MAX;
+        /* Remove all completed schedules */
+        schedule_rm_complete();
+
+        /* Try allocating again */
+        if ( (obj_offset = objstore_alloc(&vmem_schedule, obj_length, 0)) < 0) {
+            si_lock_give(lock);
+            return UINT16_MAX;
+        }
     }
     
-    //param_schedule_t * temp_schedule = malloc(sizeof(param_schedule_t) + queue_size);
     memset(&temp_schedule, 0, sizeof(temp_schedule));
 
     temp_schedule.header.active = 0x55;
@@ -156,8 +163,9 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
         return UINT16_MAX;
     }
     
-    if (objstore_read_obj(&vmem_schedule, meta_offset, (void *) &meta_obj, 0) < 0)
+    if (objstore_read_obj(&vmem_schedule, meta_offset, (void *) &meta_obj, 0) < 0){
         printf("Meta obj checksum error\n");
+    }
     meta_obj.last_id++;
     if (meta_obj.last_id == UINT16_MAX){
         meta_obj.last_id = 0;
