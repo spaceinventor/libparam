@@ -156,6 +156,8 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
 
     temp_schedule.header.active = 0x55;
     temp_schedule.header.completed = 0;
+    // Each schedule can retry up to 5 times in case of communications issues
+    temp_schedule.header.retries = 5; 
 
     int meta_offset = objstore_scan(&vmem_schedule, find_meta_scancb, 0, NULL);
     if (meta_offset < 0) {
@@ -664,8 +666,16 @@ int param_schedule_server_update(uint64_t timestamp_nsec) {
                         temp_schedule.header.completed = 0x55;
                         temp_schedule.header.time = timestamp_nsec;
                     } else {
-                        /* Postpone 10 seconds to retry in case of network errors */
-                        temp_schedule.header.time += 10*1E9;
+                        if (temp_schedule.header.retries > 0) {
+                            /* Postpone 5 seconds to retry in case of network errors */
+                            temp_schedule.header.time += 5*1E9;
+                            temp_schedule.header.retries--;
+                        } else {
+                            /* Out of retries */
+                            completed = 0xAA;
+                            objstore_write_data(&vmem_schedule, offset, OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t, completed), sizeof(completed), &completed);
+                            objstore_write_data(&vmem_schedule, offset, OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t, time), sizeof(time), &timestamp_nsec);
+                        }
                     }
 
                     /* Write the results to objstore */

@@ -21,8 +21,9 @@ struct param_schedule_s {
     uint16_t host;
     uint8_t completed;
     uint8_t active;
+    uint8_t retries;
     // manual alignment
-    uint16_t reserved_1;
+    uint8_t reserved_1;
 } __attribute__((packed, aligned(1)));
 typedef struct param_schedule_s param_schedule_t;
 
