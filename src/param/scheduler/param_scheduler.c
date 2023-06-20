@@ -66,6 +66,64 @@ static void meta_obj_save(vmem_t * vmem) {
     objstore_write_obj(vmem, offset, OBJ_TYPE_SCHEDULER_META, sizeof(meta_obj), (void *) &meta_obj);
 }
 
+static int next_schedule_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
+    int type = objstore_read_obj_type(vmem, offset);
+    if (type != OBJ_TYPE_SCHEDULE)
+        return 0;
+    
+    int length = objstore_read_obj_length(vmem, offset);
+    if (length < 0)
+        return 0;
+
+    /* Break iteration after the correct number of objects */
+    if (*(int*)ctx == 0) {
+        return -1;
+    } else {
+        *(int*)ctx -= 1;
+    }
+
+    return 0;
+}
+
+static int num_schedule_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
+    int type = objstore_read_obj_type(vmem, offset);
+    if (type != OBJ_TYPE_SCHEDULE)
+        return 0;
+
+    /* Found a schedule object, increment ctx */
+    *(int*)ctx += 1;
+
+    return 0;
+}
+
+static int get_number_of_schedule_objs(vmem_t * vmem) {
+    int num_schedule_objs = 0;
+
+    objstore_scan(vmem, num_schedule_scancb, 0, (void *) &num_schedule_objs);
+
+    return num_schedule_objs;
+}
+
+/* Remove all completed schedules */
+static void schedule_rm_complete(void) {
+    int num_schedules = get_number_of_schedule_objs(&vmem_schedule);
+    
+    /* Iterate over the number of schedules and erase each */
+    for (int i = 0; i < num_schedules; i++) {
+        int obj_skips = 0;
+        int offset = objstore_scan(&vmem_schedule, next_schedule_scancb, 0, (void *) &obj_skips);
+        if (offset < 0) {
+            continue;
+        }
+        uint8_t completed;
+        vmem_schedule.read(&vmem_schedule, offset+OBJ_HEADER_LENGTH-sizeof(char*)+offsetof(param_schedule_t,completed), &completed, sizeof(completed));
+
+        if (completed != 0) {
+            objstore_rm_obj(&vmem_schedule, offset, 0);
+        }
+    }
+}
+
 static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
     /* Construct a temporary schedule structure */
     if (packet->length < 12)
@@ -290,44 +348,6 @@ int param_serve_schedule_rm_single(csp_packet_t *packet) {
 	packet->length = 4;
 
 	csp_sendto_reply(packet, packet, CSP_O_SAME);
-
-    return 0;
-}
-
-static int num_schedule_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
-    int type = objstore_read_obj_type(vmem, offset);
-    if (type != OBJ_TYPE_SCHEDULE)
-        return 0;
-
-    /* Found a schedule object, increment ctx */
-    *(int*)ctx += 1;
-
-    return 0;
-}
-
-static int get_number_of_schedule_objs(vmem_t * vmem) {
-    int num_schedule_objs = 0;
-
-    objstore_scan(vmem, num_schedule_scancb, 0, (void *) &num_schedule_objs);
-
-    return num_schedule_objs;
-}
-
-static int next_schedule_scancb(vmem_t * vmem, int offset, int verbose, void * ctx) {
-    int type = objstore_read_obj_type(vmem, offset);
-    if (type != OBJ_TYPE_SCHEDULE)
-        return 0;
-    
-    int length = objstore_read_obj_length(vmem, offset);
-    if (length < 0)
-        return 0;
-
-    /* Break iteration after the correct number of objects */
-    if (*(int*)ctx == 0) {
-        return -1;
-    } else {
-        *(int*)ctx -= 1;
-    }
 
     return 0;
 }
