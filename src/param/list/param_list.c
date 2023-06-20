@@ -486,14 +486,15 @@ typedef struct param_heap_s {
 	char help[150];
 } param_heap_t;
 
-static param_heap_t param_heap[PARAM_LIST_POOL];
+static param_heap_t param_heap[PARAM_LIST_POOL]  __attribute__((section(".noinit")));
 static uint32_t param_heap_used = 0;
-static uint8_t param_buffer[PARAM_LIST_POOL * 8]; /* Estimated average size of buffers */
+static uint8_t param_buffer[PARAM_LIST_POOL * 16]  __attribute__((section(".noinit"))); /* Estimated average size of buffers */
 static uint32_t param_buffer_used = 0;
 
 static param_heap_t * param_list_alloc(int type, int array_size) {
 
 	int buffer_required = param_typesize(type) * array_size;
+	while(buffer_required%4 != 0) buffer_required++; /* Ensure that all values are word-aliged */
 
 	if (param_heap_used >= PARAM_LIST_POOL || param_buffer_used + buffer_required > sizeof(param_buffer)) {
 		return NULL;
@@ -501,11 +502,6 @@ static param_heap_t * param_list_alloc(int type, int array_size) {
 
 	param_heap_t* param = &param_heap[param_heap_used];
 	param_heap_used++;
-
-	/* MCU expects floats to be word-aligned */
-	if ((param_buffer_used%4) != 0 && (type == PARAM_TYPE_FLOAT || type == PARAM_TYPE_DOUBLE)) {
-		param_buffer_used += 4-(param_buffer_used%4);
-	}
 
 	param->buffer = &param_buffer[param_buffer_used];
 	param_buffer_used += buffer_required;
