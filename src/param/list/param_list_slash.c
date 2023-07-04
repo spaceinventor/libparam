@@ -261,7 +261,6 @@ static int list_add(struct slash *slash)
         optparse_del(parser);
         return SLASH_EINVAL;
     }
-printf("%s:%d\n", __FILE__, __LINE__);
 
     if (param_list_add(param) != 0)
         param_list_destroy(param);
