@@ -486,9 +486,11 @@ typedef struct param_heap_s {
 	char help[150];
 } param_heap_t;
 
-static param_heap_t param_heap[PARAM_LIST_POOL]  __attribute__((section(".noinit")));
+static param_heap_t param_heap[PARAM_LIST_POOL] __attribute__ ((aligned (4))) __attribute__((section(".noinit")));
 static uint32_t param_heap_used = 0;
-static uint8_t param_buffer[PARAM_LIST_POOL * 16]  __attribute__((section(".noinit"))); /* Estimated average size of buffers */
+
+/* Estimated average size of buffers */
+static uint8_t param_buffer[PARAM_LIST_POOL * 16] __attribute__ ((aligned (4))) __attribute__((section(".noinit")));
 static uint32_t param_buffer_used = 0;
 
 static param_heap_t * param_list_alloc(int type, int array_size) {
