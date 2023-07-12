@@ -106,11 +106,13 @@ void vmem_server_handler(csp_conn_t * conn)
 
 		if (request->version == 1) {
 
+            /* Packet list of vmem data */
 			vmem_list_t * list = (vmem_list_t *) packet->data;
 
 			int i = 0;
 			packet->length = 0;
-			for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++, i++) {
+            /* Iterates the list of structs */
+            for (vmem_t * vmem = vmem_list_head(); vmem; vmem = vmem_list_iterate(vmem), i++) {
 				list[i].vaddr = htobe32((intptr_t) vmem->vaddr);
 				list[i].size = htobe32(vmem->size);
 				list[i].vmem_id = i;
@@ -120,11 +122,13 @@ void vmem_server_handler(csp_conn_t * conn)
 			}
 		} else if (request->version == 2) {
 			
+            /* Packet list of vmem data */
 			vmem_list2_t * list = (vmem_list2_t *) packet->data;
 
 			int i = 0;
 			packet->length = 0;
-			for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++, i++) {
+            /* Iterates the list of structs */
+            for (vmem_t * vmem = vmem_list_head(); vmem; vmem = vmem_list_iterate(vmem), i++) {
 				list[i].vaddr = htobe64((intptr_t) vmem->vaddr);
 				list[i].size = htobe32(vmem->size);
 				list[i].vmem_id = i;
@@ -208,9 +212,7 @@ void vmem_server_handler(csp_conn_t * conn)
 
 static void rparam_list_handler(csp_conn_t * conn)
 {
-	param_t * param;
-	param_list_iterator i = {};
-	while ((param = param_list_iterate(&i)) != NULL) {
+    for (param_t * param = param_list_head(); param; param = param_list_iterate(param)) {
 		csp_packet_t * packet = csp_buffer_get(256);
 		if (packet == NULL)
 		    break;

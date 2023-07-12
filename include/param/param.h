@@ -74,7 +74,8 @@ typedef enum {
  * Parameter description structure
  * Note: this is not packed in order to maximise run-time efficiency
  */
-typedef struct param_s {
+typedef struct param_s param_t;
+struct param_s {
 
 	/* Parameter declaration */
 	uint16_t id;
@@ -95,14 +96,33 @@ typedef struct param_s {
 	void (*callback)(struct param_s * param, int offset);
 	uint32_t * timestamp;
 
-#ifdef PARAM_HAVE_SYS_QUEUE
-	/* single linked list:
-	 * The weird definition format comes from sys/queue.h SLINST_ENTRY() macro */
-	struct { struct param_s *sle_next; } next;
-#endif
+    uint8_t alloc;
+	param_t * next;
 
+};
 
-} param_t;
+/**
+ * Addin support
+ * Definition of separate ELF section and references to the start and stop elelemts as
+ * are added by the compiler. 
+ * The get_param_pointers is defined for an addin to enable access to the section by the addin loader. 
+ */
+
+#define PARAM_SECTION_INIT_NO_FUNC(secname)\
+    extern param_t __start_ ## secname;\
+    extern param_t __stop_ ## secname;\
+    __attribute__((unused)) static param_t * param_section_start = (param_t*)&__start_ ## secname;\
+    __attribute__((unused)) static param_t * param_section_stop = (param_t*)&__stop_ ## secname;
+
+#define PARAM_SECTION_INIT_FUNC\
+	__attribute__((unused)) void get_param_pointers(param_t ** start, param_t ** stop) {\
+		*start = param_section_start;\
+		*stop = param_section_stop;\
+	}
+
+#define PARAM_SECTION_INIT(secname)\
+	PARAM_SECTION_INIT_NO_FUNC(secname)\
+	PARAM_SECTION_INIT_FUNC
 
 /**
  * DEFINITION HELPERS:
@@ -117,10 +137,10 @@ typedef struct param_s {
  * The size field is only important for non-native types such as string, data and vector.
  *
  */
-#define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr) \
+#define PARAM_SEC_DEFINE_STATIC_RAM(secname, _id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
-	__attribute__((section("param"))) \
+	__attribute__((section(#secname))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
@@ -137,12 +157,18 @@ typedef struct param_s {
 		.timestamp = &_timestamp_##_name, \
 		.addr = _physaddr, \
 		.docstr = _docstr, \
+        .alloc = 0,\
+        .next = 0,\
 	}
 
-#define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
+#define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr) \
+    PARAM_SEC_DEFINE_STATIC_RAM(param, _id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr) \
+
+
+#define PARAM_SEC_DEFINE_STATIC_VMEM(secname, _id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
-	__attribute__((section("param"))) \
+	__attribute__((section(#secname))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
@@ -159,14 +185,19 @@ typedef struct param_s {
 		.addr = (void *) _vmem_addr, \
 		.vmem = &vmem_##_vmem_name, \
 		.docstr = _docstr, \
+        .alloc = 0,\
+        .next = 0,\
 	}
+
+#define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
+    PARAM_SEC_DEFINE_STATIC_VMEM(param, _id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
 
 #define PARAM_REMOTE_NODE_IGNORE 16382
 
-#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_size, _array_step, _flags, _physaddr, _docstr) \
+#define PARAM_SEC_DEFINE_REMOTE(secname, _name, _node, _id, _type, _array_size, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
-	__attribute__((section("param"))) \
+	__attribute__((section(#secname))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
@@ -180,7 +211,12 @@ typedef struct param_s {
 		.addr = _physaddr, \
 		.timestamp = &_timestamp_##_name, \
 		.docstr = _docstr, \
+        .alloc = 0,\
+        .next = 0,\
 	};
+
+#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_size, _array_step, _flags, _physaddr, _docstr) \
+    PARAM_SEC_DEFINE_REMOTE(param, _name, _node, _id, _type, _array_size, _array_step, _flags, _physaddr, _docstr) \
 
 #define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_size, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
@@ -196,6 +232,8 @@ typedef struct param_s {
 		.addr = _physaddr, \
 		.timestamp = &_timestamp_##_name, \
 		.docstr = _docstr, \
+        .alloc = 0,\
+        .next = 0,\
 	};
 
 /* Native getter functions, will return native types */

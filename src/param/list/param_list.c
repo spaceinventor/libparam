@@ -27,90 +27,39 @@
 #include <sys/queue.h>
 #endif
 
-/**
- * The storage size (i.e. how closely two param_t structs are packed in memory)
- * varies from platform to platform (in example on x64 and arm32). This macro
- * defines two param_t structs and saves the storage size in a define.
- */
-#ifndef PARAM_STORAGE_SIZE
-static param_t param_size_set[2] __attribute__((aligned(1)));
-#define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set[1] - (intptr_t) &param_size_set[0])
-#endif
+static bool param_list_initialized = false;
+static param_t * param_head = 0;
 
-#ifdef PARAM_HAVE_SYS_QUEUE
-static SLIST_HEAD(param_list_head_s, param_s) param_list_head = {};
-#endif
+PARAM_SECTION_INIT_NO_FUNC(param)
 
-uint8_t param_is_static(param_t * param) {
+/** 
+ * List implementation independent on sys/queue.h
+*/
 
-	__attribute__((weak)) extern param_t __start_param;
-	__attribute__((weak)) extern param_t __stop_param;
+param_t * param_list_insert(param_t * head, param_t * param) {
 
-	if ((&__start_param != NULL) && (&__start_param != &__stop_param)) {
-		if (param >= &__start_param && param < &__stop_param)
-			return 1;
-	}
-	return 0;
+    /* param->next: first entry  prev: none */
+    param->next = head;
+    param_t * prev = 0;
+
+    /* As long af param->next is alphabetically lower than cmd */
+    while (param->next && (strcmp(param->name, param->next->name) > 0)) {
+        /* cmd->next: next entry  prev: previous entry */
+        prev = param->next;
+        param->next = param->next->next;
+    }
+
+    if (prev) {
+        /* Insert before param->next */
+        prev->next = param;
+    } else {
+        /* Insert as first entry */
+        head = param;
+    }
+
+    return head;
 }
 
-param_t * param_list_iterate(param_list_iterator * iterator) {
-
-	/**
-	 * GNU Linker symbols. These will be autogenerate by GCC when using
-	 * __attribute__((section("param"))
-	 */
-	__attribute__((weak)) extern param_t __start_param;
-	__attribute__((weak)) extern param_t __stop_param;
-
-	/* First element */
-	if (iterator->element == NULL) {
-
-		/* Static */
-		if ((&__start_param != NULL) && (&__start_param != &__stop_param)) {
-			iterator->phase = 0;
-			iterator->element = &__start_param;
-		} else {
-			iterator->phase = 1;
-#ifdef PARAM_HAVE_SYS_QUEUE
-			iterator->element = SLIST_FIRST(&param_list_head);
-#endif
-		}
-
-		return iterator->element;
-	}
-
-	/* Static phase */
-	if (iterator->phase == 0) {
-
-		/* Increment in static memory */
-		iterator->element = (param_t *)(intptr_t)((char *)iterator->element + PARAM_STORAGE_SIZE);
-
-		/* Check if we are still within the bounds of the static memory area */
-		if (iterator->element < &__stop_param)
-			return iterator->element;
-
-		/* Otherwise, switch to dynamic phase */
-		iterator->phase = 1;
-#ifdef PARAM_HAVE_SYS_QUEUE
-		iterator->element = SLIST_FIRST(&param_list_head);
-		return iterator->element;
-#else
-		return NULL;
-#endif
-	}
-
-#ifdef PARAM_HAVE_SYS_QUEUE
-	/* Dynamic phase */
-	if (iterator->phase == 1) {
-
-		iterator->element = SLIST_NEXT(iterator->element, next);
-		return iterator->element;
-	}
-#endif
-
-	return NULL;
-
-}
 
 int param_list_add(param_t * item) {
 
@@ -118,7 +67,7 @@ int param_list_add(param_t * item) {
 	if ((param = param_list_find_id(item->node, item->id)) != NULL) {
 
 		/* To protect against updating local static params */
-		if (!param_is_static(param)) {
+		if (param->alloc) {
 			param->mask = item->mask;
 			param->type = item->type;
 			param->array_size = item->array_size;
@@ -131,95 +80,64 @@ int param_list_add(param_t * item) {
 
 		return 1;
 	} else {
-#ifdef PARAM_HAVE_SYS_QUEUE
-		SLIST_INSERT_HEAD(&param_list_head, item, next);
-#else
-		return -1;
-#endif
+        param_head = param_list_insert(param_head, item);
 		return 0;
 	}
+
 }
 
-#ifdef PARAM_HAVE_SYS_QUEUE
-int param_list_remove(int node, uint8_t verbose) {
+param_t * param_list_add_section(param_t * head, param_t * start, param_t *stop)
+{
 
-	int count = 0;
+	for (param_t * param = start; param < stop; ++param) {
+        head = param_list_insert(head, param);
+	}
 
-	param_list_iterator i = {};
-	param_t * iter_param = param_list_iterate(&i);
+    return head;
+}
 
-	while (iter_param) {
+param_t * param_list_head() {
 
-		param_t * param = iter_param;  // Free the current parameter after we have used it to iterate.
-		iter_param = param_list_iterate(&i);
+    if (!param_list_initialized) {
+        param_list_initialized = true;
+        param_head = param_list_add_section(0, param_section_start, param_section_stop);
+    }
 
-		if (i.phase == 0)  // Protection against removing static parameters
-			continue;
+    return param_head;
+}
 
-		uint8_t match = 1;
+param_t * param_list_iterate(param_t * param) {
 
-		if (node > 0)
-			match = param->node == node;
+    return param ? param->next : 0;
+}
 
-		if (match) {
-			if (verbose)
-				printf("Removing param: %s:%u[%d]\n", param->name, param->node, param->array_size);
-			// Using SLIST_REMOVE() means we iterate twice, but it is simpler.
-			SLIST_REMOVE(&param_list_head, param, param_s, next);
-			param_list_destroy(param);
-			count++;
+param_t * param_list_find_param(param_t * p) {
+	
+    for (param_t * param = param_list_head(); param; param = param_list_iterate(param)) {
+
+		if (param == p) {
+			return param;
 		}
-	}
 
-	return count;
-}
-
-int param_list_remove_specific(param_t * param, uint8_t verbose, int destroy) {
-
-	param_list_iterator i = {};
-	param_t * iter_param = param_list_iterate(&i);
-
-	while ((iter_param = param_list_iterate(&i)) != NULL) {
-		
-		if (iter_param != param)
-			continue;
-
-		if (verbose)
-			printf("Removing param: %s:%u[%d]\n", param->name, param->node, param->array_size);
-		// Using SLIST_REMOVE() means we iterate twice, but it is simpler.
-		SLIST_REMOVE(&param_list_head, param, param_s, next);
-		if (destroy)
-			param_list_destroy(param);
-		return 1;
-	}
+    }
 
 	return 0;
 }
-#endif
 
 param_t * param_list_find_id(int node, int id) {
 	
 	if (node < 0)
 		node = 0;
 
-	param_t * found = NULL;
-	param_t * param;
-	param_list_iterator i = {};
+    for (param_t * param = param_list_head(); param; param = param_list_iterate(param)) {
 
-	while ((param = param_list_iterate(&i)) != NULL) {
-
-		if (param->node != node)
-			continue;
-
-		if (param->id == id) {
-			found = param;
-			break;
+		if ((param->node == node) && (param->id == id)) {
+			return param;
 		}
 
-		continue;
-	}
+    }
 
-	return found;
+	return 0;
 }
 
 param_t * param_list_find_name(int node, char * name) {
@@ -227,29 +145,24 @@ param_t * param_list_find_name(int node, char * name) {
 	if (node < 0 )
 		node = 0;
 
-	param_t * found = NULL;
-	param_t * param;
-	param_list_iterator i = {};
-	while ((param = param_list_iterate(&i)) != NULL) {
+    for (param_t * param = param_list_head(); param; param = param_list_iterate(param)) {
 
-		if (param->node != node)
-			continue;
-
-		if (strcmp(param->name, name) == 0) {
-			found = param;
-			break;
+		if ((param->node == node) && (strcmp(param->name, name) == 0)) {
+			return param;
 		}
 
-		continue;
-	}
+    }
 
-	return found;
+	return 0;
 }
 
 void param_list_print(uint32_t mask, int node, char * globstr, int verbosity) {
-	param_t * param;
-	param_list_iterator i = {};
-	while ((param = param_list_iterate(&i)) != NULL) {
+
+	if (node < 0 )
+		node = 0;
+
+    for (param_t * param = param_list_head(); param; param = param_list_iterate(param)) {
+
 		if ((node >= 0) && (param->node != node)) {
 			continue;
 		}
@@ -261,8 +174,62 @@ void param_list_print(uint32_t mask, int node, char * globstr, int verbosity) {
 		}
 
 		param_print(param, -1, NULL, 0, verbosity);
-		
+
 	}
+}
+
+int param_list_remove(int node, uint8_t verbose) {
+
+    if (node < 0) {
+        return 0;
+    }
+
+	int count = 0;
+
+    param_t * prev = 0;
+    for (param_t * param = param_list_head(); param; param = param_list_iterate(param)) {
+
+		if ((param->alloc == 0) || (param->node != node)) {
+            prev = param;
+            continue;
+        }
+
+        /* Remove param from list */
+        prev->next = param->next;
+        param->next = 0;
+
+        param_list_destroy(param);
+
+        count++;
+	}
+
+	return count;
+}
+
+int param_list_remove_specific(param_t * param, uint8_t verbose, int destroy) {
+
+    /* Find parameter and previous struct */
+    param_t * prev = 0;
+    param_t * p = param_list_head();
+    for (; p && (p != param); p = param_list_iterate(p)) {
+        prev = p;
+    }
+
+    if (!p) {
+        return 0;
+    }
+
+    if (verbose)
+        printf("Removing param: %s:%u[%d]\n", param->name, param->node, param->array_size);
+
+    /* Remove param from list */
+    prev->next = param->next;
+    param->next = 0;
+
+    if (destroy)
+        param_list_destroy(param);
+
+    return 1;
 }
 
 unsigned int param_list_packed_size(int list_version) {
@@ -402,12 +369,11 @@ int param_list_download(int node, int timeout, int list_version, int include_rem
 
 int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int list_version) {
 
-	param_t * param;
 	int num_params = 0;
 
 	void* param_packed = buf;
-	param_list_iterator i = {};
-	while ((param = param_list_iterate(&i)) != NULL) {
+    for (param_t * param = param_list_head(); param; param = param_list_iterate(param)) {
+
 		if (prio_only && (param->mask & PM_PRIO_MASK) == 0)
 			continue;
 
@@ -603,8 +569,12 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 		strlcpy(param->docstr, help, 150);
 	}
 
+    param->alloc = 1;
+    param->next = 0;
+
 	return param;
 
 }
+
 #endif
 

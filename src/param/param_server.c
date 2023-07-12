@@ -99,9 +99,7 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 	} else {
 
 		/* Loop the full parameter list */
-		param_t * param;
-		param_list_iterator i = {};
-		while ((param = param_list_iterate(&i)) != NULL) {
+		for (param_t * param = param_list_head(); param; param = param_list_iterate(param)) {
 			uint32_t include_mask = be32toh(ctx.request->data32[1]);
 			uint32_t exclude_mask = 0x00000000;
 			if (version >= 2) {

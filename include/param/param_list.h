@@ -11,12 +11,10 @@
 #include <param/param.h>
 #include <vmem/vmem.h>
 
-typedef struct param_list_iterator_s {
-	int phase;							// Hybrid iterator has multiple phases (0 == Static, 1 == Dynamic List)
-	param_t * element;
-} param_list_iterator;
+param_t * param_list_head();
+param_t * param_list_iterate(param_t * param);
 
-param_t * param_list_iterate(param_list_iterator * iterator);
+param_t * param_list_add_section(param_t * head, param_t * start, param_t *stop);
 
 int param_list_add(param_t * item);
 
