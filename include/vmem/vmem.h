@@ -47,7 +47,7 @@ int vmem_ptr_to_index(vmem_t * vmem);
 
 /**
  * Addin support
- * Definition of separate ELF section and references to the start and stop elelemts as
+ * Definition of separate ELF section and references to the start and stop symbols as
  * are added by the compiler. 
  * The get_param_pointers is defined for an addin to enable access to the section by the addin loader. 
  */

@@ -16,6 +16,10 @@ VMEM_SECTION_INIT_NO_FUNC(vmem)
 static bool vmem_list_initialized = false;
 static vmem_t * vmem_head = 0;
 
+/* The symbols __start_vmem and __stop_vmem will only be generated if the user defines any VMEMs.
+    We therefore use __attribute__((weak)) so we can compile in the absence of these. */
+extern __attribute__((weak)) int __start_vmem, __stop_vmem;
+
 void * vmem_memcpy(void * to, void * from, size_t size) {
 
 	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
