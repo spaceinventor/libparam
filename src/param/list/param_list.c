@@ -582,6 +582,7 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	}
 
 	param->vmem = NULL;
+	param->callback = NULL;
 	param->name = param_heap->name;
 	param->addr = param_heap->buffer;
 	param->timestamp = &param_heap->timestamp;
