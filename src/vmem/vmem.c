@@ -13,7 +13,7 @@
 
 extern int __start_vmem, __stop_vmem;
 
-void * vmem_memcpy(void * to, void * from, size_t size) {
+void * vmem_memcpy(void * to, void * from, uint32_t size) {
 
 	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
 
