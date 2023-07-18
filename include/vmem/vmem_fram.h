@@ -11,7 +11,7 @@
 #include <vmem/vmem.h>
 
 typedef struct {
-	int fram_addr;
+	uint32_t fram_addr;
 } vmem_fram_driver_t;
 
 #define VMEM_DEFINE_FRAM(name_in, strname, fram_addr_in, size_in, _vaddr) \
@@ -31,8 +31,8 @@ typedef struct {
 		.vaddr = (void *) _vaddr, \
 	};
 
-void vmem_fram_read(vmem_t * vmem, uint32_t addr, void * dataout, int len);
-void vmem_fram_write(vmem_t * vmem, uint32_t addr, void * datain, int len);
+void vmem_fram_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len);
+void vmem_fram_write(vmem_t * vmem, uint32_t addr, void * datain, uint32_t len);
 
 
 #endif /* SRC_PARAM_VMEM_FRAM_H_ */

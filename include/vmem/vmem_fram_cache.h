@@ -15,7 +15,7 @@ enum {
 };
 
 typedef struct {
-	int fram_addr;
+	uint32_t fram_addr;
 	uint8_t *cache;
 	int cache_status;
 } vmem_fram_cache_driver_t;
@@ -40,5 +40,5 @@ typedef struct {
 		.vaddr = (void *) _vaddr, \
 	};
 
-void vmem_fram_cache_read(vmem_t * vmem, uint32_t addr, void * dataout, int len);
-void vmem_fram_cache_write(vmem_t * vmem, uint32_t addr, void * datain, int len);
+void vmem_fram_cache_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len);
+void vmem_fram_cache_write(vmem_t * vmem, uint32_t addr, void * datain, uint32_t len);

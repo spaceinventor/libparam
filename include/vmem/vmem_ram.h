@@ -10,8 +10,8 @@
 
 #include <vmem/vmem.h>
 
-void vmem_ram_read(vmem_t * vmem, uint32_t addr, void * dataout, int len);
-void vmem_ram_write(vmem_t * vmem, uint32_t addr, void * datain, int len);
+void vmem_ram_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len);
+void vmem_ram_write(vmem_t * vmem, uint32_t addr, void * datain, uint32_t len);
 
 typedef struct {
 	void * physaddr;
