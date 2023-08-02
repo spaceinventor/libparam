@@ -20,14 +20,14 @@ typedef struct {
 	int cache_status;
 } vmem_fram_cache_driver_t;
 
-#define VMEM_SEC_DEFINE_FRAM_CACHE(secname, name_in, strname, fram_addr_in, size_in, _vaddr) \
+#define VMEM_DEFINE_FRAM_CACHE(name_in, strname, fram_addr_in, size_in, _vaddr) \
     uint8_t vmem_##name_in##_cache[size_in] __attribute__((section(".noinit"))); \
 	static vmem_fram_cache_driver_t vmem_##name_in##_driver = { \
 		.fram_addr = fram_addr_in, \
 		.cache = vmem_##name_in##_cache, \
 		.cache_status = 0, \
 	}; \
-	__attribute__((section(#secname))) \
+	__attribute__((section("vmem"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	vmem_t vmem_##name_in = { \
@@ -39,9 +39,6 @@ typedef struct {
 		.driver = &vmem_##name_in##_driver, \
 		.vaddr = (void *) _vaddr, \
 	};
-
-#define VMEM_DEFINE_FRAM_CACHE(name_in, strname, fram_addr_in, size_in, _vaddr) \
-    VMEM_SEC_DEFINE_FRAM_CACHE(vmem, name_in, strname, fram_addr_in, size_in, _vaddr)
 
 void vmem_fram_cache_read(vmem_t * vmem, uint32_t addr, void * dataout, int len);
 void vmem_fram_cache_write(vmem_t * vmem, uint32_t addr, void * datain, int len);

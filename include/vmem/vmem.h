@@ -25,8 +25,7 @@ enum vmem_types{
 	VMEM_TYPE_FRAM_CACHE = 8,
 };
 
-typedef struct vmem_s vmem_t;
-struct vmem_s {
+typedef struct vmem_s {
 	int type;
 	void (*read)(struct vmem_s * vmem, uint32_t addr, void * dataout, int len);
 	void (*write)(struct vmem_s * vmem, uint32_t addr, void * datain, int len);
@@ -37,39 +36,12 @@ struct vmem_s {
 	const char *name;
 	int big_endian;
 	void * driver;
-    vmem_t * next;
-};
+} vmem_t;
 
 void * vmem_memcpy(void * to, void * from, size_t size);
 vmem_t * vmem_index_to_ptr(int idx);
 int vmem_ptr_to_index(vmem_t * vmem);
 
-
-/**
- * Addin support
- * Definition of separate ELF section and references to the start and stop symbols as
- * are added by the compiler. 
- * The get_param_pointers is defined for an addin to enable access to the section by the addin loader. 
- */
-
-#define VMEM_SECTION_INIT_NO_FUNC(secname)\
-    extern int __start_ ## secname;\
-    extern int __stop_ ## secname;\
-    __attribute__((unused)) static vmem_t * vmem_section_start = (vmem_t*)&__start_ ## secname;\
-    __attribute__((unused)) static vmem_t * vmem_section_stop = (vmem_t*)&__stop_ ## secname;
-
-#define VMEM_SECTION_INIT_FUNC\
-	__attribute__((unused)) void get_vmem_pointers(vmem_t ** start, vmem_t ** stop) {\
-		*start = vmem_section_start;\
-		*stop = vmem_section_stop;\
-	}
-
-#define VMEM_SECTION_INIT(secname)\
-	VMEM_SECTION_INIT_NO_FUNC(secname)\
-	VMEM_SECTION_INIT_FUNC
-
-vmem_t * vmem_list_add_section(vmem_t * head, vmem_t * start, vmem_t *stop);
-vmem_t * vmem_list_head();
-vmem_t * vmem_list_iterate(vmem_t * vmem);
+extern int __start_vmem, __stop_vmem;
 
 #endif /* SRC_PARAM_VMEM_H_ */

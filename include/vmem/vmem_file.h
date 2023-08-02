@@ -19,13 +19,13 @@ void vmem_file_init(vmem_t * vmem);
 void vmem_file_read(vmem_t * vmem, uint32_t addr, void * dataout, int len);
 void vmem_file_write(vmem_t * vmem, uint32_t addr, void * datain, int len);
 
-#define VMEM_SEC_DEFINE_FILE(secname, name_in, strname, filename_in, size_in) \
+#define VMEM_DEFINE_FILE(name_in, strname, filename_in, size_in) \
 	uint8_t vmem_##name_in##_buf[size_in] = {}; \
 	static vmem_file_driver_t vmem_##name_in##_driver = { \
 		.physaddr = vmem_##name_in##_buf, \
 		.filename = filename_in, \
 	}; \
-	__attribute__((section(#secname))) \
+	__attribute__((section("vmem"))) \
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	vmem_t vmem_##name_in = { \
@@ -38,7 +38,5 @@ void vmem_file_write(vmem_t * vmem, uint32_t addr, void * datain, int len);
 		.vaddr = vmem_##name_in##_buf, \
 	};
 
-#define VMEM_DEFINE_FILE(name_in, strname, filename_in, size_in) \
-    VMEM_SEC_DEFINE_FILE(vmem, name_in, strname, filename_in, size_in)
 
 #endif /* LIB_PARAM_INCLUDE_VMEM_VMEM_FILE_H_ */

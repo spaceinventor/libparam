@@ -209,6 +209,7 @@ static void param_print_value(FILE * file, param_t * param, int offset) {
 		sprintf(value_str + strlen(value_str), "[");
 
 	for(int i = offset; i < offset + count; i++) {
+		
 		param_value_str(param, i, value_str + strlen(value_str), 128 - strlen(value_str));
 
 		if (i + 1 < count)

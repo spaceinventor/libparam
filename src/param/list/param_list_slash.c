@@ -297,7 +297,9 @@ static int list_save(struct slash *slash) {
         }
     }
 
-    for (param_t * param = param_list_head(); param; param = param_list_iterate(param)) {
+    param_t * param;
+	param_list_iterator i = {};
+	while ((param = param_list_iterate(&i)) != NULL) {
 
         if ((node >= 0) && (param->node != node)) {
 			continue;

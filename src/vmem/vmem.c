@@ -11,10 +11,7 @@
 
 #include <vmem/vmem.h>
 
-VMEM_SECTION_INIT_NO_FUNC(vmem)
-
-static bool vmem_list_initialized = false;
-static vmem_t * vmem_head = 0;
+extern int __start_vmem, __stop_vmem;
 
 /* The symbols __start_vmem and __stop_vmem will only be generated if the user defines any VMEMs.
     We therefore use __attribute__((weak)) so we can compile in the absence of these. */
@@ -46,72 +43,10 @@ void * vmem_memcpy(void * to, void * from, size_t size) {
 }
 
 vmem_t * vmem_index_to_ptr(int idx) {
-
-    vmem_t * vmem = vmem_list_head();
-    while (idx && vmem) {
-        vmem = vmem_list_iterate(vmem);
-        idx--;
-    }
-	return vmem;
+	return ((vmem_t *) &__start_vmem) + idx;
 }
 
 int vmem_ptr_to_index(vmem_t * vmem) {
-
-    int idx = 0;
-    for (vmem_t * v = vmem_list_head(); v; v = vmem_list_iterate(v)) {
-        if (v == vmem) {
-            return idx;
-        }
-        idx++;
-    }
-	return -1;
+	return vmem - (vmem_t *) &__start_vmem;
 }
 
-vmem_t * vmem_list_insert(vmem_t * head, vmem_t * vmem) {
-
-    /* vmem->next: first entry  prev: none */
-    vmem->next = head;
-    vmem_t * prev = 0;
-
-    /* As long af vmem->next is alphabetically lower (buble-sort)) */
-    while (vmem->next && (strcmp(vmem->name, vmem->next->name) > 0)) {
-        /* vmem->next: next entry  prev: previous entry */
-        prev = vmem->next;
-        vmem->next = vmem->next->next;
-    }
-
-    if (prev) {
-        /* Insert before vmem->next */
-        prev->next = vmem;
-    } else {
-        /* Insert as first entry */
-        head = vmem;
-    }
-
-    return head;
-}
-
-vmem_t * vmem_list_add_section(vmem_t * head, vmem_t * start, vmem_t *stop)
-{
-
-	for (vmem_t * vmem = start; vmem < stop; ++vmem) {
-        head = vmem_list_insert(head, vmem);
-	}
-
-    return head;
-}
-
-vmem_t * vmem_list_head() {
-
-    if (!vmem_list_initialized) {
-        vmem_list_initialized = true;
-        vmem_head = vmem_list_add_section(0, vmem_section_start, vmem_section_stop);
-    }
-
-    return vmem_head;
-}
-
-vmem_t * vmem_list_iterate(vmem_t * vmem) {
-
-    return vmem ? vmem->next : 0;
-}

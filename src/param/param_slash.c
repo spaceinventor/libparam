@@ -63,16 +63,17 @@ static void param_completer(struct slash *slash, char * token) {
 	param_t *prefix = NULL;
 	size_t tokenlen = strlen(token);
 
+	param_t * param;
+	param_list_iterator i = { };
 	if (has_wildcard(token, strlen(token))) {
 		// Only print parameters when globbing is involved.
-		for (param_t * param = param_list_head(); param; param = param->next) {
+		while ((param = param_list_iterate(&i)) != NULL)
 			if (strmatch(param->name, token, strlen(param->name), strlen(token)))
 				param_print(param, -1, NULL, 0, 2);
-        }
 		return;
 	}
 
-	for (param_t * param = param_list_head(); param; param = param_list_iterate(param)) {
+	while ((param = param_list_iterate(&i)) != NULL) {
 
 		if (tokenlen > strlen(param->name))
 			continue;
@@ -140,9 +141,11 @@ static int cmd_get(struct slash *slash) {
 
 	char * name = slash->argv[argi];
 	int offset = -1;
+	param_t * param = NULL;
 
 	/* Go through the list of parameters */
-    for (param_t * param = param_list_head(); param; param = param_list_iterate(param)) {
+	param_list_iterator i = {};
+	while ((param = param_list_iterate(&i)) != NULL) {
 
 		/* Name match (with wildcard) */
 		if (strmatch(param->name, name, strlen(param->name), strlen(name)) == 0) {
@@ -216,7 +219,7 @@ static int cmd_set(struct slash *slash) {
 		printf("missing parameter value\n");
 		return SLASH_EINVAL;
 	}
-
+	
 	char valuebuf[128] __attribute__((aligned(16))) = { };
 	param_str_to_value(param->type, slash->argv[argi], valuebuf);
 
@@ -311,9 +314,11 @@ static int cmd_add(struct slash *slash) {
 
 		char * name = slash->argv[argi];
 		int offset = -1;
+		param_t * param = NULL;
 
 		/* Go through the list of parameters */
-        for (param_t * param = param_list_head(); param; param = param_list_iterate(param)) {
+		param_list_iterator i = {};
+		while ((param = param_list_iterate(&i)) != NULL) {
 
 			/* Name match (with wildcard) */
 			if (strmatch(param->name, name, strlen(param->name), strlen(name)) == 0) {
@@ -341,6 +346,8 @@ static int cmd_add(struct slash *slash) {
 		}
 
 	}
+
+
 
 	param_queue_print(&param_queue);
 	return SLASH_SUCCESS;
