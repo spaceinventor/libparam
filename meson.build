@@ -130,7 +130,7 @@ endif
 
 param_inc = include_directories('.', 'include')
 
-param_lib = static_library('param',
+param_lib = library('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
 	dependencies : [clib_dep, bsd_dep, csp_dep, slash_dep],
