@@ -44,6 +44,7 @@ static int vmem_client_slash_list(struct slash *slash)
 	printf("Requesting vmem list from node %u timeout %u version %d\n", node, timeout, version);
 
 	vmem_client_list(node, timeout, version);
+    optparse_del(parser);
 	return SLASH_SUCCESS;
 
 }

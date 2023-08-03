@@ -134,6 +134,7 @@ static int list_upload(struct slash *slash)
 	/* Expect address */
 	if (++argi >= slash->argc) {
 		printf("missing address\n");
+        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -141,6 +142,7 @@ static int list_upload(struct slash *slash)
 	uint64_t address = strtoul(slash->argv[argi], &endptr, 16);
 	if (*endptr != '\0') {
 		printf("Failed to parse address\n");
+        optparse_del(parser);
 		return SLASH_EUSAGE;
 	}
 
@@ -150,6 +152,7 @@ static int list_upload(struct slash *slash)
     
     if (strcmp(c, "yes") != 0) {
         printf("Abort\n");
+        optparse_del(parser);
         return SLASH_EUSAGE;
     }
 
@@ -212,6 +215,7 @@ static int list_add(struct slash *slash)
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
 
     if (argi < 0) {
+        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 

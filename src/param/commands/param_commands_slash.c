@@ -46,6 +46,7 @@ static int cmd_server_upload(struct slash *slash) {
 
 	if (++argi >= slash->argc) {
 		printf("Must specify <name>\n");
+        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -53,9 +54,11 @@ static int cmd_server_upload(struct slash *slash) {
 
 	if (param_command_push(&param_queue, 1, server, name, timeout) < 0) {
 		printf("No response\n");
+        optparse_del(parser);
 		return SLASH_EIO;
 	}
 
+    optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command_subsub(cmd, server, upload, cmd_server_upload, "", NULL);
@@ -79,6 +82,7 @@ static int cmd_server_download(struct slash *slash) {
 
 	if (++argi >= slash->argc) {
 		printf("Must specify <name>\n");
+        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -86,9 +90,11 @@ static int cmd_server_download(struct slash *slash) {
 
 	if (param_command_download(server, 1, name, timeout) < 0) {
 		printf("No response\n");
+        optparse_del(parser);
 		return SLASH_EIO;
 	}
 
+    optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command_subsub(cmd, server, download, cmd_server_download, "<name>", NULL);
@@ -111,9 +117,11 @@ unsigned int timeout = slash_dfl_timeout;
 
 	if (param_command_list(server, 1, timeout) < 0) {
 		printf("No response\n");
+        optparse_del(parser);
 		return SLASH_EIO;
 	}
 
+    optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command_subsub(cmd, server, list, cmd_server_list, "", NULL);
@@ -139,6 +147,7 @@ static int cmd_server_rm(struct slash *slash) {
 
 	if (++argi >= slash->argc) {
 		printf("Must specify <name>\n");
+        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -147,15 +156,18 @@ static int cmd_server_rm(struct slash *slash) {
 	if (rm_all == 1) {
 		if (param_command_rm_all(server, 1, name, timeout) < 0) {
 			printf("No response\n");
+            optparse_del(parser);
 			return SLASH_EIO;
 		}
 	} else if (rm_all == 0) {
 		if (param_command_rm(server, 1, name, timeout) < 0) {
 			printf("No response\n");
+            optparse_del(parser);
 			return SLASH_EIO;
 		}
 	}
 
+    optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command_subsub(cmd, server, rm, cmd_server_rm, "<name>", NULL);

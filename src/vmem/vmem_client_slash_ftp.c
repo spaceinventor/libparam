@@ -61,6 +61,7 @@ static int vmem_client_slash_download(struct slash *slash)
 	/* Expect address */
 	if (++argi >= slash->argc) {
 		printf("missing address\n");
+        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -68,12 +69,14 @@ static int vmem_client_slash_download(struct slash *slash)
 	uint64_t address = strtoul(slash->argv[argi], &endptr, 16);
 	if (*endptr != '\0') {
 		printf("Failed to parse address\n");
+        optparse_del(parser);
 		return SLASH_EUSAGE;
 	}
 
 	/* Expect length */
 	if (++argi >= slash->argc) {
 		printf("missing length\n");
+        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -82,6 +85,7 @@ static int vmem_client_slash_download(struct slash *slash)
 		length = strtoul(slash->argv[argi], &endptr, 16);
 		if (*endptr != '\0') {
 			printf("Failed to parse length in base 10 or base 16\n");
+            optparse_del(parser);
 			return SLASH_EUSAGE;
 		}
 	}
@@ -89,6 +93,7 @@ static int vmem_client_slash_download(struct slash *slash)
 	/* Expect filename */
 	if (++argi >= slash->argc) {
 		printf("missing filename\n");
+        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -106,6 +111,7 @@ static int vmem_client_slash_download(struct slash *slash)
 	FILE * fd = fopen(file, "w+");
 	if (fd == NULL) {
 		free(data);
+        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -116,6 +122,7 @@ static int vmem_client_slash_download(struct slash *slash)
 
 	printf("wrote %u bytes to %s\n", written, file);
 
+    optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command(download, vmem_client_slash_download, "<address> <length> <file>", "Download from VMEM to FILE");
@@ -160,6 +167,7 @@ static int vmem_client_slash_upload(struct slash *slash)
 	/* Expect filename */
 	if (++argi >= slash->argc) {
 		printf("missing filename\n");
+        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -169,6 +177,7 @@ static int vmem_client_slash_upload(struct slash *slash)
 	/* Expect address */
 	if (++argi >= slash->argc) {
 		printf("missing address\n");
+        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -176,6 +185,7 @@ static int vmem_client_slash_upload(struct slash *slash)
 	uint64_t address = strtoul(slash->argv[argi], &endptr, 16);
 	if (*endptr != '\0') {
 		printf("Failed to parse address\n");
+        optparse_del(parser);
 		return SLASH_EUSAGE;
 	}
 
@@ -184,6 +194,7 @@ static int vmem_client_slash_upload(struct slash *slash)
 	/* Open file */
 	FILE * fd = fopen(file, "r");
 	if (fd == NULL)
+        optparse_del(parser);
 		return SLASH_EINVAL;
 
 	/* Read size */
@@ -207,6 +218,10 @@ static int vmem_client_slash_upload(struct slash *slash)
 
 	vmem_upload(node, timeout, address, data, size, version);
 
+    if(data){
+        free(data);
+    }
+    optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command(upload, vmem_client_slash_upload, "<file> <address>", "Upload from FILE to VMEM");
