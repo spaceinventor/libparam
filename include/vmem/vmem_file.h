@@ -16,8 +16,8 @@ typedef struct {
 } vmem_file_driver_t;
 
 void vmem_file_init(vmem_t * vmem);
-void vmem_file_read(vmem_t * vmem, uint32_t addr, void * dataout, int len);
-void vmem_file_write(vmem_t * vmem, uint32_t addr, void * datain, int len);
+void vmem_file_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len);
+void vmem_file_write(vmem_t * vmem, uint32_t addr, void * datain, uint32_t len);
 
 #define VMEM_DEFINE_FILE(name_in, strname, filename_in, size_in) \
 	uint8_t vmem_##name_in##_buf[size_in] = {}; \
