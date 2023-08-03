@@ -193,9 +193,10 @@ static int vmem_client_slash_upload(struct slash *slash)
 
 	/* Open file */
 	FILE * fd = fopen(file, "r");
-	if (fd == NULL)
-        optparse_del(parser);
+	if (fd == NULL){
+    	optparse_del(parser);
 		return SLASH_EINVAL;
+  }
 
 	/* Read size */
 	struct stat file_stat;
