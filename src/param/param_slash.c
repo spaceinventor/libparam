@@ -238,17 +238,18 @@ static int cmd_set(struct slash *slash) {
 		} else {
 			param_set(param, offset, valuebuf);
 		}
-	}
+	} else {
 
-	/* Select destination, host overrides parameter node */
-	int dest = node;
-	if (server > 0)
-		dest = server;
+		/* Select destination, host overrides parameter node */
+		int dest = node;
+		if (server > 0)
+			dest = server;
 
-	if (param_push_single(param, offset, valuebuf, 1, dest, slash_dfl_timeout, paramver) < 0) {
-		printf("No response\n");
-        optparse_del(parser);
-		return SLASH_EIO;
+		if (param_push_single(param, offset, valuebuf, 1, dest, slash_dfl_timeout, paramver) < 0) {
+			printf("No response\n");
+			optparse_del(parser);
+			return SLASH_EIO;
+		}
 	}
 
 	param_print(param, -1, NULL, 0, 2);
