@@ -129,7 +129,7 @@ typedef struct param_s {
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
-		.array_size = _array_count, \
+		.array_size = _array_count < 1 ? 1 : _array_count, \
 		.array_step = _array_step, \
 		.mask = _flags, \
 		.unit = _unit, \
@@ -150,7 +150,7 @@ typedef struct param_s {
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
-		.array_size = _array_count, \
+		.array_size = _array_count < 1 ? 1 : _array_count, \
 		.array_step = _array_step, \
 		.mask = _flags, \
 		.callback = _callback, \
@@ -173,7 +173,7 @@ typedef struct param_s {
 		.node = _node, \
 		.id = _id, \
 		.type = _type, \
-		.array_size = _array_size, \
+		.array_size = _array_count < 1 ? 1 : _array_count, \
 		.array_step = _array_step, \
 		.name = (char *) #_name, \
 		.mask = _flags, \
@@ -189,7 +189,7 @@ typedef struct param_s {
 		.node = _node, \
 		.id = _id, \
 		.type = _type, \
-		.array_size = _array_size, \
+		.array_size = _array_count < 1 ? 1 : _array_count, \
 		.array_step = _array_step, \
 		.name = (char *) #_name, \
 		.mask = _flags, \
