@@ -163,7 +163,7 @@ typedef struct param_s {
 
 #define PARAM_REMOTE_NODE_IGNORE 16382
 
-#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_size, _array_step, _flags, _physaddr, _docstr) \
+#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	__attribute__((section("param"))) \
@@ -182,7 +182,7 @@ typedef struct param_s {
 		.docstr = _docstr, \
 	};
 
-#define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_size, _array_step, _flags, _physaddr, _docstr) \
+#define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	param_t _name = { \
