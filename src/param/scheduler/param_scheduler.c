@@ -139,8 +139,9 @@ static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
     int obj_length = (int) sizeof(param_schedule_t) + queue_size - (int) sizeof(char *);
 
     /* Return in case of failure to retrieve lock */
-    if (si_lock_take(lock, 100) != 0){
-       return UINT16_MAX;
+    if (si_lock_take(lock, 1000) != 0) {
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        return UINT16_MAX;
     }
     
     int obj_offset = objstore_alloc(&vmem_schedule, obj_length, 0);
@@ -274,8 +275,10 @@ int param_serve_schedule_show(csp_packet_t *packet) {
     uint16_t id = be16toh(packet->data16[1]);
     int status = 0;
 
-    if (si_lock_take(lock, 100) != 0)
-       status = -1;  /* Failed to retrieve lock */
+    if (si_lock_take(lock, 1000) != 0) {
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        status = -1;  /* Failed to retrieve lock */
+    }
 
     int offset, length;
     if (status == 0) {
@@ -335,8 +338,10 @@ int param_serve_schedule_show(csp_packet_t *packet) {
 int param_serve_schedule_rm_single(csp_packet_t *packet) {
     /* Disable the specified schedule id */
     uint16_t id = be16toh(packet->data16[1]);
-    if (si_lock_take(lock, 100) != 0)
-       return -1;  /* Failed to retrieve lock */
+    if (si_lock_take(lock, 1000) != 0) {
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        return -1;  /* Failed to retrieve lock */
+    }
     
     int offset = obj_offset_from_id(&vmem_schedule, id);
     if (offset < 0) {
@@ -373,8 +378,10 @@ int param_serve_schedule_rm_all(csp_packet_t *packet) {
         return -1;
     }
 
-    if (si_lock_take(lock, 100) != 0)
-       return -1;  /* Failed to retrieve lock */
+    if (si_lock_take(lock, 1000) != 0) {
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        return -1;  /* Failed to retrieve lock */
+    }
     
     int num_schedules = get_number_of_schedule_objs(&vmem_schedule);
     uint16_t deleted_schedules = 0;
@@ -411,9 +418,11 @@ int param_serve_schedule_rm_all(csp_packet_t *packet) {
 
 int param_serve_schedule_list(csp_packet_t *request) {
     
-    if (si_lock_take(lock, 100) != 0)
-       return -1;  /* Failed to retrieve lock */
-    
+    if (si_lock_take(lock, 1000) != 0) {
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        return -1;  /* Failed to retrieve lock */
+    }
+
     int num_schedules = get_number_of_schedule_objs(&vmem_schedule);
     unsigned int counter = 0;
     unsigned int big_count = 0;
@@ -488,8 +497,10 @@ void param_serve_schedule_reset(csp_packet_t *packet) {
         meta_obj.last_id = be16toh(packet->data16[1]);
     }
 
-    if (si_lock_take(lock, 100) != 0)
-       return;  /* Failed to retrieve lock */
+    if (si_lock_take(lock, 1000) != 0) {
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        return;  /* Failed to retrieve lock */
+    }
 
     meta_obj_save(&vmem_schedule);
 
@@ -522,8 +533,9 @@ static uint16_t schedule_command(csp_packet_t *packet) {
     char name[14] = {0};
     name_copy(name, (char *) &packet->data[12], name_length);
 
-    if (si_lock_take(lock, 100) != 0) {
-       return UINT16_MAX;  /* Failed to retrieve lock */
+    if (si_lock_take(lock, 1000) != 0) {
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        return UINT16_MAX;  /* Failed to retrieve lock */
     }
 
     memset(&temp_command, 0, sizeof(temp_command));
@@ -630,8 +642,10 @@ static int find_inactive_scancb(vmem_t * vmem, int offset, int verbose, void * c
 
 int param_schedule_server_update(uint64_t timestamp_nsec) {
 
-    if (si_lock_take(lock, 100) != 0)
-       return -1;  /* Failed to retrieve lock */
+    if (si_lock_take(lock, 1000) != 0) {
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        return -1;  /* Failed to retrieve lock */
+    }
 
     int num_schedules = get_number_of_schedule_objs(&vmem_schedule);
     /* Check the time on each schedule and execute if deadline is exceeded */ 
@@ -703,8 +717,10 @@ int param_schedule_server_update(uint64_t timestamp_nsec) {
     si_lock_give(lock);
 
     /* Deleting inactive schedules is low priority, only run if no other tasks are waiting to use the vmem */
-    if (si_lock_take(lock, 0) != 0)
-       return -1;  /* Failed to retrieve lock */
+    if (si_lock_take(lock, 0) != 0) {
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        return -1;  /* Failed to retrieve lock */
+    }
 
     /* Delete inactive schedules */
     for (int i = 0; i < num_schedules; i++) {
@@ -723,9 +739,11 @@ int param_schedule_server_update(uint64_t timestamp_nsec) {
 
 static void meta_obj_init(vmem_t * vmem) {
     /* Search for scheduler meta object */
-    if (si_lock_take(lock, -1) != 0)  // Use longest possible timeout
-       return;
-    
+    if (si_lock_take(lock, -1) != 0) {  // Use longest possible timeout
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        return;
+    }    
+
     int offset = objstore_scan(vmem, find_meta_scancb, 0, NULL);
     
     if (offset < 0) {

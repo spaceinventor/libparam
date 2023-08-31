@@ -116,8 +116,10 @@ static uint16_t command_add(csp_packet_t * request, param_queue_type_e q_type) {
     /* Determine command size and allocate VMEM */
     int obj_length = (int) sizeof(param_command_t) + queue_size - (int) sizeof(char *);
 
-    if (si_lock_take(lock, 100) != 0)
-       return UINT16_MAX;
+    if (si_lock_take(lock, 1000) != 0) {
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        return UINT16_MAX;
+    }
 
     int obj_offset = objstore_alloc(&vmem_commands, obj_length, 0);
     if (obj_offset < 0){
@@ -186,8 +188,10 @@ int param_serve_command_show(csp_packet_t *packet) {
     name_copy(name, (char *) &packet->data[3], name_length);
     int status = 0;
     
-    if (si_lock_take(lock, 100) != 0)
-       status = -1;
+    if (si_lock_take(lock, 1000) != 0) {
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        status = -1;
+    }
 
     int offset, length;
     if (status == 0) {
@@ -282,9 +286,10 @@ static int next_command_scancb(vmem_t * vmem, int offset, int verbose, void * ct
 
 int param_serve_command_list(csp_packet_t *request) {
     
-    if (si_lock_take(lock, 100) != 0) {
-       csp_buffer_free(request);
-       return -1;
+    if (si_lock_take(lock, 1000) != 0) {
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        csp_buffer_free(request);
+        return -1;
     }
     
     int num_commands = get_number_of_command_objs(&vmem_commands);
@@ -351,9 +356,10 @@ int param_serve_command_rm_single(csp_packet_t *packet) {
     int name_length = packet->data[2];
     name_copy(name, (char *) &packet->data[3], name_length);
 
-    if (si_lock_take(lock, 100) != 0) {
-       csp_buffer_free(packet);
-       return -1;
+    if (si_lock_take(lock, 1000) != 0) {
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        csp_buffer_free(packet);
+        return -1;
     }
 
     int offset = obj_offset_from_name(&vmem_commands, name);
@@ -401,9 +407,10 @@ int param_serve_command_rm_all(csp_packet_t *packet) {
         }
     }
 
-    if (si_lock_take(lock, 100) != 0) {
-       csp_buffer_free(packet);
-       return -1;
+    if (si_lock_take(lock, 1000) != 0) {
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        csp_buffer_free(packet);
+        return -1;
     }
 
     int num_commands = get_number_of_command_objs(&vmem_commands);
@@ -441,8 +448,10 @@ int param_serve_command_rm_all(csp_packet_t *packet) {
 
 int param_command_read(char command_name[], param_command_buf_t * cmd_buffer) {
 
-    if (si_lock_take(lock, 100) != 0)
-       return -1;
+    if (si_lock_take(lock, 1000) != 0) {
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        return -1;
+    }
 
     int offset = obj_offset_from_name(&vmem_commands, command_name);
     if (offset < 0) {
@@ -469,8 +478,10 @@ int param_command_read(char command_name[], param_command_buf_t * cmd_buffer) {
 
 static void meta_obj_init(vmem_t * vmem) {
     /* Search for commands meta object */
-    if (si_lock_take(lock, -1) != 0)  // Use longest possible timeout
-       return;
+    if (si_lock_take(lock, -1) != 0) {  // Use longest possible timeout
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        return;
+    }
     
     int offset = objstore_scan(vmem, find_meta_scancb, 0, NULL);
     
