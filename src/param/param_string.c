@@ -453,7 +453,7 @@ char * param_mask_color(param_t *param) {
     }
 
     if (mask & PM_DEBUG) {
-        return "\033[34m";
+        return "\033[36m";
     }
 
 	return "\033[0m";
