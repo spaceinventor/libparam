@@ -36,7 +36,7 @@ int param_list_remove(int node, uint8_t verbose);
  * @param verbose Whether to print the removed parameter.
  * @return int 1 if the parameter was found and removed.
  */
-int param_list_remove_specific(param_t * param, uint8_t verbose, int destroy);
+void param_list_remove_specific(param_t * param, uint8_t verbose, int destroy);
 param_t * param_list_find_id(int node, int id);
 param_t * param_list_find_name(int node, char * name);
 void param_list_print(uint32_t mask, int node, char * globstr, int verbosity);
