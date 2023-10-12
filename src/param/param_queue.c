@@ -165,7 +165,7 @@ void param_queue_print(param_queue_t *queue) {
 			}
 			printf("%s ", param->name);
 			if (offset >= 0) {
-				printf("[%u]", offset);
+				printf("[%u] ", offset);
 			}
 			if (queue->type == PARAM_QUEUE_TYPE_SET) {
 #if MPACK_STDIO
