@@ -163,9 +163,11 @@ void param_queue_print(param_queue_t *queue) {
 			if (param->node > 0) {
 				printf("-n %d ", param->node);
 			}
-			printf("%s ", param->name);
+			printf("%s", param->name);
 			if (offset >= 0) {
 				printf("[%u] ", offset);
+			} else {
+				printf(" ");
 			}
 			if (queue->type == PARAM_QUEUE_TYPE_SET) {
 #if MPACK_STDIO
