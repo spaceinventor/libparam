@@ -10,6 +10,7 @@
 #include <csp/csp.h>
 #include <sys/types.h>
 #include <csp/arch/csp_time.h>
+#include <csp/csp_crc32.h>
 
 #include <vmem/vmem.h>
 #include <vmem/vmem_server.h>
@@ -36,7 +37,7 @@ void vmem_server_handler(csp_conn_t * conn)
 	/**
 	 * DOWNLOAD
 	 */
-	if (type == VMEM_SERVER_DOWNLOAD) {
+	if (type == VMEM_SERVER_DOWNLOAD || type == VMEM_SERVER_CALCULATE_CRC32) {
 
 		uint32_t length;
 		uint64_t address;
@@ -55,23 +56,61 @@ void vmem_server_handler(csp_conn_t * conn)
 		//printf("  Length %"PRIu32"\n", length);
 
 		unsigned int count = 0;
-		while(count < length) {
+		if (type == VMEM_SERVER_DOWNLOAD) {
+			while(count < length) {
+				/* Prepare packet */
+				csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
+				if (packet == NULL) {
+					break;
+				}
+				packet->length = VMEM_MIN(VMEM_SERVER_MTU, length - count);
 
+				/* Get data */
+				vmem_memcpy(packet->data, (void *) ((intptr_t) address + count), packet->length);
+
+				/* Increment */
+				count += packet->length;
+
+				csp_send(conn, packet);
+			}
+		} else if (type == VMEM_SERVER_CALCULATE_CRC32) {
 			/* Prepare packet */
 			csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
 			if (packet == NULL) {
-				break;
+				return;
 			}
-			packet->length = VMEM_MIN(VMEM_SERVER_MTU, length - count);
 
-			/* Get data */
-			vmem_memcpy(packet->data, (void *) ((intptr_t) address + count), packet->length);
+			/* Initialize the CRC32 calculator object */
+			csp_crc32_t crc_obj;
+			csp_crc32_init(&crc_obj);
 
-			/* Increment */
-			count += packet->length;
+			while (count < length) {
+				packet->length = VMEM_MIN(VMEM_SERVER_MTU, length - count);
 
+				/* Grab the data from the vmem area */
+				vmem_memcpy(packet->data, (void *) ((intptr_t) address + count), packet->length);
+
+				/* Update CRC32 calculation */
+				csp_crc32_update(&crc_obj, packet->data, packet->length);
+
+				/* Increment */
+				count += packet->length;
+			}
+
+			/* Finalize the CRC32 calculation */
+			uint32_t crc = csp_crc32_final(&crc_obj);
+
+			printf("CRC32: 0x%08"PRIx32, crc);
+
+			/* Convert to network byte order */
+			crc = htobe32(crc);
+
+			/* Copy checksum to packet */
+			memcpy(&packet->data[0], &crc, sizeof(crc));
+			packet->length = sizeof(crc);
+
+			/* Send the response */
 			csp_send(conn, packet);
-
 		}
 
 	/**

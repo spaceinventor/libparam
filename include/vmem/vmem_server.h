@@ -23,6 +23,7 @@ typedef enum {
 	VMEM_SERVER_RESTORE,
 	VMEM_SERVER_BACKUP,
 	VMEM_SERVER_UNLOCK,
+	VMEM_SERVER_CALCULATE_CRC32,
 } vmem_request_type;
 
 typedef struct {
