@@ -49,7 +49,6 @@ void vmem_server_handler(csp_conn_t * conn)
 			address = be32toh(request->data.address);
 			length = be32toh(request->data.length);
 		}
-		csp_buffer_free(packet);
 
 		//printf("Download from:");
 		//printf("  Addr %"PRIx64"\n", address);
@@ -57,6 +56,11 @@ void vmem_server_handler(csp_conn_t * conn)
 
 		unsigned int count = 0;
 		if (type == VMEM_SERVER_DOWNLOAD) {
+			/* We have to free the requesting packet, since we are going to
+			 * allocate a bunch of them for the reply.
+			 */
+			csp_buffer_free(packet);
+
 			while(count < length) {
 				/* Prepare packet */
 				csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
@@ -74,16 +78,11 @@ void vmem_server_handler(csp_conn_t * conn)
 				csp_send(conn, packet);
 			}
 		} else if (type == VMEM_SERVER_CALCULATE_CRC32) {
-			/* Prepare packet */
-			csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
-			if (packet == NULL) {
-				return;
-			}
-
 			/* Initialize the CRC32 calculator object */
 			csp_crc32_t crc_obj;
 			csp_crc32_init(&crc_obj);
 
+			/* We already have a packet from the request, so use that */
 			while (count < length) {
 				packet->length = VMEM_MIN(VMEM_SERVER_MTU, length - count);
 
@@ -99,8 +98,6 @@ void vmem_server_handler(csp_conn_t * conn)
 
 			/* Finalize the CRC32 calculation */
 			uint32_t crc = csp_crc32_final(&crc_obj);
-
-			printf("CRC32: 0x%08"PRIx32, crc);
 
 			/* Convert to network byte order */
 			crc = htobe32(crc);

@@ -213,25 +213,25 @@ slash_command(upload, vmem_client_slash_upload, "<file> <address>", "Upload from
 static int vmem_client_slash_crc32(struct slash *slash) {
 
 	unsigned int node = slash_dfl_node;
-    unsigned int timeout = slash_dfl_timeout;
-    unsigned int version = 1;
+	unsigned int timeout = slash_dfl_timeout;
+	unsigned int version = 1;
 
-    optparse_t * parser = optparse_new("crc32", "<address> <length base10 or base16>");
-    optparse_add_help(parser);
-    optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
-    optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
-    optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 1)");
+	optparse_t * parser = optparse_new("crc32", "<address> <length base10 or base16>");
+	optparse_add_help(parser);
+	optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
+	optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 1)");
 
-    int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
-    if (argi < 0) {
-        optparse_del(parser);
-	    return SLASH_EINVAL;
-    }
+	int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+	if (argi < 0) {
+		optparse_del(parser);
+		return SLASH_EINVAL;
+	}
 
 	/* Expect address */
 	if (++argi >= slash->argc) {
 		printf("missing address\n");
-        optparse_del(parser);
+		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -239,14 +239,14 @@ static int vmem_client_slash_crc32(struct slash *slash) {
 	uint64_t address = strtoul(slash->argv[argi], &endptr, 16);
 	if (*endptr != '\0') {
 		printf("Failed to parse address\n");
-        optparse_del(parser);
+		optparse_del(parser);
 		return SLASH_EUSAGE;
 	}
 
 	/* Expect length */
 	if (++argi >= slash->argc) {
 		printf("missing length\n");
-        optparse_del(parser);
+		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -255,12 +255,12 @@ static int vmem_client_slash_crc32(struct slash *slash) {
 		length = strtoul(slash->argv[argi], &endptr, 16);
 		if (*endptr != '\0') {
 			printf("Failed to parse length in base 10 or base 16\n");
-            optparse_del(parser);
+			optparse_del(parser);
 			return SLASH_EUSAGE;
 		}
 	}
 
-    optparse_del(parser);
+	optparse_del(parser);
 
 	printf("Calculate CRC32 from %u addr 0x%"PRIX64" with timeout %u, version %u\n", node, address, timeout, version);
 
