@@ -71,6 +71,12 @@ typedef enum {
 #define PM_USER_FLAGS         0xFFFF0000 //! Upper 16-bits are reserved for user
 
 /**
+ * Used defined parameter mask
+ */
+#define PM_CSP               (1 << 16) //! Known as 4 in elfparse and genparamtable
+
+
+/**
  * Parameter description structure
  * Note: this is not packed in order to maximise run-time efficiency
  */
@@ -124,19 +130,19 @@ typedef struct param_s {
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
-		.id = _id, \
-		.node = 0, \
-		.type = _type, \
-		.mask = _flags, \
-		.name = #_name, \
-		.unit = _unit, \
-		.docstr = _docstr, \
-		.addr = _physaddr, \
 		.vmem = NULL, \
+		.node = 0, \
+		.id = _id, \
+		.type = _type, \
+		.name = #_name, \
 		.array_size = _array_count < 1 ? 1 : _array_count, \
 		.array_step = _array_step, \
+		.mask = _flags, \
+		.unit = _unit, \
 		.callback = _callback, \
 		.timestamp = &_timestamp_##_name, \
+		.addr = _physaddr, \
+		.docstr = _docstr, \
 	}
 
 #define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
@@ -146,19 +152,19 @@ typedef struct param_s {
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
-		.id = _id, \
 		.node = 0, \
+		.id = _id, \
 		.type = _type, \
-		.mask = _flags, \
 		.name = #_name, \
-		.unit = _unit, \
-		.docstr = _docstr, \
-		.addr = (void *) _vmem_addr, \
-		.vmem = &vmem_##_vmem_name, \
 		.array_size = _array_count < 1 ? 1 : _array_count, \
 		.array_step = _array_step, \
+		.mask = _flags, \
 		.callback = _callback, \
 		.timestamp = &_timestamp_##_name, \
+		.unit = _unit, \
+		.addr = (void *) _vmem_addr, \
+		.vmem = &vmem_##_vmem_name, \
+		.docstr = _docstr, \
 	}
 
 #define PARAM_REMOTE_NODE_IGNORE 16382
@@ -170,38 +176,32 @@ typedef struct param_s {
 	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
-		.id = _id, \
 		.node = _node, \
+		.id = _id, \
 		.type = _type, \
-		.mask = _flags, \
-		.name = (char *) #_name, \
-		.unit = NULL, \
-		.docstr = _docstr, \
-		.addr = _physaddr, \
-		.vmem = NULL, \
 		.array_size = _array_count < 1 ? 1 : _array_count, \
 		.array_step = _array_step, \
-		.callback = NULL, \
+		.name = (char *) #_name, \
+		.mask = _flags, \
+		.addr = _physaddr, \
 		.timestamp = &_timestamp_##_name, \
+		.docstr = _docstr, \
 	};
 
 #define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	param_t _name = { \
-		.id = _id, \
 		.node = _node, \
+		.id = _id, \
 		.type = _type, \
-		.mask = _flags, \
-		.name = (char *) #_name, \
-		.unit = NULL, \
-		.docstr = _docstr, \
-		.addr = _physaddr, \
-		.vmem = NULL, \
 		.array_size = _array_count < 1 ? 1 : _array_count, \
 		.array_step = _array_step, \
-		.callback = NULL, \
+		.name = (char *) #_name, \
+		.mask = _flags, \
+		.addr = _physaddr, \
 		.timestamp = &_timestamp_##_name, \
+		.docstr = _docstr, \
 	};
 
 /* Native getter functions, will return native types */

@@ -336,6 +336,11 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 				fprintf(file, "q");
 			}
 
+			if (mask & PM_CSP) {
+				mask &= ~ PM_CSP;
+				fprintf(file, "1");
+			}
+
 			if (mask)
 				fprintf(file, "+%x", mask);
 
@@ -389,6 +394,7 @@ uint32_t param_maskstr_to_mask(char * str) {
 	if (strchr(str, '2')) mask |= PM_PRIO2;
 	if (strchr(str, '3')) mask |= PM_PRIO3;
 	if (strchr(str, 'A')) mask |= 0xFFFFFFFF;
+	if (strchr(str, '1')) mask |= PM_CSP;
 
 	return mask;
 

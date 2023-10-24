@@ -387,6 +387,11 @@ static int list_save(struct slash *slash) {
 				fprintf(out, "q");
 			}
 
+            if (mask & PM_CSP) {
+				mask &= ~ PM_CSP;
+				fprintf(out, "1");
+			}
+
             switch(mask & PM_PRIO_MASK) {
                 case PM_PRIO1: fprintf(out, "1"); mask &= ~ PM_PRIO_MASK; break;
                 case PM_PRIO2: fprintf(out, "2"); mask &= ~ PM_PRIO_MASK; break;
