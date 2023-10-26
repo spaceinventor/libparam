@@ -13,6 +13,7 @@
 #include <csp/csp_crc32.h>
 
 #include <vmem/vmem.h>
+#include <vmem/vmem_crc32.h>
 #include <vmem/vmem_server.h>
 
 #include <param/param_list.h>
@@ -78,26 +79,9 @@ void vmem_server_handler(csp_conn_t * conn)
 				csp_send(conn, packet);
 			}
 		} else if (type == VMEM_SERVER_CALCULATE_CRC32) {
-			/* Initialize the CRC32 calculator object */
-			csp_crc32_t crc_obj;
-			csp_crc32_init(&crc_obj);
 
-			/* We already have a packet from the request, so use that */
-			while (count < length) {
-				packet->length = VMEM_MIN(VMEM_SERVER_MTU, length - count);
-
-				/* Grab the data from the vmem area */
-				vmem_memcpy(packet->data, (void *) ((intptr_t) address + count), packet->length);
-
-				/* Update CRC32 calculation */
-				csp_crc32_update(&crc_obj, packet->data, packet->length);
-
-				/* Increment */
-				count += packet->length;
-			}
-
-			/* Finalize the CRC32 calculation */
-			uint32_t crc = csp_crc32_final(&crc_obj);
+			/* Do the CRC32 calculation on the address area (vmem) using the request packet as the buffer */
+			uint32_t crc = vmem_calc_crc32(address, length, &packet->data[0], VMEM_SERVER_MTU);
 
 			/* Convert to network byte order */
 			crc = htobe32(crc);

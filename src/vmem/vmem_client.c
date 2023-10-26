@@ -222,7 +222,7 @@ int vmem_client_backup(int node, int vmem_id, int timeout, int backup_or_restore
 
 }
 
-int vmem_calculate_crc32(int node, int timeout, uint64_t address, uint32_t length, uint32_t * crc_out, int version) {
+int vmem_client_calc_crc32(int node, int timeout, uint64_t address, uint32_t length, uint32_t * crc_out, int version) {
 
 	int res = -1;
 

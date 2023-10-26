@@ -265,7 +265,7 @@ static int vmem_client_slash_crc32(struct slash *slash) {
 	printf("Calculate CRC32 from %u addr 0x%"PRIX64" with timeout %u, version %u\n", node, address, timeout, version);
 
 	uint32_t crc;
-	int res = vmem_calculate_crc32(node, timeout, address, length, &crc, version);
+	int res = vmem_client_calc_crc32(node, timeout, address, length, &crc, version);
 
 	if (res) {
 		if (res == -1) {
