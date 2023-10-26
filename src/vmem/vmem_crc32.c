@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "vmem/vmem.h"
 #include "vmem/vmem_crc32.h"
 #include "csp/csp_crc32.h"
 
