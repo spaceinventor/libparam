@@ -210,6 +210,75 @@ static int vmem_client_slash_upload(struct slash *slash)
 }
 slash_command(upload, vmem_client_slash_upload, "<file> <address>", "Upload from FILE to VMEM");
 
+static int vmem_client_slash_crc32(struct slash *slash) {
+
+	unsigned int node = slash_dfl_node;
+	unsigned int timeout = slash_dfl_timeout;
+	unsigned int version = 1;
+
+	optparse_t * parser = optparse_new("crc32", "<address> <length base10 or base16>");
+	optparse_add_help(parser);
+	optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
+	optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 1)");
+
+	int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+	if (argi < 0) {
+		optparse_del(parser);
+		return SLASH_EINVAL;
+	}
+
+	/* Expect address */
+	if (++argi >= slash->argc) {
+		printf("missing address\n");
+		optparse_del(parser);
+		return SLASH_EINVAL;
+	}
+
+	char * endptr;
+	uint64_t address = strtoul(slash->argv[argi], &endptr, 16);
+	if (*endptr != '\0') {
+		printf("Failed to parse address\n");
+		optparse_del(parser);
+		return SLASH_EUSAGE;
+	}
+
+	/* Expect length */
+	if (++argi >= slash->argc) {
+		printf("missing length\n");
+		optparse_del(parser);
+		return SLASH_EINVAL;
+	}
+
+	uint32_t length = strtoul(slash->argv[argi], &endptr, 10);
+	if (*endptr != '\0') {
+		length = strtoul(slash->argv[argi], &endptr, 16);
+		if (*endptr != '\0') {
+			printf("Failed to parse length in base 10 or base 16\n");
+			optparse_del(parser);
+			return SLASH_EUSAGE;
+		}
+	}
+
+	optparse_del(parser);
+
+	printf("Calculate CRC32 from %u addr 0x%"PRIX64" with timeout %u, version %u\n", node, address, timeout, version);
+
+	uint32_t crc;
+	int res = vmem_client_calc_crc32(node, timeout, address, length, &crc, version);
+
+	if (res) {
+		if (res == -1) {
+			return SLASH_ENOMEM;
+		} else if (res == -2) {
+			return SLASH_EIO;
+		}
+	}
+
+	return SLASH_SUCCESS;
+}
+slash_command(crc32, vmem_client_slash_crc32, "<address> <length>", "Calculate CRC32 on a VMEM area");
+
 unsigned int rdp_dfl_window = 3;
 unsigned int rdp_dfl_conn_timeout = 10000;
 unsigned int rdp_dfl_packet_timeout = 5000;

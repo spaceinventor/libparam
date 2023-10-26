@@ -10,8 +10,10 @@
 #include <csp/csp.h>
 #include <sys/types.h>
 #include <csp/arch/csp_time.h>
+#include <csp/csp_crc32.h>
 
 #include <vmem/vmem.h>
+#include <vmem/vmem_crc32.h>
 #include <vmem/vmem_server.h>
 
 #include <param/param_list.h>
@@ -36,7 +38,7 @@ void vmem_server_handler(csp_conn_t * conn)
 	/**
 	 * DOWNLOAD
 	 */
-	if (type == VMEM_SERVER_DOWNLOAD) {
+	if (type == VMEM_SERVER_DOWNLOAD || type == VMEM_SERVER_CALCULATE_CRC32) {
 
 		uint32_t length;
 		uint64_t address;
@@ -48,30 +50,48 @@ void vmem_server_handler(csp_conn_t * conn)
 			address = be32toh(request->data.address);
 			length = be32toh(request->data.length);
 		}
-		csp_buffer_free(packet);
 
 		//printf("Download from:");
 		//printf("  Addr %"PRIx64"\n", address);
 		//printf("  Length %"PRIu32"\n", length);
 
 		unsigned int count = 0;
-		while(count < length) {
+		if (type == VMEM_SERVER_DOWNLOAD) {
+			/* We have to free the requesting packet, since we are going to
+			 * allocate a bunch of them for the reply.
+			 */
+			csp_buffer_free(packet);
 
-			/* Prepare packet */
-			csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
-			if (packet == NULL) {
-				break;
+			while(count < length) {
+				/* Prepare packet */
+				csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
+				if (packet == NULL) {
+					break;
+				}
+				packet->length = VMEM_MIN(VMEM_SERVER_MTU, length - count);
+
+				/* Get data */
+				vmem_memcpy(packet->data, (void *) ((intptr_t) address + count), packet->length);
+
+				/* Increment */
+				count += packet->length;
+
+				csp_send(conn, packet);
 			}
-			packet->length = VMEM_MIN(VMEM_SERVER_MTU, length - count);
+		} else if (type == VMEM_SERVER_CALCULATE_CRC32) {
 
-			/* Get data */
-			vmem_memcpy(packet->data, (void *) ((intptr_t) address + count), packet->length);
+			/* Do the CRC32 calculation on the address area (vmem) using the request packet as the buffer */
+			uint32_t crc = vmem_calc_crc32(address, length, &packet->data[0], VMEM_SERVER_MTU);
 
-			/* Increment */
-			count += packet->length;
+			/* Convert to network byte order */
+			crc = htobe32(crc);
 
+			/* Copy checksum to packet */
+			memcpy(&packet->data[0], &crc, sizeof(crc));
+			packet->length = sizeof(crc);
+
+			/* Send the response */
 			csp_send(conn, packet);
-
 		}
 
 	/**

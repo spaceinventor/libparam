@@ -221,3 +221,54 @@ int vmem_client_backup(int node, int vmem_id, int timeout, int backup_or_restore
 	return (int) response;
 
 }
+
+int vmem_client_calc_crc32(int node, int timeout, uint64_t address, uint32_t length, uint32_t * crc_out, int version) {
+
+	int res = -1;
+
+	uint32_t time_begin = csp_get_ms();
+
+	/* Establish connection */
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_CRC32);
+	if (conn == NULL)
+		return res;
+
+	csp_packet_t * packet = csp_buffer_get(sizeof(vmem_request_t));
+	if (packet == NULL)
+		return res;
+
+	vmem_request_t * request = (void *) packet->data;
+	request->version = version;
+	request->type = VMEM_SERVER_CALCULATE_CRC32;
+	if (version == 2) {
+		request->data2.address = htobe64(address);
+		request->data2.length = htobe32(length);
+	} else {
+		request->data.address = htobe32((uint32_t)address);
+		request->data.length = htobe32(length);
+	}
+	packet->length = sizeof(vmem_request_t);
+
+	/* Send request */
+	csp_send(conn, packet);
+
+	/* Wait for the reponse from the server */
+	/* Blocking read */
+	packet = csp_read(conn, timeout);
+	if (packet && packet->length >= sizeof(uint32_t)) {
+		uint32_t crc;
+		memcpy(&crc, &packet->data[0], sizeof(crc));
+		(*crc_out) = be32toh(crc);
+		csp_buffer_free(packet);
+		res = 0;
+		uint32_t time_total = csp_get_ms() - time_begin;
+		printf("  Calculated CRC32 0x%08"PRIX32" on %u bytes in %.03f s\n", (*crc_out), (unsigned int) length, time_total / 1000.0);
+	} else {
+		/* Timeout !? */
+		res = -2;
+	}
+
+	csp_close(conn);
+
+	return res;
+}
