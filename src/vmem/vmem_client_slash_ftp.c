@@ -277,7 +277,7 @@ static int vmem_client_slash_crc32(struct slash *slash) {
 
 	return SLASH_SUCCESS;
 }
-slash_command(crc32, vmem_client_slash_crc32, "<address> <length>", "Calculate CRC32 on a VMEM area");
+slash_command_sub(crc32, calculate, vmem_client_slash_crc32, "<address> <length>", "Calculate CRC32 on a VMEM area");
 
 unsigned int rdp_dfl_window = 3;
 unsigned int rdp_dfl_conn_timeout = 10000;
