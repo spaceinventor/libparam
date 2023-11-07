@@ -324,85 +324,8 @@ static int list_save(struct slash *slash) {
         
 		if (param->mask > 0) {
 			unsigned int mask = param->mask;
-
-			fprintf(out, "-m \"");
-
-			if (mask & PM_READONLY) {
-				mask &= ~ PM_READONLY;
-				fprintf(out, "r");
-			}
-
-			if (mask & PM_REMOTE) {
-				mask &= ~ PM_REMOTE;
-				fprintf(out, "R");
-			}
-
-			if (mask & PM_CONF) {
-				mask &= ~ PM_CONF;
-				fprintf(out, "c");
-			}
-
-			if (mask & PM_TELEM) {
-				mask &= ~ PM_TELEM;
-				fprintf(out, "t");
-			}
-
-			if (mask & PM_HWREG) {
-				mask &= ~ PM_HWREG;
-				fprintf(out, "h");
-			}
-
-			if (mask & PM_ERRCNT) {
-				mask &= ~ PM_ERRCNT;
-				fprintf(out, "e");
-			}
-
-			if (mask & PM_SYSINFO) {
-				mask &= ~ PM_SYSINFO;
-				fprintf(out, "i");
-			}
-
-			if (mask & PM_SYSCONF) {
-				mask &= ~ PM_SYSCONF;
-				fprintf(out, "C");
-			}
-
-			if (mask & PM_WDT) {
-				mask &= ~ PM_WDT;
-				fprintf(out, "w");
-			}
-
-			if (mask & PM_DEBUG) {
-				mask &= ~ PM_DEBUG;
-				fprintf(out, "d");
-			}
-
-			if (mask & PM_ATOMIC_WRITE) {
-				mask &= ~ PM_ATOMIC_WRITE;
-				fprintf(out, "o");
-			}
-
-			if (mask & PM_CALIB) {
-				mask &= ~ PM_CALIB;
-				fprintf(out, "q");
-			}
-
-            if (mask & PM_CSP) {
-				mask &= ~ PM_CSP;
-				fprintf(out, "1");
-			}
-
-            switch(mask & PM_PRIO_MASK) {
-                case PM_PRIO1: fprintf(out, "1"); mask &= ~ PM_PRIO_MASK; break;
-                case PM_PRIO2: fprintf(out, "2"); mask &= ~ PM_PRIO_MASK; break;
-                case PM_PRIO3: fprintf(out, "3"); mask &= ~ PM_PRIO_MASK; break;				
-			}
-
-			//if (mask)
-			//	fprintf(out, "+%x", mask);
-
-            fprintf(out, "\" ");
-
+            list_add_output(mask, out);
+            list_add_output_user_flags(mask,out);
 		}
 		
         fprintf(out, "%s %u ", param->name, param->id);
