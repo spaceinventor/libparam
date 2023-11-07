@@ -73,7 +73,9 @@ typedef enum {
 /**
  * Used defined parameter mask
  */
-#define PM_CSP               (1 << 16) //! Known as 4 in elfparse and genparamtable
+#define PM_ENCRYPT              (4 << 16) //! Known as 4 in elfparse and genparamtable
+#define PM_CSP               (5 << 16) //! Known as 5 in elfparse and genparamtable
+#define PM_KEYCONF               (6 << 16) //! Known as 6 in elfparse and genparamtable
 
 
 /**
