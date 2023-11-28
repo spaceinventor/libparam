@@ -628,7 +628,7 @@ void list_add_output(unsigned int mask, FILE * out){
 
 	if (mask & PM_ERRCNT) {
 		mask &= ~ PM_ERRCNT;
-		fprintf(out, "X");
+		fprintf(out, "e");
 	}
 
 	if (mask & PM_SYSINFO) {
