@@ -597,3 +597,98 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 }
 #endif
 
+void list_add_output(unsigned int mask, FILE * out){
+
+	fprintf(out, "-m \"");
+
+	if (mask & PM_READONLY) {
+		mask &= ~ PM_READONLY;
+		fprintf(out, "r");
+	}
+
+	if (mask & PM_REMOTE) {
+		mask &= ~ PM_REMOTE;
+		fprintf(out, "R");
+	}
+
+	if (mask & PM_CONF) {
+		mask &= ~ PM_CONF;
+		fprintf(out, "c");
+	}
+
+	if (mask & PM_TELEM) {
+		mask &= ~ PM_TELEM;
+		fprintf(out, "t");
+	}
+
+	if (mask & PM_HWREG) {
+		mask &= ~ PM_HWREG;
+		fprintf(out, "h");
+	}
+
+	if (mask & PM_ERRCNT) {
+		mask &= ~ PM_ERRCNT;
+		fprintf(out, "X");
+	}
+
+	if (mask & PM_SYSINFO) {
+		mask &= ~ PM_SYSINFO;
+		fprintf(out, "i");
+	}
+
+	if (mask & PM_SYSCONF) {
+		mask &= ~ PM_SYSCONF;
+		fprintf(out, "C");
+	}
+
+	if (mask & PM_WDT) {
+		mask &= ~ PM_WDT;
+		fprintf(out, "w");
+	}
+
+	if (mask & PM_DEBUG) {
+		mask &= ~ PM_DEBUG;
+		fprintf(out, "d");
+	}
+
+	if (mask & PM_ATOMIC_WRITE) {
+		mask &= ~ PM_ATOMIC_WRITE;
+		fprintf(out, "o");
+	}
+
+	if (mask & PM_CALIB) {
+		mask &= ~ PM_CALIB;
+		fprintf(out, "q");
+	}
+
+	switch(mask & PM_PRIO_MASK) {
+		case PM_PRIO1: fprintf(out, "1"); mask &= ~ PM_PRIO_MASK; break;
+		case PM_PRIO2: fprintf(out, "2"); mask &= ~ PM_PRIO_MASK; break;
+		case PM_PRIO3: fprintf(out, "3"); mask &= ~ PM_PRIO_MASK; break;				
+	}
+
+	
+	//if (mask)
+	//	fprintf(out, "+%x", mask);
+
+	fprintf(out, "\" ");
+
+}
+
+
+void list_add_output_user_flags(unsigned int mask, FILE * out){
+
+	if((mask & PM_USER_FLAGS) > 0){
+		fprintf(out, "-M \"");
+		  for (int i = 16; i < 32; i++) {
+                if (mask & (1<<i)) {
+                    mask &= ~ (1<<i);
+                    printf("%d", i-15);
+                }
+            }
+
+            printf("\" ");
+	}
+	// Output:  -M "23" for PM_KEYCONF
+
+}

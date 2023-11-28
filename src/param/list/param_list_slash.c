@@ -274,6 +274,7 @@ static int list_add(struct slash *slash)
 slash_command_sub(list, add, list_add, "<name> <id> <type>", NULL);
 
 
+
 static int list_save(struct slash *slash) {
 
     char * filename = NULL;
@@ -324,6 +325,7 @@ static int list_save(struct slash *slash) {
         
 		if (param->mask > 0) {
 			unsigned int mask = param->mask;
+        
             list_add_output(mask, out);
             list_add_output_user_flags(mask,out);
 		}
@@ -346,3 +348,4 @@ static int list_save(struct slash *slash) {
     return SLASH_SUCCESS;
 }
 slash_command_sub(list, save, list_save, "", "Save parameters");
+

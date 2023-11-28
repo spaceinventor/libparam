@@ -80,4 +80,8 @@ void param_list_store_file_load(char * filename);
 void param_list_store_vmem_save(vmem_t * vmem);
 void param_list_store_vmem_load(vmem_t * vmem);
 
+/* From param_list.c */
+void list_add_output(unsigned int mask, FILE * out);
+void list_add_output_user_flags(unsigned int mask, FILE * out);
+
 #endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_LIST_H_ */
