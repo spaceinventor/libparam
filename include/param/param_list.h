@@ -10,6 +10,7 @@
 
 #include <param/param.h>
 #include <vmem/vmem.h>
+#include <stdio.h>
 
 typedef struct param_list_iterator_s {
 	int phase;							// Hybrid iterator has multiple phases (0 == Static, 1 == Dynamic List)
