@@ -169,7 +169,7 @@ static int cmd_get(struct slash *slash) {
 		if (server > 0)
 			dest = server;
 
-		if (param_pull_single(param, offset, 1, dest, slash_dfl_timeout, paramver) < 0) {
+		if (param_pull_single(param, offset, CSP_PRIO_HIGH, 1, dest, slash_dfl_timeout, paramver) < 0) {
 			printf("No response\n");
             optparse_del(parser);
 			return SLASH_EIO;
@@ -394,7 +394,7 @@ static int cmd_run(struct slash *slash) {
 	}
 
 	if (param_queue.type == PARAM_QUEUE_TYPE_GET) {
-		if (param_pull_queue(&param_queue, 1, server, timeout)) {
+		if (param_pull_queue(&param_queue, CSP_PRIO_HIGH, 1, server, timeout)) {
 			printf("No response\n");
             optparse_del(parser);
 			return SLASH_EIO;
@@ -437,7 +437,7 @@ static int cmd_pull(struct slash *slash) {
 	if (exclude_mask_str)
 	    exclude_mask = param_maskstr_to_mask(exclude_mask_str);
 
-	if (param_pull_all(1, server, include_mask, exclude_mask, timeout, paramver)) {
+	if (param_pull_all(CSP_PRIO_HIGH, 1, server, include_mask, exclude_mask, timeout, paramver)) {
 		printf("No response\n");
         optparse_del(parser);
 		return SLASH_EIO;

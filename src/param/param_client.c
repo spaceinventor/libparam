@@ -72,7 +72,7 @@ int param_transaction(csp_packet_t *packet, int host, int timeout, param_transac
 		return -1;
 	}
 
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
+	csp_conn_t * conn = csp_connect(packet->id.pri, host, PARAM_PORT_SERVER, 0, CSP_O_CRC32);
 	if (conn == NULL) {
 		printf("param transaction failure\n");
 		csp_buffer_free(packet);
@@ -112,7 +112,7 @@ int param_transaction(csp_packet_t *packet, int host, int timeout, param_transac
 	return result;
 }
 
-int param_pull_all(int verbose, int host, uint32_t include_mask, uint32_t exclude_mask, int timeout, int version) {
+int param_pull_all(uint8_t prio, int verbose, int host, uint32_t include_mask, uint32_t exclude_mask, int timeout, int version) {
 
 	csp_packet_t *packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
@@ -126,11 +126,12 @@ int param_pull_all(int verbose, int host, uint32_t include_mask, uint32_t exclud
 	packet->data32[1] = htobe32(include_mask);
 	packet->data32[2] = htobe32(exclude_mask);
 	packet->length = 12;
+	packet->id.pri = prio;
 	return param_transaction(packet, host, timeout, param_transaction_callback_pull, verbose, version, NULL);
 
 }
 
-int param_pull_queue(param_queue_t *queue, int verbose, int host, int timeout) {
+int param_pull_queue(param_queue_t *queue, uint8_t prio, int verbose, int host, int timeout) {
 
 	if ((queue == NULL) || (queue->used == 0))
 		return 0;
@@ -150,12 +151,13 @@ int param_pull_queue(param_queue_t *queue, int verbose, int host, int timeout) {
 	memcpy(&packet->data[2], queue->buffer, queue->used);
 
 	packet->length = queue->used + 2;
+	packet->id.pri = prio;
 	return param_transaction(packet, host, timeout, param_transaction_callback_pull, verbose, queue->version, NULL);
 
 }
 
 
-int param_pull_single(param_t *param, int offset, int verbose, int host, int timeout, int version) {
+int param_pull_single(param_t *param, int offset, uint8_t prio, int verbose, int host, int timeout, int version) {
 
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
@@ -173,6 +175,7 @@ int param_pull_single(param_t *param, int offset, int verbose, int host, int tim
 	param_queue_add(&queue, param, offset, NULL);
 
 	packet->length = queue.used + 2;
+	packet->id.pri = prio;
 	return param_transaction(packet, host, timeout, param_transaction_callback_pull, verbose, version, NULL);
 }
 
@@ -197,6 +200,7 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, u
 	memcpy(&packet->data[2], queue->buffer, queue->used);
 
 	packet->length = queue->used + 2;
+	packet->id.pri = CSP_PRIO_HIGH;
 
 	/* Append hwid, no care given to endian at this point */
 	if (hwid > 0) {
@@ -241,6 +245,7 @@ int param_push_single(param_t *param, int offset, void *value, int verbose, int 
 	param_queue_add(&queue, param, offset, value);
 
 	packet->length = queue.used + 2;
+	packet->id.pri = CSP_PRIO_HIGH;
 	int result = param_transaction(packet, host, timeout, NULL, verbose, version, NULL);
 
 	if (result < 0) {
