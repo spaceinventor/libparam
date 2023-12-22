@@ -418,6 +418,9 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 			
 			strlcpy(rparam->name, param->name, sizeof(rparam->name));
 
+			/* Ensure strings are null terminated */
+			rparam->name[sizeof(rparam->name)-1] = '\0';
+
 		} else {
 
 			param_transfer3_t * rparam = param_packed;
@@ -441,6 +444,12 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 			if (param->docstr != NULL) {
 				strlcpy(rparam->help, param->docstr, sizeof(rparam->help));
 			}
+
+			/* Ensure strings are null terminated */
+			rparam->name[sizeof(rparam->name)-1] = '\0';
+			rparam->unit[sizeof(rparam->unit)-1] = '\0';
+			rparam->help[sizeof(rparam->help)-1] = '\0';
+
 		}
 		
 		param_packed += param_list_packed_size(list_version);
