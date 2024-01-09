@@ -12,7 +12,7 @@
 
 #include <vmem/vmem_client.h>
 
-void vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp)
+unsigned int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp)
 {
 	uint32_t time_begin = csp_get_ms();
 
@@ -23,11 +23,11 @@ void vmem_download(int node, int timeout, uint64_t address, uint32_t length, cha
 	}
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, opts);
 	if (conn == NULL)
-		return;
+		return 0;
 
 	csp_packet_t * packet = csp_buffer_get(sizeof(vmem_request_t));
 	if (packet == NULL)
-		return;
+		return 0;
 
 	vmem_request_t * request = (void *) packet->data;
 	request->version = version;
@@ -45,7 +45,7 @@ void vmem_download(int node, int timeout, uint64_t address, uint32_t length, cha
 	csp_send(conn, packet);
 
 	/* Go into download loop */
-	int count = 0;
+	unsigned int count = 0;
 	int dotcount = 0;
 
 	while(1) { 
@@ -91,6 +91,7 @@ void vmem_download(int node, int timeout, uint64_t address, uint32_t length, cha
 
 	printf("  Downloaded %u bytes in %.03f s at %u Bps\n", (unsigned int) count, time_total / 1000.0, (unsigned int) (count / ((float)time_total / 1000.0)) );
 
+	return count;
 
 }
 
@@ -125,7 +126,7 @@ void vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_
 
 	unsigned int count = 0;
 	int dotcount = 0;
-	while(count < length) {
+	while((count < length) && csp_conn_is_active(conn)) {
 
 		if (dotcount % 32 == 0)
 			printf("  ");

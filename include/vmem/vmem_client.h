@@ -11,7 +11,7 @@
 #include <stdint.h>
 #include <vmem/vmem_server.h>
 
-void vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp);
+unsigned int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp);
 void vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version);
 void vmem_client_list(int node, int timeout, int version);
 vmem_list_t vmem_client_find(int node, int timeout, int version, char * name, int namelen);

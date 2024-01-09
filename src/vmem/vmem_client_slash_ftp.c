@@ -26,7 +26,7 @@ static int vmem_client_slash_download(struct slash *slash)
 	unsigned int node = slash_dfl_node;
     unsigned int timeout = slash_dfl_timeout;
     unsigned int version = 1;
-	unsigned int offset = 0;
+	// unsigned int offset = 0;
 	unsigned int use_rdp = 1;
 
     optparse_t * parser = optparse_new("download", "<address> <length base10 or base16> <file>");
@@ -34,7 +34,7 @@ static int vmem_client_slash_download(struct slash *slash)
     optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
     optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 1)");
-	optparse_add_unsigned(parser, 'o', "offset", "NUM", 0, &offset, "byte offset in file (default = 0)");
+	// optparse_add_unsigned(parser, 'o', "offset", "NUM", 0, &offset, "byte offset in file (default = 0)");
 	optparse_add_unsigned(parser, 'r', "use_rdp", "NUM", 0, &use_rdp, "rdp ack for each (default = 1)");
 
 	rdp_opt_add(parser);
@@ -89,27 +89,70 @@ static int vmem_client_slash_download(struct slash *slash)
 	char * file;
 	file = slash->argv[argi];
 
-	printf("Download from %u addr 0x%"PRIX64" to %s with timeout %u version %u\n", node, address, file, timeout, version);
 
-	/* Allocate memory for reply */
-	char * data = malloc(length);
+	char file_status[128] = {0};
+	strncpy(file_status, file, 128);
+	strcat(file_status, "stat");
+	FILE * fd_status = fopen(file_status, "r");
 
-	vmem_download(node, timeout, address, length, data, version, use_rdp);
+	/* Open file (truncate or create) or append to existing */
+	FILE * fd = NULL;
 
-	/* Open file (truncate or create) */
-	FILE * fd = fopen(file, "w+");
+	unsigned int offset = 0;
+	/* Check if a previous download didn't finish */
+	if (fd_status == NULL) {
+		printf("No previous status file to resume from\n");
+		fd = fopen(file, "w+");
+	} else {
+		printf("Found status file\n");
+		printf("Type 'yes' + enter to continue:\n");
+		char * c = slash_readline(slash);
+
+		if (strcmp(c, "yes") != 0) {
+			fd = fopen(file, "w+");
+		} else {
+			fscanf(fd_status, "%u", &offset);
+			fd = fopen(file, "a");
+		}
+		fclose(fd_status);
+	}
+
 	if (fd == NULL) {
-		free(data);
-        optparse_del(parser);
+		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
+	if(offset > length){
+		printf("File status size offset %u is greater than length %u!\n", offset, length);
+		optparse_del(parser);
+		fclose(fd);
+		return SLASH_EINVAL;
+	}
+
+	printf("Download from %u addr 0x%"PRIX64" to %s with timeout %u version %u\n", node, address + offset, file, timeout, version);
+
+	/* Allocate memory for reply */
+	char * data = malloc(length - offset);
+
+	unsigned int count = vmem_download(node, timeout, address + offset, length - offset, data, version, use_rdp);
+
 	/* Write data */
-	int written = fwrite(data, 1, length, fd);
+	int written = fwrite(data, 1, count, fd);
 	fclose(fd);
 	free(data);
 
-	printf("wrote %u bytes to %s\n", written, file);
+	/* If byte count is not equal to length - offset write to status file for resume later */
+	if(count != length - offset) {
+		fd_status = fopen(file_status, "w+");
+		rewind(fd_status);
+		fprintf(fd_status, "%u", count + offset);
+		fclose(fd_status);
+        printf("Download didn't finish creating stat file %s. \nTo resume download rerun download cmd\n", file_status);
+	} else {
+		remove(file_status);
+	}
+
+	printf("wrote %d bytes to %s\n", written, file);
 
     optparse_del(parser);
 
@@ -138,7 +181,7 @@ static int vmem_client_slash_upload(struct slash *slash)
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
+		optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
@@ -147,7 +190,7 @@ static int vmem_client_slash_upload(struct slash *slash)
 	/* Expect filename */
 	if (++argi >= slash->argc) {
 		printf("missing filename\n");
-        optparse_del(parser);
+		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -157,7 +200,7 @@ static int vmem_client_slash_upload(struct slash *slash)
 	/* Expect address */
 	if (++argi >= slash->argc) {
 		printf("missing address\n");
-        optparse_del(parser);
+		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -165,7 +208,7 @@ static int vmem_client_slash_upload(struct slash *slash)
 	uint64_t address = strtoul(slash->argv[argi], &endptr, 16);
 	if (*endptr != '\0') {
 		printf("Failed to parse address\n");
-        optparse_del(parser);
+		optparse_del(parser);
 		return SLASH_EUSAGE;
 	}
 
@@ -174,9 +217,9 @@ static int vmem_client_slash_upload(struct slash *slash)
 	/* Open file */
 	FILE * fd = fopen(file, "r");
 	if (fd == NULL){
-    	optparse_del(parser);
+		optparse_del(parser);
 		return SLASH_EINVAL;
-  }
+	}
 
 	/* Read size */
 	struct stat file_stat;
@@ -186,12 +229,13 @@ static int vmem_client_slash_upload(struct slash *slash)
 
 	/* Copy to memory */
 	char * data = malloc(file_stat.st_size);
-	int size = fread(data, 1, file_stat.st_size - offset, fd);
+
+	unsigned int size = fread(data, 1, file_stat.st_size - offset, fd);
 	fclose(fd);
 
 	address += offset;
 
-	printf("File size %ld, offset %d, to upload %d to address %lx\n", file_stat.st_size, offset, size, address);
+	printf("File size %ld, offset %u, to upload %u to address %lx\n", file_stat.st_size, offset, size, address);
 
 	csp_hex_dump("File head", data, 256);
 
@@ -199,10 +243,8 @@ static int vmem_client_slash_upload(struct slash *slash)
 
 	vmem_upload(node, timeout, address, data, size, version);
 
-    if(data){
-        free(data);
-    }
-    optparse_del(parser);
+	free(data);
+	optparse_del(parser);
 
 	rdp_opt_reset();
 
