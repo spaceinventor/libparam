@@ -165,7 +165,7 @@ void param_set(param_t * param, unsigned int offset, void * value) {
 }
 
 void param_set_string(param_t * param, void * inbuf, int len) {
-	param_set_data(param, inbuf, len);
+	param_set_data_nocallback(param, inbuf, len);
 	/* Termination */
 	if (param->vmem) {
 		param->vmem->write(param->vmem, (uint32_t) (intptr_t) param->addr + len, "", 1);
