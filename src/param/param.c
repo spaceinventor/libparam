@@ -164,7 +164,7 @@ void param_set(param_t * param, unsigned int offset, void * value) {
 	}
 }
 
-void param_set_string(param_t * param, void * inbuf, int len) {
+void param_set_string(param_t * param, const char * inbuf, int len) {
 	param_set_data_nocallback(param, inbuf, len);
 	/* Termination */
 	if (param->vmem) {
@@ -178,7 +178,7 @@ void param_set_string(param_t * param, void * inbuf, int len) {
 	}
 }
 
-void param_set_data_nocallback(param_t * param, void * inbuf, int len) {
+void param_set_data_nocallback(param_t * param, const void * inbuf, int len) {
 	if (param->vmem) {
 		param->vmem->write(param->vmem, (uint32_t) (intptr_t) param->addr, inbuf, len);
 	} else {
@@ -186,7 +186,7 @@ void param_set_data_nocallback(param_t * param, void * inbuf, int len) {
 	}
 }
 
-void param_set_data(param_t * param, void * inbuf, int len) {
+void param_set_data(param_t * param, const void * inbuf, int len) {
 	param_set_data_nocallback(param, inbuf, len);
 	/* Callback */
 	if (param->callback) {

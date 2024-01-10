@@ -385,7 +385,7 @@ void param_deserialize_from_mpack_to_param(void * context, void * queue, param_t
 			if (len == 0) {
 				param_set_string(param, "", 1);
 			} else {
-				param_set_string(param, (void *) reader->data, len);
+				param_set_string(param, reader->data, len);
 			}
 			reader->data += len;
 			mpack_done_str(reader);

@@ -29,7 +29,7 @@ enum vmem_types{
 typedef struct vmem_s {
 	int type;
 	void (*read)(struct vmem_s * vmem, uint32_t addr, void * dataout, uint32_t len);
-	void (*write)(struct vmem_s * vmem, uint32_t addr, void * datain, uint32_t len);
+	void (*write)(struct vmem_s * vmem, uint32_t addr, const void * datain, uint32_t len);
 	int (*backup)(struct vmem_s * vmem);
 	int (*restore)(struct vmem_s * vmem);
 	void * vaddr;

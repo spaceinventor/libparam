@@ -32,7 +32,7 @@ typedef struct {
 	};
 
 void vmem_fram_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len);
-void vmem_fram_write(vmem_t * vmem, uint32_t addr, void * datain, uint32_t len);
+void vmem_fram_write(vmem_t * vmem, uint32_t addr, const void * datain, uint32_t len);
 
 
 #endif /* SRC_PARAM_VMEM_FRAM_H_ */
