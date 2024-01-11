@@ -89,15 +89,8 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 				node = 0;
 			param_t * param = param_list_find_id(node, id);
 			if (param) {
-				if(ack_with_pull){
-					printf("ack with pull\n");
-					if(param->vmem){ 
-						printf("param->vmem true\n");
-						if(!param->vmem->ack_with_pull){
-							printf("not vmem ack with pull\n");
-							continue;
-						}
-					}
+				if(ack_with_pull && param->vmem && !param->vmem->ack_with_pull){
+					continue;
 				}
 				if (__add(&ctx, param, offset) < 0) {
 					csp_buffer_free(request);
