@@ -60,7 +60,7 @@ static int __add(struct param_serve_context *ctx, param_t * param, int offset) {
 	return  0;
 }
 
-static void param_serve_pull_request(csp_packet_t * request, int all, int version) {
+static void param_serve_pull_request(csp_packet_t * request, int all, int version, bool ack_with_pull) {
 
 	struct param_serve_context ctx;
 	ctx.request = request;
@@ -89,6 +89,16 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 				node = 0;
 			param_t * param = param_list_find_id(node, id);
 			if (param) {
+				if(ack_with_pull){
+					printf("ack with pull\n");
+					if(param->vmem){ 
+						printf("param->vmem true\n");
+						if(!param->vmem->ack_with_pull){
+							printf("not vmem ack with pull\n");
+							continue;
+						}
+					}
+				}
 				if (__add(&ctx, param, offset) < 0) {
 					csp_buffer_free(request);
 					return;
@@ -151,30 +161,33 @@ static void param_serve_push(csp_packet_t * packet, int send_ack, int version, i
 		return;
 	}
 
-	/* Send ack */
-	packet->data[0] = PARAM_PUSH_RESPONSE;
-	packet->data[1] = PARAM_FLAG_END;
-	packet->length = 2;
-
-	csp_sendto_reply(packet, packet, CSP_O_SAME);
-
+	/* If packet->data[1] == 1 ack with pull request */
+	if (packet->data[1] == 1) {
+		param_serve_pull_request(packet, 0, 2, true);
+	} else {
+		/* Send ack */
+		packet->data[0] = PARAM_PUSH_RESPONSE;
+		packet->data[1] = PARAM_FLAG_END;
+		packet->length = 2;
+		csp_sendto_reply(packet, packet, CSP_O_SAME);
+	}
 }
 
 
 void param_serve(csp_packet_t * packet) {
 	switch(packet->data[0]) {
 		case PARAM_PULL_REQUEST:
-			param_serve_pull_request(packet, 0, 1);
+			param_serve_pull_request(packet, 0, 1, false);
 			break;
 		case PARAM_PULL_REQUEST_V2:
-		    param_serve_pull_request(packet, 0, 2);
+		    param_serve_pull_request(packet, 0, 2, false);
 		    break;
 
 		case PARAM_PULL_ALL_REQUEST:
-			param_serve_pull_request(packet, 1, 1);
+			param_serve_pull_request(packet, 1, 1, false);
 			break;
 		case PARAM_PULL_ALL_REQUEST_V2:
-			param_serve_pull_request(packet, 1, 2);
+			param_serve_pull_request(packet, 1, 2, false);
 			break;
 
 		case PARAM_PULL_RESPONSE:

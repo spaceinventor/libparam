@@ -29,6 +29,7 @@ typedef struct {
 		.write = vmem_fram_write, \
 		.driver = (vmem_fram_driver_t *) &vmem_##name_in##_driver, \
 		.vaddr = (void *) _vaddr, \
+		.ack_with_pull = 1, \
 	};
 
 void vmem_fram_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len);

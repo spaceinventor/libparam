@@ -36,6 +36,7 @@ typedef struct vmem_s {
 	uint32_t size;
 	const char *name;
 	int big_endian;
+	int ack_with_pull; // allow ack with pull request
 	void * driver;
 } vmem_t;
 

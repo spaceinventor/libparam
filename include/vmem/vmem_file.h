@@ -36,6 +36,7 @@ void vmem_file_write(vmem_t * vmem, uint32_t addr, const void * datain, uint32_t
 		.write = vmem_file_write, \
 		.driver = &vmem_##name_in##_driver, \
 		.vaddr = vmem_##name_in##_buf, \
+		.ack_with_pull = 1, \
 	};
 
 

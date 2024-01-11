@@ -545,6 +545,7 @@ static param_heap_t * param_list_alloc(int type, int array_size) {
 	}
 	param_heap->buffer = calloc(param_typesize(type), array_size);
 	if (param_heap->buffer == NULL) {
+		free(param_heap);
 		return NULL;
 	}
 

@@ -61,9 +61,10 @@ int param_pull_all(uint8_t prio, int verbose, int host, uint32_t include_mask, u
  * @param host          remote csp node
  * @param timeout       in ms
  * @param version       1 or 2
+ * @param ack_with_pull ack with param queue
  * @return              0 = OK, -1 on network error
  */
-int param_push_single(param_t *param, int offset, void *value, int verbose, int host, int timeout, int version);
+int param_push_single(param_t *param, int offset, void *value, int verbose, int host, int timeout, int version, bool ack_with_pull);
 
 /**
  * QUEUE PARAMETER API
@@ -79,17 +80,26 @@ int param_push_single(param_t *param, int offset, void *value, int verbose, int 
 
 
 /**
- * PULL/PUSH queue:
+ * PULL queue:
  * @param queue         pointer to queue
  * @param prio          CSP packet priority
  * @param verbose       printout level
  * @param host          remote csp node
  * @param timeout       in ms
- * @param hwid          32-bit unique hwid of the target. Used in combination with push to broadcast address. Set to 0 if not used
  * @return              0 = OK, -1 on network error
  */
 int param_pull_queue(param_queue_t *queue, uint8_t prio, int verbose, int host, int timeout);
-int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, uint32_t hwid);
+/**
+ * PUSH queue:
+ * @param queue         pointer to queue
+ * @param verbose       printout level
+ * @param host          remote csp node
+ * @param timeout       in ms
+ * @param hwid          32-bit unique hwid of the target. Used in combination with push to broadcast address. Set to 0 if not used
+ * @param ack_with_pull ack with param queue
+ * @return              0 = OK, -1 on network error
+ */
+int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, uint32_t hwid, bool ack_with_pull);
 
 
 #endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_CLIENT_H_ */

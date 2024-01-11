@@ -121,7 +121,7 @@ static int cmd_get(struct slash *slash) {
 	int paramver = 2;
 	int server = 0;
 
-    optparse_t * parser = optparse_new("get", "<name>[offset]");
+    optparse_t * parser = optparse_new("get", "<name>");
     optparse_add_help(parser);
     optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
 	optparse_add_int(parser, 's', "server", "NUM", 0, &server, "server to get parameters from (default = node))");
@@ -188,12 +188,15 @@ static int cmd_set(struct slash *slash) {
 	int node = slash_dfl_node;
 	int paramver = 2;
 	int server = 0;
+	int ack_with_pull = true;
 
     optparse_t * parser = optparse_new("set", "<name>[offset] <value>");
     optparse_add_help(parser);
     optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
 	optparse_add_int(parser, 's', "server", "NUM", 0, &server, "server to set parameters on (default = node)");
     optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system version (default = 2)");
+	optparse_add_set(parser, 'a', "no_ack_push", 0, &ack_with_pull, "Disable ack with param push queue");
+
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -245,14 +248,16 @@ static int cmd_set(struct slash *slash) {
 		if (server > 0)
 			dest = server;
 
-		if (param_push_single(param, offset, valuebuf, 1, dest, slash_dfl_timeout, paramver) < 0) {
+		if (param_push_single(param, offset, valuebuf, 1, dest, slash_dfl_timeout, paramver, ack_with_pull) < 0) {
 			printf("No response\n");
 			optparse_del(parser);
 			return SLASH_EIO;
 		}
 	}
 
-	param_print(param, -1, NULL, 0, 2);
+	if(!ack_with_pull){
+		param_print(param, -1, NULL, 0, 2);
+	}
 
     optparse_del(parser);
 	return SLASH_SUCCESS;
@@ -370,6 +375,7 @@ static int cmd_run(struct slash *slash) {
 	unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;
 	unsigned int hwid = 0;
+	bool ack_with_pull = true;
 
     optparse_t * parser = optparse_new("run", "");
     optparse_add_help(parser);
@@ -385,7 +391,7 @@ static int cmd_run(struct slash *slash) {
 
 	if (param_queue.type == PARAM_QUEUE_TYPE_SET) {
 
-		if (param_push_queue(&param_queue, 1, server, timeout, hwid) < 0) {
+		if (param_push_queue(&param_queue, 1, server, timeout, hwid, ack_with_pull) < 0) {
 			printf("No response\n");
             optparse_del(parser);
 			return SLASH_EIO;

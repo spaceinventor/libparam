@@ -33,6 +33,7 @@ typedef struct {
 		.write = vmem_ram_write, \
 		.driver = &vmem_##name_in##_driver, \
 		.vaddr = vmem_##name_in##_heap, \
+		.ack_with_pull = 1, \
 	};
 
 #define VMEM_DEFINE_STATIC_RAM_ADDR(name_in, strname, size_in, mem_addr) \
@@ -50,6 +51,7 @@ typedef struct {
         .write = vmem_ram_write, \
         .driver = &vmem_##name_in##_driver, \
         .vaddr = mem_addr, \
+		.ack_with_pull = 1, \
     };
 
 #endif /* SRC_PARAM_VMEM_RAM_H_ */
