@@ -51,7 +51,7 @@ typedef struct {
         .write = vmem_ram_write, \
         .driver = &vmem_##name_in##_driver, \
         .vaddr = mem_addr, \
-		.ack_with_pull = 1, \
+        .ack_with_pull = 1, \
     };
 
 #endif /* SRC_PARAM_VMEM_RAM_H_ */
