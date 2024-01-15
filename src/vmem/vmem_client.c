@@ -158,6 +158,12 @@ void vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_
 
 	printf("  Uploaded %u bytes in %.03f s at %u Bps\n", (unsigned int) count, time_total / 1000.0, (unsigned int) (count / ((float)time_total / 1000.0)) );
 
+	if(count != length){
+		unsigned int window_size = 0;
+		csp_rdp_get_opt(&window_size, NULL, NULL, NULL, NULL, NULL);
+		printf("Upload didn't complete, suggested offset to resume: %u\n", count - ((window_size + 1) * VMEM_SERVER_MTU));
+	}
+
 }
 
 static csp_packet_t * vmem_client_list_get(int node, int timeout, int version) {
