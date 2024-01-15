@@ -92,11 +92,11 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 			param_t * param = param_list_find_id(node, id);
 			if (param) {
 				if(ack_with_pull) {
+					/* Skip values as we normally use a get queue */
 					if(offset < 0 ){
 						offset = 0;
 					}
 					int count = 1;
-
 					/* Inspect for array */
 					mpack_tag_t tag = mpack_peek_tag(&reader);
 					if (tag.type == mpack_type_array) {
@@ -110,10 +110,9 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 					if(prev_param == param){
 						continue;
 					}
-
 					prev_param = param;
 
-					/* Skip values as we normally use a get queue */
+					/* If vmem is not flagged to allow ack with pull skip reading values */
 					if(param->vmem && !param->vmem->ack_with_pull) {
 						continue;
 					}
