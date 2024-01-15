@@ -189,6 +189,7 @@ static int cmd_set(struct slash *slash) {
 	int paramver = 2;
 	int server = 0;
 	int ack_with_pull = true;
+	int force = false;
 
     optparse_t * parser = optparse_new("set", "<name>[offset] <value>");
     optparse_add_help(parser);
@@ -196,7 +197,7 @@ static int cmd_set(struct slash *slash) {
 	optparse_add_int(parser, 's', "server", "NUM", 0, &server, "server to set parameters on (default = node)");
     optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system version (default = 2)");
 	optparse_add_set(parser, 'a', "no_ack_push", 0, &ack_with_pull, "Disable ack with param push queue");
-
+    optparse_add_set(parser, 'f', "force", true, &force, "force setting readonly params");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -222,6 +223,12 @@ static int cmd_set(struct slash *slash) {
 		return SLASH_EINVAL;
 	}
 
+	if (param->mask & PM_READONLY && !force) {
+		printf("--force is required to set a readonly parameter\n");
+        optparse_del(parser);
+		return SLASH_EINVAL;
+	}
+
 	/* Check if Value is present */
 	if (++argi >= slash->argc) {
 		printf("missing parameter value\n");
@@ -230,7 +237,11 @@ static int cmd_set(struct slash *slash) {
 	}
 
 	char valuebuf[128] __attribute__((aligned(16))) = { };
-	param_str_to_value(param->type, slash->argv[argi], valuebuf);
+	if (param_str_to_value(param->type, slash->argv[argi], valuebuf) < 0) {
+		printf("invalid parameter value\n");
+	    optparse_del(parser);
+		return SLASH_EINVAL;
+	}
 
 	/* Local parameters are set directly */
 	if (param->node == 0) {
@@ -271,12 +282,14 @@ static int cmd_add(struct slash *slash) {
 	int node = slash_dfl_node;
 	char * include_mask_str = NULL;
 	char * exclude_mask_str = NULL;
+	int force = false;
 
     optparse_t * parser = optparse_new("cmd add", "<name>[offset] [value]");
     optparse_add_help(parser);
     optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
 	optparse_add_string(parser, 'm', "imask", "MASK", &include_mask_str, "Include mask (param letters) (used for get with wildcard)");
 	optparse_add_string(parser, 'e', "emask", "MASK", &exclude_mask_str, "Exclude mask (param letters) (used for get with wildcard)");
+    optparse_add_set(parser, 'f', "force", true, &force, "force setting readonly params");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -312,6 +325,12 @@ static int cmd_add(struct slash *slash) {
 			return SLASH_EINVAL;
 		}
 
+		if (param->mask & PM_READONLY && !force) {
+			printf("--force is required to set a readonly parameter\n");
+			optparse_del(parser);
+			return SLASH_EINVAL;
+		}
+
 		/* Check if Value is present */
 		if (++argi >= slash->argc) {
 			printf("missing parameter value\n");
@@ -320,7 +339,11 @@ static int cmd_add(struct slash *slash) {
 		}
 		
 		char valuebuf[128] __attribute__((aligned(16))) = { };
-		param_str_to_value(param->type, slash->argv[argi], valuebuf);
+		if (param_str_to_value(param->type, slash->argv[argi], valuebuf) < 0) {
+			printf("invalid parameter value\n");
+			optparse_del(parser);
+			return SLASH_EINVAL;
+		}
 
 		if (param_queue_add(&param_queue, param, offset, valuebuf) < 0)
 			printf("Queue full\n");
