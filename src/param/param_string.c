@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <ctype.h>
 #include <csp/arch/csp_time.h>
 #include <param/param.h>
 #include <param/param_list.h>
@@ -99,8 +100,43 @@ void param_value_str(param_t *param, unsigned int i, char * out, int len)
 int param_str_to_value(param_type_e type, char *in, void *out) {
 	switch (type) {
 
-#define PARAM_SCANF(casename, strtype, cast, name) \
+#define PARAM_SCANFU(casename, strtype, cast, name) \
 	case casename: { \
+	    for (int i = 0; i < strlen(in); i++) if (!isdigit(in[i])) return -1; \
+		cast obj; \
+		sscanf(in, strtype, &obj); \
+		*(cast *) out = (cast) obj; \
+		return sizeof(cast); \
+	}
+
+#define PARAM_SCANFD(casename, strtype, cast, name) \
+	case casename: { \
+	    for (int i = 0; i < strlen(in); i++) if (!isdigit(in[i]) && in[i] != '-' && in[i] != '+') return -1; \
+		cast obj; \
+		sscanf(in, strtype, &obj); \
+		*(cast *) out = (cast) obj; \
+		return sizeof(cast); \
+	}
+
+#define PARAM_SCANFX(casename, strtype, cast, name) \
+	case casename: { \
+	    if (in[0] != '0' || in[1] != 'x' || strlen(in) < 3) return -1; \
+	    for (int i = 2; i < strlen(in); i++) if (!isdigit(in[i])) return -1; \
+		cast obj; \
+		sscanf(in, strtype, &obj); \
+		*(cast *) out = (cast) obj; \
+		return sizeof(cast); \
+	}
+
+#define PARAM_SCANFF(casename, strtype, cast, name) \
+	case casename: { \
+		int numdots = 0; \
+		for (int i = 0; i < strlen(in); i++) { \
+			if (in[i] == ',') in[i] = '.'; \
+			if (in[i] == '.') numdots++; \
+	    	if (!isdigit(in[i]) && in[i] != '-' && in[i] != '+' && in[i] != '.') return -1; \
+		} \
+		if (numdots > 1) return -1; \
 		cast obj; \
 		sscanf(in, strtype, &obj); \
 		*(cast *) out = (cast) obj; \
@@ -108,20 +144,20 @@ int param_str_to_value(param_type_e type, char *in, void *out) {
 	}
 
 	default:
-	PARAM_SCANF(PARAM_TYPE_UINT8, "%"SCNu8, uint8_t, uint8)
-	PARAM_SCANF(PARAM_TYPE_UINT16, "%"SCNu16, uint16_t, uint16)
-	PARAM_SCANF(PARAM_TYPE_UINT32, "%"SCNu32, uint32_t, uint32)
-	PARAM_SCANF(PARAM_TYPE_UINT64, "%"SCNu64, uint64_t, uint64)
-	PARAM_SCANF(PARAM_TYPE_INT8, "%"SCNd8, int8_t, int8)
-	PARAM_SCANF(PARAM_TYPE_INT16, "%"SCNd16, int16_t, int16)
-	PARAM_SCANF(PARAM_TYPE_INT32, "%"SCNd32, int32_t, int32)
-	PARAM_SCANF(PARAM_TYPE_INT64, "%"SCNd64, int64_t, int64)
-	PARAM_SCANF(PARAM_TYPE_XINT8, "0x%"SCNx8, uint8_t, uint8)
-	PARAM_SCANF(PARAM_TYPE_XINT16, "0x%"SCNx16, uint16_t, uint16)
-	PARAM_SCANF(PARAM_TYPE_XINT32, "0x%"SCNx32, uint32_t, uint32)
-	PARAM_SCANF(PARAM_TYPE_XINT64, "0x%"SCNx64, uint64_t, uint64)
-	PARAM_SCANF(PARAM_TYPE_FLOAT, "%f", float, float)
-	PARAM_SCANF(PARAM_TYPE_DOUBLE, "%lf", double, double)
+	PARAM_SCANFU(PARAM_TYPE_UINT8, "%"SCNu8, uint8_t, uint8)
+	PARAM_SCANFU(PARAM_TYPE_UINT16, "%"SCNu16, uint16_t, uint16)
+	PARAM_SCANFU(PARAM_TYPE_UINT32, "%"SCNu32, uint32_t, uint32)
+	PARAM_SCANFU(PARAM_TYPE_UINT64, "%"SCNu64, uint64_t, uint64)
+	PARAM_SCANFD(PARAM_TYPE_INT8, "%"SCNd8, int8_t, int8)
+	PARAM_SCANFD(PARAM_TYPE_INT16, "%"SCNd16, int16_t, int16)
+	PARAM_SCANFD(PARAM_TYPE_INT32, "%"SCNd32, int32_t, int32)
+	PARAM_SCANFD(PARAM_TYPE_INT64, "%"SCNd64, int64_t, int64)
+	PARAM_SCANFX(PARAM_TYPE_XINT8, "0x%"SCNx8, uint8_t, uint8)
+	PARAM_SCANFX(PARAM_TYPE_XINT16, "0x%"SCNx16, uint16_t, uint16)
+	PARAM_SCANFX(PARAM_TYPE_XINT32, "0x%"SCNx32, uint32_t, uint32)
+	PARAM_SCANFX(PARAM_TYPE_XINT64, "0x%"SCNx64, uint64_t, uint64)
+	PARAM_SCANFF(PARAM_TYPE_FLOAT, "%f", float, float)
+	PARAM_SCANFF(PARAM_TYPE_DOUBLE, "%lf", double, double)
 #undef PARAM_SCANF
 
 	case PARAM_TYPE_STRING:

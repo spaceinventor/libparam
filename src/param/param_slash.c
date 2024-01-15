@@ -227,7 +227,11 @@ static int cmd_set(struct slash *slash) {
 	}
 
 	char valuebuf[128] __attribute__((aligned(16))) = { };
-	param_str_to_value(param->type, slash->argv[argi], valuebuf);
+	if (param_str_to_value(param->type, slash->argv[argi], valuebuf) < 0) {
+		printf("invalid value\n");
+	    optparse_del(parser);
+		return SLASH_EINVAL;
+	}
 
 	/* Local parameters are set directly */
 	if (param->node == 0) {
