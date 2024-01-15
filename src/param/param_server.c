@@ -89,9 +89,30 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 				node = 0;
 			param_t * param = param_list_find_id(node, id);
 			if (param) {
-				if(ack_with_pull && param->vmem && !param->vmem->ack_with_pull){
-					continue;
-				}
+				if(ack_with_pull) {
+					int offset_saved = offset;
+					/* skip values as we normally use a get queue */
+					if(offset < 0 ){
+						offset = 0;
+					}
+					int count = 1;
+
+					/* Inspect for array */
+					mpack_tag_t tag = mpack_peek_tag(&reader);
+					if (tag.type == mpack_type_array) {
+						count = mpack_expect_array(&reader);
+					}
+					for (int i = offset; i < offset + count; i++) {
+						mpack_discard(&reader);
+					}
+
+					if(param->vmem && !param->vmem->ack_with_pull) {
+						continue;
+					}
+
+					/* Set offset back as a set queue with -1 offset will set whole array. This makes param_serialize_to_mpack() put whole array into ack queue */
+					offset = offset_saved;
+				} 
 				if (__add(&ctx, param, offset) < 0) {
 					csp_buffer_free(request);
 					return;
