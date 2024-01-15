@@ -81,6 +81,8 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 
 		mpack_reader_t reader;
 		mpack_reader_init_data(&reader, q_request.buffer, q_request.used);
+
+		param_t * prev_param = NULL;
 		while(reader.data < reader.end) {
 			int id, node, offset = -1;
 			long unsigned int timestamp = 0;
@@ -90,7 +92,6 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 			param_t * param = param_list_find_id(node, id);
 			if (param) {
 				if(ack_with_pull) {
-					/* Skip values as we normally use a get queue */
 					if(offset < 0 ){
 						offset = 0;
 					}
@@ -105,6 +106,14 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 						mpack_discard(&reader);
 					}
 
+					/* Try not to ack queues with same parameters multiple times (this only catches parameters if they are in sequence) */
+					if(prev_param == param){
+						continue;
+					}
+
+					prev_param = param;
+
+					/* Skip values as we normally use a get queue */
 					if(param->vmem && !param->vmem->ack_with_pull) {
 						continue;
 					}
