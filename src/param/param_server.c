@@ -90,8 +90,7 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 			param_t * param = param_list_find_id(node, id);
 			if (param) {
 				if(ack_with_pull) {
-					int offset_saved = offset;
-					/* skip values as we normally use a get queue */
+					/* Skip values as we normally use a get queue */
 					if(offset < 0 ){
 						offset = 0;
 					}
@@ -110,8 +109,8 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 						continue;
 					}
 
-					/* Set offset back as a set queue with -1 offset will set whole array. This makes param_serialize_to_mpack() put whole array into ack queue */
-					offset = offset_saved;
+					/* Set offset to -1 to ack with all array values */
+					offset = -1;
 				} 
 				if (__add(&ctx, param, offset) < 0) {
 					csp_buffer_free(request);
