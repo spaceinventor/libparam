@@ -91,19 +91,8 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 			param_t * param = param_list_find_id(node, id);
 			if (param) {
 				if(ack_with_pull) {
-					/* Skip values as we normally use a get queue */
-					if(offset < 0 ){
-						offset = 0;
-					}
-					int count = 1;
-					/* Inspect for array */
-					mpack_tag_t tag = mpack_peek_tag(&reader);
-					if (tag.type == mpack_type_array) {
-						count = mpack_expect_array(&reader);
-					}
-					for (int i = offset; i < offset + count; i++) {
-						mpack_discard(&reader);
-					}
+					/* Move reader forward to skip values as we normally use a get queue */
+					mpack_discard(&reader);
 
 					/* Do not ack queues with duplicate parameters multiple times */
 					mpack_reader_t _reader;
@@ -117,19 +106,8 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 							_node = 0;
 						param_t * _param = param_list_find_id(_node, _id);
 
-						/* Skip values */
-						if(_offset < 0 ){
-							_offset = 0;
-						}
-						int _count = 1;
-						/* Inspect for array */
-						mpack_tag_t _tag = mpack_peek_tag(&_reader);
-						if (_tag.type == mpack_type_array) {
-							_count = mpack_expect_array(&_reader);
-						}
-						for (int i = _offset; i < _offset + _count; i++) {
-							mpack_discard(&_reader);
-						}
+						/* Move reader forward to skip values */
+						mpack_discard(&_reader);
 
 						if(_param == param){
 							found = 1;	
