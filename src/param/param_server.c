@@ -82,7 +82,6 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 		mpack_reader_t reader;
 		mpack_reader_init_data(&reader, q_request.buffer, q_request.used);
 
-		param_t * prev_param = NULL;
 		while(reader.data < reader.end) {
 			int id, node, offset = -1;
 			long unsigned int timestamp = 0;
@@ -106,11 +105,41 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 						mpack_discard(&reader);
 					}
 
-					/* Try not to ack queues with same parameters multiple times (this only catches parameters if they are in sequence) */
-					if(prev_param == param){
+					/* Do not ack queues with duplicate parameters multiple times */
+					mpack_reader_t _reader;
+					mpack_reader_init_data(&_reader, ctx.q_response.buffer, ctx.q_response.used);
+					int found = 0;
+					while(_reader.data < _reader.end) {
+						int _id, _node, _offset = -1;
+						long unsigned int _timestamp = 0;
+						param_deserialize_id(&_reader, &_id, &_node, &_timestamp, &_offset, &ctx.q_response);
+						if (server_addr == _node)
+							_node = 0;
+						param_t * _param = param_list_find_id(_node, _id);
+
+						/* Skip values */
+						if(_offset < 0 ){
+							_offset = 0;
+						}
+						int _count = 1;
+						/* Inspect for array */
+						mpack_tag_t _tag = mpack_peek_tag(&_reader);
+						if (_tag.type == mpack_type_array) {
+							_count = mpack_expect_array(&_reader);
+						}
+						for (int i = _offset; i < _offset + _count; i++) {
+							mpack_discard(&_reader);
+						}
+
+						if(_param == param){
+							found = 1;	
+							break;
+						}
+					}
+
+					if(found){
 						continue;
 					}
-					prev_param = param;
 
 					/* If vmem is not flagged to allow ack with pull skip reading values */
 					if(param->vmem && !param->vmem->ack_with_pull) {
