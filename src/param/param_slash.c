@@ -14,6 +14,7 @@
 #include <slash/dflopt.h>
 
 #include <csp/csp.h>
+#include <csp/csp_hooks.h>
 
 #include <param/param.h>
 #include <param/param_list.h>
@@ -69,7 +70,7 @@ static void param_completer(struct slash *slash, char * token) {
 		// Only print parameters when globbing is involved.
 		while ((param = param_list_iterate(&i)) != NULL)
 			if (strmatch(param->name, token, strlen(param->name), strlen(token)))
-				param_print(param, -1, NULL, 0, 2);
+				param_print(param, -1, NULL, 0, 2, 0);
 		return;
 	}
 
@@ -100,7 +101,7 @@ static void param_completer(struct slash *slash, char * token) {
 				slash_printf(slash, "\n");
 
 			/* Print param */
-			param_print(param, -1, NULL, 0, 2);
+			param_print(param, -1, NULL, 0, 2, 0);
 
 		}
 
@@ -160,7 +161,7 @@ static int cmd_get(struct slash *slash) {
 
 		/* Local parameters are printed directly */
 		if ((param->node == 0) && (server == 0)) {
-			param_print(param, -1, NULL, 0, 0);
+			param_print(param, -1, NULL, 0, 0, 0);
 			continue;
 		}
 
@@ -252,23 +253,24 @@ static int cmd_set(struct slash *slash) {
 		} else {
 			param_set(param, offset, valuebuf);
 		}
+		param_print(param, -1, NULL, 0, 2, 0);
 	} else {
 
 		/* Select destination, host overrides parameter node */
 		int dest = node;
 		if (server > 0)
 			dest = server;
-
-		if (param_push_single(param, offset, valuebuf, 1, dest, slash_dfl_timeout, paramver, ack_with_pull) < 0) {
+		csp_timestamp_t time_now;
+		csp_clock_get_time(&time_now);
+		*param->timestamp = 0;
+		if (param_push_single(param, offset, valuebuf, 0, dest, slash_dfl_timeout, paramver, ack_with_pull) < 0) {
 			printf("No response\n");
 			optparse_del(parser);
 			return SLASH_EIO;
 		}
+		param_print(param, -1, NULL, 0, 2, time_now.tv_sec);
 	}
 
-	if(!ack_with_pull){
-		param_print(param, -1, NULL, 0, 2);
-	}
 
     optparse_del(parser);
 	return SLASH_SUCCESS;
@@ -344,6 +346,8 @@ static int cmd_add(struct slash *slash) {
 			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
+		/* clear param timestamp so we dont set timestamp flag when serialized*/
+		*param->timestamp = 0;
 
 		if (param_queue_add(&param_queue, param, offset, valuebuf) < 0)
 			printf("Queue full\n");
@@ -398,13 +402,14 @@ static int cmd_run(struct slash *slash) {
 	unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;
 	unsigned int hwid = 0;
-	bool ack_with_pull = true;
+	int ack_with_pull = true;
 
     optparse_t * parser = optparse_new("run", "");
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 	optparse_add_unsigned(parser, 'h', "hwid", "NUM", 16, &hwid, "include hardware id filter (default = off)");
+	optparse_add_set(parser, 'a', "no_ack_push", 0, &ack_with_pull, "Disable ack with param push queue");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -414,11 +419,14 @@ static int cmd_run(struct slash *slash) {
 
 	if (param_queue.type == PARAM_QUEUE_TYPE_SET) {
 
-		if (param_push_queue(&param_queue, 1, server, timeout, hwid, ack_with_pull) < 0) {
+		csp_timestamp_t time_now;
+		csp_clock_get_time(&time_now);
+		if (param_push_queue(&param_queue, 0, server, timeout, hwid, ack_with_pull) < 0) {
 			printf("No response\n");
             optparse_del(parser);
 			return SLASH_EIO;
 		}
+		param_queue_print_params(&param_queue, time_now.tv_sec);
 
 	}
 
@@ -521,6 +529,7 @@ static int cmd_new(struct slash *slash) {
 
 	param_queue.used = 0;
 	param_queue.version = paramver;
+	param_queue.last_timestamp = 0;
 
 	printf("Initialized new command: %s\n", name);
 

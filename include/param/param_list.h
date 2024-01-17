@@ -62,7 +62,7 @@ param_t * param_list_from_line(char * line);
 param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, int array_size, char * name, char * unit, char * help, int storage_type);
 
 void param_list_destroy(param_t * param);
-void param_print(param_t * param, int offset, int nodes[], int nodes_count, int verbose);
+void param_print(param_t * param, int offset, int nodes[], int nodes_count, int verbose, uint32_t ref_timestamp);
 
 unsigned int param_list_packed_size(int list_version);
 int param_list_unpack(int node, void * data, int length, int list_version, int include_remotes);

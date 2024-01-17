@@ -248,7 +248,7 @@ void param_list_print(uint32_t mask, int node, char * globstr, int verbosity) {
 			continue;
 		}
 
-		param_print(param, -1, NULL, 0, verbosity);
+		param_print(param, -1, NULL, 0, verbosity, 0);
 		
 	}
 }
