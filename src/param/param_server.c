@@ -60,11 +60,13 @@ static int __add(struct param_serve_context *ctx, param_t * param, int offset) {
 	return  0;
 }
 
-static void param_serve_pull_request(csp_packet_t * request, int all, int version, bool ack_with_pull) {
+static void param_serve_pull_request(csp_packet_t * request, int all, int version) {
 
 	struct param_serve_context ctx;
 	ctx.request = request;
 	ctx.q_response.version = version;
+	/* If packet->data[1] == 1 ack with pull response */
+	int ack_with_pull = request->data[1] == 1 ? 1 : 0;
 
 	if (__allocate(&ctx) < 0) {
 		csp_buffer_free(request);
@@ -191,7 +193,7 @@ static void param_serve_push(csp_packet_t * packet, int send_ack, int version, i
 
 	/* If packet->data[1] == 1 ack with pull request */
 	if (packet->data[1] == 1) {
-		param_serve_pull_request(packet, 0, 2, true);
+		param_serve_pull_request(packet, 0, 2);
 	} else {
 		/* Send ack */
 		packet->data[0] = PARAM_PUSH_RESPONSE;
@@ -205,17 +207,17 @@ static void param_serve_push(csp_packet_t * packet, int send_ack, int version, i
 void param_serve(csp_packet_t * packet) {
 	switch(packet->data[0]) {
 		case PARAM_PULL_REQUEST:
-			param_serve_pull_request(packet, 0, 1, false);
+			param_serve_pull_request(packet, 0, 1);
 			break;
 		case PARAM_PULL_REQUEST_V2:
-		    param_serve_pull_request(packet, 0, 2, false);
+		    param_serve_pull_request(packet, 0, 2);
 		    break;
 
 		case PARAM_PULL_ALL_REQUEST:
-			param_serve_pull_request(packet, 1, 1, false);
+			param_serve_pull_request(packet, 1, 1);
 			break;
 		case PARAM_PULL_ALL_REQUEST_V2:
-			param_serve_pull_request(packet, 1, 2, false);
+			param_serve_pull_request(packet, 1, 2);
 			break;
 
 		case PARAM_PULL_RESPONSE:
