@@ -189,34 +189,34 @@ void param_queue_print(param_queue_t *queue) {
 }
 
 void param_queue_print_params(param_queue_t *queue, uint32_t ref_timestamp) {
+	int outer_count = 0;
 	PARAM_QUEUE_FOREACH(param, reader, queue, offset)
-		// int found = 0;
+		int already_printed = 0;
+		int inner_counter = 0;
 		if(param){
-			// mpack_reader_t _reader;
-			// mpack_reader_init_data(&_reader, queue->buffer, queue->used);
-			// while(_reader.data < _reader.end) {
-			// 	int _id, _node, _offset = -1;
-			// 	long unsigned int _timestamp = 0;
-			// 	param_deserialize_id(&_reader, &_id, &_node, &_timestamp, &_offset, queue);
-			// 	if(reader.data == _reader.data){
-			// 		break;
-			// 	}
-			// 	param_t * _param = param_list_find_id(_node, _id);
-			// 	if(queue->type == PARAM_QUEUE_TYPE_SET){
-			// 		mpack_discard(&_reader);
-			// 	}
-			// 	if(_param == param){
-			// 		found = 1;
-			// 		break;
-			// 	}
-			// }
-			// if(found){
-			// 	continue;
-			// }
-			param_print(param, -1, NULL, 0, 2, ref_timestamp);
+			mpack_reader_t _reader;
+			mpack_reader_init_data(&_reader, queue->buffer, queue->used);
+			while(outer_count > inner_counter) {
+				int _id, _node, _offset = -1;
+				long unsigned int _timestamp = 0;
+				param_deserialize_id(&_reader, &_id, &_node, &_timestamp, &_offset, queue);
+				param_t * _param = param_list_find_id(_node, _id);
+				if(queue->type == PARAM_QUEUE_TYPE_SET){
+					mpack_discard(&_reader);
+				}
+				if(_param == param){
+					already_printed = 1;
+					break;
+				}
+				inner_counter++;
+			}
+			if(!already_printed){
+				param_print(param, -1, NULL, 0, 2, ref_timestamp);
+			}
 		}
 		if(queue->type == PARAM_QUEUE_TYPE_SET){
 			mpack_discard(&reader);
 		}
+		outer_count++;
 	}
 }
