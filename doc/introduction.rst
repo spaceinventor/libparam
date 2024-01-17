@@ -103,20 +103,16 @@ When modifying multiple remote parameters, a queue can be built to efficiently r
 
 ::
 
-    /* Allocate a CSP packet and build queue */
-    csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
-    packet->data[0] = PARAM_PULL_REQUEST_V2;
-    packet->data[1] = 0;
-
     param_queue_t queue;
-    param_queue_init(&queue, &packet->data[2], PARAM_SERVER_MTU-2, 0, PARAM_QUEUE_TYPE_GET, VERSION);
+    uint8_t queue_buf[PARAM_SERVER_MTU-2];
+    param_queue_init(&queue, queue_buf, PARAM_SERVER_MTU-2, 0, PARAM_QUEUE_TYPE_GET, VERSION);
 
     param_queue_add(&queue, &state, idx, NULL);
     param_queue_add(&queue, &counter, INDEX_ALL, NULL);
 
     /* Trigger CSP to request value from parameter server */
     packet->length = queue.used + 2;
-    if (param_transaction(packet, state.host, TIMEOUT, param_transaction_callback_pull, VERBOSE, VERSION, NULL) < 0)
+    if (param_pull_queue(&queue, CSP_PRIO_HIGH, VERBOSE, state.host, TIMEOUT) < 0)
         printf("Retrieving multiple parameter values failed\n");
 
     /* Modify parameters */
@@ -126,17 +122,13 @@ When modifying multiple remote parameters, a queue can be built to efficiently r
     param_set_uint16(&counter, param_get_uint16(&counter) + 1);
 
     /* Allocate new CSP packet and rebuild queue */
-    csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
-    packet->data[0] = PARAM_PUSH_REQUEST_V2;
-    packet->data[1] = 0;
-
-    param_queue_init(&queue, &packet->data[2], PARAM_SERVER_MTU-2, 0, PARAM_QUEUE_TYPE_SET, VERSION);
+    param_queue_init(&queue, queue_buf, PARAM_SERVER_MTU-2, 0, PARAM_QUEUE_TYPE_SET, VERSION);
 
     param_queue_add(&queue, &state, idx, NULL);
     param_queue_add(&queue, &counter, INDEX_ALL, NULL);
 
     /* Trigger CSP to push queue values */
-    if (param_transaction(packet, state.host, TIMEOUT, NULL, VERBOSE, VERSION, NULL) < 0)
+    if (param_push_queue(&queue, VERBOSE, state.host, TIMEOUT, 0) < 0)
         printf("Storing multiple parameter values failed\n");
 
 Parameter properties
