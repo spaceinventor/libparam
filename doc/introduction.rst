@@ -1,32 +1,31 @@
-===============================
 Space Inventor Parameter System
-===============================
+----------------------------------
 
 Summary
-=======
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 libparam is designed to enable easy access to configuration as well as telemetry on modules and software that is communicating using CSP.
 
 The library allows access to RAM variables as well as persistant configuration and even direct access to hardware peripherals on a module. Parameters can be read and modified using the Space Inventor Command Shell, CSH, which is available as open source along with the Parameter System C implementation.
 
 Organization
-============
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Virtual memory
---------------
+********************
 The library implementation is based on virtual memory that either maps directly to RAM, or to a driver interfacing with an external storage, peripheral device or a file. It is possible to access the VMEM either by a parameter definition, or directly using a memory address and a data size. A virtual memory is directly read- and writable over CSP when using CSH.
 
 Parameter list
---------------
+********************
 Upon request, a module can provide a list of parameters available. As CSH is agnostic and do not know about capabilities of any module, that list is required before operating a module, either by requesting the list from the module itself, or by preloading the parameter list into CSH prior to communicating with the module.
 
 Parameter service
------------------
+********************
 A client, being CSH or another module, can pull and push either a single parameter, a queue of parameters or a complete category of parameters. In CSH, reading and modifying single commands are done by using the commands 'get' and 'set'.
 
 Each parameter is defined by a type, an array size and a list of categories (mask). Furthermore, a parameter can contain an inline documentation string and a unit definition. On the server side, each parameter is registered and mapped to a VMEM or directly to a RAM address, and a push callback can optionally be registered to trigger whenever a parameter value is modified.
 
 Server side implementation
-==========================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 On the server side, each parameter is created by use of a macro.
 
 A custom variable array can be accessed as a parameter by applying the following macro:
@@ -59,7 +58,7 @@ For the parameter service to be available, the VMEM thread and the Parameter por
     csp_bind_callback(param_serve, PARAM_PORT_SERVER);
 
 Client side implementation
-==========================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 For user  access to parameters using a shell, consult the CSH manual. The following section describes a method for doing programmatic access to local and remote parameters, for example an AOCS application accessing sensors and actuators. Accessing parameters on the module itself is convenient for VMEM-based parameters that are not directly accessible in the memory space, or if the callback shall be triggered upon writing. 
 
 Reading and doing a local modification of index 0 of the state parameter from previous section is done by
@@ -132,10 +131,10 @@ When modifying multiple remote parameters, a queue can be built to efficiently r
         printf("Storing multiple parameter values failed\n");
 
 Parameter properties
-====================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Datatypes
----------
+********************
 
 The Parameter System can use a variaty of datatypes to represent data. 
 
@@ -170,12 +169,12 @@ The Parameter System can use a variaty of datatypes to represent data.
 When transferred between executables, the values are serialized using MessagePack for a size and performance efficient coding. The transfer is protected by CRC to avoid bit errors in a noisy transmission channel.
 
 Masks
------
+********************
 
 A parameter can be flagged using one or more masks, each represented by a bit in a 32 bit flag property of each parameter definition. The first 16 mask bits are reserved for system-wide definitions, while the upper 16 are available for user-defined masks.
 
 .. list-table::
-   :widths: 6 10 30 6 
+   :widths: 5 10 30 7 
    :header-rows: 1
 
    * - Bit ID
