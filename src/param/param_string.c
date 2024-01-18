@@ -267,12 +267,16 @@ static void param_print_value(FILE * file, param_t * param, int offset) {
 
 }
 
-void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int nodes_count, int verbose)
+void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int nodes_count, int verbose, uint32_t ref_timestamp)
 {
 	if (param == NULL)
 		return;
 
-	fprintf(file, "%s", param_mask_color(param));
+	if(ref_timestamp && ref_timestamp > *param->timestamp){
+		fprintf(file, "\033[90m");
+	} else {
+		fprintf(file, "%s", param_mask_color(param));
+	}
 
 	/* Node/ID */
 	if (verbose >= 1) {
@@ -396,9 +400,9 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 
 }
 
-void param_print(param_t * param, int offset, int nodes[], int nodes_count, int verbose) {
+void param_print(param_t * param, int offset, int nodes[], int nodes_count, int verbose, uint32_t ref_timestamp) {
 
-	param_print_file(stdout, param, offset, nodes, nodes_count, verbose);
+	param_print_file(stdout, param, offset, nodes, nodes_count, verbose, ref_timestamp);
 }
 
 uint32_t param_maskstr_to_mask(char * str) {

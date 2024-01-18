@@ -13,6 +13,7 @@
 #include <param/param.h>
 #include <csp/csp.h>
 #include <csp/arch/csp_time.h>
+#include <csp/csp_hooks.h>
 #include <sys/types.h>
 #include <param/param_list.h>
 #include <param/param_server.h>
@@ -27,8 +28,11 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 	//printf("From %d\n", from);
 
 	param_queue_t queue;
+	csp_timestamp_t time_now;
+	csp_clock_get_time(&time_now);
 	param_queue_init(&queue, &response->data[2], response->length - 2, response->length - 2, PARAM_QUEUE_TYPE_SET, version);
 	queue.last_node = response->id.src;
+	queue.last_timestamp = time_now.tv_sec;
 
 	/* Write data to local memory */
 	param_queue_apply(&queue, 0, from);
@@ -51,7 +55,7 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 
 			/* Print the local RAM copy of the remote parameter */
 			if (param) {
-				param_print(param, -1, NULL, 0, 0);
+				param_print(param, -1, NULL, 0, 0, 0);
 			}
 
 		}
@@ -180,7 +184,7 @@ int param_pull_single(param_t *param, int offset, uint8_t prio, int verbose, int
 }
 
 
-int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, uint32_t hwid) {
+int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, uint32_t hwid, bool ack_with_pull) {
 
 	if ((queue == NULL) || (queue->used == 0))
 		return 0;
@@ -196,6 +200,12 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, u
 	}
 
 	packet->data[1] = 0;
+	param_transaction_callback_f cb = NULL;
+
+	if (ack_with_pull) {
+		packet->data[1] = 1;
+		cb = param_transaction_callback_pull;
+	}
 
 	memcpy(&packet->data[2], queue->buffer, queue->used);
 
@@ -212,7 +222,7 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, u
 
 	}
 
-	int result = param_transaction(packet, host, timeout, NULL, verbose, queue->version, NULL);
+	int result = param_transaction(packet, host, timeout, cb, verbose, queue->version, NULL);
 
 	if (result < 0) {
 		printf("push queue error\n");
@@ -220,25 +230,34 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, u
 	}
 	if (verbose) {
 		//printf("  ACK from %d\n", host);
-		param_queue_print(queue);
+		// param_queue_print(queue);
 	}
-	param_queue_apply(queue, 0, host);
+	if(!ack_with_pull){
+		param_queue_apply(queue, 0, host);
+	}
 
 	return 0;
 }
 
-int param_push_single(param_t *param, int offset, void *value, int verbose, int host, int timeout, int version) {
+int param_push_single(param_t *param, int offset, void *value, int verbose, int host, int timeout, int version, bool ack_with_pull) {
 
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
 		return -1;
 
-	if (version == 2) {
+	packet->data[1] = 0;
+	param_transaction_callback_f cb = NULL;
+
+	if (ack_with_pull) {
+		packet->data[1] = 1;
+		cb = param_transaction_callback_pull;
+	}
+
+	if(version == 2) {
 		packet->data[0] = PARAM_PUSH_REQUEST_V2;
 	} else {
 		packet->data[0] = PARAM_PUSH_REQUEST;
 	}
-	packet->data[1] = 0;
 
 	param_queue_t queue;
 	param_queue_init(&queue, &packet->data[2], PARAM_SERVER_MTU - 2, 0, PARAM_QUEUE_TYPE_SET, version);
@@ -246,14 +265,14 @@ int param_push_single(param_t *param, int offset, void *value, int verbose, int 
 
 	packet->length = queue.used + 2;
 	packet->id.pri = CSP_PRIO_HIGH;
-	int result = param_transaction(packet, host, timeout, NULL, verbose, version, NULL);
+	int result = param_transaction(packet, host, timeout, cb, verbose, version, NULL);
 
 	if (result < 0) {
 		return -1;
 	}
 
-	/* If it was a remote parameter, set the value after the ack */
-	if (param->node != 0 && value != NULL)
+	/* If it was a remote parameter, set the value after the ack but not if ack with push which sets param timestamp */
+	if (param->node != 0 && value != NULL && *param->timestamp == 0)
 	{
 		if (offset < 0) {
 			for (int i = 0; i < param->array_size; i++)

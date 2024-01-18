@@ -248,7 +248,7 @@ void param_list_print(uint32_t mask, int node, char * globstr, int verbosity) {
 			continue;
 		}
 
-		param_print(param, -1, NULL, 0, verbosity);
+		param_print(param, -1, NULL, 0, verbosity, 0);
 		
 	}
 }
@@ -545,6 +545,7 @@ static param_heap_t * param_list_alloc(int type, int array_size) {
 	}
 	param_heap->buffer = calloc(param_typesize(type), array_size);
 	if (param_heap->buffer == NULL) {
+		free(param_heap);
 		return NULL;
 	}
 

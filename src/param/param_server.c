@@ -65,6 +65,8 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 	struct param_serve_context ctx;
 	ctx.request = request;
 	ctx.q_response.version = version;
+	/* If packet->data[1] == 1 ack with pull response */
+	int ack_with_pull = request->data[1] == 1 ? 1 : 0;
 
 	if (__allocate(&ctx) < 0) {
 		csp_buffer_free(request);
@@ -81,6 +83,7 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 
 		mpack_reader_t reader;
 		mpack_reader_init_data(&reader, q_request.buffer, q_request.used);
+
 		while(reader.data < reader.end) {
 			int id, node, offset = -1;
 			long unsigned int timestamp = 0;
@@ -89,6 +92,43 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 				node = 0;
 			param_t * param = param_list_find_id(node, id);
 			if (param) {
+				if(ack_with_pull) {
+					/* Move reader forward to skip values as we normally use a get queue */
+					mpack_discard(&reader);
+
+					/* Do not ack queues with duplicate parameters multiple times */
+					mpack_reader_t _reader;
+					mpack_reader_init_data(&_reader, ctx.q_response.buffer, ctx.q_response.used);
+					int found = 0;
+					while(_reader.data < _reader.end) {
+						int _id, _node, _offset = -1;
+						long unsigned int _timestamp = 0;
+						param_deserialize_id(&_reader, &_id, &_node, &_timestamp, &_offset, &ctx.q_response);
+						if (server_addr == _node)
+							_node = 0;
+						param_t * _param = param_list_find_id(_node, _id);
+
+						/* Move reader forward to skip values */
+						mpack_discard(&_reader);
+
+						if(_param == param){
+							found = 1;	
+							break;
+						}
+					}
+
+					if(found){
+						continue;
+					}
+
+					/* If vmem is not flagged to allow ack with pull skip reading values */
+					if(param->vmem && !param->vmem->ack_with_pull) {
+						continue;
+					}
+
+					/* Set offset to -1 to ack with all array values */
+					offset = -1;
+				} 
 				if (__add(&ctx, param, offset) < 0) {
 					csp_buffer_free(request);
 					return;
@@ -151,13 +191,16 @@ static void param_serve_push(csp_packet_t * packet, int send_ack, int version, i
 		return;
 	}
 
-	/* Send ack */
-	packet->data[0] = PARAM_PUSH_RESPONSE;
-	packet->data[1] = PARAM_FLAG_END;
-	packet->length = 2;
-
-	csp_sendto_reply(packet, packet, CSP_O_SAME);
-
+	/* If packet->data[1] == 1 ack with pull request */
+	if (packet->data[1] == 1) {
+		param_serve_pull_request(packet, 0, 2);
+	} else {
+		/* Send ack */
+		packet->data[0] = PARAM_PUSH_RESPONSE;
+		packet->data[1] = PARAM_FLAG_END;
+		packet->length = 2;
+		csp_sendto_reply(packet, packet, CSP_O_SAME);
+	}
 }
 
 
