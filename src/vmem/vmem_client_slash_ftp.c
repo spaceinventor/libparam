@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <csp/csp.h>
+#include <csp/csp_crc32.h>
 #include <csp/arch/csp_time.h>
 #include <string.h>
 #include <stdlib.h>
@@ -257,12 +258,14 @@ static int vmem_client_slash_crc32(struct slash *slash) {
 	unsigned int node = slash_dfl_node;
 	unsigned int timeout = slash_dfl_timeout;
 	unsigned int version = 1;
+	char * file = NULL;
 
-	optparse_t * parser = optparse_new("crc32", "<address> <length base10 or base16>");
+	optparse_t * parser = optparse_new("crc32", "<address> [length base10 or base16]");
 	optparse_add_help(parser);
 	optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
 	optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 1)");
+	optparse_add_string(parser, 'f', "file", "STR", &file, "file to compare crc32 against, length = file size");
 
 	int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
 	if (argi < 0) {
@@ -285,30 +288,75 @@ static int vmem_client_slash_crc32(struct slash *slash) {
 		return SLASH_EUSAGE;
 	}
 
-	/* Expect length */
-	if (++argi >= slash->argc) {
-		printf("missing length\n");
-		optparse_del(parser);
-		return SLASH_EINVAL;
-	}
-
-	uint32_t length = strtoul(slash->argv[argi], &endptr, 10);
-	if (*endptr != '\0') {
-		length = strtoul(slash->argv[argi], &endptr, 16);
-		if (*endptr != '\0') {
-			printf("Failed to parse length in base 10 or base 16\n");
+	FILE * fd = NULL;
+	uint32_t crc_file = 0;
+	uint32_t length = 0;
+	if(file == NULL){
+		/* Expect length */
+		if (++argi >= slash->argc) {
+			printf("missing length\n");
 			optparse_del(parser);
-			return SLASH_EUSAGE;
+			return SLASH_EINVAL;
 		}
+
+		length = strtoul(slash->argv[argi], &endptr, 10);
+		if (*endptr != '\0') {
+			length = strtoul(slash->argv[argi], &endptr, 16);
+			if (*endptr != '\0') {
+				printf("Failed to parse length in base 10 or base 16\n");
+				optparse_del(parser);
+				return SLASH_EUSAGE;
+			}
+		}
+	} else {
+		fd = fopen(file, "r");
+		if(fd == NULL){
+			printf("file %s not found\n", file);
+			optparse_del(parser);
+			return SLASH_EINVAL;
+		}
+
+		struct stat file_stat;
+		stat(file, &file_stat);
+
+		char * data = malloc(file_stat.st_size);
+		if(data == NULL){
+				printf("malloc failed\n");
+				fclose(fd);
+				return SLASH_ENOMEM;
+		}
+
+		unsigned int size = fread(data, 1, file_stat.st_size, fd);
+		if(size != file_stat.st_size){
+			printf("Read file failed\n");
+			fclose(fd);
+			return SLASH_EINVAL;
+		}
+		fclose(fd);
+		length = size;
+		crc_file = csp_crc32_memory((uint8_t*)data, length);
+		printf("  File CRC32: 0x%08"PRIX32"\n", crc_file);
 	}
 
-	optparse_del(parser);
 
-	printf("Calculate CRC32 from %u addr 0x%"PRIX64" with timeout %u, version %u\n", node, address, timeout, version);
+	printf("  Calculate CRC32 from %u addr 0x%"PRIX64" with timeout %u, version %u\n", node, address, timeout, version);
 
 	uint32_t crc;
 	int res = vmem_client_calc_crc32(node, timeout, address, length, &crc, version);
 
+	if(file){
+		if (crc_file == crc) {
+			printf("\033[32m\n");
+			printf("  Success\n");
+			printf("\033[0m\n");
+		} else {
+			printf("\033[31m\n");
+			printf("  Failure: %"PRIX32" != %"PRIX32"\n", crc, crc_file);
+			printf("\033[0m\n");
+		}
+	}
+
+	optparse_del(parser);
 	if (res) {
 		if (res == -1) {
 			return SLASH_ENOMEM;
