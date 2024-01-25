@@ -63,9 +63,9 @@ void param_value_str(param_t *param, unsigned int i, char * out, int len)
 	case PARAM_TYPE_DOUBLE: {
 		double val = param_get_double_array(param, i);
 		if ((fabs(val) < 0.00001) && (val != 0)) {
-			snprintf(out, len, "%e", val);
+			snprintf(out, len, "%.15e", val);
 		} else {
-			snprintf(out, len, "%f", val);
+			snprintf(out, len, "%.15f", val);
 		}
 		break;
 	}
@@ -134,7 +134,7 @@ int param_str_to_value(param_type_e type, char *in, void *out) {
 		for (int i = 0; i < strlen(in); i++) { \
 			if (in[i] == ',') in[i] = '.'; \
 			if (in[i] == '.') numdots++; \
-	    	if (!isdigit(in[i]) && in[i] != '-' && in[i] != '+' && in[i] != '.') return -1; \
+	    	if (!isdigit(in[i]) && in[i] != '-' && in[i] != '+' && in[i] != '.' && in[i] != 'e' && in[i] != 'E') return -1; \
 		} \
 		if (numdots > 1) return -1; \
 		cast obj; \
