@@ -69,6 +69,8 @@ typedef enum {
  * Lower 16 is parameter system, upper 16 are user flags  */
 #define PM_PARAM_FLAGS        0x0000FFFF //! Lower 16-bits are reserved for parameter system and major class flags
 #define PM_USER_FLAGS         0xFFFF0000 //! Upper 16-bits are reserved for user
+#define PM_USER_FLAGS_OFFSET  16         //! Upper 16-bits are reserved for user
+
 
 /**
  * Used defined parameter mask
