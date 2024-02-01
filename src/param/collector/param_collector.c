@@ -36,7 +36,7 @@ void param_collector_loop(void * param) {
 
 			param_collector_config[i].last_time = csp_get_ms();
 
-			param_pull_all(param_get_uint8(&col_verbose), param_collector_config[i].node, param_collector_config[i].mask, 0, 1000, 2);
+			param_pull_all(CSP_PRIO_NORM, param_get_uint8(&col_verbose), param_collector_config[i].node, param_collector_config[i].mask, 0, 1000, 2);
 		}
 
 	}
