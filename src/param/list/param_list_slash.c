@@ -136,6 +136,7 @@ static int list_add(struct slash *slash)
     char * helpstr = NULL;
     char * unitstr = NULL;
     char * maskstr = NULL;
+    char * umaskstr = NULL;
 
     optparse_t * parser = optparse_new("list add", "<name> <id> <type>");
     optparse_add_help(parser);
@@ -144,6 +145,7 @@ static int list_add(struct slash *slash)
     optparse_add_string(parser, 'c', "comment", "STRING", (char **) &helpstr, "help text");
     optparse_add_string(parser, 'u', "unit", "STRING", (char **) &unitstr, "unit text");
 	optparse_add_string(parser, 'm', "emask", "STRING", &maskstr, "mask (param letters)");
+	optparse_add_string(parser, 'M', "umask", "STRING", &umaskstr, "user mask (param letters)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
 
