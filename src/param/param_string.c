@@ -121,7 +121,7 @@ int param_str_to_value(param_type_e type, char *in, void *out) {
 #define PARAM_SCANFX(casename, strtype, cast, name) \
 	case casename: { \
 	    if (in[0] != '0' || in[1] != 'x' || strlen(in) < 3) return -1; \
-	    for (int i = 2; i < strlen(in); i++) if (!isdigit(in[i])) return -1; \
+	    for (int i = 2; i < strlen(in); i++) if (!isxdigit(in[i])) return -1; \
 		cast obj; \
 		sscanf(in, strtype, &obj); \
 		*(cast *) out = (cast) obj; \
