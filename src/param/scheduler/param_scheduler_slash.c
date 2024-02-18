@@ -22,7 +22,7 @@
 #include <param/param_server.h>
 #include <param/param_queue.h>
 
-//#include "param_scheduler.h"
+#include <sc/sc_client.h>
 #include "param_scheduler_client.h"
 #include "../param_slash.h"
 
@@ -32,6 +32,7 @@ static int cmd_schedule_push(struct slash *slash) {
 	unsigned int server = slash_dfl_node;
 	unsigned int host = slash_dfl_node;
 	unsigned int latency_buffer = 0;
+	unsigned int version = 1;
 
     optparse_t * parser = optparse_new("schedule push", "<time>");
     optparse_add_help(parser);
@@ -39,6 +40,7 @@ static int cmd_schedule_push(struct slash *slash) {
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 	optparse_add_unsigned(parser, 'H', "host", "NUM", 0, &server, "host to receive push queue (default = queue host))");
 	optparse_add_unsigned(parser, 'l', "latency", "NUM", 0, &latency_buffer, "max latency, 0 to disable (default = 0))");
+	optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "command server version (default = 1))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -53,10 +55,18 @@ static int cmd_schedule_push(struct slash *slash) {
 	}
 	unsigned int time = atoi(slash->argv[argi]);
 
-	if (param_schedule_push(&param_queue, 1, server, host, time, latency_buffer, timeout) < 0) {
-		printf("No response\n");
-        optparse_del(parser);
-		return SLASH_EIO;
+	if (version == 1) {
+		if (param_schedule_push(&param_queue, 1, server, host, time, latency_buffer, timeout) < 0) {
+			printf("No response\n");
+			optparse_del(parser);
+			return SLASH_EIO;
+		}
+	} else {
+		if (sc_sch_push_client(&param_queue, time, latency_buffer, server, timeout) < 0) {
+			printf("No response\n");
+			optparse_del(parser);
+			return SLASH_EIO;
+		}
 	}
 
 	optparse_del(parser);
@@ -218,6 +228,7 @@ static int cmd_schedule_command(struct slash *slash) {
 	unsigned int server = slash_dfl_node;
 	unsigned int host = slash_dfl_node;
 	unsigned int latency_buffer = 0;
+	unsigned int version = 1;
 
     optparse_t * parser = optparse_new("schedule cmd", "<name> <time>");
     optparse_add_help(parser);
@@ -225,6 +236,7 @@ static int cmd_schedule_command(struct slash *slash) {
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 	optparse_add_unsigned(parser, 'H', "host", "NUM", 0, &server, "host to receive push queue (default = queue host))");
 	optparse_add_unsigned(parser, 'l', "latency", "NUM", 0, &latency_buffer, "max latency, 0 to disable (default = 0))");
+	optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "command server version (default = 1))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -252,10 +264,25 @@ static int cmd_schedule_command(struct slash *slash) {
 	}
 	unsigned int time = atoi(slash->argv[argi]);
 
-	if (param_schedule_command(1, server, name, host, time, latency_buffer, timeout) < 0) {
-		printf("No response\n");
-        optparse_del(parser);
-		return SLASH_EIO;
+	if (version == 1) {
+		if (param_schedule_command(1, server, name, host, time, latency_buffer, timeout) < 0) {
+			printf("No response\n");
+			optparse_del(parser);
+			return SLASH_EIO;
+		}
+	} else {
+		char * endptr = NULL;
+		param_hash_t hash = strtoul(name, &endptr, 16);
+		if (*endptr != '\0') {
+			printf("Failed to parse address\n");
+			optparse_del(parser);
+			return SLASH_EUSAGE;
+		}
+		if (sc_sch_cmd_client(hash, time, latency_buffer, server, timeout) < 0) {
+			printf("No response\n");
+			optparse_del(parser);
+			return SLASH_EIO;
+		}
 	}
 
 	optparse_del(parser);

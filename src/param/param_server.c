@@ -17,6 +17,8 @@
 #include <param/param_scheduler.h>
 #include <param/param_commands.h>
 
+#include "sc/sc_server.h"
+
 struct param_serve_context {
 	csp_packet_t * request;
 	csp_packet_t * response;
@@ -317,6 +319,34 @@ void param_serve(csp_packet_t * packet) {
 			break;
 		
 #endif
+
+		case PARAM_COMMAND_UPLOAD_REQUEST_V2:
+			sc_cmd_upload(packet);
+			break;
+		
+		case PARAM_COMMAND_EXECUTE_REQUEST_V2:
+			sc_cmd_execute(packet);
+			break;
+		
+		case PARAM_COMMAND_LIST_REQUEST_V2:
+			sc_cmd_list(packet);
+			break;
+		
+		case PARAM_COMMAND_DOWNLOAD_REQUEST_V2:
+			sc_cmd_download(packet);
+			break;
+		
+		case PARAM_COMMAND_REMOVE_REQUEST_V2:
+			sc_remove(packet);
+			break;
+		
+		case PARAM_SCHEDULE_PUSH_REQUEST_V2:
+			sc_sch_push(packet);
+			break;
+		
+		case PARAM_SCHEDULE_COMMAND_REQUEST_V2:
+			sc_sch_command(packet);
+			break;
 
 		default:
 			printf("Unknown parameter request\n");

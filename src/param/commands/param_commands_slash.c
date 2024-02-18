@@ -23,6 +23,7 @@
 #include <param/param_server.h>
 #include <param/param_queue.h>
 
+#include <sc/sc_client.h>
 #include "param_commands_client.h"
 #include "../param_slash.h"
 
@@ -31,11 +32,13 @@ static int cmd_server_upload(struct slash *slash) {
 
 	unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;
+	unsigned int version = 1;
 
     optparse_t * parser = optparse_new("cmd server upload", "<name>");
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
+	optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "command server version (default = 1))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -44,18 +47,28 @@ static int cmd_server_upload(struct slash *slash) {
     }
 
 
+	char *name = NULL;
 	if (++argi >= slash->argc) {
-		printf("Must specify <name>\n");
-        optparse_del(parser);
-		return SLASH_EINVAL;
+		name = param_queue.name;
+	} else {
+		name = slash->argv[argi];
 	}
 
-	char *name = slash->argv[argi];
+	if (version == 1) {
 
-	if (param_command_push(&param_queue, 1, server, name, timeout) < 0) {
-		printf("No response\n");
-        optparse_del(parser);
-		return SLASH_EIO;
+		if (param_command_push(&param_queue, 1, server, name, timeout) < 0) {
+			printf("No response\n");
+			optparse_del(parser);
+			return SLASH_EIO;
+		}
+	} else {
+
+		if (sc_cmd_upload_client(&param_queue, server, timeout)) {
+			printf("No response\n");
+			optparse_del(parser);
+			return SLASH_EIO;
+		}
+		param_queue.type = PARAM_QUEUE_TYPE_EMPTY;
 	}
 
     optparse_del(parser);
@@ -67,11 +80,13 @@ static int cmd_server_download(struct slash *slash) {
 
 	unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;
+	unsigned int version = 1;
 
     optparse_t * parser = optparse_new("cmd server download", "<name>");
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
+	optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "command server version (default = 1))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -88,10 +103,22 @@ static int cmd_server_download(struct slash *slash) {
 
 	char *name = slash->argv[argi];
 
-	if (param_command_download(server, 1, name, timeout) < 0) {
-		printf("No response\n");
-        optparse_del(parser);
-		return SLASH_EIO;
+	if (version == 1) {
+		if (param_command_download(server, 1, name, timeout) < 0) {
+			printf("No response\n");
+			optparse_del(parser);
+			return SLASH_EIO;
+		}
+	} else {
+		char * endptr;
+		param_hash_t hash = strtoul(name, &endptr, 16);
+		if (*endptr != '\0') {
+			printf("Failed to parse address\n");
+			optparse_del(parser);
+			return SLASH_EUSAGE;
+		}
+
+		sc_cmd_download_client(hash, server, timeout);
 	}
 
     optparse_del(parser);
@@ -101,13 +128,15 @@ slash_command_subsub(cmd, server, download, cmd_server_download, "<name>", NULL)
 
 static int cmd_server_list(struct slash *slash) {
 
-unsigned int timeout = slash_dfl_timeout;
+	unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;
+	unsigned int version = 1;
 
     optparse_t * parser = optparse_new("cmd server list", NULL);
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
+	optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "command server version (default = 1))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -115,10 +144,14 @@ unsigned int timeout = slash_dfl_timeout;
 	    return SLASH_EINVAL;
     }
 
-	if (param_command_list(server, 1, timeout) < 0) {
-		printf("No response\n");
-        optparse_del(parser);
-		return SLASH_EIO;
+	if (version == 1) {
+		if (param_command_list(server, 1, timeout) < 0) {
+			printf("No response\n");
+			optparse_del(parser);
+			return SLASH_EIO;
+		}
+	} else {
+		sc_cmd_list_client(server, timeout);
 	}
 
     optparse_del(parser);
@@ -130,6 +163,7 @@ static int cmd_server_rm(struct slash *slash) {
 
 	unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;
+	unsigned int version = 1;
 	int rm_all = 0;
 
     optparse_t * parser = optparse_new("cmd server download", "<name>");
@@ -137,6 +171,7 @@ static int cmd_server_rm(struct slash *slash) {
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
 	optparse_add_set(parser, 'a', "all", 1, &rm_all, "delete all");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
+	optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "command server version (default = 1))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -144,8 +179,7 @@ static int cmd_server_rm(struct slash *slash) {
 	    return SLASH_EINVAL;
     }
 
-
-	if (++argi >= slash->argc) {
+	if (++argi >= slash->argc && rm_all == 0) {
 		printf("Must specify <name>\n");
         optparse_del(parser);
 		return SLASH_EINVAL;
@@ -153,14 +187,30 @@ static int cmd_server_rm(struct slash *slash) {
 
 	char *name = slash->argv[argi];
 
-	if (rm_all == 1) {
+	if (version == 1 && rm_all == 1) {
 		if (param_command_rm_all(server, 1, name, timeout) < 0) {
 			printf("No response\n");
             optparse_del(parser);
 			return SLASH_EIO;
 		}
-	} else if (rm_all == 0) {
+	} else if (version == 1) {
 		if (param_command_rm(server, 1, name, timeout) < 0) {
+			printf("No response\n");
+            optparse_del(parser);
+			return SLASH_EIO;
+		}
+	} else {
+		param_hash_t hash = 0;
+		if (rm_all == 0) { 
+			char * endptr = NULL;
+			hash = strtoul(name, &endptr, 16);
+			if (*endptr != '\0') {
+				printf("Failed to parse address\n");
+				optparse_del(parser);
+				return SLASH_EUSAGE;
+			}
+		}
+		if (sc_cmd_remove_client(hash, server, timeout) < 0) {
 			printf("No response\n");
             optparse_del(parser);
 			return SLASH_EIO;
