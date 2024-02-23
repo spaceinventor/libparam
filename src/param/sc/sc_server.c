@@ -15,9 +15,9 @@
 #define MS_TO_NS (uint64_t)1000000
 #define OLD_TIMESTAMP (uint64_t)1000000000000000000
 
-VMEM_DEFINE_FILE(sc_cmd_hash, "sc_ch", "sc_cmd.cnf", SC_CMD_NUM_ELEMENTS);
+VMEM_DEFINE_FILE(sc_cmd_hash, "sc_ch", "sc_cmd.cnf", sizeof(param_hash_t)*SC_CMD_NUM_ELEMENTS);
 VMEM_DEFINE_FILE(sc_cmd_store, "sc_cs", "sc_cmd_store.cnf", SC_CMD_NUM_ELEMENTS/sizeof(param_hash_t)*SC_CMD_BLOCK_SIZE);
-VMEM_DEFINE_FILE(sc_sch_hash, "sc_sh", "sc_sch.cnf", SC_SCH_NUM_ELEMENTS);
+VMEM_DEFINE_FILE(sc_sch_hash, "sc_sh", "sc_sch.cnf", sizeof(param_hash_t)*SC_SCH_NUM_ELEMENTS);
 VMEM_DEFINE_FILE(sc_sch_store, "sc_ss", "sc_sch_store.cnf", SC_SCH_NUM_ELEMENTS/sizeof(param_hash_t)*SC_SCH_BLOCK_SIZE);
 
 typedef void (*param_transaction_callback_f)(csp_packet_t *response, int verbose, int version, void * context);
