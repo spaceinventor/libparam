@@ -15,7 +15,14 @@ if get_option('have_float') == false
 endif
 
 if get_option('have_fopen') == true
-	conf.set('MPACK_STDIO', 1)
+	if get_option('list_dynamic') == true
+		conf.set('MPACK_STDIO', 1)
+	else
+		warning('*********')
+		warning('Enabling \'have_fopen\' without also enabling \'list_dynamic\' causes mpack related build failures, setting MPACK_STDIO=0')
+		warning('*********')
+		conf.set('MPACK_STDIO', 0)
+	endif
 endif
 
 libparam_h = configure_file(output: 'libparam.h', configuration: conf)
@@ -57,6 +64,7 @@ param_src = files([
 if get_option('have_fopen') == true
 	param_src += files([
 		'src/vmem/vmem_file.c',
+		'src/vmem/vmem_mmap.c',
 		#'src/param/list/param_list_store_vmem.c',
 	])
 endif
