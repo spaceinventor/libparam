@@ -11,7 +11,6 @@ typedef struct {
 	char * filename;
 } vmem_mmap_driver_t;
 
-void vmem_mmap_init(vmem_t * vmem);
 void vmem_mmap_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len);
 void vmem_mmap_write(vmem_t * vmem, uint32_t addr, const void * datain, uint32_t len);
 
@@ -34,6 +33,7 @@ void vmem_mmap_write(vmem_t * vmem, uint32_t addr, const void * datain, uint32_t
 		.ack_with_pull = 1, \
 	};
 
+/// Helper macro to help reference the vmem_t variable created behind the scene by the VMEM_DEFINE_MMAP macro above
 #define VMEM_MMAP_VAR(name_in) vmem_mmap_##name_in
 
 #ifdef __cplusplus
