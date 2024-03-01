@@ -473,6 +473,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 
 typedef struct param_heap_s {
 	param_t param;
+	vmem_t vmem;
 	union {
 		uint64_t alignme;
 		uint8_t *buffer;
@@ -527,6 +528,7 @@ static void param_list_destroy_impl(param_t * param) {
 
 typedef struct param_heap_s {
 	param_t param;
+	vmem_t vmem;
 	union {
 		uint64_t alignme;
 		uint8_t *buffer;
@@ -579,7 +581,7 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 		return NULL;
 	}
 
-	param->vmem = NULL;
+	param->vmem = &param_heap->vmem;
 	param->callback = NULL;
 	param->name = param_heap->name;
 	param->addr = param_heap->buffer;
@@ -594,6 +596,18 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	param->array_size = array_size;
 	param->array_step = param_typesize(type);
 
+	param->vmem->ack_with_pull = false;
+	param->vmem->driver = NULL;
+	param->vmem->name = "REMOTE";
+	param->vmem->read = NULL;
+	param->vmem->size = array_size*param_typesize(type);
+	param->vmem->type = storage_type;
+	param->vmem->vaddr = NULL;
+	param->vmem->backup = NULL;
+	param->vmem->big_endian = false;
+	param->vmem->restore = NULL;
+	param->vmem->write = NULL;
+	
 	strlcpy(param->name, name, 36);
 	if (unit) {
 		strlcpy(param->unit, unit, 10);
