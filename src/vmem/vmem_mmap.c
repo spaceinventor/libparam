@@ -18,6 +18,7 @@ static void ensure_init(vmem_mmap_driver_t *drv, uint32_t size)
 		}
 		ftruncate(fd, size);
 		drv->physaddr = mmap(0, size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+		close(fd);
 		if (drv->physaddr == MAP_FAILED)
 		{
 			perror("mmap");
@@ -37,8 +38,14 @@ void vmem_mmap_write(vmem_t *vmem, uint32_t addr, const void *datain, uint32_t l
 {
 	vmem_mmap_driver_t *drv = (vmem_mmap_driver_t *)vmem->driver;
 	ensure_init(drv, vmem->size);
+	if ((addr + len) >  vmem->size) {
+		// Grow the file...
+		if (msync(drv->physaddr, vmem->size, MS_SYNC|MS_INVALIDATE) == -1) {
+			perror("Could not sync the file to disk");
+		}
+		vmem->size += 4096 * 1000;
+		drv->physaddr = 0;
+		ensure_init(drv, vmem->size);
+	}
 	memcpy(drv->physaddr + addr, datain, len);
- 	if (msync(drv->physaddr, vmem->size, MS_SYNC|MS_INVALIDATE) == -1) {
-        perror("Could not sync the file to disk");
-    }
 }
