@@ -525,6 +525,15 @@ static void param_list_destroy_impl(param_t * param) {
 
 #ifdef PARAM_LIST_DYNAMIC
 
+void param_list_clear() {
+
+	while (!SLIST_EMPTY(&param_list_head)) {
+		struct param_s *param = SLIST_FIRST(&param_list_head);
+		SLIST_REMOVE_HEAD(&param_list_head, next);
+		param_list_destroy(param);
+	}
+}
+
 typedef struct param_heap_s {
 	param_t param;
 	union {
