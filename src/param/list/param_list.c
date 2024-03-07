@@ -127,9 +127,15 @@ int param_list_add(param_t * item) {
 			param->array_size = item->array_size;
 			param->array_step = item->array_step;
 
-			strcpy(param->name, item->name);
-			strcpy(param->unit, item->unit);
-			strcpy(param->docstr, item->docstr);
+			if(param->name && item->name){
+				strcpy(param->name, item->name);
+			}
+			if(param->unit && item->unit){
+				strcpy(param->unit, item->unit);
+			}
+			if(param->docstr && item->docstr){
+				strcpy(param->docstr, item->docstr);
+			}
 		}
 
 		return 1;
