@@ -117,8 +117,11 @@ int param_list_add(param_t * item) {
 	param_t * param;
 	if ((param = param_list_find_id(item->node, item->id)) != NULL) {
 
-		/* To protect against updating local static params */
-		if (!param_is_static(param)) {
+		/* To protect against updating local static params and ROM remote params
+		   When creating remote dynamic params using the macro
+		   strings are readonly. This can be recognized by checking if
+		   the VMEM pointer is set */
+		if (!param_is_static(param) && param->vmem != NULL) {
 			param->mask = item->mask;
 			param->type = item->type;
 			param->array_size = item->array_size;
