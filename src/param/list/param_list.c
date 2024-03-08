@@ -121,7 +121,7 @@ int param_list_add(param_t * item) {
 		   When creating remote dynamic params using the macro
 		   strings are readonly. This can be recognized by checking if
 		   the VMEM pointer is set */
-		if (!param_is_static(param) && param->vmem != NULL) {
+		if (!param_is_static(param) && param->vmem != NULL && param != item) {
 			param->mask = item->mask;
 			param->type = item->type;
 			param->array_size = item->array_size;
