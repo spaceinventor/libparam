@@ -10,7 +10,7 @@
 		if (i > (unsigned int) param->array_size) { \
 			return 0; \
 		} \
-		if (param->vmem) { \
+		if (param->vmem && param->vmem->read) { \
 			_type data = 0; \
 			param->vmem->read(param->vmem, (uint32_t) (intptr_t) param->addr + i * param->array_step, &data, sizeof(data)); \
 			if (param->vmem->big_endian == 1) { \
@@ -72,7 +72,7 @@ void param_get(param_t * param, unsigned int offset, void * value) {
 
 void param_get_data(param_t * param, void * outbuf, int len)
 {
-	if (param->vmem) {
+	if (param->vmem && param->vmem->read) {
 		param->vmem->read(param->vmem, (uint32_t) (intptr_t) param->addr, outbuf, len);
 	} else {
 		memcpy(outbuf, param->addr, len);
@@ -88,7 +88,7 @@ void param_get_data(param_t * param, void * outbuf, int len)
 		if (i > (unsigned int) param->array_size) { \
 			return; \
 		} \
-		if (param->vmem) { \
+		if (param->vmem && param->vmem->write) { \
 			if (param->vmem->big_endian == 1) \
 				value = _swapfct(value); \
 			param->vmem->write(param->vmem, (uint32_t) (intptr_t) param->addr + i * param->array_step, &value, sizeof(_type)); \
@@ -167,7 +167,7 @@ void param_set(param_t * param, unsigned int offset, void * value) {
 void param_set_string(param_t * param, const char * inbuf, int len) {
 	param_set_data_nocallback(param, inbuf, len);
 	/* Termination */
-	if (param->vmem) {
+	if (param->vmem && param->vmem->write) {
 		param->vmem->write(param->vmem, (uint32_t) (intptr_t) param->addr + len, "", 1);
 	} else {
 		memcpy(param->addr + len , "", 1);
@@ -179,7 +179,7 @@ void param_set_string(param_t * param, const char * inbuf, int len) {
 }
 
 void param_set_data_nocallback(param_t * param, const void * inbuf, int len) {
-	if (param->vmem) {
+	if (param->vmem && param->vmem->write) {
 		param->vmem->write(param->vmem, (uint32_t) (intptr_t) param->addr, inbuf, len);
 	} else {
 		memcpy(param->addr, inbuf, len);

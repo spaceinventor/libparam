@@ -117,16 +117,25 @@ int param_list_add(param_t * item) {
 	param_t * param;
 	if ((param = param_list_find_id(item->node, item->id)) != NULL) {
 
-		/* To protect against updating local static params */
-		if (!param_is_static(param)) {
+		/* To protect against updating local static params and ROM remote params
+		   When creating remote dynamic params using the macro
+		   strings are readonly. This can be recognized by checking if
+		   the VMEM pointer is set */
+		if (!param_is_static(param) && param->vmem != NULL && param != item) {
 			param->mask = item->mask;
 			param->type = item->type;
 			param->array_size = item->array_size;
 			param->array_step = item->array_step;
 
-			strcpy(param->name, item->name);
-			strcpy(param->unit, item->unit);
-			strcpy(param->docstr, item->docstr);
+			if(param->name && item->name){
+				strcpy(param->name, item->name);
+			}
+			if(param->unit && item->unit){
+				strcpy(param->unit, item->unit);
+			}
+			if(param->docstr && item->docstr){
+				strcpy(param->docstr, item->docstr);
+			}
 		}
 
 		return 1;
@@ -473,6 +482,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 
 typedef struct param_heap_s {
 	param_t param;
+	vmem_t vmem;
 	union {
 		uint64_t alignme;
 		uint8_t *buffer;
@@ -527,6 +537,7 @@ static void param_list_destroy_impl(param_t * param) {
 
 typedef struct param_heap_s {
 	param_t param;
+	vmem_t vmem;
 	union {
 		uint64_t alignme;
 		uint8_t *buffer;
@@ -579,7 +590,7 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 		return NULL;
 	}
 
-	param->vmem = NULL;
+	param->vmem = &param_heap->vmem;
 	param->callback = NULL;
 	param->name = param_heap->name;
 	param->addr = param_heap->buffer;
@@ -594,6 +605,18 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	param->array_size = array_size;
 	param->array_step = param_typesize(type);
 
+	param->vmem->ack_with_pull = false;
+	param->vmem->driver = NULL;
+	param->vmem->name = "REMOTE";
+	param->vmem->read = NULL;
+	param->vmem->size = array_size*param_typesize(type);
+	param->vmem->type = storage_type;
+	param->vmem->vaddr = NULL;
+	param->vmem->backup = NULL;
+	param->vmem->big_endian = false;
+	param->vmem->restore = NULL;
+	param->vmem->write = NULL;
+	
 	strlcpy(param->name, name, 36);
 	if (unit) {
 		strlcpy(param->unit, unit, 10);
