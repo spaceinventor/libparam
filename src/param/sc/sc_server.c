@@ -29,6 +29,8 @@ typedef enum {
     SCH_STATUS_FAILED = 2,
     SCH_STATUS_OVERDUE = 3,
     SCH_STATUS_CORRUPTED = 4,
+    SCH_STATUS_MISSING_CMD = 5,
+    SCH_STATUS_CORRUPTED_CMD = 6,
 } sch_status_e;
 typedef uint8_t sch_status_t;
 
@@ -85,25 +87,6 @@ static int32_t find_free_slot(sc_type_t sc_type) {
     return find_addr(0, sc_type);
 }
 
-static bool verify_hash(param_queue_t* queue, uint32_t addr, param_hash_t hash) {
-
-    uint8_t queue_buffer[SC_CMD_BLOCK_SIZE-sizeof(queue)];
-    queue->buffer = NULL;
-    vmem_memcpy(queue_buffer, vmem_sc_cmd_store.vaddr + addr*SC_CMD_BLOCK_SIZE+sizeof(*queue), queue->used);
-
-    csp_crc32_t calc_cmd_hash;
-    csp_crc32_init(&calc_cmd_hash);
-    csp_crc32_update(&calc_cmd_hash, queue, sizeof(*queue));
-    csp_crc32_update(&calc_cmd_hash, queue_buffer, queue->used);
-    calc_cmd_hash = csp_crc32_final(&calc_cmd_hash);
-
-    if (calc_cmd_hash != hash) {
-        printf("Command number %u is obstructed (0x%X vs 0x%X)\n", addr, hash, calc_cmd_hash);
-        return false;
-    }
-    return true;
-}
-
 static param_hash_t calc_cmd_hash(param_queue_t* queue, char* buffer) {
 
     queue->buffer = NULL;
@@ -114,13 +97,38 @@ static param_hash_t calc_cmd_hash(param_queue_t* queue, char* buffer) {
     return csp_crc32_final(&crc_obj);
 }
 
+static bool verify_cmd_hash(param_queue_t* queue, uint32_t addr, param_hash_t hash) {
+
+    char queue_buffer[SC_CMD_BLOCK_SIZE-sizeof(queue)];
+    queue->buffer = NULL;
+    vmem_memcpy(queue_buffer, vmem_sc_cmd_store.vaddr + addr*SC_CMD_BLOCK_SIZE+sizeof(*queue), queue->used);
+
+    csp_crc32_t calc_hash = calc_cmd_hash(queue, queue_buffer);
+
+    if (calc_hash != hash) {
+        printf("Command number %u is obstructed (0x%X vs 0x%X)\n", addr, hash, calc_hash);
+        return false;
+    }
+    return true;
+}
+
 static param_hash_t calc_sch_hash(param_sch_element_t* elm) {
 
     csp_crc32_t crc_obj;
     csp_crc32_init(&crc_obj);
-    csp_crc32_update(&crc_obj, &elm->cmd_hash, sizeof(elm->cmd_hash));
-    csp_crc32_update(&crc_obj, &elm->timestamp, sizeof(elm->timestamp));
+    csp_crc32_update(&crc_obj, elm, offsetof(param_sch_element_t, retries));
     return csp_crc32_final(&crc_obj);
+}
+
+static bool verify_sch_hash(param_sch_element_t* elm, uint32_t addr, param_hash_t hash) {
+
+    csp_crc32_t calc_hash = calc_sch_hash(elm);
+
+    if (calc_hash != hash) {
+        printf("Schedule number %u is obstructed (0x%X vs 0x%X)\n", addr, hash, calc_hash);
+        return false;
+    }
+    return true;
 }
 
 static int sc_forward(param_queue_t * queue) {
@@ -180,7 +188,7 @@ void sc_cmd_upload(csp_packet_t * packet) {
 
             int32_t addr = find_addr(rsp_element->hash, SC_TYPE_CMD);
             if (addr >= 0) {
-                if (verify_hash(&cmd->param_queue, addr, rsp_element->hash)) {
+                if (verify_cmd_hash(&cmd->param_queue, addr, rsp_element->hash)) {
                     printf("Command is already in address %d\n", addr);
                     rsp_element->result = 1;
                 }
@@ -231,7 +239,7 @@ void sc_cmd_execute(csp_packet_t * packet) {
             param_queue_t queue;
             vmem_memcpy(&queue, vmem_sc_cmd_store.vaddr+addr*SC_CMD_BLOCK_SIZE, sizeof(queue));
 
-            rsp_element->result = verify_hash(&queue, addr, hash);
+            rsp_element->result = verify_cmd_hash(&queue, addr, hash);
 
             if (rsp_element->result < 0) {
                 continue;
@@ -267,7 +275,7 @@ void sc_cmd_list(csp_packet_t * packet) {
 
             param_queue_t queue;
             vmem_memcpy(&queue, vmem_sc_cmd_store.vaddr+addr*SC_CMD_BLOCK_SIZE, sizeof(queue));
-            if (!verify_hash(&queue, addr, hash)) {
+            if (!verify_cmd_hash(&queue, addr, hash)) {
                 hash = 0;
                 rsp_element->result = -1;
                 vmem_memcpy(vmem_sc_cmd_hash.vaddr+addr*sizeof(param_hash_t), &hash, sizeof(hash));
@@ -508,7 +516,7 @@ void sc_tick(csp_timestamp_t time_v, uint32_t periodicity_ms) {
 
     uint64_t time = time_v.tv_sec*SEC_TO_NS + time_v.tv_nsec;
 
-    if (next_execution.timestamp < time + periodicity_ms*MS_TO_NS) {
+    while (next_execution.timestamp < time + periodicity_ms*MS_TO_NS) {
 
         /* Find address of schedule element */
         int32_t sch_addr = find_addr(next_execution.hash, SC_TYPE_SCH);
@@ -519,6 +527,15 @@ void sc_tick(csp_timestamp_t time_v, uint32_t periodicity_ms) {
         /* Retrieve schedule element and check if time is exceeded */
         param_sch_element_t elm;
         vmem_memcpy(&elm, vmem_sc_sch_store.vaddr+sch_addr*SC_SCH_BLOCK_SIZE, sizeof(elm));
+
+        /* Check if SCH hash is valid */
+        if (!verify_sch_hash(&elm, sch_addr, next_execution.hash)) {
+            next_execution.hash = 0;
+            vmem_memcpy(vmem_sc_sch_hash.vaddr+sch_addr*sizeof(param_hash_t), &next_execution.hash, sizeof(param_hash_t));
+            goto end;
+        }
+
+        /* Check if we are already too late */
         if (elm.latency_buffer_s > 0 && elm.timestamp + elm.latency_buffer_s * SEC_TO_NS <= time) {
             elm.status = SCH_STATUS_OVERDUE;
             vmem_memcpy(vmem_sc_sch_store.vaddr+sch_addr*SC_SCH_BLOCK_SIZE, &elm, sizeof(elm));
@@ -528,7 +545,7 @@ void sc_tick(csp_timestamp_t time_v, uint32_t periodicity_ms) {
         /* Check if command hash points to a valid command */
         int32_t cmd_addr = find_addr(elm.cmd_hash, SC_TYPE_CMD);
         if (cmd_addr < 0) {
-            elm.status = SCH_STATUS_CORRUPTED;
+            elm.status = SCH_STATUS_MISSING_CMD;
             vmem_memcpy(vmem_sc_sch_store.vaddr+sch_addr*SC_SCH_BLOCK_SIZE, &elm, sizeof(elm));
             goto end;
         }
@@ -536,8 +553,8 @@ void sc_tick(csp_timestamp_t time_v, uint32_t periodicity_ms) {
         /* Verify that command hash is valid */
         param_queue_t queue;
         vmem_memcpy(&queue, vmem_sc_cmd_store.vaddr+cmd_addr*SC_CMD_BLOCK_SIZE, sizeof(queue));
-        if (!verify_hash(&queue, cmd_addr, elm.cmd_hash)) {
-            elm.status = SCH_STATUS_CORRUPTED;
+        if (!verify_cmd_hash(&queue, cmd_addr, elm.cmd_hash)) {
+            elm.status = SCH_STATUS_CORRUPTED_CMD;
             vmem_memcpy(vmem_sc_sch_store.vaddr+sch_addr*SC_SCH_BLOCK_SIZE, &elm, sizeof(elm));
             goto end;
         }
