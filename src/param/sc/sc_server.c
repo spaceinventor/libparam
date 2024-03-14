@@ -172,8 +172,8 @@ void sc_cmd_upload(csp_packet_t * packet) {
 
         csp_crc32_t *crc_obj = &rsp_element->hash;
         csp_crc32_init(crc_obj);
-        csp_crc32_update(crc_obj, &cmd->param_queue, sizeof(cmd->param_queue));
-        csp_crc32_update(crc_obj, cmd->param_buffer, cmd->param_queue.used);
+        csp_crc32_update(crc_obj, (const uint8_t *)&cmd->param_queue, sizeof(cmd->param_queue));
+        csp_crc32_update(crc_obj, (const uint8_t *)cmd->param_buffer, cmd->param_queue.used);
         *crc_obj = csp_crc32_final(crc_obj);
 
         if (cmd->execute) {
@@ -462,7 +462,7 @@ void sc_sch_push(csp_packet_t * packet) {
         param_sc_rsp_t* rsp_element = (param_sc_rsp_t*)&rsp->data[rsp->length];
         rsp->length += sizeof(*rsp_element);
 
-        param_hash_t cmd_hash = calc_cmd_hash(&cmd->param_queue, cmd->param_buffer);
+        param_hash_t cmd_hash = calc_cmd_hash(&cmd->param_queue, (uint8_t *)cmd->param_buffer);
 
         if (find_addr(cmd_hash, SC_TYPE_CMD) < 0) {
             int32_t cmd_addr = find_free_slot(SC_TYPE_CMD);
