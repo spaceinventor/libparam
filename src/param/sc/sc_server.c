@@ -89,18 +89,23 @@ static int32_t find_free_slot(sc_type_t sc_type) {
 
 static param_hash_t calc_cmd_hash(param_queue_t* queue, char* buffer) {
 
+    char *tmp = queue->buffer;
+    // Set to NULL for hash computation as this is an address that may change, while the contents pointed to
+    // by this address (which is what the bufffer parameter points to) does not
     queue->buffer = NULL;
     csp_crc32_t crc_obj;
     csp_crc32_init(&crc_obj);
-    csp_crc32_update(&crc_obj, queue, sizeof(*queue));
-    csp_crc32_update(&crc_obj, buffer, queue->used);
+    csp_crc32_update(&crc_obj, (const uint8_t *)queue, sizeof(*queue));
+    csp_crc32_update(&crc_obj, (const uint8_t *)buffer, queue->used);
+    // Restore the original pointer
+    // This dance basically allows computing the hash of a struct, excluding the "queue->buffer" field
+    queue->buffer = tmp;
     return csp_crc32_final(&crc_obj);
 }
 
 static bool verify_cmd_hash(param_queue_t* queue, uint32_t addr, param_hash_t hash) {
 
     char queue_buffer[SC_CMD_BLOCK_SIZE-sizeof(queue)];
-    queue->buffer = NULL;
     vmem_memcpy(queue_buffer, vmem_sc_cmd_store.vaddr + addr*SC_CMD_BLOCK_SIZE+sizeof(*queue), queue->used);
 
     csp_crc32_t calc_hash = calc_cmd_hash(queue, queue_buffer);
@@ -116,7 +121,7 @@ static param_hash_t calc_sch_hash(param_sch_element_t* elm) {
 
     csp_crc32_t crc_obj;
     csp_crc32_init(&crc_obj);
-    csp_crc32_update(&crc_obj, elm, offsetof(param_sch_element_t, retries));
+    csp_crc32_update(&crc_obj, (const uint8_t *)elm, offsetof(param_sch_element_t, retries));
     return csp_crc32_final(&crc_obj);
 }
 
@@ -462,7 +467,7 @@ void sc_sch_push(csp_packet_t * packet) {
         param_sc_rsp_t* rsp_element = (param_sc_rsp_t*)&rsp->data[rsp->length];
         rsp->length += sizeof(*rsp_element);
 
-        param_hash_t cmd_hash = calc_cmd_hash(&cmd->param_queue, (uint8_t *)cmd->param_buffer);
+        param_hash_t cmd_hash = calc_cmd_hash(&cmd->param_queue, cmd->param_buffer);
 
         if (find_addr(cmd_hash, SC_TYPE_CMD) < 0) {
             int32_t cmd_addr = find_free_slot(SC_TYPE_CMD);
