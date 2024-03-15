@@ -15,6 +15,7 @@
 #define MS_TO_NS (uint64_t)1000000
 #define OLD_TIMESTAMP (uint64_t)1000000000000000000
 
+// TODO: move these into non-OBC code
 VMEM_DEFINE_FILE(sc_cmd_hash, "sc_ch", "sc_cmd.cnf", sizeof(param_hash_t)*SC_CMD_NUM_ELEMENTS);
 VMEM_DEFINE_FILE(sc_cmd_store, "sc_cs", "sc_cmd_store.cnf", SC_CMD_NUM_ELEMENTS/sizeof(param_hash_t)*SC_CMD_BLOCK_SIZE);
 VMEM_DEFINE_FILE(sc_sch_hash, "sc_sh", "sc_sch.cnf", sizeof(param_hash_t)*SC_SCH_NUM_ELEMENTS);
@@ -153,7 +154,6 @@ static int sc_forward(param_queue_t * queue) {
     param_deserialize_id(&reader, &id, &node, &timestamp, &offset, queue);
 
     int result = param_transaction(fwd, node, 1000, NULL, 0, 2, NULL);
-    csp_buffer_free(fwd);
 
     return result;
 }
@@ -213,7 +213,6 @@ void sc_cmd_upload(csp_packet_t * packet) {
     }
 
     csp_sendto_reply(packet, rsp, CSP_O_SAME);
-    csp_buffer_free(packet);
 }
 
 void sc_cmd_execute(csp_packet_t * packet) {
@@ -255,7 +254,6 @@ void sc_cmd_execute(csp_packet_t * packet) {
     }
 
     csp_sendto_reply(packet, rsp, CSP_O_SAME);
-    csp_buffer_free(packet);
 }
 
 void sc_cmd_list(csp_packet_t * packet) {
@@ -290,7 +288,6 @@ void sc_cmd_list(csp_packet_t * packet) {
     }
 
     csp_sendto_reply(packet, rsp, CSP_O_SAME);
-    csp_buffer_free(packet);
 }
 
 void sc_cmd_download(csp_packet_t * packet) {
@@ -322,7 +319,6 @@ void sc_cmd_download(csp_packet_t * packet) {
     }
 
     csp_sendto_reply(packet, rsp, CSP_O_SAME);
-    csp_buffer_free(packet);
 }
 
 void sc_remove(csp_packet_t * packet) {
@@ -377,7 +373,6 @@ void sc_remove(csp_packet_t * packet) {
     }    
 
     csp_sendto_reply(packet, rsp, CSP_O_SAME);
-    csp_buffer_free(packet);
 }
 
 sc_execution_t sc_next_execution() {
@@ -486,7 +481,6 @@ void sc_sch_push(csp_packet_t * packet) {
     }    
 
     csp_sendto_reply(packet, rsp, CSP_O_SAME);
-    csp_buffer_free(packet);
 }
 
 void sc_sch_command(csp_packet_t * packet) {
@@ -514,7 +508,6 @@ void sc_sch_command(csp_packet_t * packet) {
     }    
 
     csp_sendto_reply(packet, rsp, CSP_O_SAME);
-    csp_buffer_free(packet);
 }
 
 void sc_tick(csp_timestamp_t time_v, uint32_t periodicity_ms) {
@@ -583,6 +576,7 @@ end:
     }
 }
 
+// TODO: move into non-OBC code
 void sc_init() {
 
 	vmem_file_init(&vmem_sc_cmd_hash);
