@@ -12,7 +12,7 @@
 
 #include <vmem/vmem_client.h>
 
-unsigned int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp)
+int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp)
 {
 	uint32_t time_begin = csp_get_ms();
 
@@ -23,11 +23,11 @@ unsigned int vmem_download(int node, int timeout, uint64_t address, uint32_t len
 	}
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, opts);
 	if (conn == NULL)
-		return 0;
+		return -1;
 
 	csp_packet_t * packet = csp_buffer_get(sizeof(vmem_request_t));
 	if (packet == NULL)
-		return 0;
+		return -1;
 
 	vmem_request_t * request = (void *) packet->data;
 	request->version = version;
@@ -95,18 +95,20 @@ unsigned int vmem_download(int node, int timeout, uint64_t address, uint32_t len
 
 }
 
-void vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version) {
+int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version) {
 
 	uint32_t time_begin = csp_get_ms();
 
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP | CSP_O_CRC32);
-	if (conn == NULL)
-		return;
+	if (conn == NULL) {
+		printf("Connection could not be established\n");
+		return -1;
+	}
 
 	csp_packet_t * packet = csp_buffer_get(sizeof(vmem_request_t));
 	if (packet == NULL)
-		return;
+		return -1;
 
 	vmem_request_t * request = (void *) packet->data;
 	request->version = version;
@@ -156,14 +158,16 @@ void vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_
 
 	uint32_t time_total = csp_get_ms() - time_begin;
 
-	printf("  Uploaded %u bytes in %.03f s at %u Bps\n", (unsigned int) count, time_total / 1000.0, (unsigned int) (count / ((float)time_total / 1000.0)) );
-
 	if(count != length){
 		unsigned int window_size = 0;
 		csp_rdp_get_opt(&window_size, NULL, NULL, NULL, NULL, NULL);
 		printf("Upload didn't complete, suggested offset to resume: %u\n", count - ((window_size + 1) * VMEM_SERVER_MTU));
+		return -1;
+	} else {
+		printf("  Uploaded %u bytes in %.03f s at %u Bps\n", (unsigned int) count, time_total / 1000.0, (unsigned int) (count / ((float)time_total / 1000.0)) );
 	}
 
+	return count;
 }
 
 static csp_packet_t * vmem_client_list_get(int node, int timeout, int version) {
