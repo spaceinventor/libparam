@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <inttypes.h>
+#include <time.h>
 #include <param/param.h>
 #include <csp/csp.h>
 #include <csp/arch/csp_time.h>
@@ -124,14 +125,19 @@ static void param_transaction_callback_show(csp_packet_t *response, int verbose,
 			int time = be32toh(response->data32[1]);
 			//queue.last_node = response->id.src;
 
+			time_t timestamp = (long) time;
+			char timestr[32] ={0};
+			struct tm * sch_datetime = gmtime(&timestamp);
+			strftime(timestr, sizeof(timestr)-1, "%F T%TZ%z", sch_datetime);
+
 			/* Show the requested queue */
 			printf("Showing queue id %u ", id);
 			if (response->data[9] == 0) { // if not completed
-				printf("scheduled at server time: %u\n", time);
+				printf("scheduled at server time: %u (%s)\n", time, timestr);
 			} else if (response->data[9] == 0x55) {
-				printf("completed at server time: %u\n", time);
+				printf("\033[0;32mcompleted at server time: %u (%s)\033[0m\n", time, timestr);
 			} else if (response->data[9] == 0xAA) {
-				printf("exceeded latency buffer at server time: %u\n", time);
+				printf("\033[0;31mexceeded latency buffer at server time: %u (%s)\033[0m\n", time, timestr);
 			}
 
 			param_queue_print(&queue);
@@ -180,17 +186,23 @@ static void param_transaction_callback_list(csp_packet_t *response, int verbose,
 			for (int i = 0; i < num_scheduled; i++) {
 				unsigned int idx = 4+i*(4+2+2);
 				unsigned int time = be32toh(response->data32[idx/4]);
+
+				time_t timestamp = (long) time;
+				char timestr[32] ={0};
+				struct tm * sch_datetime = gmtime(&timestamp);
+				strftime(timestr, sizeof(timestr)-1, "%F T%TZ%z", sch_datetime);
+
 				if (response->data[idx+7] == PARAM_QUEUE_TYPE_SET) {
 					printf("[SET] Queue id %u, ", be16toh(response->data16[idx/2+2]));
 				} /*else {
 					printf("[GET] Queue id %u, ", be16toh(response->data16[idx/2+2]));
 				}*/
 				if (response->data[idx+6] == 0x55) {
-					printf("completed at server time: %u.\n", time);
+					printf("\033[0;32mcompleted at server time: %u (%s)\033[0m\n", time, timestr);
 				} else if (response->data[idx+6] == 0) {
-					printf("scheduled at server time: %u\n", time);
+					printf("scheduled at server time: %u (%s)\n", time, timestr);
 				} else {
-					printf("exceeded latency buffer at server time: %u\n", time);
+					printf("\033[0;31mexceeded latency buffer at server time: %u (%s)\033[0m\n", time, timestr);
 				}
 			}
 		}
