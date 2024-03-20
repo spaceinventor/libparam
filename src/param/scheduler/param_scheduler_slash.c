@@ -170,6 +170,32 @@ static int cmd_schedule_rm(struct slash *slash) {
 }
 slash_command_sub(schedule, rm, cmd_schedule_rm, "<server> <id> [timeout]", NULL);
 
+static int cmd_schedule_clean(struct slash *slash) {
+	unsigned int server = slash_dfl_node;
+	unsigned int timeout = slash_dfl_timeout;
+
+	optparse_t * parser = optparse_new("schedule clean", "[OPTIONS]");
+	optparse_add_help(parser);
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to remove completed schedules from (default = <env>))");
+
+	int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+    if (argi < 0) {
+        optparse_del(parser);
+	    return SLASH_EINVAL;
+    }
+
+	if (param_clean_schedule(server, 1, timeout) < 0) {
+		printf("No response\n");
+	    optparse_del(parser);
+		return SLASH_EIO;
+	}
+
+	optparse_del(parser);
+	return SLASH_SUCCESS;
+}
+slash_command_sub(schedule, clean, cmd_schedule_clean, "[OPTIONS]", NULL);
+
 static int cmd_schedule_reset(struct slash *slash) {
 
     unsigned int server = slash_dfl_node;

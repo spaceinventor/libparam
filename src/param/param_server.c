@@ -282,6 +282,10 @@ void param_serve(csp_packet_t * packet) {
 			param_serve_schedule_rm_all(packet);
 			break;
 
+		case PARAM_SCHEDULE_CLEAN_REQUEST:
+			param_serve_schedule_clean(packet);
+			break;
+
 		case PARAM_SCHEDULE_RESET_REQUEST:
 			param_serve_schedule_reset(packet);
 			break;

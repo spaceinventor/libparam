@@ -105,7 +105,7 @@ static int get_number_of_schedule_objs(vmem_t * vmem) {
 }
 
 /* Remove all completed schedules */
-static void schedule_rm_complete(void) {
+static uint16_t schedule_rm_complete(void) {
     int num_schedules = get_number_of_schedule_objs(&vmem_schedule);
     
     /* Iterate over the number of schedules and erase each completed one */
@@ -125,6 +125,7 @@ static void schedule_rm_complete(void) {
             uncomplete_scheds_found++;
         }
     }
+    return (uint16_t) uncomplete_scheds_found;
 }
 
 static uint16_t schedule_add(csp_packet_t *packet, param_queue_type_e q_type) {
@@ -412,6 +413,28 @@ int param_serve_schedule_rm_all(csp_packet_t *packet) {
 	packet->length = 6;
 
 	csp_sendto_reply(packet, packet, CSP_O_SAME);
+
+    return 0;
+}
+
+int param_serve_schedule_clean(csp_packet_t *packet) {
+    
+    if (si_lock_take(lock, 1000) != 0) {
+        printf("Lock timeout in %s\n", __FUNCTION__);
+        return -1;  /* Failed to retrieve lock */
+    }
+
+    uint16_t num_schedules_removed = schedule_rm_complete();
+
+    si_lock_give(lock);
+
+    /* Returns number of schedules removed */
+    packet->data[0] = PARAM_SCHEDULE_CLEAN_RESPONSE;
+    packet->data[1] = PARAM_FLAG_END;
+    packet->data16[1] = htobe16(num_schedules_removed);
+    packet->length = 4;
+
+    csp_sendto_reply(packet, packet, CSP_O_SAME);
 
     return 0;
 }

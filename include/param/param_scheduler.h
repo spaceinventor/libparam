@@ -43,6 +43,7 @@ int param_serve_schedule_pull(csp_packet_t *packet);
 int param_serve_schedule_show(csp_packet_t *packet);
 int param_serve_schedule_rm_single(csp_packet_t *packet);
 int param_serve_schedule_rm_all(csp_packet_t *packet);
+int param_serve_schedule_clean(csp_packet_t *packet);
 int param_serve_schedule_list(csp_packet_t *packet);
 void param_serve_schedule_reset(csp_packet_t *packet);
 

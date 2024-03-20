@@ -295,6 +295,37 @@ int param_rm_all_schedule(int server, int verbose, int timeout) {
 	return 0;
 }
 
+static void param_transaction_callback_clean(csp_packet_t *response, int verbose, int version) {
+	if (response->data[0] != PARAM_SCHEDULE_CLEAN_RESPONSE) {
+		return;
+	}
+
+	if (verbose) {
+		if ((be16toh(response->data16[1]) >= 0) && (response->length == 4)) {
+			printf("Cleaned %u completed schedules.\n", be16toh(response->data16[1]));
+		}
+	}
+
+	csp_buffer_free(response);
+}
+
+int param_clean_schedule(int server, int verbose, int timeout) {
+	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
+	if (packet == NULL) 
+		return -2;
+	
+	packet->data[0] = htobe(PARAM_SCHEDULE_CLEAN_REQUEST);
+	packet->data[1] = 0;
+	packet->length = 2;
+
+	int result = param_transaction(packet, server, timeout, NULL, verbose, 2, NULL);
+
+	if (result < 0)
+		return -1;
+	
+	return 0;
+}
+
 static void param_transaction_callback_reset(csp_packet_t *response, int verbose, int version) {
 	if (response->data[0] != PARAM_SCHEDULE_RESET_RESPONSE){
         return;
