@@ -4,7 +4,7 @@
 #include <csp/csp_crc32.h>
 #include <csp/csp_hooks.h>
 #include <vmem/vmem_file.h>
-#include <vmem/vmem_nor_flash.h>
+// #include <vmem/vmem_nor_flash.h>
 #include <vmem/vmem_fram.h>
 
 #define SC_CMD_NUM_ELEMENTS 0x80
@@ -128,7 +128,7 @@ static bool verify_cmd_hash(param_queue_t* queue, uint32_t addr, param_hash_t ha
     csp_crc32_t calc_hash = calc_cmd_hash(queue, queue_buffer);
 
     if (calc_hash != hash) {
-        printf("Command number %u is obstructed (0x%X vs 0x%X)\n", addr, hash, calc_hash);
+        printf("Command number %"PRIX32" is obstructed (0x%"PRIX32" vs 0x%"PRIX32")\n", addr, hash, calc_hash);
         return false;
     }
     return true;
@@ -147,7 +147,7 @@ static bool verify_sch_hash(param_sch_element_t* elm, uint32_t addr, param_hash_
     csp_crc32_t calc_hash = calc_sch_hash(elm);
 
     if (calc_hash != hash) {
-        printf("Schedule number %u is obstructed (0x%X vs 0x%X)\n", addr, hash, calc_hash);
+        printf("Schedule number %"PRIX32" is obstructed (0x%"PRIX32" vs 0x%"PRIX32")\n", addr, hash, calc_hash);
         return false;
     }
     return true;
@@ -210,7 +210,7 @@ void sc_cmd_upload(csp_packet_t * packet) {
             int32_t addr = find_addr(rsp_element->hash, SC_TYPE_CMD);
             if (addr >= 0) {
                 if (verify_cmd_hash(&cmd->param_queue, addr, rsp_element->hash)) {
-                    printf("Command is already in address %d\n", addr);
+                    printf("Command is already in address %"PRId32"\n", addr);
                     rsp_element->result = 1;
                 }
             }
@@ -298,7 +298,7 @@ void sc_cmd_list(csp_packet_t * packet) {
                 hash = 0;
                 rsp_element->result = -1;
                 vmem_memcpy(vmem_sc_cmd_hash.vaddr+addr*sizeof(param_hash_t), &hash, sizeof(hash));
-                printf("Found invalid hash in addr %d, resetting\n", addr);
+                printf("Found invalid hash in addr %"PRId32", resetting\n", addr);
             }
         }
     }
@@ -417,7 +417,7 @@ sc_execution_t sc_next_execution() {
         }
     }
 
-    printf("Scheduling 0x%X in %ld sec\n", next.hash, (next.timestamp - time)/SEC_TO_NS);
+    printf("Scheduling 0x%"PRIX32" in %"PRIu64" sec\n", next.hash, (next.timestamp - time)/SEC_TO_NS);
 
     return next;
 }
