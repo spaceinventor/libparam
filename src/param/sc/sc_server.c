@@ -527,6 +527,41 @@ void sc_sch_command(csp_packet_t * packet) {
     csp_sendto_reply(packet, rsp, CSP_O_SAME);
 }
 
+void sc_sch_list(csp_packet_t * packet) {
+
+    csp_packet_t * rsp = csp_buffer_get(0);
+    rsp->data[0] = PARAM_SCHEDULE_LIST_RESPONSE_V2;
+    rsp->data[1] = PARAM_FLAG_END;
+    rsp->length = 2;
+
+    param_hash_t hash = 0;
+    for (int32_t addr = 0; addr < vmem_sc_sch_hash.size/sizeof(param_hash_t); addr++) {
+
+        vmem_memcpy(&hash, vmem_sc_sch_hash.vaddr+addr*sizeof(param_hash_t), sizeof(hash));
+
+        if (hash != 0) {
+
+            param_sch_element_t elm;
+            vmem_memcpy(&elm, vmem_sc_sch_store.vaddr+addr*SC_CMD_BLOCK_SIZE, sizeof(elm));
+
+            // TODO: Verify hash for SCH and CMD element, get inspired from tick function
+
+            param_sch_list_t* rsp_element = (param_sch_list_t*)&rsp->data[rsp->length];
+            rsp->length += sizeof(param_sch_list_t);
+
+            rsp_element->sch_hash = hash;
+            rsp_element->timestamp = elm.timestamp;
+            rsp_element->latency_buffer_s = elm.latency_buffer_s;
+            rsp_element->cmd_hash = elm.cmd_hash;
+            rsp_element->retries = elm.retries;
+            rsp_element->status = elm.status;
+        }
+    }
+
+    csp_sendto_reply(packet, rsp, CSP_O_SAME);
+    csp_buffer_free(packet);
+}
+
 void sc_tick(csp_timestamp_t time_v, uint32_t periodicity_ms) {
 
     uint64_t time = time_v.tv_sec*SEC_TO_NS + time_v.tv_nsec;

@@ -77,3 +77,12 @@ typedef struct {
     uint32_t latency_buffer_s;
     param_hash_t command_hash;
 } param_sch_command_t;
+
+typedef struct {
+    param_hash_t sch_hash;
+    uint32_t timestamp;
+    uint32_t latency_buffer_s;
+    param_hash_t cmd_hash;
+    uint16_t retries;
+    uint8_t status;
+} param_sch_list_t;

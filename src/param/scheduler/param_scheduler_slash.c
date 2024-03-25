@@ -78,11 +78,13 @@ static int cmd_schedule_list(struct slash *slash) {
 
     unsigned int server = slash_dfl_node;
 	unsigned int timeout = slash_dfl_timeout;
+	unsigned int version = 1;
 
     optparse_t * parser = optparse_new("schedule list", "");
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
+	optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "command server version (default = 1))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -90,12 +92,15 @@ static int cmd_schedule_list(struct slash *slash) {
 	    return SLASH_EINVAL;
     }
 
-	if (param_list_schedule(server, 1, timeout) < 0) {
-		printf("No response\n");
-        optparse_del(parser);
-		return SLASH_EIO;
-	}
+	if (version == 1) {
+		if (param_list_schedule(server, 1, timeout) < 0) {
+			printf("No response\n");
+			optparse_del(parser);
+			return SLASH_EIO;
+		}
+	} else {
 
+	}
 	optparse_del(parser);
 	return SLASH_SUCCESS;
 }
