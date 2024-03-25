@@ -40,7 +40,7 @@ void sc_cmd_list_client_cb(csp_packet_t *response, int verbose, int version) {
     while (unpacked_len < response->length) {
         param_sc_rsp_t* rsp_element = (param_sc_rsp_t*)&response->data[unpacked_len];
         unpacked_len += sizeof(param_sc_rsp_t);
-        printf("HASH 0x%X\n", rsp_element->hash);
+        printf("HASH 0x%"PRIu32"\n", rsp_element->hash);
         if (rsp_element->result < 0) {
             printf("CMD was found corrupted, thus removed from database\n");
         }
