@@ -23,3 +23,7 @@ extern vmem_t vmem_sc_cmd_hash;
 extern vmem_t vmem_sc_cmd_store;
 extern vmem_t vmem_sc_sch_hash;
 extern vmem_t vmem_sc_sch_store;
+
+/* */
+extern const uint16_t sc_sch_block_size;
+extern const uint16_t sc_cmd_block_size;

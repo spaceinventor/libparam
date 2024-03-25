@@ -14,6 +14,11 @@
 #define MS_TO_NS (uint64_t)1000000
 #define OLD_TIMESTAMP (uint64_t)1000000000000000000
 
+
+const uint16_t sc_sch_block_size = SC_SCH_BLOCK_SIZE;
+const uint16_t sc_cmd_block_size = SC_CMD_BLOCK_SIZE;
+
+
 // #ifdef __linux__
 // // TODO: move these into non-OBC code
 // VMEM_DEFINE_FILE(sc_cmd_hash, "sc_ch", "sc_cmd.cnf", sizeof(param_hash_t)*SC_CMD_NUM_ELEMENTS);
@@ -118,8 +123,8 @@ static param_hash_t calc_cmd_hash(param_queue_t* queue, char* buffer) {
 
 static bool verify_cmd_hash(param_queue_t* queue, uint32_t addr, param_hash_t hash) {
 
-    char queue_buffer[SC_CMD_BLOCK_SIZE-sizeof(queue)];
-    vmem_memcpy(queue_buffer, vmem_sc_cmd_store.vaddr + addr*SC_CMD_BLOCK_SIZE+sizeof(*queue), queue->used);
+    char queue_buffer[sc_cmd_block_size-sizeof(queue)];
+    vmem_memcpy(queue_buffer, vmem_sc_cmd_store.vaddr + addr*sc_cmd_block_size+sizeof(*queue), queue->used);
 
     csp_crc32_t calc_hash = calc_cmd_hash(queue, queue_buffer);
 
@@ -218,8 +223,8 @@ void sc_cmd_upload(csp_packet_t * packet) {
                 rsp_element->result = -1;
             } else {
                 vmem_memcpy(vmem_sc_cmd_hash.vaddr+addr*sizeof(rsp_element->hash), &rsp_element->hash, sizeof(&rsp_element->hash));
-                vmem_memcpy(vmem_sc_cmd_store.vaddr+addr*SC_CMD_BLOCK_SIZE, &cmd->param_queue, sizeof(cmd->param_queue));
-                vmem_memcpy(vmem_sc_cmd_store.vaddr+addr*SC_CMD_BLOCK_SIZE+sizeof(cmd->param_queue), cmd->param_buffer, cmd->param_queue.used);
+                vmem_memcpy(vmem_sc_cmd_store.vaddr+addr*sc_cmd_block_size, &cmd->param_queue, sizeof(cmd->param_queue));
+                vmem_memcpy(vmem_sc_cmd_store.vaddr+addr*sc_cmd_block_size+sizeof(cmd->param_queue), cmd->param_buffer, cmd->param_queue.used);
             }
         }
     }
@@ -253,7 +258,7 @@ void sc_cmd_execute(csp_packet_t * packet) {
 
         if (rsp_element->result >= 0) {
             param_queue_t queue;
-            vmem_memcpy(&queue, vmem_sc_cmd_store.vaddr+addr*SC_CMD_BLOCK_SIZE, sizeof(queue));
+            vmem_memcpy(&queue, vmem_sc_cmd_store.vaddr+addr*sc_cmd_block_size, sizeof(queue));
 
             rsp_element->result = verify_cmd_hash(&queue, addr, hash);
 
@@ -289,7 +294,7 @@ void sc_cmd_list(csp_packet_t * packet) {
             rsp_element->result = 0;
 
             param_queue_t queue;
-            vmem_memcpy(&queue, vmem_sc_cmd_store.vaddr+addr*SC_CMD_BLOCK_SIZE, sizeof(queue));
+            vmem_memcpy(&queue, vmem_sc_cmd_store.vaddr+addr*sc_cmd_block_size, sizeof(queue));
             if (!verify_cmd_hash(&queue, addr, hash)) {
                 hash = 0;
                 rsp_element->result = -1;
@@ -322,8 +327,8 @@ void sc_cmd_download(csp_packet_t * packet) {
 
                 param_cmd_download_t* rsp_element = (param_cmd_download_t*)&rsp->data[rsp->length];
 
-                vmem_memcpy(&rsp_element->param_queue, vmem_sc_cmd_store.vaddr+addr*SC_CMD_BLOCK_SIZE, sizeof(rsp_element->param_queue));
-                vmem_memcpy(rsp_element->param_buffer, vmem_sc_cmd_store.vaddr+addr*SC_CMD_BLOCK_SIZE+sizeof(rsp_element->param_queue), rsp_element->param_queue.used);
+                vmem_memcpy(&rsp_element->param_queue, vmem_sc_cmd_store.vaddr+addr*sc_cmd_block_size, sizeof(rsp_element->param_queue));
+                vmem_memcpy(rsp_element->param_buffer, vmem_sc_cmd_store.vaddr+addr*sc_cmd_block_size+sizeof(rsp_element->param_queue), rsp_element->param_queue.used);
                 rsp->length += sizeof(param_cmd_download_t) + rsp_element->param_queue.used;
                 if (cmd->hash != 0) break;
             }
@@ -400,11 +405,11 @@ sc_execution_t sc_next_execution() {
         vmem_memcpy(&hash, vmem_sc_sch_hash.vaddr+addr*sizeof(hash), sizeof(hash));
         if (hash != 0) {
             param_sch_element_t elm;
-            vmem_memcpy(&elm, vmem_sc_sch_store.vaddr+addr*SC_SCH_BLOCK_SIZE, sizeof(elm));
+            vmem_memcpy(&elm, vmem_sc_sch_store.vaddr+addr*sc_sch_block_size, sizeof(elm));
             if (elm.status == SCH_STATUS_SCHEDULED && elm.timestamp < next.timestamp) {
                 if (elm.latency_buffer_s > 0 && elm.timestamp + elm.latency_buffer_s*SEC_TO_NS < time) {
                     elm.status = SCH_STATUS_OVERDUE;
-                    vmem_memcpy(vmem_sc_sch_store.vaddr+addr*SC_SCH_BLOCK_SIZE, &elm, sizeof(elm));
+                    vmem_memcpy(vmem_sc_sch_store.vaddr+addr*sc_sch_block_size, &elm, sizeof(elm));
                 } else {
                     next.timestamp = elm.timestamp;
                     next.hash = hash;
@@ -449,11 +454,11 @@ static int8_t sc_schedule(param_hash_t cmd_hash, uint32_t timestamp_s, uint32_t 
             return -3;
         }
         vmem_memcpy(vmem_sc_sch_hash.vaddr+sch_addr*sizeof(*sch_hash), sch_hash, sizeof(*sch_hash));
-        vmem_memcpy(vmem_sc_sch_store.vaddr+sch_addr*SC_SCH_BLOCK_SIZE, &elm, sizeof(elm));
+        vmem_memcpy(vmem_sc_sch_store.vaddr+sch_addr*sc_sch_block_size, &elm, sizeof(elm));
         next_execution = sc_next_execution();
         return 0;
     } else {
-        vmem_memcpy(vmem_sc_sch_store.vaddr+sch_addr*SC_SCH_BLOCK_SIZE, &elm, sizeof(elm));
+        vmem_memcpy(vmem_sc_sch_store.vaddr+sch_addr*sc_sch_block_size, &elm, sizeof(elm));
         return 1;
     }
 }
@@ -484,8 +489,8 @@ void sc_sch_push(csp_packet_t * packet) {
                 continue;
             } else {
                 vmem_memcpy(vmem_sc_cmd_hash.vaddr+cmd_addr*sizeof(cmd_hash), &cmd_hash, sizeof(&cmd_hash));
-                vmem_memcpy(vmem_sc_cmd_store.vaddr+cmd_addr*SC_CMD_BLOCK_SIZE, &cmd->param_queue, sizeof(cmd->param_queue));
-                vmem_memcpy(vmem_sc_cmd_store.vaddr+cmd_addr*SC_CMD_BLOCK_SIZE+sizeof(cmd->param_queue), cmd->param_buffer, cmd->param_queue.used);
+                vmem_memcpy(vmem_sc_cmd_store.vaddr+cmd_addr*sc_cmd_block_size, &cmd->param_queue, sizeof(cmd->param_queue));
+                vmem_memcpy(vmem_sc_cmd_store.vaddr+cmd_addr*sc_cmd_block_size+sizeof(cmd->param_queue), cmd->param_buffer, cmd->param_queue.used);
             }
         }
 
@@ -536,7 +541,7 @@ void sc_tick(csp_timestamp_t time_v, uint32_t periodicity_ms) {
 
         /* Retrieve schedule element and check if time is exceeded */
         param_sch_element_t elm;
-        vmem_memcpy(&elm, vmem_sc_sch_store.vaddr+sch_addr*SC_SCH_BLOCK_SIZE, sizeof(elm));
+        vmem_memcpy(&elm, vmem_sc_sch_store.vaddr+sch_addr*sc_sch_block_size, sizeof(elm));
 
         /* Check if SCH hash is valid */
         if (!verify_sch_hash(&elm, sch_addr, next_execution.hash)) {
@@ -548,7 +553,7 @@ void sc_tick(csp_timestamp_t time_v, uint32_t periodicity_ms) {
         /* Check if we are already too late */
         if (elm.latency_buffer_s > 0 && elm.timestamp + elm.latency_buffer_s * SEC_TO_NS <= time) {
             elm.status = SCH_STATUS_OVERDUE;
-            vmem_memcpy(vmem_sc_sch_store.vaddr+sch_addr*SC_SCH_BLOCK_SIZE, &elm, sizeof(elm));
+            vmem_memcpy(vmem_sc_sch_store.vaddr+sch_addr*sc_sch_block_size, &elm, sizeof(elm));
             goto end;
         }
 
@@ -562,26 +567,28 @@ void sc_tick(csp_timestamp_t time_v, uint32_t periodicity_ms) {
 
         /* Verify that command hash is valid */
         param_queue_t queue;
-        vmem_memcpy(&queue, vmem_sc_cmd_store.vaddr+cmd_addr*SC_CMD_BLOCK_SIZE, sizeof(queue));
+        vmem_memcpy(&queue, vmem_sc_cmd_store.vaddr+cmd_addr*sc_cmd_block_size, sizeof(queue));
         if (!verify_cmd_hash(&queue, cmd_addr, elm.cmd_hash)) {
             elm.status = SCH_STATUS_CORRUPTED_CMD;
             vmem_memcpy(vmem_sc_sch_store.vaddr+sch_addr*SC_SCH_BLOCK_SIZE, &elm, sizeof(elm));
             goto end;
         }
 
-        /* Retrieve command param buffer */
-        char queue_buffer[SC_CMD_BLOCK_SIZE-sizeof(queue)];
-        vmem_memcpy(queue_buffer, vmem_sc_cmd_store.vaddr+cmd_addr*SC_CMD_BLOCK_SIZE+sizeof(queue), queue.used);
-        queue.buffer = queue_buffer;
+        {
+            /* Retrieve command param buffer */
+            char queue_buffer[sc_cmd_block_size-sizeof(queue)];
+            vmem_memcpy(queue_buffer, vmem_sc_cmd_store.vaddr+cmd_addr*sc_cmd_block_size+sizeof(queue), queue.used);
+            queue.buffer = queue_buffer;
 
-        /* Forward the set command and set schedule element status */
-        printf("Forwarding %s\n", queue.name);
-        if (sc_forward(&queue) < 0) {
-            elm.status = SCH_STATUS_FAILED;
-        } else {
-            elm.status = SCH_STATUS_COMPLETED;
+            /* Forward the set command and set schedule element status */
+            printf("Forwarding %s\n", queue.name);
+            if (sc_forward(&queue) < 0) {
+                elm.status = SCH_STATUS_FAILED;
+            } else {
+                elm.status = SCH_STATUS_COMPLETED;
+            }
+            vmem_memcpy(vmem_sc_sch_store.vaddr+sch_addr*SC_SCH_BLOCK_SIZE, &elm, sizeof(elm));
         }
-        vmem_memcpy(vmem_sc_sch_store.vaddr+sch_addr*SC_SCH_BLOCK_SIZE, &elm, sizeof(elm));
 
 end:
         next_execution = sc_next_execution();
