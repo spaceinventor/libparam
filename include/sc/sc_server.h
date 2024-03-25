@@ -24,6 +24,7 @@ extern vmem_t vmem_sc_cmd_store;
 extern vmem_t vmem_sc_sch_hash;
 extern vmem_t vmem_sc_sch_store;
 
-/* */
-extern const uint16_t sc_sch_block_size;
-extern const uint16_t sc_cmd_block_size;
+#define SC_CMD_NUM_ELEMENTS 0x80
+#define SC_SCH_NUM_ELEMENTS 0x80
+#define SC_CMD_BLOCK_SIZE 0x200
+#define SC_SCH_BLOCK_SIZE 0x100
