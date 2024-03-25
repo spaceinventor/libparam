@@ -4,6 +4,8 @@
 #include <csp/csp_crc32.h>
 #include <csp/csp_hooks.h>
 #include <vmem/vmem_file.h>
+#include <vmem/vmem_nor_flash.h>
+#include <vmem/vmem_fram.h>
 
 #define SC_CMD_NUM_ELEMENTS 0x80
 #define SC_SCH_NUM_ELEMENTS 0x80
@@ -15,11 +17,25 @@
 #define MS_TO_NS (uint64_t)1000000
 #define OLD_TIMESTAMP (uint64_t)1000000000000000000
 
+#ifdef __linux__
+
 // TODO: move these into non-OBC code
 VMEM_DEFINE_FILE(sc_cmd_hash, "sc_ch", "sc_cmd.cnf", sizeof(param_hash_t)*SC_CMD_NUM_ELEMENTS);
 VMEM_DEFINE_FILE(sc_cmd_store, "sc_cs", "sc_cmd_store.cnf", SC_CMD_NUM_ELEMENTS/sizeof(param_hash_t)*SC_CMD_BLOCK_SIZE);
 VMEM_DEFINE_FILE(sc_sch_hash, "sc_sh", "sc_sch.cnf", sizeof(param_hash_t)*SC_SCH_NUM_ELEMENTS);
 VMEM_DEFINE_FILE(sc_sch_store, "sc_ss", "sc_sch_store.cnf", SC_SCH_NUM_ELEMENTS/sizeof(param_hash_t)*SC_SCH_BLOCK_SIZE);
+
+#else
+#define COMMANDS_FRAM_BASE_ADDR  0x3000
+#define COMMANDS_FRAM_SIZE 0x1000
+VMEM_DEFINE_FRAM(sc_cmd_hash, "sc_ch", COMMANDS_FRAM_BASE_ADDR, sizeof(param_hash_t)*SC_CMD_NUM_ELEMENTS, COMMANDS_FRAM_BASE_ADDR);
+VMEM_DEFINE_FRAM(sc_cmd_store, "sc_cs", COMMANDS_FRAM_BASE_ADDR, SC_CMD_NUM_ELEMENTS/sizeof(param_hash_t)*SC_CMD_BLOCK_SIZE, COMMANDS_FRAM_BASE_ADDR);
+
+#define SCHEDULEV2_FRAM_BASE_ADDR  0x4000
+#define SCHEDULEV2_FRAM_SIZE  0x1000  
+VMEM_DEFINE_FRAM(sc_sch_hash, "sc_sh", SCHEDULEV2_FRAM_BASE_ADDR, sizeof(param_hash_t)*SC_SCH_NUM_ELEMENTS, SCHEDULEV2_FRAM_BASE_ADDR);
+VMEM_DEFINE_FRAM(sc_sch_store, "sc_ss", SCHEDULEV2_FRAM_BASE_ADDR, SC_SCH_NUM_ELEMENTS/sizeof(param_hash_t)*SC_SCH_BLOCK_SIZE, SCHEDULEV2_FRAM_BASE_ADDR);
+#endif
 
 typedef void (*param_transaction_callback_f)(csp_packet_t *response, int verbose, int version, void * context);
 int param_transaction(csp_packet_t *packet, int host, int timeout, param_transaction_callback_f callback, int verbose, int version, void * context);
@@ -579,10 +595,11 @@ end:
 // TODO: move into non-OBC code
 void sc_init() {
 
+#ifdef __linux__
 	vmem_file_init(&vmem_sc_cmd_hash);
 	vmem_file_init(&vmem_sc_cmd_store);
 	vmem_file_init(&vmem_sc_sch_hash);
 	vmem_file_init(&vmem_sc_sch_store);
-
+#endif
     next_execution = sc_next_execution();
 }
