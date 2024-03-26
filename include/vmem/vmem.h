@@ -40,7 +40,7 @@ typedef struct vmem_s {
 	void * driver;
 } vmem_t;
 
-void * vmem_memcpy(void * to, void * from, uint32_t size);
+void * vmem_memcpy(void * to, const void * from, uint32_t size);
 vmem_t * vmem_index_to_ptr(int idx);
 int vmem_ptr_to_index(vmem_t * vmem);
 
