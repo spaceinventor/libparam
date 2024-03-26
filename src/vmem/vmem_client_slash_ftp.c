@@ -18,6 +18,7 @@
 #include <vmem/vmem_client.h>
 
 #include <slash/slash.h>
+#include <slash/completer.h>
 #include <slash/optparse.h>
 #include <slash/dflopt.h>
 
@@ -251,7 +252,7 @@ static int vmem_client_slash_upload(struct slash *slash)
 
 	return SLASH_SUCCESS;
 }
-slash_command(upload, vmem_client_slash_upload, "<file> <address>", "Upload from FILE to VMEM");
+slash_command_completer(upload, vmem_client_slash_upload, slash_path_completer, "<file> <address>", "Upload from FILE to VMEM");
 
 static int vmem_client_slash_crc32(struct slash *slash) {
 
