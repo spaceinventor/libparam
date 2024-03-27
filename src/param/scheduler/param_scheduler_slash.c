@@ -37,7 +37,7 @@ static int cmd_schedule_push(struct slash *slash) {
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
-	optparse_add_unsigned(parser, 'H', "host", "NUM", 0, &server, "host to receive push queue (default = queue host))");
+	optparse_add_unsigned(parser, 'H', "host", "NUM", 0, &host, "host to receive push queue (default = queue host))");
 	optparse_add_unsigned(parser, 'l', "latency", "NUM", 0, &latency_buffer, "max latency, 0 to disable (default = 0))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
@@ -223,7 +223,7 @@ static int cmd_schedule_command(struct slash *slash) {
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
-	optparse_add_unsigned(parser, 'H', "host", "NUM", 0, &server, "host to receive push queue (default = queue host))");
+	optparse_add_unsigned(parser, 'H', "host", "NUM", 0, &host, "host to receive push queue (default = queue host))");
 	optparse_add_unsigned(parser, 'l', "latency", "NUM", 0, &latency_buffer, "max latency, 0 to disable (default = 0))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
