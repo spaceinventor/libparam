@@ -129,10 +129,12 @@ static int cmd_schedule_rm(struct slash *slash) {
 
     unsigned int server = slash_dfl_node;
 	unsigned int timeout = slash_dfl_timeout;
+	int rm_all = 0;
 
     optparse_t * parser = optparse_new("schedule rm", "<id>");
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_set(parser, 'a', "all", 1, &rm_all, "delete all");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
@@ -141,23 +143,27 @@ static int cmd_schedule_rm(struct slash *slash) {
 	    return SLASH_EINVAL;
     }
 
-	if (++argi >= slash->argc) {
-		printf("Must specify schedule ID\n");
-        optparse_del(parser);
-		return SLASH_EINVAL;
+	unsigned int id = 0;
+
+	if (!rm_all) {
+		if (++argi >= slash->argc) {
+			printf("Must specify schedule ID\n");
+			optparse_del(parser);
+			return SLASH_EINVAL;
+		}
+		id = atoi(slash->argv[argi]);
+
+		if (id < 0)
+			return SLASH_EUSAGE;
 	}
-	unsigned int id = atoi(slash->argv[argi]);
 
-	if (id < -1)
-		return SLASH_EUSAGE;
-
-	if (id == -1) {
+	if (rm_all) {
 		if (param_rm_all_schedule(server, 1, timeout) < 0) {
 			printf("No response\n");
 	        optparse_del(parser);
 			return SLASH_EIO;
 		}
-	} else if (id >= 0) {
+	} else {
 		if (param_rm_schedule(server, 1, id, timeout) < 0) {
 			printf("No response\n");
 	        optparse_del(parser);
