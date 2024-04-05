@@ -219,28 +219,39 @@ void vmem_client_list(int node, int timeout, int version) {
 	csp_buffer_free(packet);
 }
 
-vmem_list_t vmem_client_find(int node, int timeout, int version, char * name, int namelen) {
-
-	vmem_list_t ret = {};
-
+int vmem_client_find(int node, int timeout, void * dataout, int version, char * name, int namelen) {
 	csp_packet_t * packet = vmem_client_list_get(node, timeout, version);
 	if (packet == NULL) 
-		return ret;
+		return -1;
 
-	for (vmem_list_t * vmem = (void *)packet->data; (intptr_t)vmem < (intptr_t)packet->data + packet->length; vmem++) {
-		// printf(" %u: %-5.5s 0x%08X - %u typ %u\r\n", vmem->vmem_id, vmem->name, (unsigned int) be32toh(vmem->vaddr), (unsigned int) be32toh(vmem->size), vmem->type);
-		if (strncmp(vmem->name, name, namelen) == 0) {
-			ret.vmem_id = vmem->vmem_id;
-			ret.type = vmem->type;
-			memcpy(ret.name, vmem->name, 5);
-			ret.vaddr = be32toh(vmem->vaddr);
-			ret.size = be32toh(vmem->size);
+	if (version == 2) {
+		vmem_list2_t ret = {};
+		for (vmem_list2_t * vmem = (void *)packet->data; (intptr_t)vmem < (intptr_t)packet->data + packet->length; vmem++) {
+			if (strncmp(vmem->name, name, namelen) == 0) {
+				ret.vmem_id = vmem->vmem_id;
+				ret.type = vmem->type;
+				memcpy(ret.name, vmem->name, 5);
+				ret.vaddr = be64toh(vmem->vaddr);
+				ret.size = be32toh(vmem->size);
+			}
 		}
+		memcpy(dataout, &ret, sizeof(vmem_list2_t));
+	} else {
+		vmem_list_t ret = {};
+		for (vmem_list_t * vmem = (void *)packet->data; (intptr_t)vmem < (intptr_t)packet->data + packet->length; vmem++) {
+			if (strncmp(vmem->name, name, namelen) == 0) {
+				ret.vmem_id = vmem->vmem_id;
+				ret.type = vmem->type;
+				memcpy(ret.name, vmem->name, 5);
+				ret.vaddr = be32toh(vmem->vaddr);
+				ret.size = be32toh(vmem->size);
+			}
+		}
+		memcpy(dataout, &ret, sizeof(vmem_list_t));
 	}
-
+	
 	csp_buffer_free(packet);
-
-	return ret;
+	return 0;
 }
 
 int vmem_client_backup(int node, int vmem_id, int timeout, int backup_or_restore) {
