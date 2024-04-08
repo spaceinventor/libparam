@@ -128,13 +128,13 @@ int param_list_add(param_t * item) {
 			param->array_step = item->array_step;
 
 			if(param->name && item->name){
-				strcpy(param->name, item->name);
+				strlcpy(param->name, item->name, 36);
 			}
 			if(param->unit && item->unit){
-				strcpy(param->unit, item->unit);
+				strlcpy(param->unit, item->unit, 10);
 			}
 			if(param->docstr && item->docstr){
-				strcpy(param->docstr, item->docstr);
+				strlcpy(param->docstr, item->docstr, 150);
 			}
 		}
 
