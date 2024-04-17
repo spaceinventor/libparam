@@ -12,6 +12,7 @@
 #include <slash/slash.h>
 #include <slash/optparse.h>
 #include <slash/dflopt.h>
+#include <slash/completer.h>
 
 #include <csp/csp.h>
 #include <csp/csp_hooks.h>
@@ -62,6 +63,24 @@ static void param_completer(struct slash *slash, char * token) {
 	int matches = 0;
 	size_t prefixlen = -1;
 	param_t *prefix = NULL;
+	char * orig_slash_buf = NULL;
+	char *skip_prefix = NULL;
+
+	/* TODO: find better way than hardcoding the command names */
+	if (!strncmp(slash->buffer, "get", strlen("get"))) {
+		skip_prefix = "get";
+	} else if (!strncmp(slash->buffer, "set", strlen("set"))) {
+		skip_prefix = "set";
+	} else if (!strncmp(slash->buffer, "cmd add", strlen("cmd add"))) {
+		skip_prefix = "cmd add";
+	}
+
+	if (skip_prefix) {
+		orig_slash_buf = slash->buffer;
+		slash_completer_skip_flagged_prefix(slash, skip_prefix);
+		token = slash->buffer;
+	}
+
 	size_t tokenlen = strlen(token);
 
 	param_t * param;
@@ -114,6 +133,7 @@ static void param_completer(struct slash *slash, char * token) {
 		slash->cursor = slash->length = (token - slash->buffer) + prefixlen;
 	}
 
+	if (skip_prefix) slash_completer_revert_skip(slash, orig_slash_buf);
 }
 
 static int cmd_get(struct slash *slash) {
