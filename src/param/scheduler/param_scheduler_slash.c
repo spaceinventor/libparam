@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <time.h>
 #include <slash/slash.h>
 #include <slash/dflopt.h>
 
@@ -51,9 +52,36 @@ static int cmd_schedule_push(struct slash *slash) {
         optparse_del(parser);
 		return SLASH_EINVAL;
 	}
-	unsigned int time = atoi(slash->argv[argi]);
 
-	if (param_schedule_push(&param_queue, 1, server, host, time, latency_buffer, timeout) < 0) {
+	unsigned int sch_time = atoi(slash->argv[argi]);
+	long sch_time_long = (long) sch_time;
+	struct tm * sch_datetime = gmtime(&sch_time_long);
+	
+	time_t current_time = time(NULL);
+	char timestr[32] ={0};
+	strftime(timestr, sizeof(timestr)-1, "%F T%TZ%z", sch_datetime);
+
+	if (sch_time+latency_buffer-timeout < current_time && sch_time >= 1E9) {
+		printf("\033[0;31mScheduled time is: %s (%u) and is behind current time\033[0m\n", timestr, sch_time);
+		printf("Confirm: Type 'yes' or 'y' + enter to push schedule:\n");
+		char * c = slash_readline(slash);
+		if (strcasecmp(c, "yes") != 0 && strcasecmp(c, "y") != 0) {
+			printf("\033[0;31mSchedule not pushed\033[0m\n");
+			optparse_del(parser);
+			return SLASH_EBREAK;
+		}
+	}
+
+	if (sch_time < 1E9) {
+		sch_time_long += current_time;
+		sch_datetime = gmtime(&sch_time_long);
+		strftime(timestr, sizeof(timestr)-1, "%F T%TZ%z", sch_datetime);
+		printf("Pushing schedule for approx. time: %s (%ld)\n", timestr, sch_time_long);
+	} else {
+		printf("Pushing schedule for time: %s (%u)\n", timestr, sch_time);
+	}
+	
+	if (param_schedule_push(&param_queue, 1, server, host, sch_time, latency_buffer, timeout) < 0) {
 		printf("No response\n");
         optparse_del(parser);
 		return SLASH_EIO;
@@ -256,9 +284,36 @@ static int cmd_schedule_command(struct slash *slash) {
         optparse_del(parser);
 		return SLASH_EINVAL;
 	}
-	unsigned int time = atoi(slash->argv[argi]);
+	unsigned int sch_time = atoi(slash->argv[argi]);
 
-	if (param_schedule_command(1, server, name, host, time, latency_buffer, timeout) < 0) {
+	long sch_time_long = (long) sch_time;
+	struct tm * sch_datetime = gmtime(&sch_time_long);
+	
+	time_t current_time = time(NULL);
+	char timestr[32] ={0};
+	strftime(timestr, sizeof(timestr)-1, "%F T%TZ%z", sch_datetime);
+
+	if (sch_time+latency_buffer-timeout < current_time && sch_time >= 1E9) {
+		printf("\033[0;31mScheduled time is: %s (%u) and is behind current time\033[0m\n", timestr, sch_time);
+		printf("Confirm: Type 'yes' or 'y' + enter to schedule anyway:\n");
+		char * c = slash_readline(slash);
+		if (strcasecmp(c, "yes") != 0 && strcasecmp(c, "y") != 0) {
+			printf("\033[0;31mSchedule not pushed\033[0m\n");
+			optparse_del(parser);
+			return SLASH_EBREAK;
+		}
+	}
+
+	if (sch_time < 1E9) {
+		sch_time_long += current_time;
+		sch_datetime = gmtime(&sch_time_long);
+		strftime(timestr, sizeof(timestr)-1, "%F T%TZ%z", sch_datetime);
+		printf("Pushing schedule for approx. time: %s (%ld)\n", timestr, sch_time_long);
+	} else {
+		printf("Pushing schedule for time: %s (%u)\n", timestr, sch_time);
+	}
+
+	if (param_schedule_command(1, server, name, host, sch_time, latency_buffer, timeout) < 0) {
 		printf("No response\n");
         optparse_del(parser);
 		return SLASH_EIO;

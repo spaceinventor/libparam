@@ -30,9 +30,9 @@ static void param_transaction_callback_add(csp_packet_t *response, int verbose, 
 
 	if (verbose) {
 		if (be16toh(response->data16[1]) == UINT16_MAX) {
-			printf("Scheduling queue failed:\n");
+			printf("\033[0;31mScheduling queue failed\033[0m\n");
 		} else {
-			printf("Queue scheduled with id %u:\n", be16toh(response->data16[1]));
+			printf("Queue scheduled with id: %u\n", be16toh(response->data16[1]));
 		}
 	}
 
@@ -185,9 +185,9 @@ static void param_transaction_callback_list(csp_packet_t *response, int verbose,
 			printf("Received list of %u queues:\n", num_scheduled);
 			for (int i = 0; i < num_scheduled; i++) {
 				unsigned int idx = 4+i*(4+2+2);
-				unsigned int time = be32toh(response->data32[idx/4]);
+				unsigned int sch_time = be32toh(response->data32[idx/4]);
 
-				time_t timestamp = (long) time;
+				time_t timestamp = (long) sch_time;
 				char timestr[32] ={0};
 				struct tm * sch_datetime = gmtime(&timestamp);
 				strftime(timestr, sizeof(timestr)-1, "%F T%TZ%z", sch_datetime);
@@ -198,11 +198,11 @@ static void param_transaction_callback_list(csp_packet_t *response, int verbose,
 					printf("[GET] Queue id %u ", be16toh(response->data16[idx/2+2]));
 				}*/
 				if (response->data[idx+6] == 0x55) {
-					printf("\033[0;32mcompleted at server time: %u (%s)\033[0m\n", time, timestr);
+					printf("\033[0;32mcompleted at server time: %s (%u)\033[0m\n", timestr, sch_time);
 				} else if (response->data[idx+6] == 0) {
-					printf("scheduled at server time: %u (%s)\n", time, timestr);
+					printf("scheduled at server time: %s (%u)\n", timestr, sch_time);
 				} else {
-					printf("\033[0;31mexceeded latency buffer at server time: %u (%s)\033[0m\n", time, timestr);
+					printf("\033[0;31mexceeded latency buffer at server time: %s (%u)\033[0m\n", timestr, sch_time);
 				}
 			}
 		}
