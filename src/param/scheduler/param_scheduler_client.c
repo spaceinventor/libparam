@@ -193,9 +193,9 @@ static void param_transaction_callback_list(csp_packet_t *response, int verbose,
 				strftime(timestr, sizeof(timestr)-1, "%F T%TZ%z", sch_datetime);
 
 				if (response->data[idx+7] == PARAM_QUEUE_TYPE_SET) {
-					printf("[SET] Queue id %u, ", be16toh(response->data16[idx/2+2]));
+					printf("[SET] Queue id %u ", be16toh(response->data16[idx/2+2]));
 				} /*else {
-					printf("[GET] Queue id %u, ", be16toh(response->data16[idx/2+2]));
+					printf("[GET] Queue id %u ", be16toh(response->data16[idx/2+2]));
 				}*/
 				if (response->data[idx+6] == 0x55) {
 					printf("\033[0;32mcompleted at server time: %u (%s)\033[0m\n", time, timestr);
