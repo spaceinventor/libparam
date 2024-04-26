@@ -93,7 +93,7 @@ static int vmem_client_slash_download(struct slash *slash)
 
 
 	char file_status[128] = {0};
-	strncpy(file_status, file, 128);
+	strncpy(file_status, file, 128-1);  // -1 to fit NULL byte
 	strcat(file_status, "stat");
 	FILE * fd_status = fopen(file_status, "r");
 
@@ -113,7 +113,10 @@ static int vmem_client_slash_download(struct slash *slash)
 		if (strcmp(c, "yes") != 0) {
 			fd = fopen(file, "w+");
 		} else {
-			fscanf(fd_status, "%u", &offset);
+			if (fscanf(fd_status, "%u", &offset) != 1) {
+				fprintf(stderr, "Failed to read offset from status file");
+				// @edvard Do we panic here, if offset remains 0?
+			}
 			fd = fopen(file, "a");
 		}
 		fclose(fd_status);

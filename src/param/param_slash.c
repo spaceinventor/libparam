@@ -545,7 +545,7 @@ static int cmd_new(struct slash *slash) {
 
 	/* Command name */
 	name = slash->argv[argi];
-	strncpy(param_queue.name, name, sizeof(param_queue.name));
+	strncpy(param_queue.name, name, sizeof(param_queue.name)-1);  // -1 to fit NULL byte
 
 	param_queue.used = 0;
 	param_queue.version = paramver;

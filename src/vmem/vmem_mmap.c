@@ -19,7 +19,11 @@ static void ensure_init(vmem_mmap_driver_t *drv, uint32_t *size)
 		long cur_size = lseek(fd, 0, SEEK_END);
 		if (cur_size < *size) {
 			/* Grow the file if needed */
-			ftruncate(fd, *size);
+			if (ftruncate(fd, *size) != 0) {
+				close(fd);
+				perror("ftruncate");
+				return;
+			}
 		} else {
 			/* File size is >= requested size, don't destroy/truncate data but adjust the driver size instead */
 			*size = cur_size;
