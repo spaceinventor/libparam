@@ -58,7 +58,7 @@ static void param_slash_parse(char * arg, int node, param_t **param, int *offset
 
 }
 
-static void param_completer(struct slash *slash, char * token) {
+static void param_completer(slash_t *slash, char * token) {
 
 	int matches = 0;
 	size_t prefixlen = -1;
@@ -136,7 +136,7 @@ static void param_completer(struct slash *slash, char * token) {
 	if (skip_prefix) slash_completer_revert_skip(slash, orig_slash_buf);
 }
 
-static int cmd_get(struct slash *slash) {
+static int cmd_get(slash_t *slash) {
 
 	int node = slash_dfl_node;
 	int paramver = 2;
@@ -204,7 +204,7 @@ static int cmd_get(struct slash *slash) {
 }
 slash_command_completer(get, cmd_get, param_completer, "<param>", "Get");
 
-static int cmd_set(struct slash *slash) {
+static int cmd_set(slash_t *slash) {
 	
 	int node = slash_dfl_node;
 	int paramver = 2;
@@ -299,7 +299,7 @@ slash_command_completer(set, cmd_set, param_completer, "<param> <value>", "Set")
 
 
 
-static int cmd_add(struct slash *slash) {
+static int cmd_add(slash_t *slash) {
 	
 	int node = slash_dfl_node;
 	char * include_mask_str = NULL;
@@ -417,7 +417,7 @@ static int cmd_add(struct slash *slash) {
 }
 slash_command_sub_completer(cmd, add, cmd_add, param_completer, "<param>[offset] [value]", "Add a new parameter to a command");
 
-static int cmd_run(struct slash *slash) {
+static int cmd_run(slash_t *slash) {
 
 	unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;
@@ -464,7 +464,7 @@ static int cmd_run(struct slash *slash) {
 }
 slash_command_sub(cmd, run, cmd_run, "", NULL);
 
-static int cmd_pull(struct slash *slash) {
+static int cmd_pull(slash_t *slash) {
 
 	unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;
@@ -505,7 +505,7 @@ static int cmd_pull(struct slash *slash) {
 }
 slash_command(pull, cmd_pull, "", "Pull all metrics");
 
-static int cmd_new(struct slash *slash) {
+static int cmd_new(slash_t *slash) {
 
 	int paramver = 2;
 	char *name = NULL;
@@ -559,14 +559,14 @@ static int cmd_new(struct slash *slash) {
 slash_command_sub(cmd, new, cmd_new, "<get/set> <cmd name>", "Create a new command");
 
 
-static int cmd_done(struct slash *slash) {
+static int cmd_done(slash_t *slash) {
 	param_queue.type = PARAM_QUEUE_TYPE_EMPTY;
 	return SLASH_SUCCESS;
 }
 slash_command_sub(cmd, done, cmd_done, "", "Exit cmd edit mode");
 
 
-static int cmd_print(struct slash *slash) {
+static int cmd_print(slash_t *slash) {
 	if (param_queue.type == PARAM_QUEUE_TYPE_EMPTY) {
 		printf("No active command\n");
 	} else {

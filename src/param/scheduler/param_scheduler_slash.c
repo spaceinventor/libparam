@@ -27,7 +27,7 @@
 #include "param_scheduler_client.h"
 #include "../param_slash.h"
 
-static int cmd_schedule_push(struct slash *slash) {
+static int cmd_schedule_push(slash_t *slash) {
 
 	unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;
@@ -92,7 +92,7 @@ static int cmd_schedule_push(struct slash *slash) {
 }
 slash_command_sub(schedule, push, cmd_schedule_push, "", NULL);
 
-static int cmd_schedule_list(struct slash *slash) {
+static int cmd_schedule_list(slash_t *slash) {
 
     unsigned int server = slash_dfl_node;
 	unsigned int timeout = slash_dfl_timeout;
@@ -119,7 +119,7 @@ static int cmd_schedule_list(struct slash *slash) {
 }
 slash_command_sub(schedule, list, cmd_schedule_list, "", NULL);
 
-static int cmd_schedule_show(struct slash *slash) {
+static int cmd_schedule_show(slash_t *slash) {
 
     unsigned int server = slash_dfl_node;
 	unsigned int timeout = slash_dfl_timeout;
@@ -153,7 +153,7 @@ static int cmd_schedule_show(struct slash *slash) {
 }
 slash_command_sub(schedule, show, cmd_schedule_show, "", NULL);
 
-static int cmd_schedule_rm(struct slash *slash) {
+static int cmd_schedule_rm(slash_t *slash) {
 
     unsigned int server = slash_dfl_node;
 	unsigned int timeout = slash_dfl_timeout;
@@ -204,7 +204,7 @@ static int cmd_schedule_rm(struct slash *slash) {
 }
 slash_command_sub(schedule, rm, cmd_schedule_rm, "<server> <id> [timeout]", NULL);
 
-static int cmd_schedule_reset(struct slash *slash) {
+static int cmd_schedule_reset(slash_t *slash) {
 
     unsigned int server = slash_dfl_node;
 	unsigned int timeout = slash_dfl_timeout;
@@ -246,7 +246,7 @@ static void parse_name(char out[], char in[]) {
 	out[strlen(in)] = '\0';
 }
 
-static int cmd_schedule_command(struct slash *slash) {
+static int cmd_schedule_command(slash_t *slash) {
 
 	unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;

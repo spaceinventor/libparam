@@ -24,7 +24,7 @@
 
 #include <endian.h>
 
-static int list(struct slash *slash)
+static int list(slash_t *slash)
 {
     int node = slash_dfl_node;
     int verbosity = 1;
@@ -63,7 +63,7 @@ Shows cached/known values. Use -v to include parameter type and help text.");
 slash_command(list, list, "[OPTIONS...] [name wildcard=*]", "List parameters");
 
 
-static int list_download(struct slash *slash)
+static int list_download(slash_t *slash)
 {
     unsigned int node = slash_dfl_node;
     unsigned int timeout = slash_dfl_timeout;
@@ -99,7 +99,7 @@ Parameters can be manually added with 'list add'.");
 }
 slash_command_sub(list, download, list_download, "[OPTIONS...] [node]", "Download a list of remote parameters");
 
-static int list_forget(struct slash *slash)
+static int list_forget(slash_t *slash)
 {
 
     int node = slash_dfl_node;
@@ -129,7 +129,7 @@ This makes it possible to download them again, in cases where they've changed.")
 slash_command_sub(list, forget, list_forget, "[node]", "Forget remote parameters. Omit or set node to -1 to include all.");
 
 
-static int list_add(struct slash *slash)
+static int list_add(slash_t *slash)
 {
     unsigned int node = slash_dfl_node;
     unsigned int array_len = 0;
@@ -211,7 +211,7 @@ slash_command_sub(list, add, list_add, "<name> <id> <type>", NULL);
 
 
 
-static int list_save(struct slash *slash) {
+static int list_save(slash_t *slash) {
 
     char * filename = NULL;
     int node = slash_dfl_node;

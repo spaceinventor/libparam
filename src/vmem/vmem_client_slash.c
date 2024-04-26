@@ -24,7 +24,7 @@
 #include <slash/optparse.h>
 #include <slash/dflopt.h>
 
-static int vmem_client_slash_list(struct slash *slash)
+static int vmem_client_slash_list(slash_t *slash)
 {
 	unsigned int node = slash_dfl_node;
     unsigned int timeout = slash_dfl_timeout;
@@ -51,7 +51,7 @@ static int vmem_client_slash_list(struct slash *slash)
 slash_command(vmem, vmem_client_slash_list, "", "List virtual memory");
 
 #if 0
-static int vmem_client_slash_fram(struct slash *slash, int backup) {
+static int vmem_client_slash_fram(slash_t *slash, int backup) {
 
 	int node = 0;
 	int vmem_id;
@@ -93,19 +93,19 @@ static int vmem_client_slash_fram(struct slash *slash, int backup) {
 	return SLASH_SUCCESS;
 }
 
-static int vmem_client_slash_restore(struct slash *slash)
+static int vmem_client_slash_restore(slash_t *slash)
 {
 	return vmem_client_slash_fram(slash, 0);
 }
 slash_command_sub(vmem, restore, vmem_client_slash_restore, "<vmem idx> [node] [timeout]", NULL);
 
-static int vmem_client_slash_backup(struct slash *slash)
+static int vmem_client_slash_backup(slash_t *slash)
 {
 	return vmem_client_slash_fram(slash, 1);
 }
 slash_command_sub(vmem, backup, vmem_client_slash_backup, "<vmem idx> [node] [timeout]", NULL);
 
-static int vmem_client_slash_unlock(struct slash *slash)
+static int vmem_client_slash_unlock(slash_t *slash)
 {
 	int node = 0;
 	int timeout = 2000;

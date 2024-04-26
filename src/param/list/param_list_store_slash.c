@@ -17,7 +17,7 @@
 #include "param_list_store.h"
 
 
-static int param_list_store_vmem_save_slash(struct slash *slash)
+static int param_list_store_vmem_save_slash(slash_t *slash)
 {
 	if (slash->argc != 2)
 		return SLASH_EUSAGE;
@@ -28,7 +28,7 @@ static int param_list_store_vmem_save_slash(struct slash *slash)
 }
 slash_command_sub(list, save, param_list_store_vmem_save_slash, "<vmem_id>", NULL);
 
-static int param_list_store_vmem_load_slash(struct slash *slash)
+static int param_list_store_vmem_load_slash(slash_t *slash)
 {
 	if (slash->argc != 2)
 		return SLASH_EUSAGE;

@@ -22,7 +22,7 @@
 #include <slash/optparse.h>
 #include <slash/dflopt.h>
 
-static int vmem_client_slash_download(struct slash *slash)
+static int vmem_client_slash_download(slash_t *slash)
 {
 
 	unsigned int node = slash_dfl_node;
@@ -164,7 +164,7 @@ static int vmem_client_slash_download(struct slash *slash)
 }
 slash_command(download, vmem_client_slash_download, "<address> <length> <file>", "Download from VMEM to FILE");
 
-static int vmem_client_slash_upload(struct slash *slash)
+static int vmem_client_slash_upload(slash_t *slash)
 {
 
 	unsigned int node = slash_dfl_node;
@@ -254,7 +254,7 @@ static int vmem_client_slash_upload(struct slash *slash)
 }
 slash_command_completer(upload, vmem_client_slash_upload, slash_path_completer, "<file> <address>", "Upload from FILE to VMEM");
 
-static int vmem_client_slash_crc32(struct slash *slash) {
+static int vmem_client_slash_crc32(slash_t *slash) {
 
 	unsigned int node = slash_dfl_node;
 	unsigned int timeout = slash_dfl_timeout;
@@ -377,7 +377,7 @@ unsigned int rdp_dfl_delayed_acks = 1;
 unsigned int rdp_dfl_ack_timeout = 2000;
 unsigned int rdp_dfl_ack_count = 2;
 
-static int vmem_client_rdp_options(struct slash *slash) {
+static int vmem_client_rdp_options(slash_t *slash) {
 
     optparse_t * parser = optparse_new("rdp options", "");
     optparse_add_help(parser);

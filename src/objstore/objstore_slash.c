@@ -23,7 +23,7 @@
 #include <param/param_scheduler.h>
 
 #if 0
-static int cmd_schedule_push(struct slash *slash) {
+static int cmd_schedule_push(slash_t *slash) {
     unsigned int server = 0;
     unsigned int time = 0;
 	unsigned int host = 0;
@@ -73,7 +73,7 @@ static int objstore_scan_callback(vmem_t * vmem, int offset, int verbose, void *
 
 }
 
-static int cmd_objstore_scan(struct slash *slash) {
+static int cmd_objstore_scan(slash_t *slash) {
 	if (slash->argc >= 1)
 		return SLASH_EUSAGE;
 
@@ -84,7 +84,7 @@ static int cmd_objstore_scan(struct slash *slash) {
 slash_command_sub(objstore, scan, cmd_objstore_scan, "", NULL);
 
 
-static int cmd_objstore_rm_obj(struct slash *slash) {
+static int cmd_objstore_rm_obj(slash_t *slash) {
     int offset = 0;
 
 	if (slash->argc < 1)

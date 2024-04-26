@@ -27,7 +27,7 @@
 #include "../param_slash.h"
 
 
-static int cmd_server_upload(struct slash *slash) {
+static int cmd_server_upload(slash_t *slash) {
 
 	unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;
@@ -63,7 +63,7 @@ static int cmd_server_upload(struct slash *slash) {
 }
 slash_command_subsub(cmd, server, upload, cmd_server_upload, "", NULL);
 
-static int cmd_server_download(struct slash *slash) {
+static int cmd_server_download(slash_t *slash) {
 
 	unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;
@@ -99,7 +99,7 @@ static int cmd_server_download(struct slash *slash) {
 }
 slash_command_subsub(cmd, server, download, cmd_server_download, "<name>", NULL);
 
-static int cmd_server_list(struct slash *slash) {
+static int cmd_server_list(slash_t *slash) {
 
 unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;
@@ -126,7 +126,7 @@ unsigned int timeout = slash_dfl_timeout;
 }
 slash_command_subsub(cmd, server, list, cmd_server_list, "", NULL);
 
-static int cmd_server_rm(struct slash *slash) {
+static int cmd_server_rm(slash_t *slash) {
 
 	unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;
