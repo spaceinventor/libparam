@@ -34,7 +34,7 @@ static int cmd_schedule_push(struct slash *slash) {
 	unsigned int host = slash_dfl_node;
 	unsigned int latency_buffer = 0;
 
-    optparse_t * parser = optparse_new("schedule push", "<time>");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("schedule push", "<time>");
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
@@ -43,13 +43,11 @@ static int cmd_schedule_push(struct slash *slash) {
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
 	if (++argi >= slash->argc) {
 		printf("Must specify relative or absolute time in seconds\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -67,7 +65,6 @@ static int cmd_schedule_push(struct slash *slash) {
 		char * c = slash_readline(slash);
 		if (strcasecmp(c, "yes") != 0 && strcasecmp(c, "y") != 0) {
 			printf("\033[0;31mSchedule not pushed\033[0m\n");
-			optparse_del(parser);
 			return SLASH_EBREAK;
 		}
 	}
@@ -83,11 +80,9 @@ static int cmd_schedule_push(struct slash *slash) {
 	
 	if (param_schedule_push(&param_queue, 1, server, host, sch_time, latency_buffer, timeout) < 0) {
 		printf("No response\n");
-        optparse_del(parser);
 		return SLASH_EIO;
 	}
 
-	optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command_sub(schedule, push, cmd_schedule_push, "", NULL);
@@ -97,24 +92,21 @@ static int cmd_schedule_list(struct slash *slash) {
     unsigned int server = slash_dfl_node;
 	unsigned int timeout = slash_dfl_timeout;
 
-    optparse_t * parser = optparse_new("schedule list", "");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("schedule list", "");
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
 	if (param_list_schedule(server, 1, timeout) < 0) {
 		printf("No response\n");
-        optparse_del(parser);
 		return SLASH_EIO;
 	}
 
-	optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command_sub(schedule, list, cmd_schedule_list, "", NULL);
@@ -124,31 +116,27 @@ static int cmd_schedule_show(struct slash *slash) {
     unsigned int server = slash_dfl_node;
 	unsigned int timeout = slash_dfl_timeout;
 
-    optparse_t * parser = optparse_new("schedule show", "<id>");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("schedule show", "<id>");
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
 	if (++argi >= slash->argc) {
 		printf("Must specify schedule ID\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 	unsigned int id = atoi(slash->argv[argi]);
 
 	if (param_show_schedule(server, 1, id, timeout) < 0) {
 		printf("No response\n");
-        optparse_del(parser);
 		return SLASH_EIO;
 	}
 
-	optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command_sub(schedule, show, cmd_schedule_show, "", NULL);
@@ -159,7 +147,7 @@ static int cmd_schedule_rm(struct slash *slash) {
 	unsigned int timeout = slash_dfl_timeout;
 	int rm_all = 0;
 
-    optparse_t * parser = optparse_new("schedule rm", "<id>");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("schedule rm", "<id>");
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
 	optparse_add_set(parser, 'a', "all", 1, &rm_all, "delete all");
@@ -167,7 +155,6 @@ static int cmd_schedule_rm(struct slash *slash) {
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
@@ -176,7 +163,6 @@ static int cmd_schedule_rm(struct slash *slash) {
 	if (!rm_all) {
 		if (++argi >= slash->argc) {
 			printf("Must specify schedule ID\n");
-			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
 		id = atoi(slash->argv[argi]);
@@ -188,18 +174,15 @@ static int cmd_schedule_rm(struct slash *slash) {
 	if (rm_all) {
 		if (param_rm_all_schedule(server, 1, timeout) < 0) {
 			printf("No response\n");
-	        optparse_del(parser);
 			return SLASH_EIO;
 		}
 	} else {
 		if (param_rm_schedule(server, 1, id, timeout) < 0) {
 			printf("No response\n");
-	        optparse_del(parser);
 			return SLASH_EIO;
 		}
 	}
 
-	optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command_sub(schedule, rm, cmd_schedule_rm, "<server> <id> [timeout]", NULL);
@@ -209,20 +192,18 @@ static int cmd_schedule_reset(struct slash *slash) {
     unsigned int server = slash_dfl_node;
 	unsigned int timeout = slash_dfl_timeout;
 
-    optparse_t * parser = optparse_new("schedule list", "");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("schedule list", "");
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
 	if (++argi >= slash->argc) {
 		printf("Must specify schedule ID\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -230,11 +211,9 @@ static int cmd_schedule_reset(struct slash *slash) {
 
 	if (param_reset_scheduler(server, last_id, 1, timeout) < 0) {
 		printf("No response\n");
-        optparse_del(parser);
 		return SLASH_EIO;
 	}
 
-	optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command_sub(schedule, reset, cmd_schedule_reset, "<server> <last id> [timeout]", NULL);
@@ -253,7 +232,7 @@ static int cmd_schedule_command(struct slash *slash) {
 	unsigned int host = slash_dfl_node;
 	unsigned int latency_buffer = 0;
 
-    optparse_t * parser = optparse_new("schedule cmd", "<name> <time>");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("schedule cmd", "<name> <time>");
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
@@ -262,26 +241,22 @@ static int cmd_schedule_command(struct slash *slash) {
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
 	char name[14] = {0};
 	if (++argi >= slash->argc) {
 		printf("Must command name to schedule\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
 	if (strlen(slash->argv[argi]) >= sizeof(name)) {
-		optparse_del(parser);
 		return SLASH_EUSAGE;
 	}
 	parse_name(name, slash->argv[argi]);
 
 	if (++argi >= slash->argc) {
 		printf("Must specify relative or absolute time in seconds\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 	unsigned int sch_time = atoi(slash->argv[argi]);
@@ -299,7 +274,6 @@ static int cmd_schedule_command(struct slash *slash) {
 		char * c = slash_readline(slash);
 		if (strcasecmp(c, "yes") != 0 && strcasecmp(c, "y") != 0) {
 			printf("\033[0;31mSchedule not pushed\033[0m\n");
-			optparse_del(parser);
 			return SLASH_EBREAK;
 		}
 	}
@@ -315,11 +289,9 @@ static int cmd_schedule_command(struct slash *slash) {
 
 	if (param_schedule_command(1, server, name, host, sch_time, latency_buffer, timeout) < 0) {
 		printf("No response\n");
-        optparse_del(parser);
 		return SLASH_EIO;
 	}
 
-	optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command_sub(schedule, cmd, cmd_schedule_command, "", NULL);

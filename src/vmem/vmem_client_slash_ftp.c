@@ -31,7 +31,7 @@ static int vmem_client_slash_download(struct slash *slash)
 	// unsigned int offset = 0;
 	unsigned int use_rdp = 1;
 
-    optparse_t * parser = optparse_new("download", "<address> <length base10 or base16> <file>");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("download", "<address> <length base10 or base16> <file>");
     optparse_add_help(parser);
     optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
@@ -43,7 +43,6 @@ static int vmem_client_slash_download(struct slash *slash)
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
@@ -52,7 +51,6 @@ static int vmem_client_slash_download(struct slash *slash)
 	/* Expect address */
 	if (++argi >= slash->argc) {
 		printf("missing address\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -60,14 +58,12 @@ static int vmem_client_slash_download(struct slash *slash)
 	uint64_t address = strtoul(slash->argv[argi], &endptr, 16);
 	if (*endptr != '\0') {
 		printf("Failed to parse address\n");
-        optparse_del(parser);
 		return SLASH_EUSAGE;
 	}
 
 	/* Expect length */
 	if (++argi >= slash->argc) {
 		printf("missing length\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -76,7 +72,6 @@ static int vmem_client_slash_download(struct slash *slash)
 		length = strtoul(slash->argv[argi], &endptr, 16);
 		if (*endptr != '\0') {
 			printf("Failed to parse length in base 10 or base 16\n");
-            optparse_del(parser);
 			return SLASH_EUSAGE;
 		}
 	}
@@ -84,7 +79,6 @@ static int vmem_client_slash_download(struct slash *slash)
 	/* Expect filename */
 	if (++argi >= slash->argc) {
 		printf("missing filename\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -123,13 +117,11 @@ static int vmem_client_slash_download(struct slash *slash)
 	}
 
 	if (fd == NULL) {
-		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
 	if(offset > length){
 		printf("File status size offset %u is greater than length %u!\n", offset, length);
-		optparse_del(parser);
 		fclose(fd);
 		return SLASH_EINVAL;
 	}
@@ -159,7 +151,6 @@ static int vmem_client_slash_download(struct slash *slash)
 
 	printf("wrote %d bytes to %s\n", written, file);
 
-    optparse_del(parser);
 
 	rdp_opt_reset();
 
@@ -175,7 +166,7 @@ static int vmem_client_slash_upload(struct slash *slash)
     unsigned int version = 1;
 	unsigned int offset = 0;
 
-    optparse_t * parser = optparse_new("upload", "<file> <address>");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("upload", "<file> <address>");
     optparse_add_help(parser);
     optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
@@ -186,7 +177,6 @@ static int vmem_client_slash_upload(struct slash *slash)
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-		optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
@@ -195,7 +185,6 @@ static int vmem_client_slash_upload(struct slash *slash)
 	/* Expect filename */
 	if (++argi >= slash->argc) {
 		printf("missing filename\n");
-		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -205,7 +194,6 @@ static int vmem_client_slash_upload(struct slash *slash)
 	/* Expect address */
 	if (++argi >= slash->argc) {
 		printf("missing address\n");
-		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -213,7 +201,6 @@ static int vmem_client_slash_upload(struct slash *slash)
 	uint64_t address = strtoul(slash->argv[argi], &endptr, 16);
 	if (*endptr != '\0') {
 		printf("Failed to parse address\n");
-		optparse_del(parser);
 		return SLASH_EUSAGE;
 	}
 
@@ -222,7 +209,6 @@ static int vmem_client_slash_upload(struct slash *slash)
 	/* Open file */
 	FILE * fd = fopen(file, "r");
 	if (fd == NULL){
-		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -249,7 +235,6 @@ static int vmem_client_slash_upload(struct slash *slash)
 	vmem_upload(node, timeout, address, data, size, version);
 
 	free(data);
-	optparse_del(parser);
 
 	rdp_opt_reset();
 
@@ -264,7 +249,7 @@ static int vmem_client_slash_crc32(struct slash *slash) {
 	unsigned int version = 1;
 	char * file = NULL;
 
-	optparse_t * parser = optparse_new("crc32", "<address> [length base10 or base16]");
+	optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("crc32", "<address> [length base10 or base16]");
 	optparse_add_help(parser);
 	optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
@@ -273,14 +258,12 @@ static int vmem_client_slash_crc32(struct slash *slash) {
 
 	int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
 	if (argi < 0) {
-		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
 	/* Expect address */
 	if (++argi >= slash->argc) {
 		printf("missing address\n");
-		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -288,7 +271,6 @@ static int vmem_client_slash_crc32(struct slash *slash) {
 	uint64_t address = strtoul(slash->argv[argi], &endptr, 16);
 	if (*endptr != '\0') {
 		printf("Failed to parse address\n");
-		optparse_del(parser);
 		return SLASH_EUSAGE;
 	}
 
@@ -299,7 +281,6 @@ static int vmem_client_slash_crc32(struct slash *slash) {
 		/* Expect length */
 		if (++argi >= slash->argc) {
 			printf("missing length\n");
-			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
 
@@ -308,7 +289,6 @@ static int vmem_client_slash_crc32(struct slash *slash) {
 			length = strtoul(slash->argv[argi], &endptr, 16);
 			if (*endptr != '\0') {
 				printf("Failed to parse length in base 10 or base 16\n");
-				optparse_del(parser);
 				return SLASH_EUSAGE;
 			}
 		}
@@ -316,7 +296,6 @@ static int vmem_client_slash_crc32(struct slash *slash) {
 		fd = fopen(file, "r");
 		if(fd == NULL){
 			printf("file %s not found\n", file);
-			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
 
@@ -360,7 +339,6 @@ static int vmem_client_slash_crc32(struct slash *slash) {
 		}
 	}
 
-	optparse_del(parser);
 	if (res) {
 		if (res == -1) {
 			return SLASH_ENOMEM;
@@ -382,7 +360,7 @@ unsigned int rdp_dfl_ack_count = 2;
 
 static int vmem_client_rdp_options(struct slash *slash) {
 
-    optparse_t * parser = optparse_new("rdp options", "");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("rdp options", "");
     optparse_add_help(parser);
 
     csp_rdp_get_opt(&rdp_dfl_window, &rdp_dfl_conn_timeout, &rdp_dfl_packet_timeout, &rdp_dfl_delayed_acks, &rdp_dfl_ack_timeout, &rdp_dfl_ack_count);
@@ -398,7 +376,6 @@ static int vmem_client_rdp_options(struct slash *slash) {
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 

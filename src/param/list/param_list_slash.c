@@ -30,7 +30,7 @@ static int list(struct slash *slash)
     int verbosity = 1;
     char * maskstr = NULL;
 
-    optparse_t * parser = optparse_new("list", "[name wildcard=*]\n\
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("list", "[name wildcard=*]\n\
 Will show a (filtered) list of known parameters on the specified node(s).\n\
 Shows cached/known values. Use -v to include parameter type and help text.");
     optparse_add_help(parser);
@@ -40,7 +40,6 @@ Shows cached/known values. Use -v to include parameter type and help text.");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
@@ -57,7 +56,6 @@ Shows cached/known values. Use -v to include parameter type and help text.");
 
     param_list_print(mask, node, globstr, verbosity);
 
-    optparse_del(parser);
     return SLASH_SUCCESS;
 }
 slash_command(list, list, "[OPTIONS...] [name wildcard=*]", "List parameters");
@@ -70,7 +68,7 @@ static int list_download(struct slash *slash)
     unsigned int version = 2;
     int include_remotes = 0;
 
-    optparse_t * parser = optparse_new("list download", "[node]\n\
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("list download", "[node]\n\
 Downloads a list of remote parameters.\n\
 Fetches metadata such as name and type\n\
 Metadata must be known before values can be pulled.\n\
@@ -83,7 +81,6 @@ Parameters can be manually added with 'list add'.");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
@@ -94,7 +91,6 @@ Parameters can be manually added with 'list add'.");
 
     param_list_download(node, timeout, version, include_remotes);
 
-    optparse_del(parser);
     return SLASH_SUCCESS;
 }
 slash_command_sub(list, download, list_download, "[OPTIONS...] [node]", "Download a list of remote parameters");
@@ -104,7 +100,7 @@ static int list_forget(struct slash *slash)
 
     int node = slash_dfl_node;
 
-    optparse_t * parser = optparse_new("list forget", "[node]\n\
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("list forget", "[node]\n\
 Will remove remote parameters from the local parameter list.\n\
 This makes it possible to download them again, in cases where they've changed.");
     optparse_add_help(parser);
@@ -112,7 +108,6 @@ This makes it possible to download them again, in cases where they've changed.")
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
@@ -123,7 +118,6 @@ This makes it possible to download them again, in cases where they've changed.")
 
     printf("Removed %i parameters\n", param_list_remove(node, 1));
 
-    optparse_del(parser);
     return SLASH_SUCCESS;
 }
 slash_command_sub(list, forget, list_forget, "[node]", "Forget remote parameters. Omit or set node to -1 to include all.");
@@ -138,7 +132,7 @@ static int list_add(struct slash *slash)
     char * maskstr = NULL;
     char * umaskstr = NULL;
 
-    optparse_t * parser = optparse_new("list add", "<name> <id> <type>");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("list add", "<name> <id> <type>");
     optparse_add_help(parser);
     optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
     optparse_add_unsigned(parser, 'a', "array", "NUM", 0, &array_len, "array length (default = none)");
@@ -150,20 +144,17 @@ static int list_add(struct slash *slash)
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
 
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
 	if (++argi >= slash->argc) {
 		printf("missing parameter name\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
     char * name = slash->argv[argi];
 
 	if (++argi >= slash->argc) {
 		printf("missing parameter id\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -172,7 +163,6 @@ static int list_add(struct slash *slash)
 
 	if (++argi >= slash->argc) {
 		printf("missing parameter type\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -182,7 +172,6 @@ static int list_add(struct slash *slash)
 
     if (typeid == PARAM_TYPE_INVALID) {
         printf("Invalid type %s\n", type);
-        optparse_del(parser);
         return SLASH_EINVAL;
     }
 
@@ -197,14 +186,12 @@ static int list_add(struct slash *slash)
     param_t * param = param_list_create_remote(id, node, typeid, mask, array_len, name, unitstr, helpstr, -1);
     if (param == NULL) {
         printf("Unable to create param\n");
-        optparse_del(parser);
         return SLASH_EINVAL;
     }
 
     if (param_list_add(param) != 0)
         param_list_destroy(param);
 
-    optparse_del(parser);
     return SLASH_SUCCESS;
 }
 slash_command_sub(list, add, list_add, "<name> <id> <type>", NULL);
@@ -216,14 +203,13 @@ static int list_save(struct slash *slash) {
     char * filename = NULL;
     int node = slash_dfl_node;
 
-    optparse_t * parser = optparse_new("list save", "[name wildcard=*]");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("list save", "[name wildcard=*]");
     optparse_add_help(parser);
 	optparse_add_string(parser, 'f', "filename", "PATH", &filename, "write to file");
     optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
@@ -280,7 +266,6 @@ static int list_save(struct slash *slash) {
     }
 
 
-    optparse_del(parser);
     return SLASH_SUCCESS;
 }
 slash_command_sub(list, save, list_save, "", "Save parameters");

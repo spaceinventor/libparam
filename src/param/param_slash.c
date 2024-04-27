@@ -142,7 +142,7 @@ static int cmd_get(struct slash *slash) {
 	int paramver = 2;
 	int server = 0;
 
-    optparse_t * parser = optparse_new("get", "<name>");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("get", "<name>");
     optparse_add_help(parser);
     optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
 	optparse_add_int(parser, 's', "server", "NUM", 0, &server, "server to get parameters from (default = node))");
@@ -150,13 +150,11 @@ static int cmd_get(struct slash *slash) {
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
 	/* Check if name is present */
 	if (++argi >= slash->argc) {
-        optparse_del(parser);
 		printf("missing parameter name\n");
 		return SLASH_EINVAL;
 	}
@@ -192,13 +190,11 @@ static int cmd_get(struct slash *slash) {
 
 		if (param_pull_single(param, offset, CSP_PRIO_HIGH, 1, dest, slash_dfl_timeout, paramver) < 0) {
 			printf("No response\n");
-            optparse_del(parser);
 			return SLASH_EIO;
 		}
 		
 	}
 
-    optparse_del(parser);
 	return SLASH_SUCCESS;
 
 }
@@ -212,7 +208,7 @@ static int cmd_set(struct slash *slash) {
 	int ack_with_pull = true;
 	int force = false;
 
-    optparse_t * parser = optparse_new("set", "<name>[offset] <value>");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("set", "<name>[offset] <value>");
     optparse_add_help(parser);
     optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
 	optparse_add_int(parser, 's', "server", "NUM", 0, &server, "server to set parameters on (default = node)");
@@ -222,14 +218,12 @@ static int cmd_set(struct slash *slash) {
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
 	/* Check if name is present */
 	if (++argi >= slash->argc) {
 		printf("missing parameter name\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -240,27 +234,23 @@ static int cmd_set(struct slash *slash) {
 
 	if (param == NULL) {
 		printf("%s not found\n", name);
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
 	if (param->mask & PM_READONLY && !force) {
 		printf("--force is required to set a readonly parameter\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
 	/* Check if Value is present */
 	if (++argi >= slash->argc) {
 		printf("missing parameter value\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
 	char valuebuf[128] __attribute__((aligned(16))) = { };
 	if (param_str_to_value(param->type, slash->argv[argi], valuebuf) < 0) {
 		printf("invalid parameter value\n");
-	    optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -285,14 +275,12 @@ static int cmd_set(struct slash *slash) {
 		*param->timestamp = 0;
 		if (param_push_single(param, offset, valuebuf, 0, dest, slash_dfl_timeout, paramver, ack_with_pull) < 0) {
 			printf("No response\n");
-			optparse_del(parser);
 			return SLASH_EIO;
 		}
 		param_print(param, -1, NULL, 0, 2, time_now.tv_sec);
 	}
 
 
-    optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command_completer(set, cmd_set, param_completer, "<param> <value>", "Set");
@@ -306,7 +294,7 @@ static int cmd_add(struct slash *slash) {
 	char * exclude_mask_str = NULL;
 	int force = false;
 
-    optparse_t * parser = optparse_new("cmd add", "<name>[offset] [value]");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("cmd add", "<name>[offset] [value]");
     optparse_add_help(parser);
     optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
 	optparse_add_string(parser, 'm', "imask", "MASK", &include_mask_str, "Include mask (param letters) (used for get with wildcard)");
@@ -315,7 +303,6 @@ static int cmd_add(struct slash *slash) {
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
@@ -330,7 +317,6 @@ static int cmd_add(struct slash *slash) {
 	/* Check if name is present */
 	if (++argi >= slash->argc) {
 		printf("missing parameter name\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -343,27 +329,23 @@ static int cmd_add(struct slash *slash) {
 
 		if (param == NULL) {
 			printf("%s not found\n", name);
-            optparse_del(parser);
 			return SLASH_EINVAL;
 		}
 
 		if (param->mask & PM_READONLY && !force) {
 			printf("--force is required to set a readonly parameter\n");
-			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
 
 		/* Check if Value is present */
 		if (++argi >= slash->argc) {
 			printf("missing parameter value\n");
-            optparse_del(parser);
 			return SLASH_EINVAL;
 		}
 		
 		char valuebuf[128] __attribute__((aligned(16))) = { };
 		if (param_str_to_value(param->type, slash->argv[argi], valuebuf) < 0) {
 			printf("invalid parameter value\n");
-			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
 		/* clear param timestamp so we dont set timestamp flag when serialized*/
@@ -412,7 +394,6 @@ static int cmd_add(struct slash *slash) {
 	}
 
 	param_queue_print(&param_queue);
-    optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command_sub_completer(cmd, add, cmd_add, param_completer, "<param>[offset] [value]", "Add a new parameter to a command");
@@ -424,7 +405,7 @@ static int cmd_run(struct slash *slash) {
 	unsigned int hwid = 0;
 	int ack_with_pull = true;
 
-    optparse_t * parser = optparse_new("run", "");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("run", "");
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
@@ -433,7 +414,6 @@ static int cmd_run(struct slash *slash) {
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
@@ -443,7 +423,6 @@ static int cmd_run(struct slash *slash) {
 		csp_clock_get_time(&time_now);
 		if (param_push_queue(&param_queue, 0, server, timeout, hwid, ack_with_pull) < 0) {
 			printf("No response\n");
-            optparse_del(parser);
 			return SLASH_EIO;
 		}
 		param_queue_print_params(&param_queue, time_now.tv_sec);
@@ -453,13 +432,11 @@ static int cmd_run(struct slash *slash) {
 	if (param_queue.type == PARAM_QUEUE_TYPE_GET) {
 		if (param_pull_queue(&param_queue, CSP_PRIO_HIGH, 1, server, timeout)) {
 			printf("No response\n");
-            optparse_del(parser);
 			return SLASH_EIO;
 		}
 	}
 
 
-    optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command_sub(cmd, run, cmd_run, "", NULL);
@@ -472,7 +449,7 @@ static int cmd_pull(struct slash *slash) {
 	char * exclude_mask_str = NULL;
 	int paramver = 2;
 
-    optparse_t * parser = optparse_new("pull", "");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("pull", "");
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to pull parameters from (default = <env>))");
@@ -482,7 +459,6 @@ static int cmd_pull(struct slash *slash) {
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
@@ -496,11 +472,9 @@ static int cmd_pull(struct slash *slash) {
 
 	if (param_pull_all(CSP_PRIO_HIGH, 1, server, include_mask, exclude_mask, timeout, paramver)) {
 		printf("No response\n");
-        optparse_del(parser);
 		return SLASH_EIO;
 	}
 
-    optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command(pull, cmd_pull, "", "Pull all metrics");
@@ -510,19 +484,17 @@ static int cmd_new(struct slash *slash) {
 	int paramver = 2;
 	char *name = NULL;
 
-    optparse_t * parser = optparse_new("cmd new", "<get/set> <cmd name>");
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("cmd new", "<get/set> <cmd name>");
     optparse_add_help(parser);
     optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system verison (default = 2)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
 	if (++argi >= slash->argc) {
 		printf("Must specify 'get' or 'set'\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -533,13 +505,11 @@ static int cmd_new(struct slash *slash) {
 		param_queue.type = PARAM_QUEUE_TYPE_SET;
 	} else {
 		printf("Must specify 'get' or 'set'\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
 	if (++argi >= slash->argc) {
 		printf("Must specify a command name\n");
-        optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
@@ -553,7 +523,6 @@ static int cmd_new(struct slash *slash) {
 
 	printf("Initialized new command: %s\n", name);
 
-    optparse_del(parser);
 	return SLASH_SUCCESS;
 }
 slash_command_sub(cmd, new, cmd_new, "<get/set> <cmd name>", "Create a new command");

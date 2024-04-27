@@ -30,21 +30,19 @@ static int vmem_client_slash_list(struct slash *slash)
     unsigned int timeout = slash_dfl_timeout;
     unsigned int version = 2;
 
-    optparse_t * parser = optparse_new("vmem", NULL);
+    optparse_t * parser __attribute__((cleanup(optparse_del))) = optparse_new("vmem", NULL);
     optparse_add_help(parser);
     optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
     optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 2)");
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
-        optparse_del(parser);
 	    return SLASH_EINVAL;
     }
 
 	printf("Requesting vmem list from node %u timeout %u version %d\n", node, timeout, version);
 
 	vmem_client_list(node, timeout, version);
-    optparse_del(parser);
 	return SLASH_SUCCESS;
 
 }
