@@ -405,7 +405,7 @@ void param_print(param_t * param, int offset, int nodes[], int nodes_count, int 
 	param_print_file(stdout, param, offset, nodes, nodes_count, verbose, ref_timestamp);
 }
 
-uint32_t param_maskstr_to_mask(char * str) {
+uint32_t param_maskstr_to_mask(const char * str) {
 
 	if (str == NULL)
 		return 0xFFFFFFFF;
@@ -440,7 +440,7 @@ uint32_t param_maskstr_to_mask(char * str) {
 
 }
 
-uint32_t param_typestr_to_typeid(char * str) {
+uint32_t param_typestr_to_typeid(const char * str) {
 
 	if (str == NULL)
 		return PARAM_TYPE_INVALID;
@@ -483,7 +483,7 @@ uint32_t param_typestr_to_typeid(char * str) {
 
 }
 
-char * param_mask_color(param_t *param) {
+const char * param_mask_color(const param_t *param) {
     unsigned int mask = param->mask;
 
     if (mask & PM_CONF) {
@@ -506,6 +506,6 @@ char * param_mask_color(param_t *param) {
 
 }
 
-char * param_mask_color_off(void) {
+const char * param_mask_color_off(void) {
 	return "\033[0m";
 }

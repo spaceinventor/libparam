@@ -219,7 +219,7 @@ param_t * param_list_find_id(int node, int id) {
 	return found;
 }
 
-param_t * param_list_find_name(int node, char * name) {
+param_t * param_list_find_name(int node, const char * name) {
 	
 	if (node < 0 )
 		node = 0;
@@ -243,7 +243,7 @@ param_t * param_list_find_name(int node, char * name) {
 	return found;
 }
 
-void param_list_print(uint32_t mask, int node, char * globstr, int verbosity) {
+void param_list_print(uint32_t mask, int node, const char * globstr, int verbosity) {
 	param_t * param;
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {

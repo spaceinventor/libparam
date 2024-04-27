@@ -39,11 +39,11 @@ int param_list_remove(int node, uint8_t verbose);
  */
 void param_list_remove_specific(param_t * param, uint8_t verbose, int destroy);
 param_t * param_list_find_id(int node, int id);
-param_t * param_list_find_name(int node, char * name);
-void param_list_print(uint32_t mask, int node, char * globstr, int verbosity);
-uint32_t param_maskstr_to_mask(char * str);
+param_t * param_list_find_name(int node, const char * name);
+void param_list_print(uint32_t mask, int node, const char * globstr, int verbosity);
+uint32_t param_maskstr_to_mask(const char * str);
 
-param_t * param_list_from_line(char * line);
+param_t * param_list_from_line(const char * line);
 
 /**
  * @brief 
