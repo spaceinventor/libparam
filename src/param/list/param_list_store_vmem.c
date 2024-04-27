@@ -16,7 +16,7 @@
 
 #include <csp/csp.h>
 
-param_t * param_list_from_line(char * line) {
+param_t * param_list_from_line(const char * line) {
 
 	char name[35] = {};
 	unsigned int id, type, mask, node;

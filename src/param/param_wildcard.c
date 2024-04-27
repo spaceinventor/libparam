@@ -7,7 +7,7 @@
 // Function that matches input str with
 // given wildcard pattern
 // 'n' and 'm' are the length of 'str' and 'pattern' respectively.
-int strmatch(char *str, char *pattern, int n, int m)  // Source: https://www.geeksforgeeks.org/wildcard-pattern-matching/
+int strmatch(const char *str, const char *pattern, int n, int m)  // Source: https://www.geeksforgeeks.org/wildcard-pattern-matching/
 {
     // empty pattern can only match with
     // empty string
@@ -57,7 +57,7 @@ int strmatch(char *str, char *pattern, int n, int m)  // Source: https://www.gee
     return lookup[n][m];
 }
 
-int has_wildcard(char * str, int len) {
+int has_wildcard(const char * str, int len) {
     for (int i = 0; i < strlen(str); i++)
 		if (str[i] == '*' || str[i] == '?')
 			return 1;
