@@ -34,7 +34,7 @@ static int cmd_server_upload(struct slash *slash) {
 
     optparse_t * parser = optparse_new("cmd server upload", "<name>");
     optparse_add_help(parser);
-	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in milliseconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
@@ -70,7 +70,7 @@ static int cmd_server_download(struct slash *slash) {
 
     optparse_t * parser = optparse_new("cmd server download", "<name>");
     optparse_add_help(parser);
-	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in milliseconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
@@ -101,12 +101,12 @@ slash_command_subsub(cmd, server, download, cmd_server_download, "<name>", NULL)
 
 static int cmd_server_list(struct slash *slash) {
 
-unsigned int timeout = slash_dfl_timeout;
+	unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;
 
     optparse_t * parser = optparse_new("cmd server list", NULL);
     optparse_add_help(parser);
-	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in milliseconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
@@ -134,7 +134,7 @@ static int cmd_server_rm(struct slash *slash) {
 
     optparse_t * parser = optparse_new("cmd server download", "<name>");
     optparse_add_help(parser);
-	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in milliseconds (default = <env>)");
 	optparse_add_set(parser, 'a', "all", 1, &rm_all, "delete all");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 

@@ -36,7 +36,7 @@ static int cmd_schedule_push(struct slash *slash) {
 
     optparse_t * parser = optparse_new("schedule push", "<time>");
     optparse_add_help(parser);
-	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in milliseconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 	optparse_add_unsigned(parser, 'H', "host", "NUM", 0, &host, "host to receive push queue (default = queue host))");
 	optparse_add_unsigned(parser, 'l', "latency", "NUM", 0, &latency_buffer, "max latency, 0 to disable (default = 0))");
@@ -99,7 +99,7 @@ static int cmd_schedule_list(struct slash *slash) {
 
     optparse_t * parser = optparse_new("schedule list", "");
     optparse_add_help(parser);
-	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in milliseconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
@@ -126,7 +126,7 @@ static int cmd_schedule_show(struct slash *slash) {
 
     optparse_t * parser = optparse_new("schedule show", "<id>");
     optparse_add_help(parser);
-	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in milliseconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
@@ -161,7 +161,7 @@ static int cmd_schedule_rm(struct slash *slash) {
 
     optparse_t * parser = optparse_new("schedule rm", "<id>");
     optparse_add_help(parser);
-	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in milliseconds (default = <env>)");
 	optparse_add_set(parser, 'a', "all", 1, &rm_all, "delete all");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 
@@ -211,7 +211,7 @@ static int cmd_schedule_reset(struct slash *slash) {
 
     optparse_t * parser = optparse_new("schedule list", "");
     optparse_add_help(parser);
-	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in milliseconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
@@ -255,7 +255,7 @@ static int cmd_schedule_command(struct slash *slash) {
 
     optparse_t * parser = optparse_new("schedule cmd", "<name> <time>");
     optparse_add_help(parser);
-	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in seconds (default = <env>)");
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in milliseconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 	optparse_add_unsigned(parser, 'H', "host", "NUM", 0, &host, "host to receive push queue (default = queue host))");
 	optparse_add_unsigned(parser, 'l', "latency", "NUM", 0, &latency_buffer, "max latency, 0 to disable (default = 0))");
