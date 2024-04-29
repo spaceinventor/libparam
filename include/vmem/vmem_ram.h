@@ -10,9 +10,6 @@
 
 #include <vmem/vmem.h>
 
-void vmem_ram_read(vmem_t * vmem, uint64_t addr, void * dataout, intptr_t len);
-void vmem_ram_write(vmem_t * vmem, uint64_t addr, const void * datain, intptr_t len);
-
 typedef struct {
 	void * physaddr;
 } vmem_ram_driver_t;
@@ -29,10 +26,10 @@ typedef struct {
 		.type = VMEM_TYPE_RAM, \
 		.name = strname, \
 		.size = size_in, \
-		.read = vmem_ram_read, \
-		.write = vmem_ram_write, \
+		.read = NULL, \
+		.write = NULL, \
 		.driver = &vmem_##name_in##_driver, \
-		.vaddr = vmem_##name_in##_heap, \
+		.vaddr = 0, \
 		.ack_with_pull = 1, \
 	};
 
@@ -47,8 +44,8 @@ typedef struct {
         .type = VMEM_TYPE_RAM, \
         .name = strname, \
         .size = size_in, \
-        .read = vmem_ram_read, \
-        .write = vmem_ram_write, \
+        .read = NULL, \
+        .write = NULL, \
         .driver = &vmem_##name_in##_driver, \
         .vaddr = 0, \
         .ack_with_pull = 1, \
