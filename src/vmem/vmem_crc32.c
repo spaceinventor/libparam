@@ -12,7 +12,7 @@
 #include "vmem/vmem_crc32.h"
 #include "csp/csp_crc32.h"
 
-uint32_t vmem_calc_crc32(uint64_t addr, intptr_t len, const void * buffer, uint32_t buffer_len) {
+uint32_t vmem_calc_crc32(uint64_t addr, intptr_t len, void * buffer, uint32_t buffer_len) {
 
 	csp_crc32_t crc_obj;
 	uint32_t count = 0;
@@ -26,7 +26,7 @@ uint32_t vmem_calc_crc32(uint64_t addr, intptr_t len, const void * buffer, uint3
 		chunk_len = (buffer_len > (len - count) ? (len - count) : buffer_len);
 
 		/* Grab the data from the vmem area */
-		vmem_memcpy((uint64_t)buffer, ((uint64_t) addr + count), chunk_len);
+		vmem_read(buffer, addr + count, chunk_len);
 
 		/* Update CRC32 calculation */
 		csp_crc32_update(&crc_obj, buffer, chunk_len);

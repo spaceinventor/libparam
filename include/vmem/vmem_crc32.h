@@ -11,6 +11,6 @@
 #include <stdint.h>
 #include "vmem/vmem.h"
 
-uint32_t vmem_calc_crc32(uint64_t addr, intptr_t len, const void *buffer, uint32_t buffer_len);
+uint32_t vmem_calc_crc32(uint64_t addr, intptr_t len, void *buffer, uint32_t buffer_len);
 
 #endif /* LIB_PARAM_INCLUDE_VMEM_VMEM_CRC32_H_ */

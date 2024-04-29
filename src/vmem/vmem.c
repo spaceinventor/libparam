@@ -17,28 +17,43 @@ extern int __start_vmem, __stop_vmem;
     We therefore use __attribute__((weak)) so we can compile in the absence of these. */
 extern __attribute__((weak)) int __start_vmem, __stop_vmem;
 
-void * vmem_memcpy(uint64_t to, uint64_t from, intptr_t size) {
+void * vmem_memcpy(void * to, const void * from, intptr_t size) {
+
+	return vmem_cpy((uint64_t)(intptr_t)to, (uint64_t)(intptr_t)from, size);
+}
+
+void * vmem_write(uint64_t to, const void * from, intptr_t size) {
+
+	return vmem_cpy(to, (uint64_t)(intptr_t)from, size);
+}
+
+void * vmem_read(void * to, uint64_t from, intptr_t size) {
+
+	return vmem_cpy((uint64_t)(intptr_t)to, from, size);
+}
+
+void * vmem_cpy(uint64_t to, uint64_t from, intptr_t size) {
 
 	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
 
 		/* Write to VMEM */
 		if ((to >= vmem->vaddr) && (to + size <= vmem->vaddr + vmem->size)) {
 			//printf("Write to vmem %s, to %p from %p\n", vmem->name, to, from);
-			vmem->write(vmem, to - vmem->vaddr, (void*)from, size);
+			vmem->write(vmem, to - vmem->vaddr, (void*)((intptr_t)from), size);
 			return NULL;
 		}
 
 		/* Read */
 		if ((from >= vmem->vaddr) && (from + size <= vmem->vaddr + vmem->size)) {
 			//printf("Read from vmem %s\n", vmem->name);
-			vmem->read(vmem, from - vmem->vaddr, (void*)to, size);
+			vmem->read(vmem, from - vmem->vaddr, (void*)(intptr_t)to, size);
 			return NULL;
 		}
 
 	}
 
 	/* If not vmem found */
-	return memcpy((void*)to, (void*)from, size);
+	return memcpy((void*)(intptr_t)to, (void*)(intptr_t)from, size);
 
 }
 
