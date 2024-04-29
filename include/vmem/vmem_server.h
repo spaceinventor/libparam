@@ -39,6 +39,10 @@ typedef struct {
 			uint32_t length;
 		} data2;
 		struct {
+			uint64_t address;
+			uint64_t length;
+		} data3;
+		struct {
 			uint8_t vmem_id;
 		} vmem;
 		struct {

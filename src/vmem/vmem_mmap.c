@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-static void ensure_init(vmem_mmap_driver_t *drv, uint32_t *size)
+static void ensure_init(vmem_mmap_driver_t *drv, intptr_t *size)
 {
 	if (0 == drv->physaddr)
 	{
@@ -38,14 +38,14 @@ static void ensure_init(vmem_mmap_driver_t *drv, uint32_t *size)
 	}
 }
 
-void vmem_mmap_read(vmem_t *vmem, uint32_t addr, void *dataout, uint32_t len)
+void vmem_mmap_read(vmem_t *vmem, uint64_t addr, void *dataout, intptr_t len)
 {
 	vmem_mmap_driver_t *drv = (vmem_mmap_driver_t *)vmem->driver;
 	ensure_init(drv, &vmem->size);
 	memcpy(dataout, ((vmem_mmap_driver_t *)vmem->driver)->physaddr + addr, len);
 }
 
-void vmem_mmap_write(vmem_t *vmem, uint32_t addr, const void *datain, uint32_t len)
+void vmem_mmap_write(vmem_t *vmem, uint64_t addr, const void *datain, intptr_t len)
 {
 	vmem_mmap_driver_t *drv = (vmem_mmap_driver_t *)vmem->driver;
 	ensure_init(drv, &vmem->size);

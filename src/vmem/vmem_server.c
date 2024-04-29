@@ -71,7 +71,7 @@ void vmem_server_handler(csp_conn_t * conn)
 				packet->length = VMEM_MIN(VMEM_SERVER_MTU, length - count);
 
 				/* Get data */
-				vmem_memcpy(packet->data, (void *) ((intptr_t) address + count), packet->length);
+				vmem_memcpy((uint64_t)packet->data, (uint64_t)(address + count), packet->length);
 
 				/* Increment */
 				count += packet->length;
@@ -114,7 +114,7 @@ void vmem_server_handler(csp_conn_t * conn)
 			//csp_hex_dump("Upload", packet->data, packet->length);
 
 			/* Put data */
-			vmem_memcpy((void *) ((intptr_t) address + count), packet->data, packet->length);
+			vmem_memcpy(address + count, (uint64_t)packet->data, packet->length);
 
 			/* Increment */
 			count += packet->length;
