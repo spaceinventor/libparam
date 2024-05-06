@@ -550,7 +550,7 @@ typedef struct param_heap_s {
 		uint64_t alignme;
 		uint8_t *buffer;
 	};
-	uint32_t timestamp;
+	csp_timestamp_t timestamp;
 	char name[36];
 	char unit[10];
 	char help[150];

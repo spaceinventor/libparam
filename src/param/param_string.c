@@ -272,7 +272,7 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 	if (param == NULL)
 		return;
 
-	if(ref_timestamp && ref_timestamp > *param->timestamp){
+	if(ref_timestamp && ref_timestamp > param->timestamp->tv_sec){
 		fprintf(file, "\033[90m");
 	} else {
 		fprintf(file, "%s", param_mask_color(param));

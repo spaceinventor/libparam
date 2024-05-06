@@ -52,15 +52,16 @@ typedef int (*param_queue_callback_f)(void * context, param_queue_t *queue, para
 int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback, void * context);
 
 
-void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, long unsigned int *timestamp, int *offset, param_queue_t *queue);
+void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, csp_timestamp_t *timestamp, int *offset, param_queue_t *queue);
 
 #define PARAM_QUEUE_FOREACH(param, reader, queue, offset) \
 	mpack_reader_t reader; \
 	mpack_reader_init_data(&reader, queue->buffer, queue->used); \
 	while(reader.data < reader.end) { \
 		int id, node, offset = -1; \
-		long unsigned int timestamp = 0; \
-		param_deserialize_id(&reader, &id, &node, &timestamp, &offset, queue); \
+		csp_timestamp_t _timestamp = {0}; \
+		param_deserialize_id(&reader, &id, &node, &_timestamp, &offset, queue); \
+		uint32_t timestamp __attribute__((unused)) = _timestamp.tv_sec; /* For backwards compatiblity with timestamp before csp_timestamp_t */ \
 		param_t * param = param_list_find_id(node, id); \
 
 

@@ -52,7 +52,7 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 	} else {
 
 		int node = param->node;
-		uint32_t timestamp = *param->timestamp;
+		uint32_t timestamp = param->timestamp->tv_sec;
 		int array_flag = (offset >= 0) ? 1 : 0;
 		int node_flag = (queue->last_node != node) ? 1 : 0;
 		int timestamp_flag = (queue->last_timestamp != timestamp) ? 1 : 0;
@@ -88,7 +88,7 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 
 }
 
-void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, long unsigned int *timestamp, int *offset, param_queue_t *queue) {
+void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, csp_timestamp_t *timestamp, int *offset, param_queue_t *queue) {
 
 	if (queue->version == 1) {
 
@@ -140,10 +140,10 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, long unsig
 			uint32_t _timestamp;
 			mpack_read_bytes(reader, (char*) &_timestamp, 4);
 			_timestamp = be32toh(_timestamp);
-			*timestamp = _timestamp;
+			timestamp->tv_sec = _timestamp;
 			queue->last_timestamp = _timestamp;
 		} else {
-			*timestamp = queue->last_timestamp;
+			timestamp->tv_sec = queue->last_timestamp;
 		}
 
 		if (extendedid_flag) {
