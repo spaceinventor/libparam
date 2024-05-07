@@ -549,7 +549,7 @@ static int cmd_new(struct slash *slash) {
 
 	param_queue.used = 0;
 	param_queue.version = paramver;
-	param_queue.last_timestamp = 0;
+	memset(&(param_queue.last_timestamp), 0, sizeof(csp_timestamp_t));
 
 	printf("Initialized new command: %s\n", name);
 

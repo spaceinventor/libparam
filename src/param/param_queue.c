@@ -23,7 +23,7 @@ void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int u
 	queue->type = type;
 	queue->used = used;
 	queue->version = version;
-	queue->last_timestamp = 0;
+	memset(&(queue->last_timestamp), 0, sizeof(csp_timestamp_t));
 }
 
 int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value) {
