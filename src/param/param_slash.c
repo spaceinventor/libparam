@@ -30,7 +30,7 @@
 static char queue_buf[PARAM_SERVER_MTU];
 param_queue_t param_queue = { .buffer = queue_buf, .buffer_size = PARAM_SERVER_MTU, .type = PARAM_QUEUE_TYPE_EMPTY, .version = 2 };
 
-static void param_slash_parse(char * arg, int node, param_t **param, int *offsets) {
+static void param_slash_parse_array(char * arg, int node, param_t **param, int *offsets) {
 
 	/* Search for the '@' symbol:
 	 * Call strtok twice in order to skip the stuff head of '@' */
@@ -54,6 +54,34 @@ static void param_slash_parse(char * arg, int node, param_t **param, int *offset
 
 	char *endptr;
 	int id = strtoul(arg, &endptr, 10);
+	if (*endptr == '\0') {
+		*param = param_list_find_id(node, id);
+	} else {
+		*param = param_list_find_name(node, arg);
+	}
+
+	return;
+
+}
+
+static void param_slash_parse(char * arg, int node, param_t **param, int *offset) {
+
+	/* Search for the '@' symbol:
+	 * Call strtok twice in order to skip the stuff head of '@' */
+	char * saveptr;
+	char * token;
+
+	/* Search for the '[' symbol: */
+	strtok_r(arg, "[", &saveptr);
+	token = strtok_r(NULL, "[", &saveptr);
+	if (token != NULL) {
+		sscanf(token, "%d", offset);
+		*token = '\0';
+	}
+
+	char *endptr;
+	int id = strtoul(arg, &endptr, 10);
+
 	if (*endptr == '\0') {
 		*param = param_list_find_id(node, id);
 	} else {
@@ -245,7 +273,7 @@ static int cmd_set(struct slash *slash) {
 	// Default set to INT_MIN to determine if they've been set or not, since an offset can be < 0.
 	int offsets[2] = {INT_MIN, INT_MIN};
 	param_t * param = NULL;
-	param_slash_parse(name, node, &param, offsets);
+	param_slash_parse_array(name, node, &param, offsets);
 	
 	// Ensure we have start and end indexes for slicing.
 	int start_index = offsets[0] != INT_MIN ? offsets[0] : 0;
@@ -432,7 +460,7 @@ static int cmd_add(struct slash *slash) {
 		char * name = slash->argv[argi];
 		int offset = -1;
 		param_t * param = NULL;
-		// param_slash_parse(name, node, &param, &offset);
+		param_slash_parse(name, node, &param, &offset);
 
 		if (param == NULL) {
 			printf("%s not found\n", name);
