@@ -30,24 +30,29 @@
 static char queue_buf[PARAM_SERVER_MTU];
 param_queue_t param_queue = { .buffer = queue_buf, .buffer_size = PARAM_SERVER_MTU, .type = PARAM_QUEUE_TYPE_EMPTY, .version = 2 };
 
-static void param_slash_parse(char * arg, int node, param_t **param, int *offset) {
+static void param_slash_parse(char * arg, int node, param_t **param, int *offsets) {
 
 	/* Search for the '@' symbol:
 	 * Call strtok twice in order to skip the stuff head of '@' */
 	char * saveptr;
 	char * token;
-
-	/* Search for the '[' symbol: */
+	
 	strtok_r(arg, "[", &saveptr);
 	token = strtok_r(NULL, "[", &saveptr);
 	if (token != NULL) {
-		sscanf(token, "%d", offset);
+        /* Search for the '[' symbol: */
+		sscanf(token, "%d:%d", &offsets[0], &offsets[1]);
+
+		// If the input was ":4" then both offsets wont be set, 
+		// so we check for this and try again with another format to match.
+		if (offsets[0] == INT_MIN && offsets[1] == INT_MIN){
+			sscanf(token, ":%d", &offsets[1]);
+		}
 		*token = '\0';
 	}
 
 	char *endptr;
 	int id = strtoul(arg, &endptr, 10);
-
 	if (*endptr == '\0') {
 		*param = param_list_find_id(node, id);
 	} else {
@@ -234,10 +239,28 @@ static int cmd_set(struct slash *slash) {
 	}
 
 	char * name = slash->argv[argi];
-	int offset = -1;
+	int offsets[2] = {INT_MIN, INT_MIN};
 	param_t * param = NULL;
-	param_slash_parse(name, node, &param, &offset);
+	param_slash_parse(name, node, &param, offsets);
 
+	int start_index = offsets[0] != INT_MIN ? offsets[0] : 0;
+	int end_index = offsets[1] != INT_MIN ? offsets[1] : param->array_size;
+
+	if(start_index < 0){
+		start_index = param->array_size + start_index;
+		if(start_index < 0){
+			optparse_del(parser);
+			return SLASH_EINVAL;
+		}
+	}
+	if(end_index < 0){
+		end_index = param->array_size + end_index;
+		if(end_index < 0){
+			optparse_del(parser);
+			return SLASH_EINVAL;
+		}
+	}
+	
 	if (param == NULL) {
 		printf("%s not found\n", name);
         optparse_del(parser);
@@ -257,22 +280,64 @@ static int cmd_set(struct slash *slash) {
 		return SLASH_EINVAL;
 	}
 
-	char valuebuf[128] __attribute__((aligned(16))) = { };
-	if (param_str_to_value(param->type, slash->argv[argi], valuebuf) < 0) {
-		printf("invalid parameter value\n");
-	    optparse_del(parser);
-		return SLASH_EINVAL;
+	param_queue_t queue;
+	char queue_buf[PARAM_SERVER_MTU];
+	param_queue_init(&queue, queue_buf, PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, 2);
+
+	int should_break = 1;
+	int iterations = 0;
+	int single_value_flag = 0;
+	
+	for(int i = argi; should_break == 1; i++){
+		char valuebuf[128] __attribute__((aligned(16))) = { };
+		
+		char *arg = slash->argv[i];
+
+		if(strchr(arg, '[')) {
+			arg++;
+			if(arg[strlen(arg)-1] == ']'){
+				arg[strlen(arg)-1] = '\0';
+				should_break = 0;
+			}
+		}
+		else if(arg[strlen(arg)-1] == ']') {
+			arg[strlen(arg)-1] = '\0';
+			should_break = 0;
+		}
+		else if(iterations == 0){
+			single_value_flag = 1;
+		}		
+
+		if (param_str_to_value(param->type, arg, valuebuf) < 0) {
+			fprintf(stderr, "invalid parameter value\n");
+			optparse_del(parser);
+			return SLASH_EINVAL;
+		}
+
+		if(single_value_flag){
+			for(int j = start_index; j < end_index; j++){
+				param_queue_add(&queue, param, j, valuebuf);
+			}
+			break;
+		}
+
+		if(start_index == end_index){
+			optparse_del(parser);
+			fprintf(stderr, "Values list is longer than specified slice\n");
+			return SLASH_EINVAL;
+		}
+		
+		if(param_queue_add(&queue, param, start_index++, valuebuf) < 0){
+			optparse_del(parser);
+			fprintf(stderr, "Param_queue_add failed\n");
+			return SLASH_EINVAL;
+		}
+		iterations++;
 	}
 
 	/* Local parameters are set directly */
 	if (param->node == 0) {
-
-		if (offset < 0) {
-			for (int i = 0; i < param->array_size; i++)
-				param_set(param, i, valuebuf);
-		} else {
-			param_set(param, offset, valuebuf);
-		}
+		param_queue_apply(&queue, 1, 0);
 		param_print(param, -1, NULL, 0, 2, 0);
 	} else {
 
@@ -283,7 +348,7 @@ static int cmd_set(struct slash *slash) {
 		csp_timestamp_t time_now;
 		csp_clock_get_time(&time_now);
 		*param->timestamp = 0;
-		if (param_push_single(param, offset, valuebuf, 0, dest, slash_dfl_timeout, paramver, ack_with_pull) < 0) {
+		if (param_push_queue(&queue, 3, dest, slash_dfl_timeout, 0, ack_with_pull) < 0) {
 			printf("No response\n");
 			optparse_del(parser);
 			return SLASH_EIO;
@@ -339,7 +404,7 @@ static int cmd_add(struct slash *slash) {
 		char * name = slash->argv[argi];
 		int offset = -1;
 		param_t * param = NULL;
-		param_slash_parse(name, node, &param, &offset);
+		// param_slash_parse(name, node, &param, &offset);
 
 		if (param == NULL) {
 			printf("%s not found\n", name);
