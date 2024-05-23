@@ -43,7 +43,8 @@ static void param_slash_parse_array(char * arg, int node, param_t **param, int *
         /* Search for the '[' symbol: */
 		// Searches for the format digit:digit.
 		sscanf(token, "%d:%d", &offsets[0], &offsets[1]);
-
+		printf("%d\n", offsets[0]);
+		printf("%d\n", offsets[1]);
 		// If the input was ":4" then no offsets will be set by the first sscanf, 
 		// so we check for this and try again with another format to match.
 		if (offsets[0] == INT_MIN && offsets[1] == INT_MIN){
@@ -278,6 +279,9 @@ static int cmd_set(struct slash *slash) {
 	// Ensure we have start and end indexes for slicing.
 	int start_index = offsets[0] != INT_MIN ? offsets[0] : 0;
 	int end_index = offsets[1] != INT_MIN ? offsets[1] : param->array_size;
+
+	// Set flag if only a single index was entered.
+	int single_offset_flag = offsets[0] != INT_MIN && offsets[1] == INT_MIN ? true : false;
 	
 	// And index can be negative, if so we should translate it into a not negative index. 
 	// i.e.: [-1] is the same as [7] in array [1 2 3 4 5 6 7 8].
@@ -342,6 +346,11 @@ static int cmd_set(struct slash *slash) {
 		// Check if we can find a start bracket '['.
 		// If we can, then we're dealing with a value array.
 		if(strchr(arg, '[')) {
+			if(single_offset_flag){
+				fprintf(stderr, "cannot set array into indexed parameter value\n");
+				optparse_del(parser);
+				return SLASH_EINVAL;
+			}
 			arg++;
 			// A value array with a single element can also be passed.
 			if(arg[strlen(arg)-1] == ']'){
@@ -368,6 +377,10 @@ static int cmd_set(struct slash *slash) {
 		// If we're dealing with a single value, we should loop the sliced array instead of the values.
 		// Breaking afterwards, since this means we're done setting params.
 		if(single_value_flag){
+			if(single_offset_flag){
+				param_queue_add(&queue, param, start_index, valuebuf);
+				break;
+			}
 			for(int j = start_index; j < end_index; j++){
 				param_queue_add(&queue, param, j, valuebuf);
 			}
