@@ -30,26 +30,34 @@
 static char queue_buf[PARAM_SERVER_MTU];
 param_queue_t param_queue = { .buffer = queue_buf, .buffer_size = PARAM_SERVER_MTU, .type = PARAM_QUEUE_TYPE_EMPTY, .version = 2 };
 
-static void param_slash_parse_array(char * arg, int node, param_t **param, int *offsets) {
+static int param_slash_parse_array(char * arg, int node, param_t **param, int *offsets, int *slice_detection) {
 
 	/* Search for the '@' symbol:
 	 * Call strtok twice in order to skip the stuff head of '@' */
 	char * saveptr;
 	char * token;
+	char slice_colon;
 	
 	strtok_r(arg, "[", &saveptr);
 	token = strtok_r(NULL, "[", &saveptr);
 	if (token != NULL) {
         /* Search for the '[' symbol: */
 		// Searches for the format digit:digit.
-		sscanf(token, "%d:%d", &offsets[0], &offsets[1]);
-		printf("%d\n", offsets[0]);
-		printf("%d\n", offsets[1]);
+		sscanf(token, "%d%c%d", &offsets[0], &slice_colon, &offsets[1]);
 		// If the input was ":4" then no offsets will be set by the first sscanf, 
 		// so we check for this and try again with another format to match.
 		if (offsets[0] == INT_MIN && offsets[1] == INT_MIN){
-			sscanf(token, ":%d", &offsets[1]);
+			sscanf(token, "%c%d", &slice_colon, &offsets[1]);
 		}
+		if(slice_colon == ':'){
+			*slice_detection = true;
+		}
+		// If slice colon and offsets are not set then an empty array slice was the input. 
+		else if (offsets[1] == INT_MIN && offsets[0] == INT_MIN){
+			// meaning nothing was set, so the input was an empty array []
+			return SLASH_EINVAL;
+		}
+
 		*token = '\0';
 	}
 
@@ -61,7 +69,7 @@ static void param_slash_parse_array(char * arg, int node, param_t **param, int *
 		*param = param_list_find_name(node, arg);
 	}
 
-	return;
+	return 0;
 
 }
 
@@ -273,15 +281,20 @@ static int cmd_set(struct slash *slash) {
 	// offset array, since 2 offsets are possible, i.e.: [2:5].
 	// Default set to INT_MIN to determine if they've been set or not, since an offset can be < 0.
 	int offsets[2] = {INT_MIN, INT_MIN};
+	int slice_detected = false;
 	param_t * param = NULL;
-	param_slash_parse_array(name, node, &param, offsets);
+	if(param_slash_parse_array(name, node, &param, offsets, &slice_detected) < 0){
+		fprintf(stderr, "cannot set empty slice.\n");
+		optparse_del(parser);
+		return SLASH_EINVAL;
+	}
 	
 	// Ensure we have start and end indexes for slicing.
 	int start_index = offsets[0] != INT_MIN ? offsets[0] : 0;
 	int end_index = offsets[1] != INT_MIN ? offsets[1] : param->array_size;
 
 	// Set flag if only a single index was entered.
-	int single_offset_flag = offsets[0] != INT_MIN && offsets[1] == INT_MIN ? true : false;
+	int single_offset_flag = offsets[0] != INT_MIN && offsets[1] == INT_MIN && !slice_detected ? true : false;
 	
 	// And index can be negative, if so we should translate it into a not negative index. 
 	// i.e.: [-1] is the same as [7] in array [1 2 3 4 5 6 7 8].
@@ -337,15 +350,15 @@ static int cmd_set(struct slash *slash) {
 	int should_break = 1;
 	int iterations = 0;
 	int single_value_flag = 0;
-	
+
 	for(int i = argi; should_break == 1; i++){
 		char valuebuf[128] __attribute__((aligned(16))) = { };
-		
 		char *arg = slash->argv[i];
 		
 		// Check if we can find a start bracket '['.
 		// If we can, then we're dealing with a value array.
 		if(strchr(arg, '[')) {
+			// If we're dealing with a value array, but only a single offset, then we should throw an error.
 			if(single_offset_flag){
 				fprintf(stderr, "cannot set array into indexed parameter value\n");
 				optparse_del(parser);
@@ -358,6 +371,8 @@ static int cmd_set(struct slash *slash) {
 				should_break = 0;
 			}
 		}
+		// Check if we can find an ending brakcet ']'.
+		// If we can, then we should stop looping after the current iteration.
 		else if(arg[strlen(arg)-1] == ']') {
 			arg[strlen(arg)-1] = '\0';
 			should_break = 0;
@@ -391,10 +406,9 @@ static int cmd_set(struct slash *slash) {
 		// If start_index ever becomes equal to end_index, it means the amount of values are greater than the slice. 
 		if(start_index == end_index){
 			optparse_del(parser);
-			fprintf(stderr, "Values list is longer than specified slice\n");
+			fprintf(stderr, "Values array is longer than specified slice\n");
 			return SLASH_EINVAL;
 		}
-		
 		// Add to the queue.
 		if(param_queue_add(&queue, param, start_index++, valuebuf) < 0){
 			optparse_del(parser);
@@ -402,6 +416,15 @@ static int cmd_set(struct slash *slash) {
 			return SLASH_EINVAL;
 		}
 		iterations++;
+
+		// If we hit the end value by detecting ']', and start index and end index are not equal, 
+		// then the slice length must be greater than the value array length.
+		// This shouldnt be possible, so we throw an error.
+		if(should_break == 0 && start_index != end_index){
+			optparse_del(parser);
+			fprintf(stderr, "Array slice is longer than value array\n");
+			return SLASH_EINVAL;
+		}
 	}
 
 	/* Local parameters are set directly */
