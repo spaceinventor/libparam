@@ -30,45 +30,59 @@
 static char queue_buf[PARAM_SERVER_MTU];
 param_queue_t param_queue = { .buffer = queue_buf, .buffer_size = PARAM_SERVER_MTU, .type = PARAM_QUEUE_TYPE_EMPTY, .version = 2 };
 
-static int param_slash_parse_array(char * arg, int node, param_t **param, int *offsets, int *slice_detection) {
+static int param_slash_parse_array(char * arg, int node, param_t **param, int *start_index, int *end_index, int *slice_detected) {
+	/**
+	 * Function to find offsets and check if slice delimitor is active.
+	 * @return Returns an array of three values. Defaults to INT_MIN if no value.
+	 * @return Last value is 1 if found.
+	*/
 
 	/* Search for the '@' symbol:
 	 * Call strtok twice in order to skip the stuff head of '@' */
+	
+	char _slice_delimitor;
 	char * saveptr;
 	char * token;
-	char slice_colon;
 	
+	int first_scan;
+	int second_scan;
+
 	strtok_r(arg, "[", &saveptr);
 	token = strtok_r(NULL, "[", &saveptr);
 	if (token != NULL) {
         /* Search for the '[' symbol: */
-		// Searches for the format digit:digit.
-		sscanf(token, "%d%c%d", &offsets[0], &slice_colon, &offsets[1]);
+		// Searches for the format [digit:digit] and [digit:].
+		first_scan = sscanf(token, "%d%c%d", start_index, &_slice_delimitor, end_index);
+
 		// If the input was ":4" then no offsets will be set by the first sscanf, 
 		// so we check for this and try again with another format to match.
-		if (offsets[0] == INT_MIN && offsets[1] == INT_MIN){
-			sscanf(token, "%c%d", &slice_colon, &offsets[1]);
-		}
-		if(slice_colon == ':'){
-			*slice_detection = true;
-		}
-		// If slice colon and offsets are not set then an empty array slice was the input. 
-		else if (offsets[1] == INT_MIN && offsets[0] == INT_MIN){
-			// meaning nothing was set, so the input was an empty array []
-			return SLASH_EINVAL;
-		}
+		second_scan = sscanf(token, "%c%d", &_slice_delimitor, end_index);
 
 		*token = '\0';
 	}
 
 	char *endptr;
 	int id = strtoul(arg, &endptr, 10);
-	if (*endptr == '\0') {
+	// If strtoul has an error, then it will return ULONG_MAX, so we check on that.
+	if (id != ULONG_MAX && *endptr == '\0') {
 		*param = param_list_find_id(node, id);
 	} else {
 		*param = param_list_find_name(node, arg);
 	}
 
+	// 5 outcomes:
+	// 4    ->    first_scan == 1 | second_scan == 0
+	// 4:   ->    first_scan == 2 | second_scan == 0
+	// 4:7  ->    first_scan == 3 | second_scan == 0
+	//  :   ->    first_scan == 0 | second_scan == 1
+	//  :7  ->    first_scan == 0 | second_scan == 2
+
+	if(first_scan > second_scan){
+		if(first_scan > 1) *slice_detected = 1;
+	} 
+	else {
+		*slice_detected = 1;
+	}
 	return 0;
 
 }
@@ -280,21 +294,21 @@ static int cmd_set(struct slash *slash) {
 
 	// offset array, since 2 offsets are possible, i.e.: [2:5].
 	// Default set to INT_MIN to determine if they've been set or not, since an offset can be < 0.
-	int offsets[2] = {INT_MIN, INT_MIN};
-	int slice_detected = false;
+	// int offsets[2] = {INT_MIN, INT_MIN};
+	// int slice_detected = false;
 	param_t * param = NULL;
-	if(param_slash_parse_array(name, node, &param, offsets, &slice_detected) < 0){
-		fprintf(stderr, "cannot set empty slice.\n");
+
+	int start_index = INT_MIN;
+	int end_index = INT_MIN;
+	int slice_detected = 0;
+	if(param_slash_parse_array(name, node, &param, &start_index, &end_index, &slice_detected) != 0){
+		fprintf(stderr, "Error in param_slash_parse_array function");
 		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 	
-	// Ensure we have start and end indexes for slicing.
-	int start_index = offsets[0] != INT_MIN ? offsets[0] : 0;
-	int end_index = offsets[1] != INT_MIN ? offsets[1] : param->array_size;
-
 	// Set flag if only a single index was entered.
-	int single_offset_flag = offsets[0] != INT_MIN && offsets[1] == INT_MIN && !slice_detected ? true : false;
+	int single_offset_flag = start_index != INT_MIN && end_index == INT_MIN && !slice_detected ? true : false;
 	
 	// And index can be negative, if so we should translate it into a not negative index. 
 	// i.e.: [-1] is the same as [7] in array [1 2 3 4 5 6 7 8].
