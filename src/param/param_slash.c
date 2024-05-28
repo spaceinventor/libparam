@@ -77,12 +77,8 @@ static int param_slash_parse_array(char * arg, int node, param_t **param, int *s
 	//  :   ->    first_scan == 0 | second_scan == 1
 	//  :7  ->    first_scan == 0 | second_scan == 2
 
-	if(first_scan > second_scan){
-		if(first_scan > 1) *slice_detected = 1;
-	} 
-	else {
-		*slice_detected = 1;
-	}
+	if(first_scan > 1 || second_scan > first_scan) *slice_detected = 1;
+
 	return 0;
 
 }
