@@ -24,6 +24,7 @@ enum vmem_types{
 	VMEM_TYPE_FILE = 7,
 	VMEM_TYPE_FRAM_CACHE = 8,
 	VMEM_TYPE_NOR_FLASH = 9,
+	VMEM_TYPE_EMMC = 10,
 };
 
 typedef struct vmem_s {
