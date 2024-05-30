@@ -44,8 +44,8 @@ static int param_slash_parse_array(char * arg, int node, param_t **param, int *s
 	char * saveptr;
 	char * token;
 	
-	int first_scan;
-	int second_scan;
+	int first_scan = 0;
+	int second_scan = 0;
 
 	strtok_r(arg, "[", &saveptr);
 	token = strtok_r(NULL, "[", &saveptr);
@@ -53,10 +53,23 @@ static int param_slash_parse_array(char * arg, int node, param_t **param, int *s
         /* Search for the '[' symbol: */
 		// Searches for the format [digit:digit] and [digit:].
 		first_scan = sscanf(token, "%d%c%d", start_index, &_slice_delimitor, end_index);
-
-		// If the input was ":4" then no offsets will be set by the first sscanf, 
-		// so we check for this and try again with another format to match.
-		second_scan = sscanf(token, "%c%d", &_slice_delimitor, end_index);
+		
+		if(first_scan <= 0){
+			// If the input was ":4" then no offsets will be set by the first sscanf, 
+			// so we check for this and try again with another format to match.
+			// second scan will never be 0, since a digit can still be loaded into %c.
+			second_scan = sscanf(token, "%c%d", &_slice_delimitor, end_index);
+		}
+		
+		if(_slice_delimitor == ':'){
+			*slice_detected = 1;
+		}
+		
+		if(second_scan > 0 && _slice_delimitor == ']'){
+			// This is an error, example: set test_array[] 4
+			fprintf(stderr, "Cannot set empty array slice.\n");
+			return -1;
+		}
 
 		*token = '\0';
 	}
@@ -71,13 +84,15 @@ static int param_slash_parse_array(char * arg, int node, param_t **param, int *s
 	}
 
 	// 5 outcomes:
-	// 4    ->    first_scan == 1 | second_scan == 0
-	// 4:   ->    first_scan == 2 | second_scan == 0
-	// 4:7  ->    first_scan == 3 | second_scan == 0
-	//  :   ->    first_scan == 0 | second_scan == 1
-	//  :7  ->    first_scan == 0 | second_scan == 2
-
-	if(first_scan > 1 || second_scan > first_scan) *slice_detected = 1;
+	// 1. [4]    ->    first_scan == 2 | second_scan == 0
+	// 2. [4:]   ->    first_scan == 2 | second_scan == 0 
+	// 3. [4:7]  ->    first_scan == 3 | second_scan == 0
+ 	// 4. [:]    ->    first_scan == 0 | second_scan == 1
+	// 5. [:7]   ->    first_scan == 0 | second_scan == 2
+	// 1st and 2nd outcome we need to check on _slice_delimitor, if it is : then set slice_detected to 1
+		
+	printf("first  : %d\n", first_scan);
+	printf("second : %d\n", second_scan);
 
 	return 0;
 
@@ -305,7 +320,11 @@ static int cmd_set(struct slash *slash) {
 	
 	// Set flag if only a single index was entered.
 	int single_offset_flag = start_index != INT_MIN && end_index == INT_MIN && !slice_detected ? true : false;
-	
+
+	// Make sure start and end index is set to something NOT INT_MIN.
+	start_index = start_index != INT_MIN ? start_index : 0;
+	end_index = end_index != INT_MIN ? end_index : param->array_size;
+
 	// And index can be negative, if so we should translate it into a not negative index. 
 	// i.e.: [-1] is the same as [7] in array [1 2 3 4 5 6 7 8].
 	// param->array_size usually == 8, then 8 + -1 = 7.
@@ -332,6 +351,12 @@ static int cmd_set(struct slash *slash) {
 		return SLASH_EINVAL;
 	}
 	
+	if(end_index > param->array_size){
+		fprintf(stderr, "End index in slice is greater than param array size.\n");
+		optparse_del(parser);
+		return SLASH_EINVAL;
+	}
+
 	if (param == NULL) {
 		printf("%s not found\n", name);
         optparse_del(parser);
