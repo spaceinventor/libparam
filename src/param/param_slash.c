@@ -90,10 +90,6 @@ static int param_slash_parse_array(char * arg, int node, param_t **param, int *s
  	// 4. [:]    ->    first_scan == 0 | second_scan == 1
 	// 5. [:7]   ->    first_scan == 0 | second_scan == 2
 	// 1st and 2nd outcome we need to check on _slice_delimitor, if it is : then set slice_detected to 1
-		
-	printf("first  : %d\n", first_scan);
-	printf("second : %d\n", second_scan);
-
 	return 0;
 
 }
