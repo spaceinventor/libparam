@@ -30,6 +30,11 @@
 static char queue_buf[PARAM_SERVER_MTU];
 param_queue_t param_queue = { .buffer = queue_buf, .buffer_size = PARAM_SERVER_MTU, .type = PARAM_QUEUE_TYPE_EMPTY, .version = 2 };
 
+enum {
+	PARAM_NOT_FOUND = -2,
+	EMPTY_ARRAY_SLICE = -1,
+};
+
 static int param_slash_parse_array(char * arg, int node, param_t **param, int *start_index, int *end_index, int *slice_detected) {
 	/**
 	 * Function to find offsets and check if slice delimitor is active.
@@ -67,8 +72,7 @@ static int param_slash_parse_array(char * arg, int node, param_t **param, int *s
 		
 		if(second_scan > 0 && _slice_delimitor == ']'){
 			// This is an error, example: set test_array[] 4
-			fprintf(stderr, "Cannot set empty array slice.\n");
-			return -1;
+			return EMPTY_ARRAY_SLICE;
 		}
 
 		*token = '\0';
@@ -81,6 +85,10 @@ static int param_slash_parse_array(char * arg, int node, param_t **param, int *s
 		*param = param_list_find_id(node, id);
 	} else {
 		*param = param_list_find_name(node, arg);
+	}
+
+	if(*param == NULL){
+		return PARAM_NOT_FOUND;
 	}
 
 	// 5 outcomes:
@@ -308,8 +316,14 @@ static int cmd_set(struct slash *slash) {
 	int start_index = INT_MIN;
 	int end_index = INT_MIN;
 	int slice_detected = 0;
-	if(param_slash_parse_array(name, node, &param, &start_index, &end_index, &slice_detected) != 0){
-		fprintf(stderr, "Error in param_slash_parse_array function");
+	int param_parse = param_slash_parse_array(name, node, &param, &start_index, &end_index, &slice_detected);
+	if(param_parse < 0){
+		if(param_parse == PARAM_NOT_FOUND){
+			fprintf(stderr, "%s not found.\n", name);
+		}
+		if(param_parse == EMPTY_ARRAY_SLICE){
+			fprintf(stderr, "Cannot set empty array slice you.\n");
+		}
 		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
@@ -384,7 +398,10 @@ static int cmd_set(struct slash *slash) {
 
 	for(int i = argi; should_break == 1; i++){
 		char valuebuf[128] __attribute__((aligned(16))) = { };
+		printf("Something");
 		char *arg = slash->argv[i];
+
+		printf("arg: %s\n", arg);
 		
 		// Check if we can find a start bracket '['.
 		// If we can, then we're dealing with a value array.
