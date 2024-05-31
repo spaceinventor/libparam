@@ -31,6 +31,7 @@ static char queue_buf[PARAM_SERVER_MTU];
 param_queue_t param_queue = { .buffer = queue_buf, .buffer_size = PARAM_SERVER_MTU, .type = PARAM_QUEUE_TYPE_EMPTY, .version = 2 };
 
 enum {
+	MISSING_CLOSE_BRACKET = -3,
 	PARAM_NOT_FOUND = -2,
 	EMPTY_ARRAY_SLICE = -1,
 };
@@ -52,10 +53,15 @@ static int param_slash_parse_array(char * arg, int node, param_t **param, int *s
 	int first_scan = 0;
 	int second_scan = 0;
 
+	/* Search for the '[' symbol: */
 	strtok_r(arg, "[", &saveptr);
 	token = strtok_r(NULL, "[", &saveptr);
 	if (token != NULL) {
-        /* Search for the '[' symbol: */
+		// Check if close bracket exists as last element in token.
+		// If not, then return an error.
+		if(token[strlen(token)-1] != ']'){
+			return MISSING_CLOSE_BRACKET;
+		}
 		// Searches for the format [digit:digit] and [digit:].
 		first_scan = sscanf(token, "%d%c%d", start_index, &_slice_delimitor, end_index);
 		
@@ -74,6 +80,7 @@ static int param_slash_parse_array(char * arg, int node, param_t **param, int *s
 			// This is an error, example: set test_array[] 4
 			return EMPTY_ARRAY_SLICE;
 		}
+		
 
 		*token = '\0';
 	}
@@ -312,7 +319,6 @@ static int cmd_set(struct slash *slash) {
 	// int offsets[2] = {INT_MIN, INT_MIN};
 	// int slice_detected = false;
 	param_t * param = NULL;
-
 	int start_index = INT_MIN;
 	int end_index = INT_MIN;
 	int slice_detected = 0;
@@ -323,6 +329,9 @@ static int cmd_set(struct slash *slash) {
 		}
 		if(param_parse == EMPTY_ARRAY_SLICE){
 			fprintf(stderr, "Cannot set empty array slice you.\n");
+		}
+		if(param_parse == MISSING_CLOSE_BRACKET){
+			fprintf(stderr, "Missing close bracket on array slice.\n");
 		}
 		optparse_del(parser);
 		return SLASH_EINVAL;
@@ -398,10 +407,7 @@ static int cmd_set(struct slash *slash) {
 
 	for(int i = argi; should_break == 1; i++){
 		char valuebuf[128] __attribute__((aligned(16))) = { };
-		printf("Something");
 		char *arg = slash->argv[i];
-
-		printf("arg: %s\n", arg);
 		
 		// Check if we can find a start bracket '['.
 		// If we can, then we're dealing with a value array.
