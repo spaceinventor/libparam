@@ -26,17 +26,18 @@
 
 #include "param_slash.h"
 #include "param_wildcard.h"
+#include "time.h"
 
 static char queue_buf[PARAM_SERVER_MTU];
 param_queue_t param_queue = { .buffer = queue_buf, .buffer_size = PARAM_SERVER_MTU, .type = PARAM_QUEUE_TYPE_EMPTY, .version = 2 };
 
 enum {
-	MISSING_CLOSE_BRACKET = -3,
-	PARAM_NOT_FOUND = -2,
-	EMPTY_ARRAY_SLICE = -1,
+	EMPTY_ARRAY_SLICE = -2,
+	PARAM_NOT_FOUND = -3,
+	MISSING_CLOSE_BRACKET = -4,
 };
 
-static int param_slash_parse_array(char * arg, int node, param_t **param, int *start_index, int *end_index, int *slice_detected) {
+static int param_slash_parse_slice(char * arg, int *start_index, int *end_index, int *slice_detected) {
 	/**
 	 * Function to find offsets and check if slice delimitor is active.
 	 * @return Returns an array of three values. Defaults to INT_MIN if no value.
@@ -60,6 +61,7 @@ static int param_slash_parse_array(char * arg, int node, param_t **param, int *s
 		// Check if close bracket exists as last element in token.
 		// If not, then return an error.
 		if(token[strlen(token)-1] != ']'){
+			fprintf(stderr, "Missing close bracket on array slice.\n");
 			return MISSING_CLOSE_BRACKET;
 		}
 		// Searches for the format [digit:digit] and [digit:].
@@ -78,24 +80,11 @@ static int param_slash_parse_array(char * arg, int node, param_t **param, int *s
 		
 		if(second_scan > 0 && _slice_delimitor == ']'){
 			// This is an error, example: set test_array[] 4
+			fprintf(stderr, "Cannot set empty array slice you.\n");
 			return EMPTY_ARRAY_SLICE;
 		}
-		
 
 		*token = '\0';
-	}
-
-	char *endptr;
-	int id = strtoul(arg, &endptr, 10);
-	// If strtoul has an error, then it will return ULONG_MAX, so we check on that.
-	if (id != ULONG_MAX && *endptr == '\0') {
-		*param = param_list_find_id(node, id);
-	} else {
-		*param = param_list_find_name(node, arg);
-	}
-
-	if(*param == NULL){
-		return PARAM_NOT_FOUND;
 	}
 
 	// 5 outcomes:
@@ -107,6 +96,35 @@ static int param_slash_parse_array(char * arg, int node, param_t **param, int *s
 	// 1st and 2nd outcome we need to check on _slice_delimitor, if it is : then set slice_detected to 1
 	return 0;
 
+}
+
+static int param_parse_from_str(int node, char * arg, param_t **param){
+	char *endptr;
+	int id = strtoul(arg, &endptr, 10);
+	// If strtoul has an error, then it will return ULONG_MAX, so we check on that.
+	if (id != ULONG_MAX && *endptr == '\0') {
+		*param = param_list_find_id(node, id);
+	} else {
+		*param = param_list_find_name(node, arg);
+	}
+
+	return 0;
+}
+
+static int parse_param_array(char * arg, int node, param_t **param, int *start_index, int *end_index, int *slice_detected){
+	if(param_slash_parse_slice(arg, start_index, end_index, slice_detected) != 0){
+		return -1;
+	}
+
+	if(param_parse_from_str(node, arg, param) != 0){
+		if(*param == NULL){
+			fprintf(stderr, "%s not found.\n", arg);
+			return PARAM_NOT_FOUND;
+		}
+		return -1;
+	}
+
+	return 0;
 }
 
 static void param_slash_parse(char * arg, int node, param_t **param, int *offset) {
@@ -322,17 +340,8 @@ static int cmd_set(struct slash *slash) {
 	int start_index = INT_MIN;
 	int end_index = INT_MIN;
 	int slice_detected = 0;
-	int param_parse = param_slash_parse_array(name, node, &param, &start_index, &end_index, &slice_detected);
+	int param_parse = parse_param_array(name, node, &param, &start_index, &end_index, &slice_detected);
 	if(param_parse < 0){
-		if(param_parse == PARAM_NOT_FOUND){
-			fprintf(stderr, "%s not found.\n", name);
-		}
-		if(param_parse == EMPTY_ARRAY_SLICE){
-			fprintf(stderr, "Cannot set empty array slice you.\n");
-		}
-		if(param_parse == MISSING_CLOSE_BRACKET){
-			fprintf(stderr, "Missing close bracket on array slice.\n");
-		}
 		optparse_del(parser);
 		return SLASH_EINVAL;
 	}

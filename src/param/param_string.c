@@ -18,7 +18,7 @@
 #include <param/param.h>
 #include <param/param_list.h>
 #include <time.h>
-
+#include <slash/dflopt.h>
 
 #ifndef MIN
 #define MIN(a,b) (((a)<(b))?(a):(b))
@@ -246,7 +246,7 @@ static void param_print_value(FILE * file, param_t * param, int offset) {
 		sprintf(value_str + strlen(value_str), "[");
 
 	for(int i = offset; i < offset + count; i++) {
-		if(*param->timestamp > 0){
+		if(*param->timestamp > 0 || slash_dfl_node == 0){
 			param_value_str(param, i, value_str + strlen(value_str), 128 - strlen(value_str));
 		}
 		else {
