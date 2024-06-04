@@ -204,6 +204,12 @@ static void param_serve_push(csp_packet_t * packet, int send_ack, int version, i
 }
 
 
+__attribute__((weak)) int serial_get(void) {
+	printf("WARNING: using the default serial_get() implementation from libparam");
+	return -1;
+}
+
+
 void param_serve(csp_packet_t * packet) {
 	switch(packet->data[0]) {
 		case PARAM_PULL_REQUEST:
@@ -241,7 +247,6 @@ void param_serve(csp_packet_t * packet) {
 			packet->length -= sizeof(uint32_t);
 
 			//printf("hwid %d\n", hwid);
-			int serial_get(void);
 			if ((hwid != serial_get()) && (hwid != 1234)) {
 				printf("hwid did not match\n");
 				csp_buffer_free(packet);
