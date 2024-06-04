@@ -11,11 +11,10 @@
 
 #include <vmem/vmem.h>
 
-extern int __start_vmem, __stop_vmem;
 
 /* The symbols __start_vmem and __stop_vmem will only be generated if the user defines any VMEMs.
     We therefore use __attribute__((weak)) so we can compile in the absence of these. */
-extern __attribute__((weak)) int __start_vmem, __stop_vmem;
+__attribute__((weak)) int __start_vmem = 0, __stop_vmem = 0;
 
 void * vmem_memcpy(void * to, const void * from, uint32_t size) {
 
