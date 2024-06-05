@@ -28,9 +28,10 @@ static param_command_buf_t temp_command;
  * NOTE: The commands lock functions are external hooks,
  * and must therefore be implemented by the user.
  */
-int si_lock_take(void* lock, int block_time_ms);
-int si_lock_give(void* lock);
-void* si_lock_init(void);
+__attribute__((weak)) int si_lock_take(void* lock, int block_time_ms) { return 0; }
+__attribute__((weak)) int si_lock_give(void* lock) { return 0; }
+__attribute__((weak)) void* si_lock_init(void) { return 0; }
+__attribute__((weak)) vmem_t vmem_commands;
 
 static void* lock = NULL;
 

@@ -25,6 +25,8 @@
 #ifdef PARAM_HAVE_COMMANDS
 #include <param/param_commands.h>
 
+__attribute__((weak)) vmem_t vmem_schedule;
+
 static param_command_buf_t temp_command;
 
 static param_scheduler_meta_t meta_obj;
