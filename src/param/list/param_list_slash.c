@@ -121,7 +121,10 @@ This makes it possible to download them again, in cases where they've changed.")
         node = atoi(slash->argv[argi]);
     }
 
-    printf("Removed %i parameters\n", param_list_remove(node, 1));
+#ifdef PARAM_HAVE_SYS_QUEUE
+    int nof_params = param_list_remove(node, 1);
+    printf("Removed %i parameters\n", nof_params);
+#endif
 
     optparse_del(parser);
     return SLASH_SUCCESS;
@@ -187,6 +190,7 @@ static int list_add(struct slash *slash)
     }
 
 
+#if defined PARAM_LIST_DYNAMIC || PARAM_LIST_POOL > 0
 	uint32_t mask = 0;
 
 	if (maskstr)
@@ -203,6 +207,7 @@ static int list_add(struct slash *slash)
 
     if (param_list_add(param) != 0)
         param_list_destroy(param);
+#endif
 
     optparse_del(parser);
     return SLASH_SUCCESS;
