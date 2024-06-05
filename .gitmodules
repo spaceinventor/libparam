@@ -1,0 +1,6 @@
+[submodule "lib/csp"]
+	path = lib/csp
+	url = https://github.com/spaceinventor/libcsp
+[submodule "lib/slash"]
+	path = lib/slash
+	url = https://github.com/spaceinventor/slash
