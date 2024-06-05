@@ -130,6 +130,7 @@ static void param_completer(struct slash *slash, char * token) {
 		slash_bell(slash);
 	} else {
 		strncpy(token, prefix->name, prefixlen);
+		token[prefixlen] = 0;
 		slash->cursor = slash->length = (token - slash->buffer) + prefixlen;
 	}
 
