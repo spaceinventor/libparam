@@ -13,6 +13,7 @@
 #include <inttypes.h>
 #include <time.h>
 #include <slash/slash.h>
+#include <slash/optparse.h>
 #include <slash/dflopt.h>
 
 #include <csp/csp.h>
