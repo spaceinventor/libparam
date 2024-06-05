@@ -27,7 +27,11 @@ endif
 
 libparam_h = configure_file(output: 'libparam.h', configuration: conf)
 
-csp_dep = dependency('csp', fallback : ['csp', 'csp_dep'])
+if get_option('default_library') == 'static'
+	csp_dep = dependency('csp', fallback : ['csp', 'csp_dep'])
+else
+	csp_dep = dependency('csp', fallback : ['csp', 'csp_shared_dep'])
+endif
 
 clib = meson.get_compiler('c').find_library('c', required: false)
 clib_dep = []
@@ -107,7 +111,11 @@ endif
 
 slash_dep = []
 if get_option('slash') == true
-	slash_dep = dependency('slash', fallback : ['slash', 'slash_dep'], required: false)
+	if get_option('default_library') == 'static'
+		slash_dep = dependency('slash', fallback : ['slash', 'slash_dep'], required: false).as_link_whole()
+	else
+		slash_dep = dependency('slash', fallback : ['slash', 'slash_shared_dep'], required: false)
+	endif
 	if slash_dep.found()
 		param_src += files([
 			'src/param/list/param_list_slash.c',	
