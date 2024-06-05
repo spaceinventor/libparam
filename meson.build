@@ -1,4 +1,4 @@
-project('param', 'c')
+project('param', 'c', subproject_dir: 'lib')
 
 conf = configuration_data()
 conf.set('PARAM_STORE_FILE', false)
@@ -34,9 +34,6 @@ clib_dep = []
 if not clib.found()
 	clib_dep = dependency('libc', fallback: ['picolibc', 'picolibc_dep'], required: true)
 endif
-
-# On linux include bsd libraries for strlcpy function (which is non standard)
-bsd_dep = dependency('libbsd-overlay', required: false)
 
 param_src = files([
 	'src/param/list/param_list.c',
@@ -137,13 +134,23 @@ if get_option('slash') == true
 	endif
 endif
 
+do_install = not meson.is_subproject()
+
 param_inc = include_directories('.', 'include')
 
-param_lib = library('param',
+param_lib = both_libraries('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
-	dependencies : [clib_dep, bsd_dep, csp_dep, slash_dep],
-	install : false
+	dependencies : [clib_dep, csp_dep, slash_dep],
+	install : do_install
 )
 
-param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib)
+param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib, dependencies: [clib_dep, csp_dep, slash_dep])
+
+if not meson.is_subproject()
+	install_subdir('include', install_dir : '.')
+	install_headers(libparam_h, install_dir : 'include')
+	pkg = import('pkgconfig')
+	pkg.generate(param_lib, filebase: 'param')
+	# subdir('tests')
+endif
