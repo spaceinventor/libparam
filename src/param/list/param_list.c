@@ -354,6 +354,7 @@ int param_list_unpack(int node, void * data, int length, int list_version, int i
 
 	//printf("Storage type %d\n", storage_type);
 
+#if defined PARAM_LIST_DYNAMIC || PARAM_LIST_POOL > 0
 	param_t * param = param_list_create_remote(id, addr, type, mask, size, name, unit, help, storage_type);
 
 	if (param != NULL) {
@@ -367,6 +368,9 @@ int param_list_unpack(int node, void * data, int length, int list_version, int i
 	} else {
 		return -1;
 	}
+#else
+	return 0;
+#endif
 }
 
 int param_list_download(int node, int timeout, int list_version, int include_remotes) {
@@ -425,7 +429,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 			rparam->size = param->array_size;
 			rparam->mask = htobe32(param->mask);
 			
-			strlcpy(rparam->name, param->name, sizeof(rparam->name));
+			strncpy(rparam->name, param->name, sizeof(rparam->name));
 
 			/* Ensure strings are null terminated */
 			rparam->name[sizeof(rparam->name)-1] = '\0';
@@ -440,18 +444,18 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 			rparam->size = param->array_size;
 			rparam->mask = htobe32(param->mask);
 			
-			strlcpy(rparam->name, param->name, sizeof(rparam->name));
+			strncpy(rparam->name, param->name, sizeof(rparam->name));
 
 			if (param->vmem) {
 				rparam->storage_type = param->vmem->type;
 			}
 
 			if (param->unit != NULL) {
-				strlcpy(rparam->unit, param->unit, sizeof(rparam->unit));
+				strncpy(rparam->unit, param->unit, sizeof(rparam->unit));
 			}
 
 			if (param->docstr != NULL) {
-				strlcpy(rparam->help, param->docstr, sizeof(rparam->help));
+				strncpy(rparam->help, param->docstr, sizeof(rparam->help));
 			}
 
 			/* Ensure strings are null terminated */
@@ -503,7 +507,7 @@ static uint32_t param_buffer_used = 0;
 static param_heap_t * param_list_alloc(int type, int array_size) {
 
 	int buffer_required = param_typesize(type) * array_size;
-	while(buffer_required%4 != 0) buffer_required++; /* Ensure that all values are word-aliged */
+	while(buffer_required%4 != 0) buffer_required++; /* Ensure that all values are word-aligned */
 
 	if (param_heap_used >= PARAM_LIST_POOL || param_buffer_used + buffer_required > sizeof(param_buffer)) {
 		return NULL;
@@ -625,12 +629,15 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	param->vmem->restore = NULL;
 	param->vmem->write = NULL;
 	
-	strlcpy(param->name, name, 36);
+	strncpy(param->name, name, 36);
+	param->name[35] = 0;
 	if (unit) {
-		strlcpy(param->unit, unit, 10);
+		strncpy(param->unit, unit, 10);
+		param->unit[9] = 0;
 	}
 	if (help) {
-		strlcpy(param->docstr, help, 150);
+		strncpy(param->docstr, help, 150);
+		param->docstr[149] = 0;
 	}
 
 	return param;
