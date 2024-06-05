@@ -141,20 +141,18 @@ if get_option('slash') == true
 	endif
 endif
 
+do_install = not meson.is_subproject()
 
 param_inc = include_directories('.', 'include')
 
-param_lib = library('param',
+param_lib = both_libraries('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
-	c_args: ['-DSLASH_SECTION="param_cmds"'],
-	dependencies : [slash_dep, csp_dep, clib_dep],
-	install : not meson.is_subproject()
+	dependencies : [clib_dep, csp_dep, slash_dep],
+	install : do_install
 )
-param_dep = declare_dependency(
-	include_directories : param_inc,
-	link_with : param_lib,
-)
+
+param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib, dependencies: [clib_dep, csp_dep, slash_dep])
 
 if not meson.is_subproject()
 	install_subdir('include', install_dir : '.')
