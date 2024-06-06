@@ -629,4 +629,6 @@ static int cmd_print(struct slash *slash) {
 }
 slash_command(cmd, cmd_print, NULL, "Show current command");
 
-DECLARE_SLASH_CMDS_SECTION(param_cmds)
+void param_load_slash_cmds() {
+	SLASH_LOAD_CMDS(param_cmds);
+}
