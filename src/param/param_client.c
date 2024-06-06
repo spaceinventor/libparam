@@ -21,6 +21,11 @@
 
 typedef void (*param_transaction_callback_f)(csp_packet_t *response, int verbose, int version, void * context);
 
+param_trans_t g_param_trans = {
+	.cb = NULL,
+	.ctx = NULL,
+};
+
 static void param_transaction_callback_pull(csp_packet_t *response, int verbose, int version, void * context) {
 
 	int from = response->id.src;
@@ -68,6 +73,12 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 int param_transaction(csp_packet_t *packet, int host, int timeout, param_transaction_callback_f callback, int verbose, int version, void * context) {
 
 	//csp_hex_dump("transaction", packet->data, packet->length);
+	if (g_param_trans.cb) {
+		g_param_trans.cb(&packet->data[0], packet->length, g_param_trans.ctx);
+		g_param_trans.cb = NULL;
+		g_param_trans.ctx = NULL;
+		return 0;
+	}
 
 	/* Parameters can be setup with a special nodeid, which caused all transaction to be ignored
 	   and return failure immediately */

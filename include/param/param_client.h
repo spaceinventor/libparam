@@ -101,5 +101,13 @@ int param_pull_queue(param_queue_t *queue, uint8_t prio, int verbose, int host, 
  */
 int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, uint32_t hwid, bool ack_with_pull);
 
+typedef void param_trans_cb_t(uint8_t *data, uint32_t length, void *ctx);
+
+typedef struct param_trans_s {
+    param_trans_cb_t *cb;
+    void *ctx;
+} param_trans_t;
+
+extern param_trans_t g_param_trans;
 
 #endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_CLIENT_H_ */

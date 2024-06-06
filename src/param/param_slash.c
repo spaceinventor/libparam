@@ -417,12 +417,30 @@ static int cmd_add(struct slash *slash) {
 }
 slash_command_sub_completer(cmd, add, cmd_add, param_completer, "<param>[offset] [value]", "Add a new parameter to a command");
 
+static void cmd_param_trans(uint8_t *data, uint32_t length, void *ctx) {
+
+	char *filename = (char *)ctx;
+
+	printf("Writing command queue to file: '%s', length: %d\n", filename, length);
+	csp_hex_dump("cmd:", data, length);
+
+	if (filename) {
+		FILE *file = fopen(filename, "wb");
+		for (uint32_t n = 0; n < length; n++) {
+			fprintf(file, "%c", data[n]);
+		}
+		fflush(file);
+		fclose(file);
+	}
+}
+
 static int cmd_run(struct slash *slash) {
 
 	unsigned int timeout = slash_dfl_timeout;
 	unsigned int server = slash_dfl_node;
 	unsigned int hwid = 0;
 	int ack_with_pull = true;
+	char * dryrun_str = NULL;
 
     optparse_t * parser = optparse_new("run", "");
     optparse_add_help(parser);
@@ -430,12 +448,22 @@ static int cmd_run(struct slash *slash) {
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 	optparse_add_unsigned(parser, 'h', "hwid", "NUM", 16, &hwid, "include hardware id filter (default = off)");
 	optparse_add_set(parser, 'a', "no_ack_push", 0, &ack_with_pull, "Disable ack with param push queue");
+	optparse_add_string(parser, 'd', "dryrun", "FILENAME", &dryrun_str, "Dry run the command into a file");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
         optparse_del(parser);
 	    return SLASH_EINVAL;
     }
+
+	if (dryrun_str) {
+		/* Setup a call back from the parameter_transaction() method */
+		g_param_trans.cb = cmd_param_trans;
+		g_param_trans.ctx = dryrun_str;
+	} else {
+		g_param_trans.cb = NULL;
+		g_param_trans.ctx = NULL;
+	}
 
 	if (param_queue.type == PARAM_QUEUE_TYPE_SET) {
 
@@ -471,6 +499,7 @@ static int cmd_pull(struct slash *slash) {
 	char * include_mask_str = NULL;
 	char * exclude_mask_str = NULL;
 	int paramver = 2;
+	char * dryrun_str = NULL;
 
     optparse_t * parser = optparse_new("pull", "");
     optparse_add_help(parser);
@@ -479,12 +508,22 @@ static int cmd_pull(struct slash *slash) {
 	optparse_add_string(parser, 'm', "imask", "MASK", &include_mask_str, "Include mask (param letters)");
 	optparse_add_string(parser, 'e', "emask", "MASK", &exclude_mask_str, "Exclude mask (param letters)");
     optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system verison (default = 2)");
+	optparse_add_string(parser, 'd', "dryrun", "FILENAME", &dryrun_str, "Dry run the command into a file");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
         optparse_del(parser);
 	    return SLASH_EINVAL;
     }
+
+	if (dryrun_str) {
+		/* Setup a call back from the parameter_transaction() method */
+		g_param_trans.cb = cmd_param_trans;
+		g_param_trans.ctx = dryrun_str;
+	} else {
+		g_param_trans.cb = NULL;
+		g_param_trans.ctx = NULL;
+	}
 
 	uint32_t include_mask = 0xFFFFFFFF;
 	uint32_t exclude_mask = PM_REMOTE | PM_HWREG;
@@ -504,6 +543,40 @@ static int cmd_pull(struct slash *slash) {
 	return SLASH_SUCCESS;
 }
 slash_command(pull, cmd_pull, "", "Pull all metrics");
+
+static int cmd_restore(struct slash *slash) {
+
+	unsigned int timeout = slash_dfl_timeout;
+	unsigned int server = slash_dfl_node;
+	int paramver = 2;
+	char * dryrun_str = NULL;
+
+    optparse_t * parser = optparse_new("restore", "");
+    optparse_add_help(parser);
+	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in milliseconds (default = <env>)");
+	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to pull parameters from (default = <env>))");
+    optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system verison (default = 2)");
+	optparse_add_string(parser, 'd', "dryrun", "FILENAME", &dryrun_str, "Dry run the command into a file");
+
+    int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+    if (argi < 0) {
+        optparse_del(parser);
+	    return SLASH_EINVAL;
+    }
+
+	if (dryrun_str) {
+		/* Setup a call back from the parameter_transaction() method */
+		g_param_trans.cb = cmd_param_trans;
+		g_param_trans.ctx = dryrun_str;
+	} else {
+		g_param_trans.cb = NULL;
+		g_param_trans.ctx = NULL;
+	}
+
+    optparse_del(parser);
+	return SLASH_SUCCESS;
+}
+slash_command(restore, cmd_restore, NULL, "Restore pull from file");
 
 static int cmd_new(struct slash *slash) {
 
