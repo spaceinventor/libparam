@@ -37,6 +37,43 @@ enum {
 	MISSING_CLOSE_BRACKET = -4,
 };
 
+
+char * findSlice(char * str_to_search)
+{
+	if(str_to_search == NULL) return NULL;
+	int str_length = strlen(str_to_search);
+	
+	printf("Before calloc\n");
+    char * substring = calloc(sizeof(char), 10);
+	printf("After calloc\n");
+	int c, insert_index = 0;
+	int separator_detected = false;
+
+	printf("%d\n", str_length);
+	printf("%s\n", str_to_search);
+	printf("%c\n", str_to_search[0]);
+	for(int i = 0; i < str_length; i++){
+		printf("%c\n", str_to_search[i]);
+		if(str_to_search[c] == ']'){
+			separator_detected = true;
+		}
+		if(separator_detected){
+			printf("Sep found\n");
+			substring[insert_index] = str_to_search[c];
+			printf("Set substring\n");
+			insert_index++;
+		}
+		if(str_to_search[c] == '['){
+			separator_detected = true;
+		}
+	}
+	printf("After while\n");
+    substring[insert_index] = '\0';
+	printf("SUBSTRING: %s\n", substring);
+    return substring;
+}
+
+
 static int param_slash_parse_slice(char * arg, int *start_index, int *end_index, int *slice_detected) {
 	/**
 	 * Function to find offsets and check if slice delimitor is active.
@@ -53,10 +90,20 @@ static int param_slash_parse_slice(char * arg, int *start_index, int *end_index,
 	
 	int first_scan = 0;
 	int second_scan = 0;
+	
+	char buff[50];
+	strcpy(buff, arg);
 
 	/* Search for the '[' symbol: */
+	printf("%s\n", arg);
+	char * teststr;
+	teststr = findSlice(arg);
+	printf("teststr: %s\n", teststr);
+	free(teststr);
 	strtok_r(arg, "[", &saveptr);
+	printf("------ %s\n", arg);
 	token = strtok_r(NULL, "[", &saveptr);
+	printf("%s\n", token);
 	if (token != NULL) {
 		// Check if close bracket exists as last element in token.
 		// If not, then return an error.
@@ -83,10 +130,11 @@ static int param_slash_parse_slice(char * arg, int *start_index, int *end_index,
 			fprintf(stderr, "Cannot set empty array slice you.\n");
 			return EMPTY_ARRAY_SLICE;
 		}
-
+		printf("BUFF\n");
 		*token = '\0';
+		printf("BUFF2\n");
 	}
-
+	
 	// 5 outcomes:
 	// 1. [4]    ->    first_scan == 2 | second_scan == 0
 	// 2. [4:]   ->    first_scan == 2 | second_scan == 0 
@@ -99,6 +147,10 @@ static int param_slash_parse_slice(char * arg, int *start_index, int *end_index,
 }
 
 static int param_parse_from_str(int node, char * arg, param_t **param){
+	// printf("param_parse_from_str\n");
+	// char buff[50];
+	// strcpy(buff, arg);
+	// printf("strcpy\n");
 	char *endptr;
 	int id = strtoul(arg, &endptr, 10);
 	// If strtoul has an error, then it will return ULONG_MAX, so we check on that.
@@ -112,6 +164,7 @@ static int param_parse_from_str(int node, char * arg, param_t **param){
 }
 
 static int parse_param_array(char * arg, int node, param_t **param, int *start_index, int *end_index, int *slice_detected){
+	printf("%s\n", arg);
 	if(param_slash_parse_slice(arg, start_index, end_index, slice_detected) != 0){
 		return -1;
 	}
