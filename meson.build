@@ -112,7 +112,7 @@ endif
 slash_dep = []
 if get_option('slash') == true
 	if get_option('default_library') == 'static'
-		slash_dep = dependency('slash', fallback : ['slash', 'slash_dep'], required: false).as_link_whole()
+		slash_dep = dependency('slash', fallback : ['slash', 'slash_dep'], required: false)
 	else
 		slash_dep = dependency('slash', fallback : ['slash', 'slash_shared_dep'], required: false)
 	endif
