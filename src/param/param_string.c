@@ -247,7 +247,12 @@ static void param_print_value(FILE * file, param_t * param, int offset) {
 
 	for(int i = offset; i < offset + count; i++) {
 		
-		param_value_str(param, i, value_str + strlen(value_str), 128 - strlen(value_str));
+		if(*param->timestamp > 0 || param->node == 0){
+			param_value_str(param, i, value_str + strlen(value_str), 128 - strlen(value_str));
+		}
+		else {
+			sprintf(value_str + strlen(value_str), "-");
+		}
 		if (i + 1 < count)
 			sprintf(value_str + strlen(value_str), " ");
 	}
