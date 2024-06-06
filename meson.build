@@ -148,6 +148,7 @@ param_inc = include_directories('.', 'include')
 param_lib = both_libraries('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
+	c_args: ['-DSLASH_SECTION="param_cmds"'],
 	dependencies : [clib_dep, csp_dep, slash_dep],
 	install : true
 )

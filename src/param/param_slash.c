@@ -23,8 +23,8 @@
 #include <param/param_server.h>
 #include <param/param_queue.h>
 #include <param/param_string.h>
+#include <param/param_slash.h>
 
-#include "param_slash.h"
 #include "param_wildcard.h"
 
 static char queue_buf[PARAM_SERVER_MTU];
@@ -577,3 +577,7 @@ static int cmd_print(struct slash *slash) {
 	return SLASH_SUCCESS;
 }
 slash_command(cmd, cmd_print, NULL, "Show current command");
+
+void param_load_slash_cmds() {
+	SLASH_LOAD_CMDS(param_cmds);
+}

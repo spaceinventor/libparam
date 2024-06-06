@@ -18,7 +18,7 @@
 #include <param/param_server.h>
 #include <param/param_client.h>
 #include <param/param_queue.h>
-#include "../param_slash.h"
+#include <param/param_slash.h>
 
 typedef void (*param_transaction_callback_f)(csp_packet_t *response, int verbose, int version);
 int param_transaction(csp_packet_t *packet, int host, int timeout, param_transaction_callback_f callback, int verbose, int version, void * context);
