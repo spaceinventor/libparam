@@ -20,7 +20,7 @@
 #include <param/param_list.h>
 #include <param/param_string.h>
 #include "param_list.h"
-#include "../param_slash.h"
+#include <param/param_slash.h>
 
 #include <endian.h>
 

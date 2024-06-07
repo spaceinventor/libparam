@@ -26,7 +26,7 @@
 
 //#include "param_scheduler.h"
 #include "param_scheduler_client.h"
-#include "../param_slash.h"
+#include <param/param_slash.h>
 
 static int cmd_schedule_push(struct slash *slash) {
 

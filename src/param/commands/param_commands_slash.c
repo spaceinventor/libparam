@@ -24,7 +24,7 @@
 #include <param/param_queue.h>
 
 #include "param_commands_client.h"
-#include "../param_slash.h"
+#include <param/param_slash.h>
 
 
 static int cmd_server_upload(struct slash *slash) {
