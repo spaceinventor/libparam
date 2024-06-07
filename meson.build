@@ -144,25 +144,33 @@ endif
 
 
 param_inc = include_directories('.', 'include')
-
-param_lib = both_libraries('param',
-	sources: [param_src, libparam_h],
-	include_directories : param_inc,
-	c_args: ['-DSLASH_SECTION="param_cmds"'],
-	dependencies : [slash_dep, csp_dep, clib_dep],
-	pic:true,
-	install : true
-)
-
-param_shared_dep = declare_dependency(
-	include_directories : param_inc,
-	link_with : param_lib.get_shared_lib(),
-	dependencies : [slash_dep, csp_dep, clib_dep],
-)
-param_dep = declare_dependency(
-	include_directories : param_inc,
-	link_with : param_lib.get_static_lib(),
-)
+if get_option('default_library') == 'static'
+	param_lib = static_library('param',
+		sources: [param_src, libparam_h],
+		include_directories : param_inc,
+		c_args: ['-DSLASH_SECTION="param_cmds"'],
+		dependencies : [slash_dep, csp_dep, clib_dep],
+		pic:true,
+		install : true
+	)
+	param_dep = declare_dependency(
+		include_directories : param_inc,
+		link_with : param_lib,
+	)
+else
+	param_lib = shared_library('param',
+		sources: [param_src, libparam_h],
+		include_directories : param_inc,
+		c_args: ['-DSLASH_SECTION="param_cmds"'],
+		dependencies : [slash_dep, csp_dep, clib_dep],
+		install : true
+	)
+	param_shared_dep = declare_dependency(
+		include_directories : param_inc,
+		link_with : param_lib,
+		dependencies : [slash_dep, csp_dep, clib_dep],
+	)
+endif
 
 install_subdir('include', install_dir : '.')
 install_headers(libparam_h, install_dir : 'include')
