@@ -148,14 +148,16 @@ param_inc = include_directories('.', 'include')
 param_lib = both_libraries('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
-	dependencies : [clib_dep, csp_dep, slash_dep],
+	c_args: ['-DSLASH_SECTION="param_cmds"'],
+	dependencies : [slash_dep, csp_dep, clib_dep],
+	pic:true,
 	install : true
 )
 
 param_shared_dep = declare_dependency(
 	include_directories : param_inc,
-	link_with : param_lib.get_shared_lib(), 
-	dependencies: [clib_dep, csp_dep, slash_dep]
+	link_with : param_lib.get_shared_lib(),
+	dependencies : [slash_dep, csp_dep, clib_dep],
 )
 param_dep = declare_dependency(
 	include_directories : param_inc,
