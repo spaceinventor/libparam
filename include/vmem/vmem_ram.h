@@ -31,13 +31,13 @@ typedef struct {
 	__attribute__((used)) \
 	vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_RAM, \
-		.name = strname, \
-		.size = size_in, \
 		.read = vmem_ram_read, \
 		.write = vmem_ram_write, \
-		.driver = &vmem_##name_in##_driver, \
 		.vaddr = vmem_##name_in##_heap, \
+		.size = size_in, \
+		.name = strname, \
 		.ack_with_pull = 1, \
+		.driver = &vmem_##name_in##_driver, \
 	};
 
 #define VMEM_DEFINE_STATIC_RAM_ADDR(name_in, strname, size_in, mem_addr) \
@@ -49,13 +49,13 @@ typedef struct {
     __attribute__((used)) \
     vmem_t vmem_##name_in = { \
         .type = VMEM_TYPE_RAM, \
-        .name = strname, \
-        .size = size_in, \
         .read = vmem_ram_read, \
         .write = vmem_ram_write, \
-        .driver = &vmem_##name_in##_driver, \
         .vaddr = mem_addr, \
+        .size = size_in, \
+        .name = strname, \
         .ack_with_pull = 1, \
+        .driver = &vmem_##name_in##_driver, \
     };
 
 #ifdef __cplusplus
