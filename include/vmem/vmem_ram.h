@@ -10,6 +10,10 @@
 
 #include <vmem/vmem.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void vmem_ram_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len);
 void vmem_ram_write(vmem_t * vmem, uint32_t addr, const void * datain, uint32_t len);
 
@@ -53,5 +57,9 @@ typedef struct {
         .vaddr = mem_addr, \
         .ack_with_pull = 1, \
     };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_PARAM_VMEM_RAM_H_ */
