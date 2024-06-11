@@ -58,6 +58,7 @@ param_src = files([
 	'src/vmem/vmem_server.c',
 	'src/vmem/vmem.c',
 	'src/vmem/vmem_cache.c',
+	'src/vmem/vmem_block.c',
 
 	'src/objstore/objstore.c',
 ])
