@@ -57,7 +57,6 @@ static int param_slash_parse_slice(char * arg, int *start_index, int *end_index,
 	/* Search for the '[' symbol: */
 	strtok_r(arg, "[", &saveptr);
 	token = strtok_r(NULL, "[", &saveptr);
-	printf("Token: %s\n", token);
 	if (token != NULL) {
 		// Check if close bracket exists as last element in token.
 		// If not, then return an error.
