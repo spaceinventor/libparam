@@ -37,43 +37,6 @@ enum {
 	MISSING_CLOSE_BRACKET = -4,
 };
 
-
-char * findSlice(char * str_to_search)
-{
-	if(str_to_search == NULL) return NULL;
-	int str_length = strlen(str_to_search);
-	
-	printf("Before calloc\n");
-    char * substring = calloc(sizeof(char), 10);
-	printf("After calloc\n");
-	int c, insert_index = 0;
-	int separator_detected = false;
-
-	printf("%d\n", str_length);
-	printf("%s\n", str_to_search);
-	printf("%c\n", str_to_search[0]);
-	for(int i = 0; i < str_length; i++){
-		printf("%c\n", str_to_search[i]);
-		if(str_to_search[c] == ']'){
-			separator_detected = true;
-		}
-		if(separator_detected){
-			printf("Sep found\n");
-			substring[insert_index] = str_to_search[c];
-			printf("Set substring\n");
-			insert_index++;
-		}
-		if(str_to_search[c] == '['){
-			separator_detected = true;
-		}
-	}
-	printf("After while\n");
-    substring[insert_index] = '\0';
-	printf("SUBSTRING: %s\n", substring);
-    return substring;
-}
-
-
 static int param_slash_parse_slice(char * arg, int *start_index, int *end_index, int *slice_detected) {
 	/**
 	 * Function to find offsets and check if slice delimitor is active.
@@ -91,19 +54,10 @@ static int param_slash_parse_slice(char * arg, int *start_index, int *end_index,
 	int first_scan = 0;
 	int second_scan = 0;
 	
-	char buff[50];
-	strcpy(buff, arg);
-
 	/* Search for the '[' symbol: */
-	printf("%s\n", arg);
-	char * teststr;
-	teststr = findSlice(arg);
-	printf("teststr: %s\n", teststr);
-	free(teststr);
 	strtok_r(arg, "[", &saveptr);
-	printf("------ %s\n", arg);
 	token = strtok_r(NULL, "[", &saveptr);
-	printf("%s\n", token);
+	printf("Token: %s\n", token);
 	if (token != NULL) {
 		// Check if close bracket exists as last element in token.
 		// If not, then return an error.
@@ -130,11 +84,9 @@ static int param_slash_parse_slice(char * arg, int *start_index, int *end_index,
 			fprintf(stderr, "Cannot set empty array slice you.\n");
 			return EMPTY_ARRAY_SLICE;
 		}
-		printf("BUFF\n");
 		*token = '\0';
-		printf("BUFF2\n");
 	}
-	
+
 	// 5 outcomes:
 	// 1. [4]    ->    first_scan == 2 | second_scan == 0
 	// 2. [4:]   ->    first_scan == 2 | second_scan == 0 
@@ -143,14 +95,9 @@ static int param_slash_parse_slice(char * arg, int *start_index, int *end_index,
 	// 5. [:7]   ->    first_scan == 0 | second_scan == 2
 	// 1st and 2nd outcome we need to check on _slice_delimitor, if it is : then set slice_detected to 1
 	return 0;
-
 }
 
 static int param_parse_from_str(int node, char * arg, param_t **param){
-	// printf("param_parse_from_str\n");
-	// char buff[50];
-	// strcpy(buff, arg);
-	// printf("strcpy\n");
 	char *endptr;
 	int id = strtoul(arg, &endptr, 10);
 	// If strtoul has an error, then it will return ULONG_MAX, so we check on that.
@@ -159,12 +106,15 @@ static int param_parse_from_str(int node, char * arg, param_t **param){
 	} else {
 		*param = param_list_find_name(node, arg);
 	}
+	
+	if(*param == NULL){
+		return -1;
+	}
 
 	return 0;
 }
 
 static int parse_param_array(char * arg, int node, param_t **param, int *start_index, int *end_index, int *slice_detected){
-	printf("%s\n", arg);
 	if(param_slash_parse_slice(arg, start_index, end_index, slice_detected) != 0){
 		return -1;
 	}
@@ -394,12 +344,20 @@ static int cmd_set(struct slash *slash) {
 	int start_index = INT_MIN;
 	int end_index = INT_MIN;
 	int slice_detected = 0;
+	
 	int param_parse = parse_param_array(name, node, &param, &start_index, &end_index, &slice_detected);
+
 	if(param_parse < 0){
 		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 	
+	if (param == NULL) {
+		printf("%s not found\n", name);
+        optparse_del(parser);
+		return SLASH_EINVAL;
+	}
+
 	// Set flag if only a single index was entered.
 	int single_offset_flag = start_index != INT_MIN && end_index == INT_MIN && !slice_detected ? true : false;
 
@@ -439,11 +397,6 @@ static int cmd_set(struct slash *slash) {
 		return SLASH_EINVAL;
 	}
 
-	if (param == NULL) {
-		printf("%s not found\n", name);
-        optparse_del(parser);
-		return SLASH_EINVAL;
-	}
 
 	if (param->mask & PM_READONLY && !force) {
 		printf("--force is required to set a readonly parameter\n");
@@ -457,7 +410,7 @@ static int cmd_set(struct slash *slash) {
         optparse_del(parser);
 		return SLASH_EINVAL;
 	}
-	
+	printf("After error checks\n");
 	// Create a queue, so that we can set the param in a single packet.
 	param_queue_t queue;
 	char queue_buf[PARAM_SERVER_MTU];
@@ -467,11 +420,11 @@ static int cmd_set(struct slash *slash) {
 	int should_break = 1;
 	int iterations = 0;
 	int single_value_flag = 0;
-
+	printf("Before loop\n");
 	for(int i = argi; should_break == 1; i++){
 		char valuebuf[128] __attribute__((aligned(16))) = { };
 		char *arg = slash->argv[i];
-		
+		printf("Loop arg: %s\n", arg);
 		// Check if we can find a start bracket '['.
 		// If we can, then we're dealing with a value array.
 		if(strchr(arg, '[')) {
