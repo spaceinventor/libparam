@@ -145,14 +145,16 @@ do_install = not meson.is_subproject()
 
 param_inc = include_directories('.', 'include')
 
-param_lib = both_libraries('param',
+param_lib = library('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
 	dependencies : [clib_dep, csp_dep, slash_dep],
 	install : do_install
 )
-
-param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib, dependencies: [clib_dep, csp_dep, slash_dep])
+param_dep = declare_dependency(
+	include_directories : param_inc,
+	link_with : param_lib,
+)
 
 if not meson.is_subproject()
 	install_subdir('include', install_dir : '.')
