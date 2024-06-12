@@ -27,11 +27,7 @@ endif
 
 libparam_h = configure_file(output: 'libparam.h', configuration: conf)
 
-if get_option('default_library') == 'static'
-	csp_dep = dependency('csp', fallback : ['csp', 'csp_dep'])
-else
-	csp_dep = dependency('csp', fallback : ['csp', 'csp_shared_dep'])
-endif
+csp_dep = dependency('csp', fallback : ['csp', 'csp_dep'])
 
 clib = meson.get_compiler('c').find_library('c', required: false)
 clib_dep = []
@@ -111,11 +107,7 @@ endif
 
 slash_dep = []
 if get_option('slash') == true
-	if get_option('default_library') == 'static'
-		slash_dep = dependency('slash', fallback : ['slash', 'slash_dep'], required: false)
-	else
-		slash_dep = dependency('slash', fallback : ['slash', 'slash_shared_dep'], required: false)
-	endif
+	slash_dep = dependency('slash', fallback : ['slash', 'slash_dep'], required: false)
 	if slash_dep.found()
 		param_src += files([
 			'src/param/list/param_list_slash.c',	
@@ -145,7 +137,7 @@ endif
 
 param_inc = include_directories('.', 'include')
 
-param_lib = both_libraries('param',
+param_lib = library('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
 	c_args: ['-DSLASH_SECTION="param_cmds"'],
@@ -153,15 +145,9 @@ param_lib = both_libraries('param',
 	pic:true,
 	install : true
 )
-
-param_shared_dep = declare_dependency(
-	include_directories : param_inc,
-	link_with : param_lib.get_shared_lib(),
-	dependencies : [slash_dep, csp_dep, clib_dep],
-)
 param_dep = declare_dependency(
 	include_directories : param_inc,
-	link_with : param_lib.get_static_lib(),
+	link_with : param_lib,
 )
 
 install_subdir('include', install_dir : '.')
