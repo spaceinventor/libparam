@@ -283,7 +283,7 @@ static int cmd_set(struct slash *slash) {
 			dest = server;
 		csp_timestamp_t time_now;
 		csp_clock_get_time(&time_now);
-		*param->timestamp = 0;
+		memset(param->timestamp, 0, sizeof(csp_timestamp_t));
 		if (param_push_single(param, offset, valuebuf, 0, dest, slash_dfl_timeout, paramver, ack_with_pull) < 0) {
 			printf("No response\n");
 			optparse_del(parser);
@@ -368,7 +368,7 @@ static int cmd_add(struct slash *slash) {
 			return SLASH_EINVAL;
 		}
 		/* clear param timestamp so we dont set timestamp flag when serialized*/
-		*param->timestamp = 0;
+		memset(param->timestamp, 0, sizeof(csp_timestamp_t));
 
 		if (param_queue_add(&param_queue, param, offset, valuebuf) < 0)
 			printf("Queue full\n");
@@ -550,7 +550,7 @@ static int cmd_new(struct slash *slash) {
 
 	param_queue.used = 0;
 	param_queue.version = paramver;
-	param_queue.last_timestamp = 0;
+	memset(&(param_queue.last_timestamp), 0, sizeof(csp_timestamp_t));
 
 	printf("Initialized new command: %s\n", name);
 

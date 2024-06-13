@@ -32,7 +32,7 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 	csp_clock_get_time(&time_now);
 	param_queue_init(&queue, &response->data[2], response->length - 2, response->length - 2, PARAM_QUEUE_TYPE_SET, version);
 	queue.last_node = response->id.src;
-	queue.last_timestamp = time_now.tv_sec;
+	queue.last_timestamp = time_now;
 
 	/* Write data to local memory */
 	param_queue_apply(&queue, 0, from);
@@ -44,7 +44,7 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 		mpack_reader_init_data(&reader, queue.buffer, queue.used);
 		while(reader.data < reader.end) {
 			int id, node, offset = -1;
-			long unsigned int timestamp = 0;
+			csp_timestamp_t timestamp = {0};
 			param_deserialize_id(&reader, &id, &node, &timestamp, &offset, &queue);
 			if (node == 0)
 				node = from;
@@ -272,7 +272,7 @@ int param_push_single(param_t *param, int offset, void *value, int verbose, int 
 	}
 
 	/* If it was a remote parameter, set the value after the ack but not if ack with push which sets param timestamp */
-	if (param->node != 0 && value != NULL && *param->timestamp == 0)
+	if (param->node != 0 && value != NULL && param->timestamp->tv_sec == 0)
 	{
 		if (offset < 0) {
 			for (int i = 0; i < param->array_size; i++)

@@ -23,7 +23,7 @@ void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int u
 	queue->type = type;
 	queue->used = used;
 	queue->version = version;
-	queue->last_timestamp = 0;
+	memset(&(queue->last_timestamp), 0, sizeof(csp_timestamp_t));
 }
 
 int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value) {
@@ -62,7 +62,7 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
 	mpack_reader_init_data(&reader, queue->buffer, queue->used);
 	while(reader.data < reader.end) {
 		int id, node, offset = -1;
-		long unsigned int timestamp = 0;
+		csp_timestamp_t timestamp = {0};
 		param_deserialize_id(&reader, &id, &node, &timestamp, &offset, queue);
 
 		/* If the from address is set, and the nodeid is 0, substitue with the source address */
@@ -198,7 +198,7 @@ void param_queue_print_params(param_queue_t *queue, uint32_t ref_timestamp) {
 			mpack_reader_init_data(&_reader, queue->buffer, queue->used);
 			while(outer_count > inner_counter) {
 				int _id, _node, _offset = -1;
-				long unsigned int _timestamp = 0;
+				csp_timestamp_t _timestamp = {0};
 				param_deserialize_id(&_reader, &_id, &_node, &_timestamp, &_offset, queue);
 				param_t * _param = param_list_find_id(_node, _id);
 				if(queue->type == PARAM_QUEUE_TYPE_SET){
