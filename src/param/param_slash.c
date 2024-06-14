@@ -103,20 +103,17 @@ static int param_slash_parse_slice(char * arg, int *start_index, int *end_index,
 				// ':' Should pass. first_slice_arg is NULL. second_slice_arg is NULL 
 				// ':a' Should fail. first_slice_arg is a. second_slice_arg is NULL
 
-				char * saveptr2;
-				char * first_slice_arg;
-				char * second_slice_arg;
+				char * saveptr2;				
+				char * first_slice_arg = strtok_r(token, ":", &saveptr2);
+				char * second_slice_arg = strtok_r(NULL, ":", &saveptr2);
 				
-				first_slice_arg = strtok_r(token, ":", &saveptr2);
-				second_slice_arg = strtok_r(NULL, ":", &saveptr2);
-				
-				char * endptr;
 				if(first_slice_arg && !second_slice_arg){
 					// values such as: '2:' and ':a'.
 
 					// Check if first slice arg is not a number
 					// if it isnt a number, then value is invalid format such as: ':a'
 					// If it is a number the value is valid format such as: '2:'
+					char * endptr;
 					if(strtoul(first_slice_arg, &endptr, 10) == 0 && strcmp(first_slice_arg, "0") != 0){
 						fprintf(stderr, "Second slice arg is invalid.\nCan only parse integers as indexes to slice by.\n");
 						return SLICE_INPUT_ERROR;
@@ -143,7 +140,7 @@ static int param_slash_parse_slice(char * arg, int *start_index, int *end_index,
 		}
 		if(second_scan > 0 && _slice_delimitor == ']'){
 			// This is an error, example: set test_array[] 4
-			fprintf(stderr, "Cannot set empty array slice you.\n");
+			fprintf(stderr, "Cannot set empty array slice.\n");
 			return EMPTY_ARRAY_SLICE;
 		}
 		*token = '\0';
