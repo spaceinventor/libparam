@@ -138,7 +138,7 @@ if get_option('slash') == true
 endif
 
 param_inc = include_directories('.', 'include')
-
+deps = [clib_dep, bsd_dep, csp_dep, slash_dep]
 param_lib = library('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
@@ -146,4 +146,6 @@ param_lib = library('param',
 	install : false
 )
 
-param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib)
+param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib, dependencies: deps)
+
+subdir('tests')
