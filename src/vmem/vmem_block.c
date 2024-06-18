@@ -19,14 +19,13 @@
 __attribute__((weak)) int __start_vmem_bdevice = 0;
 __attribute__((weak)) int __stop_vmem_bdevice = 0;
 
-static uint8_t *cache_read(const vmem_block_driver_t *drv, uintptr_t address, uint32_t *length);
-static uint32_t cache_write(const vmem_block_driver_t *drv, uintptr_t address, uintptr_t data, uint32_t length);
-static void cache_flush(const vmem_block_driver_t *drv);
-static bool address_in_cache(const vmem_block_driver_t *drv, uintptr_t address);
+static uint8_t *cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uintptr_t address, uint32_t *length);
+static uint32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uintptr_t address, uintptr_t data, uint32_t length);
+static void cache_flush(const vmem_block_driver_t *drv, vmem_block_cache_t *cache);
+static bool address_in_cache(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uintptr_t address);
 
-static bool address_in_cache(const vmem_block_driver_t *drv, uintptr_t address) {
+static bool address_in_cache(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uintptr_t address) {
 
-    vmem_block_cache_t *cache = drv->device->cache;
     bool in_cache = false;
     
     if (cache->is_valid) {
@@ -40,9 +39,7 @@ static bool address_in_cache(const vmem_block_driver_t *drv, uintptr_t address) 
 
 }
 
-static void cache_flush(const vmem_block_driver_t *drv) {
-
-    vmem_block_cache_t *cache = drv->device->cache;
+static void cache_flush(const vmem_block_driver_t *drv, vmem_block_cache_t *cache) {
 
     if (cache->is_modified && cache->is_valid) {
         int32_t res;
@@ -58,19 +55,18 @@ static void cache_flush(const vmem_block_driver_t *drv) {
 
 }
 
-static uint32_t cache_write(const vmem_block_driver_t *drv, uintptr_t address, uintptr_t data, uint32_t length) {
+static uint32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uintptr_t address, uintptr_t data, uint32_t length) {
 
-    vmem_block_cache_t *cache = drv->device->cache;
     uint32_t size;
 
     //printf("::cache_write(%p,%"PRIu32",0x%"PRIXPTR",%"PRIu32")\n", drv, address, (uintptr_t)data, length);
 
-    if (!address_in_cache(drv, address)) {
+    if (!address_in_cache(drv, cache, address)) {
         //printf("::cache_write() Flush the cache and re-read from address %p\n", (void *)address);
         /* There is not a cache hit, so flush and read a new one */
-        cache_flush(drv);
+        cache_flush(drv, cache);
         /* Read in the cache and ignore the return value */
-        (void)cache_read(drv, address, NULL);
+        (void)cache_read(drv, cache, address, NULL);
     }
 
     /* The address is within the cache and it is valid */
@@ -86,7 +82,7 @@ static uint32_t cache_write(const vmem_block_driver_t *drv, uintptr_t address, u
         memcpy(&cache->data[offset], (void *)data, size);
         cache->is_modified = true;
         /* Then flush it */
-        cache_flush(drv);
+        cache_flush(drv, cache);
     } else {
         size = length;
         memcpy(&cache->data[offset], (void *)data, size);
@@ -97,15 +93,14 @@ static uint32_t cache_write(const vmem_block_driver_t *drv, uintptr_t address, u
     return size;
 }
 
-static uint8_t *cache_read(const vmem_block_driver_t *drv, uintptr_t address, uint32_t *length) {
+static uint8_t *cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uintptr_t address, uint32_t *length) {
 
-    vmem_block_cache_t *cache = drv->device->cache;
     uint32_t block = (address / drv->device->bsize);
     uint32_t block_offset = (address % drv->device->bsize);
 
     //printf("::cache_read(%p,%"PRIu32",%"PRIu32")\n", drv, address, (length ? (*length) : 0));
 
-    if (!address_in_cache(drv, address)) {
+    if (!address_in_cache(drv, cache, address)) {
         //printf("::cache_read() Address not in cache, read from device\n");
         int32_t res;
         /* The current block is outside the cache or the cache is invalid */
@@ -144,7 +139,7 @@ void vmem_block_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len)
         uint32_t size;
 
         /* Read a chunk of data from the eMMC and cache it */
-        data = cache_read(reg->driver, srcaddr, &size);
+        data = cache_read(reg->driver, reg->cache, srcaddr, &size);
         /* Adjust the number of bytes to read from the cache */
         if (len < size) {
             size = len;
@@ -172,7 +167,7 @@ void vmem_block_write(vmem_t * vmem, uint32_t addr, const void * datain, uint32_
         uint32_t nbytes;
 
         /* Try writing all we have, and adjust accordingly afterwards */
-        nbytes = cache_write(reg->driver, destaddr, srcaddr, len);
+        nbytes = cache_write(reg->driver, reg->cache, destaddr, srcaddr, len);
         /* Update length, source and destination index' */
         len -= nbytes;
         srcaddr += nbytes;
@@ -188,7 +183,7 @@ int vmem_block_flush(vmem_t * vmem) {
 
     if (vmem->type == VMEM_TYPE_BLOCK) {
         vmem_block_region_t *region = (vmem_block_region_t *)vmem->driver;
-        cache_flush(region->driver);
+        cache_flush(region->driver, region->cache);
         res = 0;
     }
 
@@ -205,7 +200,6 @@ void vmem_block_init(void) {
             printf("   block size      : %"PRIu32" bytes\n", dev->bsize);
             printf("   number of blocks: %"PRIu32"\n", dev->total_nblocks);
             printf("   total size      : %"PRIu64" bytes\n", ((uint64_t)dev->bsize * (uint64_t)dev->total_nblocks));
-            printf("   cache size      : %"PRIu32" bytes (%"PRIu32" blocks)\n", dev->cache->size, (dev->cache->size / dev->bsize));
             /* Then initialize it */
             if (dev->init) {
                 (*dev->init)(dev);
