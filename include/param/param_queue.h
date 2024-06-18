@@ -32,6 +32,7 @@ typedef struct param_queue_s {
 	/* State used by serializer */
 	uint16_t last_node;
 	uint32_t last_timestamp;
+	uint32_t client_timestamp;
 } param_queue_t;
 
 void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int used, param_queue_type_e type, int version);
