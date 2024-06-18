@@ -12,6 +12,10 @@
 #include <stdbool.h>
 #include <vmem/vmem.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Forward definitions of driver and device objects */
 struct vmem_block_driver_s;
 typedef struct vmem_block_driver_s vmem_block_driver_t;
@@ -40,24 +44,25 @@ typedef struct vmem_block_device_s {
 	char *name;
 	uint32_t bsize;
 	uint32_t total_nblocks;
-	vmem_block_cache_t *cache;
+	vmem_block_cache_t * cache;
 	vmem_binit_t * const init;
 } vmem_block_device_t;
 
 typedef struct vmem_block_driver_s {
 	char *name;
-	vmem_block_device_t * const device;
+	const vmem_block_device_t * const device;
 	const vmem_block_driver_api_t api;
 } vmem_block_driver_t;
 
 typedef struct vmem_block_region_s {
 	uint64_t physaddr;
-	vmem_block_driver_t * const driver;
+	const vmem_block_driver_t * const driver;
 } vmem_block_region_t;
 
 #define VMEM_DEFINE_BLOCK_CACHE(name_in, _csize) \
+	__attribute__((section(".noinit.cache"))) \
 	static uint8_t vmem_##name_in##_cache_data[_csize]; \
-	static const vmem_block_cache_t vmem_##name_in##_cache = { \
+	static vmem_block_cache_t vmem_##name_in##_cache = { \
 		.is_valid = false, \
 		.is_modified = false, \
 		.start_block = 0, \
@@ -81,12 +86,12 @@ typedef struct vmem_block_region_s {
 #define VMEM_DEFINE_BLOCK_DRIVER(name_in, strname, read_fn, write_fn, device_in) \
 	static const vmem_block_driver_t vmem_##name_in##_driver = { \
 		.name = strname, \
-		.api = { \
-			.read = read_fn, \
-			.write = write_fn, \
-		}, \
 		.device = &vmem_##device_in##_device, \
-	}; \
+		.api = { \
+			.write = write_fn, \
+			.read = read_fn, \
+		}, \
+	};
 
 #define VMEM_DEFINE_BLOCK_REGION(name_in, strname, addr_in, size_in, _vaddr, driver_in) \
 	static const vmem_block_region_t vmem_##name_in##_region = { \
@@ -98,16 +103,22 @@ typedef struct vmem_block_region_s {
 	__attribute__((used)) \
 	vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_BLOCK, \
-		.name = strname, \
-		.size = (size_in), \
 		.read = vmem_block_read, \
 		.write = vmem_block_write, \
-		.driver = &vmem_##name_in##_region, \
+		.flush = vmem_block_flush, \
 		.vaddr = (void *) _vaddr, \
+		.size = (size_in), \
+		.name = strname, \
+		.driver = (void *)&vmem_##name_in##_region, \
 	};
 
 extern void vmem_block_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len);
 extern void vmem_block_write(vmem_t * vmem, uint32_t addr, const void * datain, uint32_t len);
+extern int vmem_block_flush(vmem_t * vmem);
 extern void vmem_block_init(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* VMEM_BLOCK_H_ */

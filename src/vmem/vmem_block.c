@@ -10,15 +10,14 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
+#include <inttypes.h>
 
 #include "vmem/vmem_block.h"
 
 /* The symbols __start_vmem_bdevice and __stop_vmem_bdevice will only be generated if the user defines any VMEMs.
     We therefore use __attribute__((weak)) so we can compile in the absence of these. */
-//int __start_vmem_bdevice __attribute__((weak)) = 0;
-//int __stop_vmem_bdevice __attribute__((weak)) = 0;
-
-extern int __start_vmem_bdevice, __stop_vmem_bdevice;
+__attribute__((weak)) int __start_vmem_bdevice = 0;
+__attribute__((weak)) int __stop_vmem_bdevice = 0;
 
 static uint8_t *cache_read(const vmem_block_driver_t *drv, uintptr_t address, uint32_t *length);
 static uint32_t cache_write(const vmem_block_driver_t *drv, uintptr_t address, uintptr_t data, uint32_t length);
@@ -47,7 +46,7 @@ static void cache_flush(const vmem_block_driver_t *drv) {
 
     if (cache->is_modified && cache->is_valid) {
         int32_t res;
-        printf("cache_flush()::the cache is modified, write it to device\n");
+        //printf("::cache_flush() The cache is modified, write it to device\n");
         res = drv->api.write(drv, cache->start_block, (cache->size / drv->device->bsize), cache->data);
         if (res) {
             printf("Error, could not write to block device '%s'\n", drv->device->name);
@@ -64,10 +63,10 @@ static uint32_t cache_write(const vmem_block_driver_t *drv, uintptr_t address, u
     vmem_block_cache_t *cache = drv->device->cache;
     uint32_t size;
 
-    printf("cache_write(%p,0x%"PRIXPTR",0x%"PRIXPTR"%"PRIu32")\n", drv, address, (uintptr_t)data, length);
+    //printf("::cache_write(%p,%"PRIu32",0x%"PRIXPTR",%"PRIu32")\n", drv, address, (uintptr_t)data, length);
 
     if (!address_in_cache(drv, address)) {
-        printf("cache_write()::flush the cache and re-read from address %p\n", (void *)address);
+        //printf("::cache_write() Flush the cache and re-read from address %p\n", (void *)address);
         /* There is not a cache hit, so flush and read a new one */
         cache_flush(drv);
         /* Read in the cache and ignore the return value */
@@ -80,9 +79,9 @@ static uint32_t cache_write(const vmem_block_driver_t *drv, uintptr_t address, u
     uint32_t offset = (((block - cache->start_block) * drv->device->bsize) + block_offset);
 
     /* We need to adjust the amount we can actually write to the cache */
-    if ((length + block_offset) > cache->size) {
+    if ((length + offset) > cache->size) {
         /* We are about to write more than the entire cache */
-        size = cache->size - (length + block_offset);
+        size = cache->size - offset;
         /* Copy the portion we can fit */
         memcpy(&cache->data[offset], (void *)data, size);
         cache->is_modified = true;
@@ -104,10 +103,10 @@ static uint8_t *cache_read(const vmem_block_driver_t *drv, uintptr_t address, ui
     uint32_t block = (address / drv->device->bsize);
     uint32_t block_offset = (address % drv->device->bsize);
 
-    printf("cache_read(%p,0x%"PRIXPTR",%"PRIu32")\n", drv, address, *length);
+    //printf("::cache_read(%p,%"PRIu32",%"PRIu32")\n", drv, address, (length ? (*length) : 0));
 
     if (!address_in_cache(drv, address)) {
-        printf("cache_read()::address not in cache, read from device\n");
+        //printf("::cache_read() Address not in cache, read from device\n");
         int32_t res;
         /* The current block is outside the cache or the cache is invalid */
         res = drv->api.read(drv, block, (cache->size / drv->device->bsize), cache->data);
@@ -120,12 +119,14 @@ static uint8_t *cache_read(const vmem_block_driver_t *drv, uintptr_t address, ui
         cache->start_block = block;
     }
 
+    uint32_t offset = (((block - cache->start_block) * drv->device->bsize) + block_offset);
+
     if (length) {
-        (*length) = (cache->size - block_offset);
+        (*length) = (cache->size - offset);
     }
 
     /* Return the address of the data in the cache */
-    return &cache->data[block_offset];
+    return &cache->data[offset];
 
 }
 
@@ -136,7 +137,7 @@ void vmem_block_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len)
     uintptr_t destaddr = (uintptr_t)dataout;
     uintptr_t srcaddr = physaddr;
 
-    printf("vmem_block_read(%"PRIXPTR",0x%"PRIX32",%"PRIXPTR",%"PRIu32")\n", (uintptr_t)vmem, addr, (uintptr_t)dataout, len);
+    //printf("vmem_block_read(%"PRIXPTR",%"PRIu32",%"PRIXPTR",%"PRIu32")\n", (uintptr_t)vmem, addr, (uintptr_t)dataout, len);
 
     while (len) {
         uint8_t *data;
@@ -165,7 +166,7 @@ void vmem_block_write(vmem_t * vmem, uint32_t addr, const void * datain, uint32_
     uintptr_t srcaddr = (uintptr_t)datain;
     uintptr_t destaddr = physaddr;
 
-    printf("vmem_block_write(%"PRIXPTR",0x%"PRIX32",%"PRIXPTR",%"PRIu32")\n", (uintptr_t)vmem, addr, (uintptr_t)datain, len);
+    //printf("vmem_block_write(%"PRIXPTR",%"PRIu32",%"PRIXPTR",%"PRIu32")\n", (uintptr_t)vmem, addr, (uintptr_t)datain, len);
 
     while (len) {
         uint32_t nbytes;
@@ -180,18 +181,36 @@ void vmem_block_write(vmem_t * vmem, uint32_t addr, const void * datain, uint32_
 
 }
 
+int vmem_block_flush(vmem_t * vmem) {
+
+    int res = 1;
+    printf("vmem_block_flush(%p)\n", vmem);
+
+    if (vmem->type == VMEM_TYPE_BLOCK) {
+        vmem_block_region_t *region = (vmem_block_region_t *)vmem->driver;
+        cache_flush(region->driver);
+        res = 0;
+    }
+
+    return res;
+}
+
 void vmem_block_init(void) {
 
     /* Calling these methods requires that the FreeRTOS scheduler is started, since it uses usleep() */
-	for(vmem_block_device_t *dev = (vmem_block_device_t *)&__start_vmem_bdevice; dev < (vmem_block_device_t *)&__stop_vmem_bdevice; dev++) {
-        /* Print some specifics for the particular block device */
-        printf("Initializing VMEM block device: '%s'\n", dev->name);
-        printf("   block size      : %"PRIu32" bytes\n", dev->bsize);
-        printf("   number of blocks: %"PRIu32"\n", dev->total_nblocks);
-        printf("   total size      : %"PRIu64" bytes\n", ((uint64_t)dev->bsize * (uint64_t)dev->total_nblocks));
-        printf("   cache size      : %"PRIu32" bytes (%"PRIu32" blocks)\n", dev->cache->size, (dev->cache->size / dev->bsize));
-        /* Then initialize it */
-        (*dev->init)(dev);
+    if (__start_vmem_bdevice && __stop_vmem_bdevice) {
+        for(vmem_block_device_t *dev = (vmem_block_device_t *)&__start_vmem_bdevice; dev < (vmem_block_device_t *)&__stop_vmem_bdevice; dev++) {
+            /* Print some specifics for the particular block device */
+            printf("Initializing VMEM block device: '%s'\n", dev->name);
+            printf("   block size      : %"PRIu32" bytes\n", dev->bsize);
+            printf("   number of blocks: %"PRIu32"\n", dev->total_nblocks);
+            printf("   total size      : %"PRIu64" bytes\n", ((uint64_t)dev->bsize * (uint64_t)dev->total_nblocks));
+            printf("   cache size      : %"PRIu32" bytes (%"PRIu32" blocks)\n", dev->cache->size, (dev->cache->size / dev->bsize));
+            /* Then initialize it */
+            if (dev->init) {
+                (*dev->init)(dev);
+            }
+        }
     }
 
 }
