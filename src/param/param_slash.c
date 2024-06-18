@@ -32,6 +32,7 @@ static char queue_buf[PARAM_SERVER_MTU];
 param_queue_t param_queue = { .buffer = queue_buf, .buffer_size = PARAM_SERVER_MTU, .type = PARAM_QUEUE_TYPE_EMPTY, .version = 2 };
 
 enum {
+	NO_SLICE = 1,
 	EMPTY_ARRAY_SLICE = -2,
 	PARAM_NOT_FOUND = -3,
 	MISSING_CLOSE_BRACKET = -4,
@@ -145,6 +146,9 @@ static int param_slash_parse_slice(char * arg, int *start_index, int *end_index,
 		}
 		*token = '\0';
 	}
+	else {
+		return NO_SLICE;
+	}
 
 	// 5 outcomes:
 	// 1. [4]    ->    first_scan == 2 | second_scan == 0
@@ -173,12 +177,49 @@ static int param_parse_from_str(int node, char * arg, param_t **param){
 	return 0;
 }
 
+// Find out if amount of values is equal to any of the parsed amounts.
+static int parse_slash_values(char ** args, int start_index, int expected_values_amount, ...){
+	va_list expected_values;
+	va_start(expected_values, expected_values_amount);
+	
+	int amount_of_values = 0;
+
+	for(int i = start_index; args[i] != NULL; i++){
+		amount_of_values++;
+		
+		if(amount_of_values > 99){
+			break;
+		}
+	}
+	
+	for(int i = 0; i < expected_values_amount; i++){
+		if(amount_of_values == va_arg(expected_values, int)){
+			va_end(expected_values);
+			return 1;
+		}
+	}
+	
+	va_end(expected_values);
+	va_start(expected_values, expected_values_amount);
+	fprintf(stderr, "Value amount error. Got %d values. Expected:", amount_of_values);
+	for(int i = 0; i < expected_values_amount; i++){
+		int val = va_arg(expected_values, int);
+		fprintf(stderr, " %d", val);
+		if(i < expected_values_amount - 1){
+			fprintf(stderr, ",");
+		}
+	}
+	fprintf(stderr, ".\n");
+	va_end(expected_values);
+	return 0;
+}
+
 static int parse_param_array(char * arg, int node, param_t **param, int *start_index, int *end_index, int *slice_detected){
-	if(param_slash_parse_slice(arg, start_index, end_index, slice_detected) != 0){
+	if(param_slash_parse_slice(arg, start_index, end_index, slice_detected) < 0){
 		return -1;
 	}
 
-	if(param_parse_from_str(node, arg, param) != 0){
+	if(param_parse_from_str(node, arg, param) < 0){
 		if(*param == NULL){
 			fprintf(stderr, "%s not found.\n", arg);
 			return PARAM_NOT_FOUND;
@@ -407,6 +448,7 @@ static int cmd_set(struct slash *slash) {
 	int param_parse = parse_param_array(name, node, &param, &start_index, &end_index, &slice_detected);
 
 	if(param_parse < 0){
+		fprintf(stderr, "Param parsing error\n");
 		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
@@ -452,6 +494,7 @@ static int cmd_set(struct slash *slash) {
 		}
 	}
 
+
 	if(start_index >= end_index){
 		fprintf(stderr, "start index is greater than end index in array slice.\n");
 		optparse_del(parser);
@@ -477,6 +520,17 @@ static int cmd_set(struct slash *slash) {
         optparse_del(parser);
 		return SLASH_EINVAL;
 	}
+	
+	int expected_value_amount = end_index - start_index;
+
+	// Parse expected amount of values
+	// We expect either a single value or the amount defined by the slice.
+	int arg_parse_values_amount = parse_slash_values(slash->argv, argi, 2, 1, expected_value_amount);
+	if(arg_parse_values_amount == 0){
+		optparse_del(parser);
+		return SLASH_EINVAL;
+	}
+
 	// Create a queue, so that we can set the param in a single packet.
 	param_queue_t queue;
 	char queue_buf[PARAM_SERVER_MTU];
