@@ -42,6 +42,29 @@ void * vmem_memcpy(void * to, const void * from, uint32_t size) {
 
 }
 
+vmem_t * vmem_vaddr_to_vmem(uint32_t vaddr) {
+
+	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
+
+		/* Find VMEM from vaddr */
+		if ((vaddr >= (uintptr_t)vmem->vaddr) && (vaddr <= (uintptr_t)vmem->vaddr + vmem->size)) {
+			return vmem;
+		}
+	}
+
+	return NULL;
+}
+
+int vmem_flush(vmem_t *vmem) {
+
+	int res = 1;
+	if (vmem && vmem->flush) {
+		/* Call the flush method, which will empty any caches into the storage */
+		res = vmem->flush(vmem);
+	}
+	return res;
+}
+
 vmem_t * vmem_index_to_ptr(int idx) {
 	return ((vmem_t *) &__start_vmem) + idx;
 }
