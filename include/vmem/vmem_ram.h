@@ -10,6 +10,10 @@
 
 #include <vmem/vmem.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
 	void * physaddr;
 } vmem_ram_driver_t;
@@ -28,9 +32,9 @@ typedef struct {
 		.size = size_in, \
 		.read = NULL, \
 		.write = NULL, \
-		.driver = &vmem_##name_in##_driver, \
 		.vaddr = 0, \
 		.ack_with_pull = 1, \
+		.driver = &vmem_##name_in##_driver, \
 	};
 
 #define VMEM_DEFINE_STATIC_RAM_ADDR(name_in, strname, size_in, mem_addr) \
@@ -46,9 +50,13 @@ typedef struct {
         .size = size_in, \
         .read = NULL, \
         .write = NULL, \
-        .driver = &vmem_##name_in##_driver, \
         .vaddr = 0, \
         .ack_with_pull = 1, \
+        .driver = &vmem_##name_in##_driver, \
     };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_PARAM_VMEM_RAM_H_ */

@@ -70,6 +70,9 @@ vmem_t * vmem_vaddr_to_vmem(uint64_t vaddr) {
 	return NULL;
 }
 
+int vmem_flush(vmem_t *vmem) {
+
+	int res = 1;
 	if (vmem && vmem->flush) {
 		/* Call the flush method, which will empty any caches into the storage */
 		res = vmem->flush(vmem);

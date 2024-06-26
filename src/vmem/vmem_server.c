@@ -121,6 +121,9 @@ void vmem_server_handler(csp_conn_t * conn)
 
 			csp_buffer_free(packet);
 		}
+		// Now flush the VMEM cache associated with the address, if any
+		vmem_t *vmem = vmem_vaddr_to_vmem(address);
+		(void)vmem_flush(vmem);
 
 	} else if (request->type == VMEM_SERVER_LIST) {
 

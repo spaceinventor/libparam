@@ -130,6 +130,7 @@ static void param_completer(struct slash *slash, char * token) {
 		slash_bell(slash);
 	} else {
 		strncpy(token, prefix->name, prefixlen);
+		token[prefixlen] = 0;
 		slash->cursor = slash->length = (token - slash->buffer) + prefixlen;
 	}
 
@@ -146,7 +147,7 @@ static int cmd_get(struct slash *slash) {
     optparse_add_help(parser);
     optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
 	optparse_add_int(parser, 's', "server", "NUM", 0, &server, "server to get parameters from (default = node))");
-    optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system verison (default = 2)");
+    optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system version (default = 2)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -267,7 +268,7 @@ static int cmd_set(struct slash *slash) {
 	/* Local parameters are set directly */
 	if (param->node == 0) {
 
-		if (offset < 0) {
+		if (offset < 0 && param->type != PARAM_TYPE_STRING && param->type != PARAM_TYPE_DATA) {
 			for (int i = 0; i < param->array_size; i++)
 				param_set(param, i, valuebuf);
 		} else {
@@ -478,7 +479,7 @@ static int cmd_pull(struct slash *slash) {
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to pull parameters from (default = <env>))");
 	optparse_add_string(parser, 'm', "imask", "MASK", &include_mask_str, "Include mask (param letters)");
 	optparse_add_string(parser, 'e', "emask", "MASK", &exclude_mask_str, "Exclude mask (param letters)");
-    optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system verison (default = 2)");
+    optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system version (default = 2)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -512,7 +513,7 @@ static int cmd_new(struct slash *slash) {
 
     optparse_t * parser = optparse_new("cmd new", "<get/set> <cmd name>");
     optparse_add_help(parser);
-    optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system verison (default = 2)");
+    optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system version (default = 2)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -547,9 +548,12 @@ static int cmd_new(struct slash *slash) {
 	name = slash->argv[argi];
 	strncpy(param_queue.name, name, sizeof(param_queue.name)-1);  // -1 to fit NULL byte
 
+	csp_timestamp_t time_now;
+	csp_clock_get_time(&time_now);
 	param_queue.used = 0;
 	param_queue.version = paramver;
 	param_queue.last_timestamp = 0;
+	param_queue.client_timestamp = time_now.tv_sec;
 
 	printf("Initialized new command: %s\n", name);
 

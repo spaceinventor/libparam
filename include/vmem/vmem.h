@@ -8,6 +8,10 @@
 #ifndef SRC_PARAM_VMEM_H_
 #define SRC_PARAM_VMEM_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define VMEM_MAX(a,b) ((a) > (b) ? a : b)
 #define VMEM_MIN(a,b) ((a) < (b) ? a : b)
 
@@ -24,6 +28,7 @@ enum vmem_types{
 	VMEM_TYPE_FILE = 7,
 	VMEM_TYPE_FRAM_CACHE = 8,
 	VMEM_TYPE_NOR_FLASH = 9,
+	VMEM_TYPE_BLOCK = 10,
 };
 
 typedef struct vmem_s {
@@ -52,5 +57,9 @@ vmem_t * vmem_vaddr_to_vmem(uint64_t vaddr);
 int vmem_flush(vmem_t *vmem);
 
 extern int __start_vmem, __stop_vmem;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_PARAM_VMEM_H_ */

@@ -24,6 +24,7 @@ void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int u
 	queue->used = used;
 	queue->version = version;
 	queue->last_timestamp = 0;
+	queue->client_timestamp = 0;
 }
 
 int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value) {

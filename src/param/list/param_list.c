@@ -165,7 +165,7 @@ int param_list_remove(int node, uint8_t verbose) {
 		if (i.phase == 0)  // Protection against removing static parameters
 			continue;
 
-		uint8_t match = 1;
+		uint8_t match = 0;
 
 		if (node > 0)
 			match = param->node == node;
