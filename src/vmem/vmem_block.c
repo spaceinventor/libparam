@@ -19,17 +19,17 @@
 __attribute__((weak)) int __start_vmem_bdevice = 0;
 __attribute__((weak)) int __stop_vmem_bdevice = 0;
 
-static uint8_t *cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uintptr_t address, uint32_t *length);
-static uint32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uintptr_t address, uintptr_t data, uint32_t length);
+static uint8_t *cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address, uint32_t *length);
+static uint32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address, uintptr_t data, uint32_t length);
 static void cache_flush(const vmem_block_driver_t *drv, vmem_block_cache_t *cache);
-static bool address_in_cache(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uintptr_t address);
+static bool address_in_cache(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address);
 
-static bool address_in_cache(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uintptr_t address) {
+static bool address_in_cache(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address) {
 
     bool in_cache = false;
     
     if (cache->is_valid) {
-        uint32_t cache_start = (cache->start_block * drv->device->bsize);
+        uint64_t cache_start = (cache->start_block * drv->device->bsize);
         if (address >= cache_start && address < (cache_start + cache->size)) {
             in_cache = true;
         }
@@ -55,7 +55,7 @@ static void cache_flush(const vmem_block_driver_t *drv, vmem_block_cache_t *cach
 
 }
 
-static uint32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uintptr_t address, uintptr_t data, uint32_t length) {
+static uint32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address, uintptr_t data, uint32_t length) {
 
     uint32_t size;
 
@@ -93,7 +93,7 @@ static uint32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *
     return size;
 }
 
-static uint8_t *cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uintptr_t address, uint32_t *length) {
+static uint8_t *cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address, uint32_t *length) {
 
     uint32_t block = (address / drv->device->bsize);
     uint32_t block_offset = (address % drv->device->bsize);
@@ -125,7 +125,7 @@ static uint8_t *cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *c
 
 }
 
-void vmem_block_read(vmem_t * vmem, uint64_t addr, void * dataout, uint64_t len) {
+void vmem_block_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len) {
 
     vmem_block_region_t *reg = (vmem_block_region_t *)vmem->driver;
     uintptr_t physaddr = reg->physaddr + addr;
@@ -154,7 +154,7 @@ void vmem_block_read(vmem_t * vmem, uint64_t addr, void * dataout, uint64_t len)
 
 }
 
-void vmem_block_write(vmem_t * vmem, uint64_t addr, const void * datain, uint64_t len) {
+void vmem_block_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len) {
 
     vmem_block_region_t *reg = (vmem_block_region_t *)vmem->driver;
     uintptr_t physaddr = reg->physaddr + addr;
