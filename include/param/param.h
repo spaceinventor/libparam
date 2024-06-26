@@ -13,6 +13,10 @@
 
 #include "libparam.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * DATATYPES
  */
@@ -265,5 +269,9 @@ void param_copy(param_t * dest, param_t * src);
 /* External hooks to get atomic writes */
 extern __attribute__((weak)) void param_enter_critical(void);
 extern __attribute__((weak)) void param_exit_critical(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_PARAM_PARAM_H_ */

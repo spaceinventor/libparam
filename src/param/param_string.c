@@ -17,6 +17,7 @@
 #include <csp/arch/csp_time.h>
 #include <param/param.h>
 #include <param/param_list.h>
+#include <time.h>
 
 
 #ifndef MIN
@@ -246,8 +247,12 @@ static void param_print_value(FILE * file, param_t * param, int offset) {
 
 	for(int i = offset; i < offset + count; i++) {
 		
-		param_value_str(param, i, value_str + strlen(value_str), 128 - strlen(value_str));
-
+		if(*param->timestamp > 0 || param->node == 0){
+			param_value_str(param, i, value_str + strlen(value_str), 128 - strlen(value_str));
+		}
+		else {
+			sprintf(value_str + strlen(value_str), "-");
+		}
 		if (i + 1 < count)
 			sprintf(value_str + strlen(value_str), " ");
 	}
@@ -381,18 +386,31 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 				fprintf(file, "1");
 			}
 
-			if (mask)
-				fprintf(file, "+%x", mask);
-
 		}
 
 
 
 	}
 
+	if(verbose >= 4){
+		if (*param->timestamp > 0){		
+			struct tm timestamp;
+			char timestamp_buffer[40];
+			time_t param_timestamp = (time_t)*param->timestamp;
+			timestamp = *localtime(&param_timestamp);
+			strftime(timestamp_buffer, sizeof(timestamp_buffer), "%a %Y-%m-%d %H:%M:%S %Z", &timestamp);
+
+			fprintf(file, "\t%s", timestamp_buffer);
+		}
+		else{
+			fprintf(file, "\t%s", "-");
+		}
+	}
+	
 	if ((verbose >= 3) && (param->docstr != NULL)) {
 		fprintf(file, "\t\t%s", param->docstr);
 	}
+
 
 	fprintf(file, "%s", param_mask_color_off());
 

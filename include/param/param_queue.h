@@ -11,6 +11,9 @@
 #include <param/param.h>
 #include <param/param_list.h>
 #include <mpack/mpack.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef enum {
 	PARAM_QUEUE_TYPE_GET,
@@ -29,6 +32,7 @@ typedef struct param_queue_s {
 	/* State used by serializer */
 	uint16_t last_node;
 	uint32_t last_timestamp;
+	uint32_t client_timestamp;
 } param_queue_t;
 
 void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int used, param_queue_type_e type, int version);
@@ -64,5 +68,8 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, long unsig
 		param_t * param = param_list_find_id(node, id); \
 
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* LIB_PARAM_SRC_PARAM_PARAM_QUEUE_H_ */
