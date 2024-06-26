@@ -41,5 +41,5 @@ typedef struct {
 		.ack_with_pull = 1, \
 	};
 
-void vmem_fram_cache_read(vmem_t * vmem, uint64_t addr, void * dataout, intptr_t len);
-void vmem_fram_cache_write(vmem_t * vmem, uint64_t addr, const void * datain, intptr_t len);
+void vmem_fram_cache_read(vmem_t * vmem, uint64_t addr, void * dataout, uint64_t len);
+void vmem_fram_cache_write(vmem_t * vmem, uint64_t addr, const void * datain, uint64_t len);

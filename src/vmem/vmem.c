@@ -17,22 +17,22 @@ extern int __start_vmem, __stop_vmem;
     We therefore use __attribute__((weak)) so we can compile in the absence of these. */
 extern __attribute__((weak)) int __start_vmem, __stop_vmem;
 
-void * vmem_memcpy(void * to, const void * from, intptr_t size) {
+void * vmem_memcpy(void * to, const void * from, uint64_t size) {
 
-	return vmem_cpy((uint64_t)(intptr_t)to, (uint64_t)(intptr_t)from, size);
+	return vmem_cpy((uint64_t)to, (uint64_t)from, size);
 }
 
-void * vmem_write(uint64_t to, const void * from, intptr_t size) {
+void * vmem_write(uint64_t to, const void * from, uint64_t size) {
 
-	return vmem_cpy(to, (uint64_t)(intptr_t)from, size);
+	return vmem_cpy(to, (uint64_t)from, size);
 }
 
-void * vmem_read(void * to, uint64_t from, intptr_t size) {
+void * vmem_read(void * to, uint64_t from, uint64_t size) {
 
-	return vmem_cpy((uint64_t)(intptr_t)to, from, size);
+	return vmem_cpy((uint64_t)to, from, size);
 }
 
-void * vmem_cpy(uint64_t to, uint64_t from, intptr_t size) {
+void * vmem_cpy(uint64_t to, uint64_t from, uint64_t size) {
 
 	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
 
@@ -55,6 +55,26 @@ void * vmem_cpy(uint64_t to, uint64_t from, intptr_t size) {
 	/* If not vmem found */
 	return memcpy((void*)(intptr_t)to, (void*)(intptr_t)from, size);
 
+}
+
+vmem_t * vmem_vaddr_to_vmem(uint64_t vaddr) {
+
+	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
+
+		/* Find VMEM from vaddr */
+		if ((vaddr >= vmem->vaddr) && (vaddr <= vmem->vaddr + vmem->size)) {
+			return vmem;
+		}
+	}
+
+	return NULL;
+}
+
+	if (vmem && vmem->flush) {
+		/* Call the flush method, which will empty any caches into the storage */
+		res = vmem->flush(vmem);
+	}
+	return res;
 }
 
 vmem_t * vmem_index_to_ptr(int idx) {

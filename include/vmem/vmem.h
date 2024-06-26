@@ -28,25 +28,28 @@ enum vmem_types{
 
 typedef struct vmem_s {
 	int type;
-	void (*read)(struct vmem_s * vmem, uint64_t addr, void * dataout, intptr_t len);
-	void (*write)(struct vmem_s * vmem, uint64_t addr, const void * datain, intptr_t len);
+	void (*read)(struct vmem_s * vmem, uint64_t addr, void * dataout, uint64_t len);
+	void (*write)(struct vmem_s * vmem, uint64_t addr, const void * datain, uint64_t len);
 	int (*backup)(struct vmem_s * vmem);
 	int (*restore)(struct vmem_s * vmem);
+	int (*flush)(struct vmem_s * vmem);
 	uint64_t vaddr;
-	intptr_t size;
+	uint64_t size;
 	const char *name;
 	int big_endian;
 	int ack_with_pull; // allow ack with pull request
 	void * driver;
 } vmem_t;
 
-void * vmem_memcpy(void * to, const void * from, intptr_t size);
-void * vmem_write(uint64_t to, const void * from, intptr_t size);
-void * vmem_read(void * to, uint64_t from, intptr_t size);
-void * vmem_cpy(uint64_t to, uint64_t from, intptr_t size);
+void * vmem_memcpy(void * to, const void * from, uint64_t size);
+void * vmem_write(uint64_t to, const void * from, uint64_t size);
+void * vmem_read(void * to, uint64_t from, uint64_t size);
+void * vmem_cpy(uint64_t to, uint64_t from, uint64_t size);
 
 vmem_t * vmem_index_to_ptr(int idx);
 int vmem_ptr_to_index(vmem_t * vmem);
+vmem_t * vmem_vaddr_to_vmem(uint64_t vaddr);
+int vmem_flush(vmem_t *vmem);
 
 extern int __start_vmem, __stop_vmem;
 
