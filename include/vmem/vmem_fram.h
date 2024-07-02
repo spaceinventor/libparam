@@ -27,13 +27,13 @@ typedef struct {
 		.size = size_in, \
 		.read = vmem_fram_read, \
 		.write = vmem_fram_write, \
-		.driver = (vmem_fram_driver_t *) &vmem_##name_in##_driver, \
-		.vaddr = (void *) _vaddr, \
+		.driver = &vmem_##name_in##_driver, \
+		.vaddr = _vaddr, \
 		.ack_with_pull = 1, \
 	};
 
-void vmem_fram_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len);
-void vmem_fram_write(vmem_t * vmem, uint32_t addr, const void * datain, uint32_t len);
+void vmem_fram_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len);
+void vmem_fram_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len);
 
 
 #endif /* SRC_PARAM_VMEM_FRAM_H_ */

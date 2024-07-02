@@ -14,9 +14,6 @@
 extern "C" {
 #endif
 
-void vmem_ram_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len);
-void vmem_ram_write(vmem_t * vmem, uint32_t addr, const void * datain, uint32_t len);
-
 typedef struct {
 	void * physaddr;
 } vmem_ram_driver_t;
@@ -31,11 +28,11 @@ typedef struct {
 	__attribute__((used)) \
 	vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_RAM, \
-		.read = vmem_ram_read, \
-		.write = vmem_ram_write, \
-		.vaddr = vmem_##name_in##_heap, \
-		.size = size_in, \
 		.name = strname, \
+		.size = size_in, \
+		.read = NULL, \
+		.write = NULL, \
+		.vaddr = 0, \
 		.ack_with_pull = 1, \
 		.driver = &vmem_##name_in##_driver, \
 	};
@@ -49,11 +46,11 @@ typedef struct {
     __attribute__((used)) \
     vmem_t vmem_##name_in = { \
         .type = VMEM_TYPE_RAM, \
-        .read = vmem_ram_read, \
-        .write = vmem_ram_write, \
-        .vaddr = mem_addr, \
-        .size = size_in, \
         .name = strname, \
+        .size = size_in, \
+        .read = NULL, \
+        .write = NULL, \
+        .vaddr = 0, \
         .ack_with_pull = 1, \
         .driver = &vmem_##name_in##_driver, \
     };

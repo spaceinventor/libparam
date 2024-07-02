@@ -37,9 +37,9 @@ typedef struct {
 		.read = vmem_fram_cache_read, \
 		.write = vmem_fram_cache_write, \
 		.driver = &vmem_##name_in##_driver, \
-		.vaddr = (void *) _vaddr, \
+		.vaddr = _vaddr, \
 		.ack_with_pull = 1, \
 	};
 
-void vmem_fram_cache_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len);
-void vmem_fram_cache_write(vmem_t * vmem, uint32_t addr, const void * datain, uint32_t len);
+void vmem_fram_cache_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len);
+void vmem_fram_cache_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len);

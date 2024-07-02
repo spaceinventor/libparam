@@ -53,7 +53,6 @@ param_src = files([
 	'src/mpack/mpack.c',
 
 	'src/vmem/vmem_client.c',
-	'src/vmem/vmem_ram.c',
 	'src/vmem/vmem_crc32.c',
 	'src/vmem/vmem_server.c',
 	'src/vmem/vmem.c',
