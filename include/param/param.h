@@ -150,7 +150,7 @@ typedef struct param_s {
 		.unit = _unit, \
 		.callback = _callback, \
 		.timestamp = &_timestamp_##_name, \
-		.addr = _physaddr, \
+		.addr = (void *)(_physaddr), \
 		.vaddr = 0, \
 		.docstr = _docstr, \
 	}
