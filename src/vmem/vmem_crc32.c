@@ -12,10 +12,10 @@
 #include "vmem/vmem_crc32.h"
 #include "csp/csp_crc32.h"
 
-uint32_t vmem_calc_crc32(uint64_t addr, intptr_t len, void * buffer, uint32_t buffer_len) {
+uint32_t vmem_calc_crc32(uint64_t addr, uint64_t len, void * buffer, uint32_t buffer_len) {
 
 	csp_crc32_t crc_obj;
-	uint32_t count = 0;
+	uint64_t count = 0;
 	uint32_t chunk_len;
 
 	csp_crc32_init(&crc_obj);

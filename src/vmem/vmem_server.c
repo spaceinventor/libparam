@@ -40,10 +40,13 @@ void vmem_server_handler(csp_conn_t * conn)
 	 */
 	if (type == VMEM_SERVER_DOWNLOAD || type == VMEM_SERVER_CALCULATE_CRC32) {
 
-		uint32_t length;
+		uint64_t length;
 		uint64_t address;
 		
-		if (request->version == 2) {
+		if (request->version == 3) {
+			address = be64toh(request->data3.address);
+			length = be64toh(request->data3.length);
+		} else if (request->version == 2) {
 			address = be64toh(request->data2.address);
 			length = be32toh(request->data2.length);
 		} else {
@@ -55,7 +58,7 @@ void vmem_server_handler(csp_conn_t * conn)
 		//printf("  Addr %"PRIx64"\n", address);
 		//printf("  Length %"PRIu32"\n", length);
 
-		unsigned int count = 0;
+		uint64_t count = 0;
 		if (type == VMEM_SERVER_DOWNLOAD) {
 			/* We have to free the requesting packet, since we are going to
 			 * allocate a bunch of them for the reply.
@@ -134,8 +137,8 @@ void vmem_server_handler(csp_conn_t * conn)
 			int i = 0;
 			packet->length = 0;
 			for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++, i++) {
-				list[i].vaddr = htobe32((intptr_t) vmem->vaddr);
-				list[i].size = htobe32(vmem->size);
+				list[i].vaddr = htobe32((uint32_t)(vmem->vaddr & 0x00000000FFFFFFFFULL));
+				list[i].size = htobe32((uint32_t)(vmem->size & 0x00000000FFFFFFFFULL));
 				list[i].vmem_id = i;
 				list[i].type = vmem->type;
 				strncpy(list[i].name, vmem->name, 5);
@@ -148,12 +151,27 @@ void vmem_server_handler(csp_conn_t * conn)
 			int i = 0;
 			packet->length = 0;
 			for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++, i++) {
-				list[i].vaddr = htobe64((intptr_t) vmem->vaddr);
-				list[i].size = htobe32(vmem->size);
+				list[i].vaddr = htobe64(vmem->vaddr);
+				list[i].size = htobe32((uint32_t)(vmem->size & 0x00000000FFFFFFFFULL));
 				list[i].vmem_id = i;
 				list[i].type = vmem->type;
 				strncpy(list[i].name, vmem->name, 5);
 				packet->length += sizeof(vmem_list2_t);
+			}
+
+		} else if (request->version == 3) {
+			
+			vmem_list3_t * list = (vmem_list3_t *) packet->data;
+
+			int i = 0;
+			packet->length = 0;
+			for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++, i++) {
+				list[i].vaddr = htobe64(vmem->vaddr);
+				list[i].size = htobe64(vmem->size);
+				list[i].vmem_id = i;
+				list[i].type = vmem->type;
+				strncpy(list[i].name, vmem->name, 5);
+				packet->length += sizeof(vmem_list3_t);
 			}
 
 		}

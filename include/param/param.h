@@ -136,7 +136,7 @@ typedef struct param_s {
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	__attribute__((section("param"))) \
-	__attribute__((aligned(1))) \
+	__attribute__((aligned(8))) \
 	__attribute__((used)) \
 	param_t _name = { \
 		.vmem = NULL, \
@@ -152,7 +152,6 @@ typedef struct param_s {
 		.timestamp = &_timestamp_##_name, \
 		.addr = _physaddr, \
 		.vaddr = 0, \
-		.vmem = NULL, \
 		.docstr = _docstr, \
 	}
 
@@ -160,7 +159,7 @@ typedef struct param_s {
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	__attribute__((section("param"))) \
-	__attribute__((aligned(1))) \
+	__attribute__((aligned(8))) \
 	__attribute__((used)) \
 	param_t _name = { \
 		.node = 0, \
@@ -185,7 +184,7 @@ typedef struct param_s {
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	__attribute__((section("param"))) \
-	__attribute__((aligned(1))) \
+	__attribute__((aligned(8))) \
 	__attribute__((used)) \
 	param_t _name = { \
 		.node = _node, \

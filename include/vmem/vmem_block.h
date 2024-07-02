@@ -99,7 +99,7 @@ typedef struct vmem_block_region_s {
 		.cache = &vmem_##cache_in##_cache, \
 	}; \
 	__attribute__((section("vmem"))) \
-	__attribute__((aligned(4))) \
+	__attribute__((aligned(8))) \
 	__attribute__((used)) \
 	vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_BLOCK, \
