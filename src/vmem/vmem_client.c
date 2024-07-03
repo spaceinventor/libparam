@@ -36,7 +36,7 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 		request->data2.address = htobe64(address);
 		request->data2.length = htobe32(length);
 	} else {
-		request->data.address = htobe32((uint32_t)address);
+		request->data.address = htobe32((uint32_t)(address & 0x00000000FFFFFFFFULL));
 		request->data.length = htobe32(length);
 	}
 	packet->length = sizeof(vmem_request_t);
@@ -45,7 +45,7 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 	csp_send(conn, packet);
 
 	/* Go into download loop */
-	unsigned int count = 0;
+	uint32_t count = 0;
 	int dotcount = 0;
 
 	while(1) { 
@@ -118,7 +118,7 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 		request->data2.address = htobe64(address);
 		request->data2.length = htobe32(length);
 	} else {
-		request->data.address = htobe32(address);
+		request->data.address = htobe32((uint32_t)(address & 0x00000000FFFFFFFFULL));
 		request->data.length = htobe32(length);
 	}
 	packet->length = sizeof(vmem_request_t);
@@ -126,7 +126,7 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 	/* Send request */
 	csp_send(conn, packet);
 
-	unsigned int count = 0;
+	uint32_t count = 0;
 	int dotcount = 0;
 	while((count < length) && csp_conn_is_active(conn)) {
 
@@ -204,13 +204,17 @@ void vmem_client_list(int node, int timeout, int version) {
 	if (packet == NULL) 
 		return;
 
-	if (version == 2) {
+	if (version == 3) {
+		for (vmem_list3_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
+			printf(" %u: %-5.5s 0x%016"PRIX64" - %"PRIu64" typ %u\r\n", vmem->vmem_id, vmem->name, be64toh(vmem->vaddr), be64toh(vmem->size), vmem->type);
+		}
+	} else if (version == 2) {
 		for (vmem_list2_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
-			printf(" %u: %-5.5s 0x%"PRIx64" - %u typ %u\r\n", vmem->vmem_id, vmem->name, be64toh(vmem->vaddr), (unsigned int) be32toh(vmem->size), vmem->type);
+			printf(" %u: %-5.5s 0x%016"PRIX64" - %"PRIu32" typ %u\r\n", vmem->vmem_id, vmem->name, be64toh(vmem->vaddr), be32toh(vmem->size), vmem->type);
 		}
 	} else {
 		for (vmem_list_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
-			printf(" %u: %-5.5s 0x%08X - %u typ %u\r\n", vmem->vmem_id, vmem->name, (unsigned int) be32toh(vmem->vaddr), (unsigned int) be32toh(vmem->size), vmem->type);
+			printf(" %u: %-5.5s 0x%08"PRIX32" - %u typ %u\r\n", vmem->vmem_id, vmem->name, be32toh(vmem->vaddr), be32toh(vmem->size), vmem->type);
 		}
 
 	}
@@ -224,7 +228,19 @@ int vmem_client_find(int node, int timeout, void * dataout, int version, char * 
 	if (packet == NULL) 
 		return -1;
 
-	if (version == 2) {
+	if (version == 3) {
+		vmem_list3_t ret = {};
+		for (vmem_list3_t * vmem = (void *)packet->data; (intptr_t)vmem < (intptr_t)packet->data + packet->length; vmem++) {
+			if (strncmp(vmem->name, name, namelen) == 0) {
+				ret.vmem_id = vmem->vmem_id;
+				ret.type = vmem->type;
+				memcpy(ret.name, vmem->name, 5);
+				ret.vaddr = be64toh(vmem->vaddr);
+				ret.size = be64toh(vmem->size);
+			}
+		}
+		memcpy(dataout, &ret, sizeof(vmem_list3_t));
+	} else if (version == 2) {
 		vmem_list2_t ret = {};
 		for (vmem_list2_t * vmem = (void *)packet->data; (intptr_t)vmem < (intptr_t)packet->data + packet->length; vmem++) {
 			if (strncmp(vmem->name, name, namelen) == 0) {
@@ -232,7 +248,7 @@ int vmem_client_find(int node, int timeout, void * dataout, int version, char * 
 				ret.type = vmem->type;
 				memcpy(ret.name, vmem->name, 5);
 				ret.vaddr = be64toh(vmem->vaddr);
-				ret.size = be32toh(vmem->size);
+				ret.size = be32toh((uint32_t)(vmem->size & 0x00000000FFFFFFFFULL));
 			}
 		}
 		memcpy(dataout, &ret, sizeof(vmem_list2_t));
@@ -243,8 +259,8 @@ int vmem_client_find(int node, int timeout, void * dataout, int version, char * 
 				ret.vmem_id = vmem->vmem_id;
 				ret.type = vmem->type;
 				memcpy(ret.name, vmem->name, 5);
-				ret.vaddr = be32toh(vmem->vaddr);
-				ret.size = be32toh(vmem->size);
+				ret.vaddr = be32toh((uint32_t)(vmem->vaddr & 0x00000000FFFFFFFFULL));
+				ret.size = be32toh((uint32_t)(vmem->size & 0x00000000FFFFFFFFULL));
 			}
 		}
 		memcpy(dataout, &ret, sizeof(vmem_list_t));
@@ -296,7 +312,7 @@ int vmem_client_calc_crc32(int node, int timeout, uint64_t address, uint32_t len
 		request->data2.address = htobe64(address);
 		request->data2.length = htobe32(length);
 	} else {
-		request->data.address = htobe32((uint32_t)address);
+		request->data.address = htobe32((uint32_t)(address & 0x00000000FFFFFFFFULL));
 		request->data.length = htobe32(length);
 	}
 	packet->length = sizeof(vmem_request_t);

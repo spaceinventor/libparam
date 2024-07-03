@@ -56,14 +56,14 @@ void * vmem_cpy(uint64_t to, uint64_t from, uint32_t size) {
 	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
 
 		/* Write to VMEM */
-		if ((to >= vmem->vaddr) && (to + size <= vmem->vaddr + vmem->size)) {
-			//printf("Write to vmem %s, to %p from %p\n", vmem->name, to, from);
+		if ((to >= vmem->vaddr) && (to + (uint64_t)size <= vmem->vaddr + vmem->size)) {
+			//printf("Write to vmem %s, to 0x%"PRIX64" from 0x%"PRIX64"\n", vmem->name, to, from);
 			vmem->write(vmem, to - vmem->vaddr, (void*)(uintptr_t)from, size);
 			return NULL;
 		}
 
 		/* Read */
-		if ((from >= vmem->vaddr) && (from + size <= vmem->vaddr + vmem->size)) {
+		if ((from >= vmem->vaddr) && (from + (uint64_t)size <= vmem->vaddr + vmem->size)) {
 			//printf("Read from vmem %s\n", vmem->name);
 			vmem->read(vmem, from - vmem->vaddr, (void*)(uintptr_t)to, size);
 			return NULL;
