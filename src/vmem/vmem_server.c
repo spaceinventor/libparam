@@ -208,9 +208,11 @@ void vmem_server_handler(csp_conn_t * conn)
 					i++; list++;
 				}
 
-				/* If we end up here, we must send the packet as the last one */
-				packet->data[0] |= 0b10000000; /* Last packet */
-				csp_send(conn, packet);
+				if (packet) {
+					/* If we end up here, we must send the packet as the last one */
+					packet->data[0] |= 0b10000000; /* Last packet */
+					csp_send(conn, packet);
+				}
 			} else {
 				/* We have no VMEM's so send an empty packet as response */
 				packet->length = 1;
