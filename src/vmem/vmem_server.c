@@ -144,6 +144,9 @@ void vmem_server_handler(csp_conn_t * conn)
 				strncpy(list[i].name, vmem->name, 5);
 				packet->length += sizeof(vmem_list_t);
 			}
+
+			csp_send(conn, packet);
+
 		} else if (request->version == 2) {
 			
 			vmem_list2_t * list = (vmem_list2_t *) packet->data;
@@ -159,24 +162,63 @@ void vmem_server_handler(csp_conn_t * conn)
 				packet->length += sizeof(vmem_list2_t);
 			}
 
+			csp_send(conn, packet);
+
 		} else if (request->version == 3) {
 			
-			vmem_list3_t * list = (vmem_list3_t *) packet->data;
+			uint16_t nof_vmem;
 
-			int i = 0;
-			packet->length = 0;
-			for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++, i++) {
-				list[i].vaddr = htobe64(vmem->vaddr);
-				list[i].size = htobe64(vmem->size);
-				list[i].vmem_id = i;
-				list[i].type = vmem->type;
-				strncpy(list[i].name, vmem->name, 5);
-				packet->length += sizeof(vmem_list3_t);
+			nof_vmem = ((uintptr_t)&__stop_vmem - (uintptr_t)&__start_vmem) / sizeof(vmem_t);
+
+			if (nof_vmem > 0) {
+				vmem_t * vmem = NULL;
+				vmem_list3_t * list;
+
+				vmem = (vmem_t *) &__start_vmem;
+				int i = 0;
+
+				/* The first byte of each packet contains the flag signalling the first and last packet */
+				packet->length = sizeof(uint64_t);
+				packet->data[0] = 0b01000000; /* First packet */
+				list = (vmem_list3_t *)&packet->data[sizeof(uint64_t)];
+
+				while (i < nof_vmem) {
+					if ((packet->length + sizeof(vmem_list3_t)) > VMEM_SERVER_MTU) {
+						/* We need to advance to the next packet, but first send the existing one */
+						csp_send(conn, packet);
+						packet = csp_buffer_get(VMEM_SERVER_MTU);
+						if (!packet) {
+							printf("Error allocating CSP packet for VMEM list response.\n");
+							break;
+						}
+						packet->length = sizeof(uint64_t);
+						packet->data[0] = 0b00000000;
+						list = (vmem_list3_t *)&packet->data[sizeof(uint64_t)];
+					}
+
+					/* Fill in the VMEM data */
+					strncpy(&list->name[0], vmem[i].name, sizeof(list->name));
+					list->vaddr = htobe64(vmem[i].vaddr);
+					list->size = htobe64(vmem[i].size);
+					list->type = vmem[i].type;
+					list->vmem_id = i;
+					packet->length += sizeof(vmem_list3_t);
+
+					/* Advance to the next VMEM */
+					i++; list++;
+				}
+
+				/* If we end up here, we must send the packet as the last one */
+				packet->data[0] |= 0b10000000; /* Last packet */
+				csp_send(conn, packet);
+			} else {
+				/* We have no VMEM's so send an empty packet as response */
+				packet->length = 1;
+				packet->data[0] |= 0b11000000; /* First and Last packet */
+				csp_send(conn, packet);
 			}
 
 		}
-
-		csp_send(conn, packet);
 
 	} else if ((request->type == VMEM_SERVER_RESTORE) || (request->type == VMEM_SERVER_BACKUP)) {
 
