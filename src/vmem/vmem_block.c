@@ -136,7 +136,7 @@ void vmem_block_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len)
 
     while (len) {
         uint8_t *data;
-        uint32_t size;
+        uint32_t size = 0;
 
         /* Read a chunk of data from the eMMC and cache it */
         data = cache_read(reg->driver, reg->cache, srcaddr, &size);
