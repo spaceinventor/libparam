@@ -187,15 +187,53 @@ static csp_packet_t * vmem_client_list_get(int node, int timeout, int version) {
 
 	csp_send(conn, packet);
 
-	/* Wait for response */
-	packet = csp_read(conn, timeout);
-	if (packet == NULL) {
-		printf("No response to VMEM list request\n");
+	csp_packet_t *resp = NULL;
+
+	if (version == 3) {
+		/* Allocate the maximum packet length to hold the response for the caller */
+		resp = csp_buffer_get(CSP_BUFFER_SIZE);
+		if (!resp) {
+			printf("Could not allocate CSP buffer for VMEM response.\n");
+			csp_close(conn);
+			return NULL;
+		}
+
+		resp->length = 0;
+		/* Keep receiving until we got everything or we got a timeout */
+		while ((packet = csp_read(conn, timeout)) != NULL) {
+			if (packet->data[0] & 0b01000000) {
+				/* First packet */
+				resp->length = 0;
+			}
+
+			/* Collect the response in the response packet */
+			memcpy(&resp->data[resp->length], &packet->data[sizeof(uint64_t)], (packet->length - sizeof(uint64_t)));
+			resp->length += (packet->length - sizeof(uint64_t));
+
+			if (packet->data[0] & 0b10000000) {
+				/* Last packet, break the loop */
+				csp_buffer_free(packet);
+				break;
+			}
+
+			csp_buffer_free(packet);
+		}
+
+		if (packet == NULL) {
+			printf("No response to VMEM list request\n");
+		}
+	} else {
+		/* Wait for response */
+		packet = csp_read(conn, timeout);
+		if (packet == NULL) {
+			printf("No response to VMEM list request\n");
+		}
+		resp = packet;
 	}
 
 	csp_close(conn);
 
-	return packet;
+	return resp;
 }
 
 void vmem_client_list(int node, int timeout, int version) {
@@ -206,15 +244,15 @@ void vmem_client_list(int node, int timeout, int version) {
 
 	if (version == 3) {
 		for (vmem_list3_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
-			printf(" %u: %-5.5s 0x%016"PRIX64" - %"PRIu64" typ %u\r\n", vmem->vmem_id, vmem->name, be64toh(vmem->vaddr), be64toh(vmem->size), vmem->type);
+			printf(" %2u: %-16.16s 0x%016"PRIX64" - %"PRIu64" typ %u\r\n", vmem->vmem_id, vmem->name, be64toh(vmem->vaddr), be64toh(vmem->size), vmem->type);
 		}
 	} else if (version == 2) {
 		for (vmem_list2_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
-			printf(" %u: %-5.5s 0x%016"PRIX64" - %"PRIu32" typ %u\r\n", vmem->vmem_id, vmem->name, be64toh(vmem->vaddr), be32toh(vmem->size), vmem->type);
+			printf(" %2u: %-5.5s 0x%016"PRIX64" - %"PRIu32" typ %u\r\n", vmem->vmem_id, vmem->name, be64toh(vmem->vaddr), be32toh(vmem->size), vmem->type);
 		}
 	} else {
 		for (vmem_list_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
-			printf(" %u: %-5.5s 0x%08"PRIX32" - %"PRIu32" typ %u\r\n", vmem->vmem_id, vmem->name, be32toh(vmem->vaddr), be32toh(vmem->size), vmem->type);
+			printf(" %2u: %-5.5s 0x%08"PRIX32" - %"PRIu32" typ %u\r\n", vmem->vmem_id, vmem->name, be32toh(vmem->vaddr), be32toh(vmem->size), vmem->type);
 		}
 
 	}
