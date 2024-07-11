@@ -43,12 +43,28 @@ void * vmem_memcpy(void * to, const void * from, uint32_t size) {
  */
 void * vmem_write(uint64_t to, const void * from, uint32_t size) {
 
-	return vmem_cpy(to, (uint64_t)(uintptr_t)from, size);
+	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
+		/* Write to VMEM */
+		if ((to >= vmem->vaddr) && (to + (uint64_t)size <= vmem->vaddr + vmem->size)) {
+			printf("Write to vmem %s, to 0x%"PRIX64" from 0x%"PRIX32"\n", vmem->name, to, (uint32_t)from);
+			vmem->write(vmem, to - vmem->vaddr, (void*)(uintptr_t)from, size);
+		}
+	}
+
+	return NULL;
 }
 
 void * vmem_read(void * to, uint64_t from, uint32_t size) {
 
-	return vmem_cpy((uint64_t)(uintptr_t)to, from, size);
+	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
+		/* Read */
+		if ((from >= vmem->vaddr) && (from + (uint64_t)size <= vmem->vaddr + vmem->size)) {
+			printf("Read from vmem %s, from 0x%"PRIX64" to 0x%"PRIX32"\n", vmem->name, from, (uint32_t)to);
+			vmem->read(vmem, from - vmem->vaddr, (void*)(uintptr_t)to, size);
+		}
+	}
+
+	return NULL;
 }
 
 void * vmem_cpy(uint64_t to, uint64_t from, uint32_t size) {
