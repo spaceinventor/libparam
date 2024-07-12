@@ -166,6 +166,12 @@ static int cmd_get(struct slash *slash) {
 	int offset = -1;
 	param_t * param = NULL;
 
+	if (++argi != slash->argc) {
+		optparse_del(parser);
+		printf("too many arguments to command\n");
+		return SLASH_EINVAL;
+	}
+
 	/* Go through the list of parameters */
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
