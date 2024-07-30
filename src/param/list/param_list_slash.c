@@ -35,7 +35,7 @@ Will show a (filtered) list of known parameters on the specified node(s).\n\
 Shows cached/known values. Use -v to include parameter type and help text.");
     optparse_add_help(parser);
     optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (-1 for all) (default = <env>)");
-    optparse_add_int(parser, 'v', "verbosity", "NUM", 0, &verbosity, "verbosity (default = 1, max = 3)");
+    optparse_add_int(parser, 'v', "verbosity", "NUM", 0, &verbosity, "verbosity (default = 1, max = 4)");
     optparse_add_string(parser, 'm', "mask", "STR", &maskstr, "mask string");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
@@ -69,6 +69,7 @@ static int list_download(struct slash *slash)
     unsigned int timeout = slash_dfl_timeout;
     unsigned int version = 2;
     int include_remotes = 0;
+    unsigned int verbose = 2;
 
     optparse_t * parser = optparse_new("list download", "[node]\n\
 Downloads a list of remote parameters.\n\
@@ -80,6 +81,7 @@ Parameters can be manually added with 'list add'.");
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
     optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 2)");
     optparse_add_set(parser, 'r', "remote", 1, &include_remotes, "Include remote params when storing list");
+    optparse_add_unsigned(parser, 'V', "verbose", "NUM", 0, &verbose, "0=quiet, 1=parameter count, 2=every parameter (name/ID). (default = 2)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -98,7 +100,7 @@ Parameters can be manually added with 'list add'.");
         return SLASH_EINVAL;
     }
 
-    param_list_download(node, timeout, version, include_remotes);
+    param_list_download(node, timeout, version, include_remotes, verbose);
 
     optparse_del(parser);
     return SLASH_SUCCESS;
@@ -109,12 +111,14 @@ static int list_forget(struct slash *slash)
 {
 
     int node = slash_dfl_node;
+    unsigned int verbose = 2;
 
     optparse_t * parser = optparse_new("list forget", "[node]\n\
 Will remove remote parameters from the local parameter list.\n\
 This makes it possible to download them again, in cases where they've changed.");
     optparse_add_help(parser);
     optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (-1 for all) (default = <env>)");
+    optparse_add_unsigned(parser, 'V', "verbose", "NUM", 0, &verbose, "0=quiet, 1=parameter count, 2=every parameter (name/ID). (default = 2)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -127,7 +131,11 @@ This makes it possible to download them again, in cases where they've changed.")
         node = atoi(slash->argv[argi]);
     }
 
-    printf("Removed %i parameters\n", param_list_remove(node, 1));
+    int count_removed = param_list_remove(node, verbose);
+
+    if (verbose >= 1) {
+        printf("Removed %i parameters\n", count_removed);
+    }
 
     optparse_del(parser);
     return SLASH_SUCCESS;

@@ -171,7 +171,7 @@ int param_list_remove(int node, uint8_t verbose) {
 			match = param->node == node;
 
 		if (match) {
-			if (verbose)
+			if (verbose >= 2)
 				printf("Removing param: %s:%u[%d]\n", param->name, param->node, param->array_size);
 			// Using SLIST_REMOVE() means we iterate twice, but it is simpler.
 			SLIST_REMOVE(&param_list_head, param, param_s, next);
@@ -271,7 +271,7 @@ unsigned int param_list_packed_size(int list_version) {
 	}
 }
 
-int param_list_unpack(int node, void * data, int length, int list_version, int include_remotes) {
+int param_list_unpack(int node, void * data, int length, int list_version, int include_remotes, int verbose) {
 
 	uint16_t strlen;
 	uint16_t addr;
@@ -357,7 +357,9 @@ int param_list_unpack(int node, void * data, int length, int list_version, int i
 	param_t * param = param_list_create_remote(id, addr, type, mask, size, name, unit, help, storage_type);
 
 	if (param != NULL) {
-		printf("Got param: %s:%u[%d]\n", param->name, param->node, param->array_size);
+		if (verbose >= 2) {
+			printf("Got param: %s:%u[%d]\n", param->name, param->node, param->array_size);
+		}
 
 		/* Add to list */
 		if (param_list_add(param) != 0)
@@ -369,7 +371,7 @@ int param_list_unpack(int node, void * data, int length, int list_version, int i
 	}
 }
 
-int param_list_download(int node, int timeout, int list_version, int include_remotes) {
+int param_list_download(int node, uint32_t timeout, int list_version, int include_remotes, int verbose) {
 
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_LIST, timeout, CSP_O_RDP | CSP_O_CRC32);
@@ -382,7 +384,7 @@ int param_list_download(int node, int timeout, int list_version, int include_rem
 	while((packet = csp_read(conn, timeout)) != NULL) {
 
 		//csp_hex_dump("Response", packet->data, packet->length);
-		if ((count_remotes += param_list_unpack(node, packet->data, packet->length, list_version, include_remotes)) < 0) {
+		if ((count_remotes += param_list_unpack(node, packet->data, packet->length, list_version, include_remotes, verbose)) < 0) {
 			csp_buffer_free(packet);
 			break;
 		}
@@ -391,7 +393,9 @@ int param_list_download(int node, int timeout, int list_version, int include_rem
 		count++;
 	}
 
-	printf("Received %u parameters, of which %u remote parameters were skipped\n", count, count_remotes);
+	if (verbose >= 1) {
+		printf("Received %u parameters, of which %u remote parameters were skipped\n", count, count_remotes);
+	}
 	csp_close(conn);
 
 	return count;
