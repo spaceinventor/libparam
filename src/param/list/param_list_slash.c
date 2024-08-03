@@ -92,6 +92,12 @@ Parameters can be manually added with 'list add'.");
         node = atoi(slash->argv[argi]);
     }
 
+    if(node == 0){
+        printf("Download of local parameters not needed, use cmd 'list' instead\n");
+        optparse_del(parser);
+        return SLASH_EINVAL;
+    }
+
     param_list_download(node, timeout, version, include_remotes);
 
     optparse_del(parser);

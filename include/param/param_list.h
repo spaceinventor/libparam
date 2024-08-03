@@ -11,6 +11,9 @@
 #include <param/param.h>
 #include <vmem/vmem.h>
 #include <stdio.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct param_list_iterator_s {
 	int phase;							// Hybrid iterator has multiple phases (0 == Static, 1 == Dynamic List)
@@ -85,4 +88,7 @@ void param_list_store_vmem_load(vmem_t * vmem);
 void list_add_output(unsigned int mask, FILE * out);
 void list_add_output_user_flags(unsigned int mask, FILE * out);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_LIST_H_ */
