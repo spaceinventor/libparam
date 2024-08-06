@@ -30,7 +30,7 @@ On the server side, each parameter is created by use of a macro.
 
 A custom variable array can be accessed as a parameter by applying the following macro:
 
-::
+.. code-block:: c
 
     uint8_t _state[2];
     void state_cb(param_t * param, int index);
@@ -40,18 +40,19 @@ A custom variable array can be accessed as a parameter by applying the following
 
 This example defines a parameter representing an array variable for general access from within the same application. The parameter has a callback to be triggered whenever the same, or another executable does a write access to the parameter. Each parameter in an executable is defined by a distinct index, in this example represented by PARAMID_STATE.
 
-For a parameter that has a value stored in an FRAM configuration memory, the following VMEM area and parameter can be defined like follows
+For a parameter that has a value stored in an FRAM configuration memory, the following VMEM area and parameter can be defined like follows:
 
-::
+.. code-block:: c
 
-    VMEM_DEFINE_FRAM(fram_cfg, "fram_cfg", PHYS_ADDR, PHYS_SIZE, VIRT_ADDR)
-    PARAM_DEFINE_STATIC_VMEM(PARAMID_counter, counter, PARAM_TYPE_UINT16, 0, 0, PM_SYSINFO, NULL, "", fram_cfg, 0x06, "Event counter");
+    VMEM_DEFINE_FRAM(fram_cfg, "fram_cfg", PHYS_ADDR, PHYS_SIZE, VIRT_ADDR);
+    PARAM_DEFINE_STATIC_VMEM(PARAMID_counter, counter, PARAM_TYPE_UINT16, 0, 0, PM_SYSINFO, NULL, \
+      "", fram_cfg, 0x06, "Event counter");
 
 First, a VMEM area is defined, specifically an FRAM-base configuration storage. The particular VMEM belongs to the first 0x100 bytes of a physical address space in an FRAM memory chip. The parameter is defined to be located 6 bytes into that VMEM aread.
 
 For the parameter service to be available, the VMEM thread and the Parameter port binding must be available. for a Linux application, this is done by the following routing, usually located after the CSP initialization snippet in the application main function.
 
-::
+.. code-block:: c
 
     static pthread_t vmem_server_handle;
     pthread_create(&vmem_server_handle, NULL, &vmem_server_task, NULL);
@@ -63,7 +64,7 @@ For user  access to parameters using a shell, consult the CSH manual. The follow
 
 Reading and doing a local modification of index 0 of the state parameter from previous section is done by
 
-::
+.. code-block:: c
 
     int idx = 0;
 
@@ -72,7 +73,7 @@ Reading and doing a local modification of index 0 of the state parameter from pr
 
 In case the parameter belongs to another executable, the parameter must be defined in the client executable to be accessible. No matter if the parameter on server-side is stored in VMEM or RAM, the client needs a RAM variable to cache the parameter when reading and modifying. A complete example of the same routine as above looks like
 
-:: 
+.. code-block:: c
 
     int INDEX_ALL = -1; /* Pull/push all indices */
     int VERBOSE = 0; /* Do not print additional debug output */
@@ -87,7 +88,7 @@ In case the parameter belongs to another executable, the parameter must be defin
 
 and then, to access the remote parameter
 
-::
+.. code-block:: c
 
     if (param_pull_single(&state, INDEX_ALL, VERBOSE, state.node, TIMEOUT, 2) < 0)
         printf("Retrieving parameter value failed\n");
@@ -100,7 +101,7 @@ and then, to access the remote parameter
 
 When modifying multiple remote parameters, a queue can be built to efficiently retrieve or store multiple parameters in a single CSP packet.
 
-::
+.. code-block:: c
 
     param_queue_t queue;
     uint8_t queue_buf[PARAM_SERVER_MTU-2];
