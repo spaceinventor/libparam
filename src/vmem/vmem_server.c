@@ -175,9 +175,9 @@ void vmem_server_handler(csp_conn_t * conn)
 			int i = 0;
 
 			/* The first byte of each packet contains the flag signalling the first and last packet */
-			packet->length = sizeof(uint64_t);
+			packet->length = 1;
 			packet->data[0] = 0b01000000; /* First packet */
-			list = (vmem_list3_t *)&packet->data[sizeof(uint64_t)];
+			list = (vmem_list3_t *)&packet->data[packet->length];
 
 			while (i < nof_vmem) {
 				if ((packet->length + sizeof(vmem_list3_t)) > VMEM_SERVER_MTU) {
@@ -188,9 +188,9 @@ void vmem_server_handler(csp_conn_t * conn)
 						printf("Error allocating CSP packet for VMEM list response.\n");
 						break;
 					}
-					packet->length = sizeof(uint64_t);
+					packet->length = 1;
 					packet->data[0] = 0b00000000;
-					list = (vmem_list3_t *)&packet->data[sizeof(uint64_t)];
+					list = (vmem_list3_t *)&packet->data[packet->length];
 				}
 
 				/* Fill in the VMEM data */
