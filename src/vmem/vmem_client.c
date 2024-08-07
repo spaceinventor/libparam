@@ -36,7 +36,7 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 		request->data2.address = htobe64(address);
 		request->data2.length = htobe32(length);
 	} else {
-		request->data.address = htobe32((uint32_t)address);
+		request->data.address = htobe32((uint32_t)(address & 0x00000000FFFFFFFFULL));
 		request->data.length = htobe32(length);
 	}
 	packet->length = sizeof(vmem_request_t);
@@ -45,7 +45,7 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 	csp_send(conn, packet);
 
 	/* Go into download loop */
-	unsigned int count = 0;
+	uint32_t count = 0;
 	int dotcount = 0;
 
 	while(1) { 
@@ -118,7 +118,7 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 		request->data2.address = htobe64(address);
 		request->data2.length = htobe32(length);
 	} else {
-		request->data.address = htobe32(address);
+		request->data.address = htobe32((uint32_t)(address & 0x00000000FFFFFFFFULL));
 		request->data.length = htobe32(length);
 	}
 	packet->length = sizeof(vmem_request_t);
@@ -126,7 +126,7 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 	/* Send request */
 	csp_send(conn, packet);
 
-	unsigned int count = 0;
+	uint32_t count = 0;
 	int dotcount = 0;
 	while((count < length) && csp_conn_is_active(conn)) {
 
@@ -161,10 +161,10 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 	if(count != length){
 		unsigned int window_size = 0;
 		csp_rdp_get_opt(&window_size, NULL, NULL, NULL, NULL, NULL);
-		printf("Upload didn't complete, suggested offset to resume: %u\n", count - ((window_size + 1) * VMEM_SERVER_MTU));
+		printf("Upload didn't complete, suggested offset to resume: %"PRIu32"\n", count - ((window_size + 1) * VMEM_SERVER_MTU));
 		return -1;
 	} else {
-		printf("  Uploaded %u bytes in %.03f s at %u Bps\n", (unsigned int) count, time_total / 1000.0, (unsigned int) (count / ((float)time_total / 1000.0)) );
+		printf("  Uploaded %"PRIu32" bytes in %.03f s at %"PRIu32" Bps\n", count, time_total / 1000.0, (uint32_t)(count / ((float)time_total / 1000.0)) );
 	}
 
 	return count;
@@ -187,15 +187,53 @@ static csp_packet_t * vmem_client_list_get(int node, int timeout, int version) {
 
 	csp_send(conn, packet);
 
-	/* Wait for response */
-	packet = csp_read(conn, timeout);
-	if (packet == NULL) {
-		printf("No response to VMEM list request\n");
+	csp_packet_t *resp = NULL;
+
+	if (version == 3) {
+		/* Allocate the maximum packet length to hold the response for the caller */
+		resp = csp_buffer_get(CSP_BUFFER_SIZE);
+		if (!resp) {
+			printf("Could not allocate CSP buffer for VMEM response.\n");
+			csp_close(conn);
+			return NULL;
+		}
+
+		resp->length = 0;
+		/* Keep receiving until we got everything or we got a timeout */
+		while ((packet = csp_read(conn, timeout)) != NULL) {
+			if (packet->data[0] & 0b01000000) {
+				/* First packet */
+				resp->length = 0;
+			}
+
+			/* Collect the response in the response packet */
+			memcpy(&resp->data[resp->length], &packet->data[1], (packet->length - 1));
+			resp->length += (packet->length - 1);
+
+			if (packet->data[0] & 0b10000000) {
+				/* Last packet, break the loop */
+				csp_buffer_free(packet);
+				break;
+			}
+
+			csp_buffer_free(packet);
+		}
+
+		if (packet == NULL) {
+			printf("No response to VMEM list request\n");
+		}
+	} else {
+		/* Wait for response */
+		packet = csp_read(conn, timeout);
+		if (packet == NULL) {
+			printf("No response to VMEM list request\n");
+		}
+		resp = packet;
 	}
 
 	csp_close(conn);
 
-	return packet;
+	return resp;
 }
 
 void vmem_client_list(int node, int timeout, int version) {
@@ -204,13 +242,17 @@ void vmem_client_list(int node, int timeout, int version) {
 	if (packet == NULL) 
 		return;
 
-	if (version == 2) {
+	if (version == 3) {
+		for (vmem_list3_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
+			printf(" %2u: %-16.16s 0x%016"PRIX64" - %"PRIu64" typ %u\r\n", vmem->vmem_id, vmem->name, be64toh(vmem->vaddr), be64toh(vmem->size), vmem->type);
+		}
+	} else if (version == 2) {
 		for (vmem_list2_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
-			printf(" %u: %-5.5s 0x%"PRIx64" - %u typ %u\r\n", vmem->vmem_id, vmem->name, be64toh(vmem->vaddr), (unsigned int) be32toh(vmem->size), vmem->type);
+			printf(" %2u: %-5.5s 0x%016"PRIX64" - %"PRIu32" typ %u\r\n", vmem->vmem_id, vmem->name, be64toh(vmem->vaddr), be32toh(vmem->size), vmem->type);
 		}
 	} else {
 		for (vmem_list_t * vmem = (void *) packet->data; (intptr_t) vmem < (intptr_t) packet->data + packet->length; vmem++) {
-			printf(" %u: %-5.5s 0x%08X - %u typ %u\r\n", vmem->vmem_id, vmem->name, (unsigned int) be32toh(vmem->vaddr), (unsigned int) be32toh(vmem->size), vmem->type);
+			printf(" %2u: %-5.5s 0x%08"PRIX32" - %"PRIu32" typ %u\r\n", vmem->vmem_id, vmem->name, be32toh(vmem->vaddr), be32toh(vmem->size), vmem->type);
 		}
 
 	}
@@ -224,7 +266,19 @@ int vmem_client_find(int node, int timeout, void * dataout, int version, char * 
 	if (packet == NULL) 
 		return -1;
 
-	if (version == 2) {
+	if (version == 3) {
+		vmem_list3_t ret = {};
+		for (vmem_list3_t * vmem = (void *)packet->data; (intptr_t)vmem < (intptr_t)packet->data + packet->length; vmem++) {
+			if (strncmp(vmem->name, name, namelen) == 0) {
+				ret.vmem_id = vmem->vmem_id;
+				ret.type = vmem->type;
+				memcpy(ret.name, vmem->name, 5);
+				ret.vaddr = be64toh(vmem->vaddr);
+				ret.size = be64toh(vmem->size);
+			}
+		}
+		memcpy(dataout, &ret, sizeof(vmem_list3_t));
+	} else if (version == 2) {
 		vmem_list2_t ret = {};
 		for (vmem_list2_t * vmem = (void *)packet->data; (intptr_t)vmem < (intptr_t)packet->data + packet->length; vmem++) {
 			if (strncmp(vmem->name, name, namelen) == 0) {
@@ -232,7 +286,7 @@ int vmem_client_find(int node, int timeout, void * dataout, int version, char * 
 				ret.type = vmem->type;
 				memcpy(ret.name, vmem->name, 5);
 				ret.vaddr = be64toh(vmem->vaddr);
-				ret.size = be32toh(vmem->size);
+				ret.size = be32toh((uint32_t)(vmem->size & 0x00000000FFFFFFFFULL));
 			}
 		}
 		memcpy(dataout, &ret, sizeof(vmem_list2_t));
@@ -243,8 +297,8 @@ int vmem_client_find(int node, int timeout, void * dataout, int version, char * 
 				ret.vmem_id = vmem->vmem_id;
 				ret.type = vmem->type;
 				memcpy(ret.name, vmem->name, 5);
-				ret.vaddr = be32toh(vmem->vaddr);
-				ret.size = be32toh(vmem->size);
+				ret.vaddr = be32toh((uint32_t)(vmem->vaddr & 0x00000000FFFFFFFFULL));
+				ret.size = be32toh((uint32_t)(vmem->size & 0x00000000FFFFFFFFULL));
 			}
 		}
 		memcpy(dataout, &ret, sizeof(vmem_list_t));
@@ -296,7 +350,7 @@ int vmem_client_calc_crc32(int node, int timeout, uint64_t address, uint32_t len
 		request->data2.address = htobe64(address);
 		request->data2.length = htobe32(length);
 	} else {
-		request->data.address = htobe32((uint32_t)address);
+		request->data.address = htobe32((uint32_t)(address & 0x00000000FFFFFFFFULL));
 		request->data.length = htobe32(length);
 	}
 	packet->length = sizeof(vmem_request_t);
