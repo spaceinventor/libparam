@@ -11,8 +11,8 @@ typedef struct {
 	char * filename;
 } vmem_mmap_driver_t;
 
-void vmem_mmap_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len);
-void vmem_mmap_write(vmem_t * vmem, uint32_t addr, const void * datain, uint32_t len);
+void vmem_mmap_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len);
+void vmem_mmap_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len);
 
 #define VMEM_DEFINE_MMAP(name_in, strname, filename_in, size_in) \
 	static vmem_mmap_driver_t vmem_mmap_##name_in##_driver = { \
