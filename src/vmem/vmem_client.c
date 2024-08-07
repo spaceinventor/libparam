@@ -207,8 +207,8 @@ static csp_packet_t * vmem_client_list_get(int node, int timeout, int version) {
 			}
 
 			/* Collect the response in the response packet */
-			memcpy(&resp->data[resp->length], &packet->data[sizeof(uint64_t)], (packet->length - sizeof(uint64_t)));
-			resp->length += (packet->length - sizeof(uint64_t));
+			memcpy(&resp->data[resp->length], &packet->data[1], (packet->length - 1));
+			resp->length += (packet->length - 1);
 
 			if (packet->data[0] & 0b10000000) {
 				/* Last packet, break the loop */
