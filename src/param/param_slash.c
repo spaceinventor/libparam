@@ -5,9 +5,11 @@
  *      Author: johan
  */
 
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include <inttypes.h>
 #include <slash/slash.h>
 #include <slash/optparse.h>
@@ -60,6 +62,8 @@ static void param_slash_parse(char * arg, int node, param_t **param, int *offset
 
 static void param_completer(struct slash *slash, char * token) {
 
+	int node = slash_dfl_node;
+
 	int matches = 0;
 	size_t prefixlen = -1;
 	param_t *prefix = NULL;
@@ -75,6 +79,45 @@ static void param_completer(struct slash *slash, char * token) {
 		skip_prefix = "cmd add";
 	}
 
+	if (skip_prefix == NULL) {
+		fprintf(stderr, "%s() does not support the line/command: '%s'", __func__, slash->buffer);
+		assert(false);  // Assert because this should be a compile-time error on part of the programmer, not the user.
+		return;
+	}
+
+	{   /* Keep optparse parser in local scope, to prevent use-after-free */
+
+		#define SLASH_ARG_MAX		16	/* Maximum number of arguments */
+		char *argv[SLASH_ARG_MAX];
+		int argc = 0;
+		char *args = strdup(slash->buffer + strlen(skip_prefix));
+		if (args == NULL) {
+			fprintf(stderr, "No memory for tab-completion\n");
+			return;
+		}
+
+		/* Build args */
+		int slash_build_args(char *args, char **argv, int *argc);
+		if (slash_build_args(args, argv, &argc) < 0) {
+			argv[argc] = NULL;
+			slash_printf(slash, "Mismatched quotes\n");
+			//return -EINVAL;
+		}
+
+		optparse_t * parser = optparse_new(skip_prefix, "<name>[offset] <value>");
+		optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
+
+		/* TODO: Slash doesn't prepare arguments for completer functions.
+			A quick attempt to make it do this, seems to cause other problems for tab-completion.
+			So we just do it ourselves here, for now. */
+		//int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
+		int argi = optparse_parse(parser, argc - 1, (const char **) argv + 1);
+		optparse_del(parser);
+		if (argi < 0) {
+			return;
+		}
+	}
+
 	if (skip_prefix) {
 		orig_slash_buf = slash->buffer;
 		slash_completer_skip_flagged_prefix(slash, skip_prefix);
@@ -83,17 +126,32 @@ static void param_completer(struct slash *slash, char * token) {
 
 	size_t tokenlen = strlen(token);
 
+	const bool token_has_wildcard = has_wildcard(token, strlen(token));  // This will be true for every iteration, so we store it here.
+	unsigned int num_params_on_node = 0;  // Used to inform the user when they've forgotten to 'list download' :)
+
 	param_t * param;
 	param_list_iterator i = { };
-	if (has_wildcard(token, strlen(token))) {
-		// Only print parameters when globbing is involved.
-		while ((param = param_list_iterate(&i)) != NULL)
-			if (strmatch(param->name, token, strlen(param->name), strlen(token)))
-				param_print(param, -1, NULL, 0, 2, 0);
-		return;
-	}
-
 	while ((param = param_list_iterate(&i)) != NULL) {
+
+		/* Don't print or complete parameters from other nodes.
+			If the user wants to see all parameters, they can do 'list -n -1' */
+		if (param-> node != node)
+			continue;
+
+		num_params_on_node++;
+
+		/* Don't complete parameters when globbing is involved */
+		if (token_has_wildcard) {
+
+			/* Only print parameters where name matches (with or w/o wildcards) */
+			if (strmatch(param->name, token, strlen(param->name), strlen(token))) {
+				param_print(param, -1, NULL, 0, 2, 0);
+			}
+
+			/* We don't actually tab-complete with globbing,
+			because it's ambiguous with multiple matches. */
+			continue;
+		}
 
 		if (tokenlen > strlen(param->name))
 			continue;
@@ -123,7 +181,25 @@ static void param_completer(struct slash *slash, char * token) {
 			param_print(param, -1, NULL, 0, 2, 0);
 
 		}
+	}
 
+	if (num_params_on_node == 0) {
+		static unsigned int tab_count = 1;
+		static time_t tab_expiration = 0;
+
+		if (tab_expiration == 0) {
+			tab_expiration = time(NULL) + 60;  // User has to press 23 times, within 60 seconds.
+		} else if (time(NULL) > tab_expiration) {
+			tab_expiration = 0;
+			tab_count = 1;
+		}
+
+		if (tab_count++ % 23 == 0) {
+			/* No I'm not trying to introduce easter eggs into CSH, I don't know what you're talking about... */
+			printf("♫ Ain't nobody here but us chickens ♫ Maybe do a little 'list download [node]'?\n");
+		} else {
+			printf("No known parameters on node %d, perhaps you've forgotten to 'list download [node]'?\n", node);
+		}
 	}
 
 	if (!matches) {
