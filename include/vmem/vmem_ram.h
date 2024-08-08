@@ -28,11 +28,11 @@ typedef struct {
 	__attribute__((used)) \
 	vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_RAM, \
-		.name = strname, \
-		.size = size_in, \
 		.read = NULL, \
 		.write = NULL, \
 		.vaddr = 0, \
+		.size = size_in, \
+		.name = strname, \
 		.ack_with_pull = 1, \
 		.driver = &vmem_##name_in##_driver, \
 	};
@@ -46,11 +46,11 @@ typedef struct {
     __attribute__((used)) \
     vmem_t vmem_##name_in = { \
         .type = VMEM_TYPE_RAM, \
-        .name = strname, \
-        .size = size_in, \
         .read = NULL, \
         .write = NULL, \
         .vaddr = 0, \
+        .size = size_in, \
+        .name = strname, \
         .ack_with_pull = 1, \
         .driver = &vmem_##name_in##_driver, \
     };
