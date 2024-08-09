@@ -38,7 +38,13 @@ typedef struct vmem_s {
 	int (*backup)(struct vmem_s * vmem);
 	int (*restore)(struct vmem_s * vmem);
 	int (*flush)(struct vmem_s * vmem);
-	uint64_t vaddr;
+	union {
+		struct {
+			uint32_t vaddr32;
+			uint32_t vaddr_pad;
+		};
+		uint64_t vaddr;
+	};
 	uint64_t size;
 	const char *name;
 	int big_endian;
