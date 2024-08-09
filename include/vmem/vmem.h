@@ -16,6 +16,7 @@ extern "C" {
 #define VMEM_MIN(a,b) ((a) < (b) ? a : b)
 
 #include <stddef.h>
+#include <endian.h>
 #include <param/param.h>
 
 enum vmem_types{
@@ -38,13 +39,20 @@ typedef struct vmem_s {
 	int (*backup)(struct vmem_s * vmem);
 	int (*restore)(struct vmem_s * vmem);
 	int (*flush)(struct vmem_s * vmem);
+	/* This anonymous union is needed to be able to handle 64-bit and 32-bit
+	 * systems interchangeably. Since the VMEM backend always expects 64-bit
+	 * vaddr, and we are not able to initialize the 64-bit vaddr field with
+	 * a 32-bit address (the case for RAM VMEM's), we need to have a way of
+	 * doing it with a little trick. */
 	union {
 		struct {
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 			uint32_t vaddr32;
 			uint32_t vaddr_pad;
-		};
-		uint64_t vaddr;
-	};
+#else
+			uint32_t vaddr_pad;
+			uint32_t vaddr32;
+#endif
 	uint64_t size;
 	const char *name;
 	int big_endian;
