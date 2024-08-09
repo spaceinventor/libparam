@@ -53,6 +53,9 @@ typedef struct vmem_s {
 			uint32_t vaddr_pad;
 			uint32_t vaddr32;
 #endif
+		};
+		uint64_t vaddr;
+	};
 	uint64_t size;
 	const char *name;
 	int big_endian;
