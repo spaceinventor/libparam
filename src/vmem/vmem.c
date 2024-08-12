@@ -46,7 +46,11 @@ void * vmem_write(uint64_t to, const void * from, uint32_t size) {
 	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
 		/* Write to VMEM */
 		if ((to >= vmem->vaddr) && (to + (uint64_t)size <= vmem->vaddr + vmem->size)) {
-			vmem->write(vmem, to - vmem->vaddr, (void*)(uintptr_t)from, size);
+			if (vmem->write) {
+				vmem->write(vmem, to - vmem->vaddr, (void*)(uintptr_t)from, size);
+			} else {
+				memcpy((void *)(uintptr_t)to, (void *)(uintptr_t)from, size);
+			}
 		}
 	}
 
@@ -58,7 +62,11 @@ void * vmem_read(void * to, uint64_t from, uint32_t size) {
 	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
 		/* Read */
 		if ((from >= vmem->vaddr) && (from + (uint64_t)size <= vmem->vaddr + vmem->size)) {
-			vmem->read(vmem, from - vmem->vaddr, (void*)(uintptr_t)to, size);
+			if (vmem->read) {
+				vmem->read(vmem, from - vmem->vaddr, (void*)(uintptr_t)to, size);
+			} else {
+				memcpy((void *)(uintptr_t)to, (void *)(uintptr_t)from, size);
+			}
 		}
 	}
 
@@ -71,19 +79,23 @@ void * vmem_cpy(uint64_t to, uint64_t from, uint32_t size) {
 
 		/* Write to VMEM */
 		if ((to >= vmem->vaddr) && (to + (uint64_t)size <= vmem->vaddr + vmem->size)) {
-			vmem->write(vmem, to - vmem->vaddr, (void*)(uintptr_t)from, size);
-			return NULL;
+			if (vmem->write) {
+				vmem->write(vmem, to - vmem->vaddr, (void*)(uintptr_t)from, size);
+				return NULL;
+			}
 		}
 
 		/* Read */
 		if ((from >= vmem->vaddr) && (from + (uint64_t)size <= vmem->vaddr + vmem->size)) {
-			vmem->read(vmem, from - vmem->vaddr, (void*)(uintptr_t)to, size);
-			return NULL;
+			if (vmem->read) {
+				vmem->read(vmem, from - vmem->vaddr, (void*)(uintptr_t)to, size);
+				return NULL;
+			}
 		}
 
 	}
 
-	/* If not vmem found */
+	/* If no VMEM found or nor read/write methods exists for the particular VMEM */
 	return memcpy((void*)(uintptr_t)to, (void*)(uintptr_t)from, size);
 
 }
