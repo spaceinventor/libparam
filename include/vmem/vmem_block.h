@@ -99,21 +99,21 @@ typedef struct vmem_block_region_s {
 		.cache = &vmem_##cache_in##_cache, \
 	}; \
 	__attribute__((section("vmem"))) \
-	__attribute__((aligned(4))) \
+	__attribute__((aligned(8))) \
 	__attribute__((used)) \
 	vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_BLOCK, \
 		.read = vmem_block_read, \
 		.write = vmem_block_write, \
 		.flush = vmem_block_flush, \
-		.vaddr = (void *) _vaddr, \
+		.vaddr = _vaddr, \
 		.size = (size_in), \
 		.name = strname, \
 		.driver = (void *)&vmem_##name_in##_region, \
 	};
 
-extern void vmem_block_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len);
-extern void vmem_block_write(vmem_t * vmem, uint32_t addr, const void * datain, uint32_t len);
+extern void vmem_block_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len);
+extern void vmem_block_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len);
 extern int vmem_block_flush(vmem_t * vmem);
 extern void vmem_block_init(void);
 

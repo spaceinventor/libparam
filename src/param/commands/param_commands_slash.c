@@ -132,7 +132,7 @@ static int cmd_server_rm(struct slash *slash) {
 	unsigned int server = slash_dfl_node;
 	int rm_all = 0;
 
-    optparse_t * parser = optparse_new("cmd server download", "<name>");
+    optparse_t * parser = optparse_new("cmd server rm", "<name>");
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in milliseconds (default = <env>)");
 	optparse_add_set(parser, 'a', "all", 1, &rm_all, "delete all");

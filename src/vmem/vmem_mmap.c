@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-static void ensure_init(vmem_mmap_driver_t *drv, uint32_t *size)
+static void ensure_init(vmem_mmap_driver_t *drv, uint64_t *size)
 {
 	if (0 == drv->physaddr)
 	{
@@ -16,17 +16,18 @@ static void ensure_init(vmem_mmap_driver_t *drv, uint32_t *size)
 			perror("open");
 			return;
 		}
+		uint32_t _size = (uint32_t)(*size);
 		long cur_size = lseek(fd, 0, SEEK_END);
-		if (cur_size < *size) {
+		if (cur_size < _size) {
 			/* Grow the file if needed */
-			if (ftruncate(fd, *size) != 0) {
+			if (ftruncate(fd, _size) != 0) {
 				close(fd);
 				perror("ftruncate");
 				return;
 			}
 		} else {
 			/* File size is >= requested size, don't destroy/truncate data but adjust the driver size instead */
-			*size = cur_size;
+			*size = (uint64_t)cur_size;
 		}
 		drv->physaddr = mmap(0, *size, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
 		close(fd);
@@ -38,14 +39,14 @@ static void ensure_init(vmem_mmap_driver_t *drv, uint32_t *size)
 	}
 }
 
-void vmem_mmap_read(vmem_t *vmem, uint32_t addr, void *dataout, uint32_t len)
+void vmem_mmap_read(vmem_t *vmem, uint64_t addr, void *dataout, uint32_t len)
 {
 	vmem_mmap_driver_t *drv = (vmem_mmap_driver_t *)vmem->driver;
 	ensure_init(drv, &vmem->size);
 	memcpy(dataout, ((vmem_mmap_driver_t *)vmem->driver)->physaddr + addr, len);
 }
 
-void vmem_mmap_write(vmem_t *vmem, uint32_t addr, const void *datain, uint32_t len)
+void vmem_mmap_write(vmem_t *vmem, uint64_t addr, const void *datain, uint32_t len)
 {
 	vmem_mmap_driver_t *drv = (vmem_mmap_driver_t *)vmem->driver;
 	ensure_init(drv, &vmem->size);

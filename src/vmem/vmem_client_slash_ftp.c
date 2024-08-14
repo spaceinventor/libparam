@@ -253,7 +253,7 @@ static int vmem_client_slash_upload(struct slash *slash)
 	}
 
 	char * endptr;
-	uint64_t address = strtoul(slash->argv[argi], &endptr, 16);
+	uint64_t address = strtoull(slash->argv[argi], &endptr, 16);
 	if (*endptr != '\0') {
 		printf("Failed to parse address\n");
 		optparse_del(parser);
