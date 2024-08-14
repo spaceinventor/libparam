@@ -51,6 +51,7 @@ void * vmem_write(uint64_t to, const void * from, uint32_t size) {
 			} else {
 				memcpy((void *)(uintptr_t)to, (void *)(uintptr_t)from, size);
 			}
+			break;
 		}
 	}
 
@@ -67,6 +68,7 @@ void * vmem_read(void * to, uint64_t from, uint32_t size) {
 			} else {
 				memcpy((void *)(uintptr_t)to, (void *)(uintptr_t)from, size);
 			}
+			break;
 		}
 	}
 
