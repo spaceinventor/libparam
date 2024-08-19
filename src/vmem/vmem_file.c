@@ -23,11 +23,11 @@ void vmem_file_init(vmem_t * vmem) {
 
 }
 
-void vmem_file_read(vmem_t * vmem, uint32_t addr, void * dataout, uint32_t len) {
+void vmem_file_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len) {
 	memcpy(dataout, ((vmem_file_driver_t *) vmem->driver)->physaddr + addr, len);
 }
 
-void vmem_file_write(vmem_t * vmem, uint32_t addr, const void * datain, uint32_t len) {
+void vmem_file_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len) {
 	memcpy(((vmem_file_driver_t *) vmem->driver)->physaddr + addr, datain, len);
 
 	/* Flush back to file */

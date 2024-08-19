@@ -14,7 +14,7 @@
 #define VMEM_SERVER_TIMEOUT 30000
 #define VMEM_SERVER_MTU 192
 #define VMEM_PORT_SERVER 14
-#define VMEM_VERSION 2
+#define VMEM_VERSION 3
 
 typedef enum {
 	VMEM_SERVER_UPLOAD,
@@ -39,6 +39,10 @@ typedef struct {
 			uint32_t length;
 		} data2;
 		struct {
+			uint64_t address;
+			uint64_t length;
+		} data3;
+		struct {
 			uint8_t vmem_id;
 		} vmem;
 		struct {
@@ -62,6 +66,14 @@ typedef struct {
 	uint8_t type;
 	char name[5];
 } __attribute__((packed)) vmem_list2_t;
+
+typedef struct {
+	uint64_t vaddr;
+	uint64_t size;
+	uint8_t vmem_id;
+	uint8_t type;
+	char name[16+1];
+} __attribute__((packed)) vmem_list3_t;
 
 void vmem_server_handler(csp_conn_t * conn);
 void vmem_server_loop(void * param);

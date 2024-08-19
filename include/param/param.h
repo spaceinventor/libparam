@@ -100,7 +100,8 @@ typedef struct param_s {
 	char *docstr;
 
 	/* Storage */
-	void * addr;
+	void * addr; /* Physical address */
+	uint64_t vaddr; /* Virtual address in case of VMEM */
 	struct vmem_s * vmem;
 	int array_size;
 	int array_step;
@@ -135,7 +136,6 @@ typedef struct param_s {
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	__attribute__((section("param"))) \
-	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
 		.vmem = NULL, \
@@ -149,7 +149,8 @@ typedef struct param_s {
 		.unit = _unit, \
 		.callback = _callback, \
 		.timestamp = &_timestamp_##_name, \
-		.addr = _physaddr, \
+		.addr = (void *)(_physaddr), \
+		.vaddr = 0, \
 		.docstr = _docstr, \
 	}
 
@@ -157,7 +158,6 @@ typedef struct param_s {
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	__attribute__((section("param"))) \
-	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
 		.node = 0, \
@@ -170,7 +170,8 @@ typedef struct param_s {
 		.callback = _callback, \
 		.timestamp = &_timestamp_##_name, \
 		.unit = _unit, \
-		.addr = (void *) _vmem_addr, \
+		.addr = NULL, \
+		.vaddr = _vmem_addr, \
 		.vmem = &vmem_##_vmem_name, \
 		.docstr = _docstr, \
 	}
@@ -181,7 +182,6 @@ typedef struct param_s {
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	__attribute__((section("param"))) \
-	__attribute__((aligned(1))) \
 	__attribute__((used)) \
 	param_t _name = { \
 		.node = _node, \
@@ -192,6 +192,8 @@ typedef struct param_s {
 		.name = (char *) #_name, \
 		.mask = _flags, \
 		.addr = _physaddr, \
+		.vaddr = 0, \
+		.vmem = NULL, \
 		.timestamp = &_timestamp_##_name, \
 		.docstr = _docstr, \
 	};
@@ -208,6 +210,8 @@ typedef struct param_s {
 		.name = (char *) #_name, \
 		.mask = _flags, \
 		.addr = _physaddr, \
+		.vaddr = 0, \
+		.vmem = NULL, \
 		.timestamp = &_timestamp_##_name, \
 		.docstr = _docstr, \
 	};

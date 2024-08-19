@@ -17,37 +17,97 @@ extern int __start_vmem, __stop_vmem;
     We therefore use __attribute__((weak)) so we can compile in the absence of these. */
 extern __attribute__((weak)) int __start_vmem, __stop_vmem;
 
+/**
+ * @brief VMEM Memory copy function - 32-bit version ONLY
+ * 
+ * This method is only capable of handling 32-bit source and destination
+ * addresses, which means that it CAN NOT handle the newest 64-bit addressing
+ * 
+ * @param to 32-bit destination address (virtual or physical)
+ * @param from 32-bit source address (virtual or physical)
+ * @param size Number fo bytes to copy
+ * @return void* 
+ */
 void * vmem_memcpy(void * to, const void * from, uint32_t size) {
+
+	return vmem_cpy((uint64_t)(uintptr_t)to, (uint64_t)(uintptr_t)from, (uint64_t)size);
+}
+
+/**
+ * @brief Write chunk of data to VMEM from physical memory to virtual memory
+ * 
+ * @param to Virtual address to write the data to
+ * @param from Physical address to read the data from
+ * @param size Number of bytes to transfer 
+ * @return void* 
+ */
+void * vmem_write(uint64_t to, const void * from, uint32_t size) {
+
+	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
+		/* Write to VMEM */
+		if ((to >= vmem->vaddr) && (to + (uint64_t)size <= vmem->vaddr + vmem->size)) {
+			if (vmem->write) {
+				vmem->write(vmem, to - vmem->vaddr, (void*)(uintptr_t)from, size);
+			} else {
+				memcpy((void *)(uintptr_t)to, (void *)(uintptr_t)from, size);
+			}
+			break;
+		}
+	}
+
+	return NULL;
+}
+
+void * vmem_read(void * to, uint64_t from, uint32_t size) {
+
+	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
+		/* Read */
+		if ((from >= vmem->vaddr) && (from + (uint64_t)size <= vmem->vaddr + vmem->size)) {
+			if (vmem->read) {
+				vmem->read(vmem, from - vmem->vaddr, (void*)(uintptr_t)to, size);
+			} else {
+				memcpy((void *)(uintptr_t)to, (void *)(uintptr_t)from, size);
+			}
+			break;
+		}
+	}
+
+	return NULL;
+}
+
+void * vmem_cpy(uint64_t to, uint64_t from, uint32_t size) {
 
 	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
 
 		/* Write to VMEM */
-		if ((to >= vmem->vaddr) && (to + size <= vmem->vaddr + vmem->size)) {
-			//printf("Write to vmem %s, to %p from %p\n", vmem->name, to, from);
-			vmem->write(vmem, to - vmem->vaddr, from, size);
-			return NULL;
+		if ((to >= vmem->vaddr) && (to + (uint64_t)size <= vmem->vaddr + vmem->size)) {
+			if (vmem->write) {
+				vmem->write(vmem, to - vmem->vaddr, (void*)(uintptr_t)from, size);
+				return NULL;
+			}
 		}
 
 		/* Read */
-		if ((from >= vmem->vaddr) && (from + size <= vmem->vaddr + vmem->size)) {
-			//printf("Read from vmem %s\n", vmem->name);
-			vmem->read(vmem, from - vmem->vaddr, to, size);
-			return NULL;
+		if ((from >= vmem->vaddr) && (from + (uint64_t)size <= vmem->vaddr + vmem->size)) {
+			if (vmem->read) {
+				vmem->read(vmem, from - vmem->vaddr, (void*)(uintptr_t)to, size);
+				return NULL;
+			}
 		}
 
 	}
 
-	/* If not vmem found */
-	return memcpy(to, from, size);
+	/* If no VMEM found or nor read/write methods exists for the particular VMEM */
+	return memcpy((void*)(uintptr_t)to, (void*)(uintptr_t)from, size);
 
 }
 
-vmem_t * vmem_vaddr_to_vmem(uint32_t vaddr) {
+vmem_t * vmem_vaddr_to_vmem(uint64_t vaddr) {
 
 	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
 
 		/* Find VMEM from vaddr */
-		if ((vaddr >= (uintptr_t)vmem->vaddr) && (vaddr <= (uintptr_t)vmem->vaddr + vmem->size)) {
+		if ((vaddr >= vmem->vaddr) && (vaddr <= vmem->vaddr + vmem->size)) {
 			return vmem;
 		}
 	}
