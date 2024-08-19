@@ -90,7 +90,7 @@ static void param_completer(struct slash *slash, char * token) {
 		#define SLASH_ARG_MAX		16	/* Maximum number of arguments */
 		char *argv[SLASH_ARG_MAX];
 		int argc = 0;
-		char *args = strdup(slash->buffer + strlen(skip_prefix));
+		char *args = strdup(slash->buffer + strlen(skip_prefix));  // Must be freed for now, but not when we replace it with a fixed slash->arg*.
 		if (args == NULL) {
 			fprintf(stderr, "No memory for tab-completion\n");
 			return;
@@ -113,6 +113,7 @@ static void param_completer(struct slash *slash, char * token) {
 		//int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
 		int argi = optparse_parse(parser, argc - 1, (const char **) argv + 1);
 		optparse_del(parser);
+		free(args);
 		if (argi < 0) {
 			return;
 		}
