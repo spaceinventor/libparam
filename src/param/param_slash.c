@@ -48,14 +48,14 @@ static int param_slash_parse_slice(char * arg, int *start_index, int *end_index,
 
 	/* Search for the '@' symbol:
 	 * Call strtok twice in order to skip the stuff head of '@' */
-	
+
 	char _slice_delimitor;
 	char * saveptr;
 	char * token;
-	
+
 	int first_scan = 0;
 	int second_scan = 0;
-	
+
 	/* Search for the '[' symbol: */
 	strtok_r(arg, "[", &saveptr);
 	token = strtok_r(NULL, "[", &saveptr);
@@ -72,22 +72,22 @@ static int param_slash_parse_slice(char * arg, int *start_index, int *end_index,
 		// Case: set test_array_param[3]:5] | set test_array_param[3:]] 4
 		int previous_token_length = strlen(token);
 		strtok_r(token, "]", &saveptr);
-		if((previous_token_length - strlen(token)) > 1){
+		if ((previous_token_length - strlen(token)) > 1) {
 			fprintf(stderr, "Slice input error. Cannot parse characters after closing bracket.\n");
 			return SLICE_INPUT_ERROR;
 		}
-		
+
 		// Searches for the format [digit:digit] and [digit:].
 		first_scan = sscanf(token, "%d%c%d", start_index, &_slice_delimitor, end_index);
-		
-		if(first_scan <= 0){
+
+		if (first_scan <= 0) {
 			// If the input was ":4" then no offsets will be set by the first sscanf, 
 			// so we check for this and try again with another format to match.
 			// second scan will never be 0, since a digit can still be loaded into %c.
 			second_scan = sscanf(token, "%c%d", &_slice_delimitor, end_index);
 		}
-		
-		if(_slice_delimitor == ':'){
+
+		if (_slice_delimitor == ':') {
 			*slice_detected = 1;
 
 			// Handle if second slice arg is invalid
@@ -107,15 +107,15 @@ static int param_slash_parse_slice(char * arg, int *start_index, int *end_index,
 				char * saveptr2;				
 				char * first_slice_arg = strtok_r(token, ":", &saveptr2);
 				char * second_slice_arg = strtok_r(NULL, ":", &saveptr2);
-				
-				if(first_slice_arg && !second_slice_arg){
+
+				if (first_slice_arg && !second_slice_arg) {
 					// values such as: '2:' and ':a'.
 
 					// Check if first slice arg is not a number
 					// if it isnt a number, then value is invalid format such as: ':a'
 					// If it is a number the value is valid format such as: '2:'
 					char * endptr;
-					if(strtoul(first_slice_arg, &endptr, 10) == 0 && strcmp(first_slice_arg, "0") != 0){
+					if (strtoul(first_slice_arg, &endptr, 10) == 0 && strcmp(first_slice_arg, "0") != 0) {
 						fprintf(stderr, "Second slice arg is invalid.\nCan only parse integers as indexes to slice by.\n");
 						return SLICE_INPUT_ERROR;
 					}
@@ -127,23 +127,27 @@ static int param_slash_parse_slice(char * arg, int *start_index, int *end_index,
 					fprintf(stderr, "Second slice arg is invalid.\nCan only parse integers as indexes to slice by.\n");
 					return SLICE_INPUT_ERROR;
 				}
+
 			}
+
 		}
-		else if(second_scan > 0){
+		else if (second_scan > 0) {
 			// If slice_delimitor is not ':' but second_scan still found something, then it must invalid input such as letters.
 			fprintf(stderr, "Can only parse integers as indexes to slice by and ':' as delimitor.\n");
 			return SLICE_INPUT_ERROR;
 		}
-		else if(first_scan >= 2){
+		else if (first_scan >= 2) {
 			// First scan found a number and a delimitor. But if the delimitor is not ':', then the input could be a decimal value, which is not allowed.
 			fprintf(stderr, "Can only parse integers as indexes to slice by.\nSlice delimitor has to be ':'.\n");
 			return SLICE_INPUT_ERROR;
 		}
-		if(second_scan > 0 && _slice_delimitor == ']'){
+
+		if (second_scan > 0 && _slice_delimitor == ']') {
 			// This is an error, example: set test_array[] 4
 			fprintf(stderr, "Cannot set empty array slice.\n");
 			return EMPTY_ARRAY_SLICE;
 		}
+
 		*token = '\0';
 	}
 	else {
@@ -160,7 +164,7 @@ static int param_slash_parse_slice(char * arg, int *start_index, int *end_index,
 	return 0;
 }
 
-static int param_parse_from_str(int node, char * arg, param_t **param){
+static int param_parse_from_str(int node, char * arg, param_t **param) {
 	char *endptr;
 	int id = strtoul(arg, &endptr, 10);
 	// If strtoul has an error, then it will return ULONG_MAX, so we check on that.
@@ -169,8 +173,8 @@ static int param_parse_from_str(int node, char * arg, param_t **param){
 	} else {
 		*param = param_list_find_name(node, arg);
 	}
-	
-	if(*param == NULL){
+
+	if (*param == NULL) {
 		return -1;
 	}
 
@@ -178,52 +182,57 @@ static int param_parse_from_str(int node, char * arg, param_t **param){
 }
 
 // Find out if amount of values is equal to any of the parsed amounts.
-static int parse_slash_values(char ** args, int start_index, int expected_values_amount, ...){
+static int parse_slash_values(char ** args, int start_index, int expected_values_amount, ...) {
 	va_list expected_values;
 	va_start(expected_values, expected_values_amount);
 	
 	int amount_of_values = 0;
 
-	for(int i = start_index; args[i] != NULL; i++){
+	for (int i = start_index; args[i] != NULL; i++) {
 		amount_of_values++;
-		
-		if(amount_of_values > 99){
+
+		if (amount_of_values > 99) {
 			break;
 		}
 	}
-	
-	for(int i = 0; i < expected_values_amount; i++){
-		if(amount_of_values == va_arg(expected_values, int)){
+
+	for (int i = 0; i < expected_values_amount; i++) {
+		if (amount_of_values == va_arg(expected_values, int)) {
 			va_end(expected_values);
 			return 1;
 		}
+
 	}
-	
+
 	va_end(expected_values);
 	va_start(expected_values, expected_values_amount);
 	fprintf(stderr, "Value amount error. Got %d values. Expected:", amount_of_values);
-	for(int i = 0; i < expected_values_amount; i++){
+
+	for (int i = 0; i < expected_values_amount; i++) {
 		int val = va_arg(expected_values, int);
 		fprintf(stderr, " %d", val);
-		if(i < expected_values_amount - 1){
+		if (i < expected_values_amount - 1) {
 			fprintf(stderr, ",");
 		}
+
 	}
+
 	fprintf(stderr, ".\n");
 	va_end(expected_values);
 	return 0;
 }
 
-static int parse_param_array(char * arg, int node, param_t **param, int *start_index, int *end_index, int *slice_detected){
-	if(param_slash_parse_slice(arg, start_index, end_index, slice_detected) < 0){
+static int parse_param_array(char * arg, int node, param_t **param, int *start_index, int *end_index, int *slice_detected) {
+	if (param_slash_parse_slice(arg, start_index, end_index, slice_detected) < 0) {
 		return -1;
 	}
 
-	if(param_parse_from_str(node, arg, param) < 0){
-		if(*param == NULL){
+	if (param_parse_from_str(node, arg, param) < 0) {
+		if (*param == NULL) {
 			fprintf(stderr, "%s not found.\n", arg);
 			return PARAM_NOT_FOUND;
 		}
+
 		return -1;
 	}
 
@@ -444,10 +453,10 @@ static int cmd_set(struct slash *slash) {
 	int start_index = INT_MIN;
 	int end_index = INT_MIN;
 	int slice_detected = 0;
-	
+
 	int param_parse = parse_param_array(name, node, &param, &start_index, &end_index, &slice_detected);
 
-	if(param_parse < 0){
+	if (param_parse < 0) {
 		fprintf(stderr, "Param parsing error\n");
 		optparse_del(parser);
 		return SLASH_EINVAL;
@@ -459,17 +468,18 @@ static int cmd_set(struct slash *slash) {
 		return SLASH_EINVAL;
 	}
 
-	if(param->array_size == 1){
-		if(start_index != INT_MIN || end_index != INT_MIN || slice_detected){
+	if (param->array_size == 1) {
+		if (start_index != INT_MIN || end_index != INT_MIN || slice_detected) {
 			fprintf(stderr, "Cannot do array and slicing operations on a non-array parameter.\n");
 			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
+
 	}
 
 	// Set flag if only a single index was entered.
 	int single_offset_flag = start_index != INT_MIN && end_index == INT_MIN && !slice_detected ? true : false;
-	
+
 	// Make sure start and end index is set to something NOT INT_MIN.
 	start_index = start_index != INT_MIN ? start_index : 0;
 	end_index = end_index != INT_MIN ? end_index : param->array_size;
@@ -477,31 +487,34 @@ static int cmd_set(struct slash *slash) {
 	// And index can be negative, if so we should translate it into a not negative index. 
 	// i.e.: [-1] is the same as [7] in array [1 2 3 4 5 6 7 8].
 	// param->array_size usually == 8, then 8 + -1 = 7.
-	if(start_index < 0){
+	if (start_index < 0) {
 		start_index = param->array_size + start_index;
 		// If the index is still less than 0, then we have an error.
-		if(start_index < 0){
+		if (start_index < 0) {
 			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
+
 	}
+
 	// Same goes for the end index.
-	if(end_index < 0){
+	if (end_index < 0) {
 		end_index = param->array_size + end_index;
-		if(end_index < 0){
+		if (end_index < 0) {
 			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
+
 	}
 
 
-	if(start_index >= end_index){
+	if (start_index >= end_index) {
 		fprintf(stderr, "start index is greater than end index in array slice.\n");
 		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 	
-	if(end_index > param->array_size){
+	if (end_index > param->array_size) {
 		fprintf(stderr, "End index in slice is greater than param array size.\n");
 		optparse_del(parser);
 		return SLASH_EINVAL;
@@ -526,7 +539,7 @@ static int cmd_set(struct slash *slash) {
 	// Parse expected amount of values
 	// We expect either a single value or the amount defined by the slice.
 	int arg_parse_values_amount = parse_slash_values(slash->argv, argi, 2, 1, expected_value_amount);
-	if(arg_parse_values_amount == 0){
+	if (arg_parse_values_amount == 0) {
 		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
@@ -540,85 +553,92 @@ static int cmd_set(struct slash *slash) {
 	int should_break = 1;
 	int iterations = 0;
 	int single_value_flag = 0;
-	for(int i = argi; should_break == 1; i++){
+	for (int i = argi; should_break == 1; i++) {
 		char valuebuf[128] __attribute__((aligned(16))) = { };
 
 		char *arg = slash->argv[i];
-		if(!arg){
+		if (!arg) {
 			fprintf(stderr, "Missing closing bracket\n");
 			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
+
 		// Check if we can find a start bracket '['.
 		// If we can, then we're dealing with a value array.
-		if(strchr(arg, '[')) {
+		if (strchr(arg, '[')) {
 			// If we're dealing with a value array, but only a single offset, then we should throw an error.
-			if(single_offset_flag){
+			if (single_offset_flag) {
 				fprintf(stderr, "cannot set array into indexed parameter value\n");
 				optparse_del(parser);
 				return SLASH_EINVAL;
 			}
+
 			arg++;
 			// A value array with a single element can also be passed.
-			if(arg[strlen(arg)-1] == ']'){
+			if (arg[strlen(arg)-1] == ']') {
 				arg[strlen(arg)-1] = '\0';
 				should_break = 0;
 			}
+
 		}
 		// Check if we can find an ending brakcet ']'.
 		// If we can, then we should stop looping after the current iteration.
-		else if(arg[strlen(arg)-1] == ']') {
+		else if (arg[strlen(arg)-1] == ']') {
 			arg[strlen(arg)-1] = '\0';
 			should_break = 0;
 		}
 		// If no bracket was found and the current iteration is the first iteration, then we are dealing with a single value. 
-		else if(iterations == 0){
+		else if (iterations == 0) {
 			single_value_flag = 1;
 		}
-		
+
 		// Convert the valuebuf str to a value of the param type. 
 		if (param_str_to_value(param->type, arg, valuebuf) < 0) {
 			fprintf(stderr, "invalid parameter value\n");
 			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
-		
+
 		// If we're dealing with a single value, we should loop the sliced array instead of the values.
 		// Breaking afterwards, since this means we're done setting params.
-		if(single_value_flag){
-			if(single_offset_flag){
+		if (single_value_flag) {
+			if (single_offset_flag) {
 				param_queue_add(&queue, param, start_index, valuebuf);
 				break;
 			}
-			for(int j = start_index; j < end_index; j++){
+			for (int j = start_index; j < end_index; j++) {
 				param_queue_add(&queue, param, j, valuebuf);
 			}
+
 			break;
 		}
-		
+
 		// If we're not dealing with a single value, we should look at start_index.
 		// If start_index ever becomes equal to end_index, it means the amount of values are greater than the slice. 
-		if(start_index == end_index){
+		if (start_index == end_index) {
 			optparse_del(parser);
 			fprintf(stderr, "Values array is longer than specified slice\n");
 			return SLASH_EINVAL;
 		}
+
 		// Add to the queue.
-		if(param_queue_add(&queue, param, start_index++, valuebuf) < 0){
+		if (param_queue_add(&queue, param, start_index++, valuebuf) < 0) {
 			optparse_del(parser);
 			fprintf(stderr, "Param_queue_add failed\n");
 			return SLASH_EINVAL;
 		}
+
 		iterations++;
 
 		// If we hit the end value by detecting ']', and start index and end index are not equal, 
 		// then the slice length must be greater than the value array length.
 		// This shouldnt be possible, so we throw an error.
-		if(should_break == 0 && start_index != end_index){
+		if (should_break == 0 && start_index != end_index) {
 			optparse_del(parser);
 			fprintf(stderr, "Array slice is longer than value array\n");
 			return SLASH_EINVAL;
 		}
+
 	}
 
 	/* Local parameters are set directly */
