@@ -165,7 +165,7 @@ int param_list_remove(int node, uint8_t verbose) {
 		if (i.phase == 0)  // Protection against removing static parameters
 			continue;
 
-		uint8_t match = 1;
+		uint8_t match = 0;
 
 		if (node > 0)
 			match = param->node == node;
@@ -619,7 +619,7 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	param->vmem->read = NULL;
 	param->vmem->size = array_size*param_typesize(type);
 	param->vmem->type = storage_type;
-	param->vmem->vaddr = NULL;
+	param->vmem->vaddr = 0;
 	param->vmem->backup = NULL;
 	param->vmem->big_endian = false;
 	param->vmem->restore = NULL;

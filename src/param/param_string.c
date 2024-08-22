@@ -386,9 +386,6 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 				fprintf(file, "1");
 			}
 
-			if (mask)
-				fprintf(file, "+%x", mask);
-
 		}
 
 

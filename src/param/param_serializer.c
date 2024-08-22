@@ -140,11 +140,13 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, long unsig
 			uint32_t _timestamp;
 			mpack_read_bytes(reader, (char*) &_timestamp, 4);
 			_timestamp = be32toh(_timestamp);
-			*timestamp = _timestamp;
-			queue->last_timestamp = _timestamp;
-		} else {
-			*timestamp = queue->last_timestamp;
+			if (_timestamp == 0) {
+				queue->last_timestamp = queue->client_timestamp;
+			} else {
+				queue->last_timestamp = _timestamp;
+			}
 		}
+		*timestamp = queue->last_timestamp;
 
 		if (extendedid_flag) {
 			char _extendedid;

@@ -40,10 +40,13 @@ void vmem_server_handler(csp_conn_t * conn)
 	 */
 	if (type == VMEM_SERVER_DOWNLOAD || type == VMEM_SERVER_CALCULATE_CRC32) {
 
-		uint32_t length;
+		uint64_t length;
 		uint64_t address;
 		
-		if (request->version == 2) {
+		if (request->version == 3) {
+			address = be64toh(request->data3.address);
+			length = be64toh(request->data3.length);
+		} else if (request->version == 2) {
 			address = be64toh(request->data2.address);
 			length = be32toh(request->data2.length);
 		} else {
@@ -55,7 +58,7 @@ void vmem_server_handler(csp_conn_t * conn)
 		//printf("  Addr %"PRIx64"\n", address);
 		//printf("  Length %"PRIu32"\n", length);
 
-		unsigned int count = 0;
+		uint64_t count = 0;
 		if (type == VMEM_SERVER_DOWNLOAD) {
 			/* We have to free the requesting packet, since we are going to
 			 * allocate a bunch of them for the reply.
@@ -71,7 +74,7 @@ void vmem_server_handler(csp_conn_t * conn)
 				packet->length = VMEM_MIN(VMEM_SERVER_MTU, length - count);
 
 				/* Get data */
-				vmem_memcpy(packet->data, (void *) ((intptr_t) address + count), packet->length);
+				vmem_read(packet->data, address + count, packet->length);
 
 				/* Increment */
 				count += packet->length;
@@ -108,19 +111,22 @@ void vmem_server_handler(csp_conn_t * conn)
 		}
 		csp_buffer_free(packet);
 
-		int count = 0;
+		uint32_t count = 0;
 		while((packet = csp_read(conn, VMEM_SERVER_TIMEOUT)) != NULL) {
 
 			//csp_hex_dump("Upload", packet->data, packet->length);
 
 			/* Put data */
-			vmem_memcpy((void *) ((intptr_t) address + count), packet->data, packet->length);
+			vmem_write(address + count, packet->data, packet->length);
 
 			/* Increment */
 			count += packet->length;
 
 			csp_buffer_free(packet);
 		}
+		// Now flush the VMEM cache associated with the address, if any
+		vmem_t *vmem = vmem_vaddr_to_vmem(address);
+		(void)vmem_flush(vmem);
 
 	} else if (request->type == VMEM_SERVER_LIST) {
 
@@ -131,13 +137,16 @@ void vmem_server_handler(csp_conn_t * conn)
 			int i = 0;
 			packet->length = 0;
 			for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++, i++) {
-				list[i].vaddr = htobe32((intptr_t) vmem->vaddr);
-				list[i].size = htobe32(vmem->size);
+				list[i].vaddr = htobe32((uint32_t)(vmem->vaddr & 0x00000000FFFFFFFFULL));
+				list[i].size = htobe32((uint32_t)(vmem->size & 0x00000000FFFFFFFFULL));
 				list[i].vmem_id = i;
 				list[i].type = vmem->type;
 				strncpy(list[i].name, vmem->name, 5);
 				packet->length += sizeof(vmem_list_t);
 			}
+
+			csp_send(conn, packet);
+
 		} else if (request->version == 2) {
 			
 			vmem_list2_t * list = (vmem_list2_t *) packet->data;
@@ -145,17 +154,60 @@ void vmem_server_handler(csp_conn_t * conn)
 			int i = 0;
 			packet->length = 0;
 			for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++, i++) {
-				list[i].vaddr = htobe64((intptr_t) vmem->vaddr);
-				list[i].size = htobe32(vmem->size);
+				list[i].vaddr = htobe64(vmem->vaddr);
+				list[i].size = htobe32((uint32_t)(vmem->size & 0x00000000FFFFFFFFULL));
 				list[i].vmem_id = i;
 				list[i].type = vmem->type;
 				strncpy(list[i].name, vmem->name, 5);
 				packet->length += sizeof(vmem_list2_t);
 			}
 
-		}
+			csp_send(conn, packet);
 
-		csp_send(conn, packet);
+		} else if (request->version == 3) {
+			
+			uint16_t nof_vmem = ((uintptr_t)&__stop_vmem - (uintptr_t)&__start_vmem) / sizeof(vmem_t);
+
+			vmem_t * vmem = NULL;
+			vmem_list3_t * list;
+
+			vmem = (vmem_t *) &__start_vmem;
+			int i = 0;
+
+			/* The first byte of each packet contains the flag signalling the first and last packet */
+			packet->length = 1;
+			packet->data[0] = 0b01000000; /* First packet */
+			list = (vmem_list3_t *)&packet->data[packet->length];
+
+			while (i < nof_vmem) {
+				if ((packet->length + sizeof(vmem_list3_t)) > VMEM_SERVER_MTU) {
+					/* We need to advance to the next packet, but first send the existing one */
+					csp_send(conn, packet);
+					packet = csp_buffer_get(VMEM_SERVER_MTU);
+					if (!packet) {
+						printf("Error allocating CSP packet for VMEM list response.\n");
+						break;
+					}
+					packet->length = 1;
+					packet->data[0] = 0b00000000;
+					list = (vmem_list3_t *)&packet->data[packet->length];
+				}
+
+				/* Fill in the VMEM data */
+				strncpy(&list->name[0], vmem[i].name, sizeof(list->name));
+				list->vaddr = htobe64(vmem[i].vaddr);
+				list->size = htobe64(vmem[i].size);
+				list->type = vmem[i].type;
+				list->vmem_id = i;
+				packet->length += sizeof(vmem_list3_t);
+
+				/* Advance to the next VMEM */
+				i++; list++;
+			}
+
+			packet->data[0] |= 0b10000000; /* Last packet */
+			csp_send(conn, packet);
+		}
 
 	} else if ((request->type == VMEM_SERVER_RESTORE) || (request->type == VMEM_SERVER_BACKUP)) {
 

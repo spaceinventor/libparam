@@ -1,2 +1,6 @@
 *.o
 *.d
+
+# Exlcude the contents of the lib directory, but not the .wrap-files within it
+lib/*
+!lib/*.wrap
