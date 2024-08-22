@@ -216,25 +216,24 @@ static int param_get_offset_string(char * arg, char ** offsets) {
 		fprintf(stderr, "Slice input error. Cannot parse characters after closing bracket.\n");
 		return -1;
 	}
-
 	*offsets = token;
 
 	return 0;
 }
 
-static int param_parse_multiple_offsets(char * arg, param_t *param, int *offset_array) {
+static int param_offsets_parse_from_str(char * arg, int array_size, int *offset_array, int *expected_value_amount) {
 	if (arg == NULL) {
-		for (int i = 0; i < param->array_size; i++) {
+		for (int i = 0; i < array_size; i++) {
 			offset_array[i] = i;
 		}
-
+		*expected_value_amount = array_size;
 		return 0;
 	}
 
 	int current_index = 0;
 	char *token = strtok(arg,",");
 	while (token != NULL) {
-		if (current_index >= param->array_size) {
+		if (current_index >= array_size) {
 			fprintf(stderr, "Amount of value indexes entered is greater than param array size.\n");
 			return -1;
 		}
@@ -250,9 +249,9 @@ static int param_parse_multiple_offsets(char * arg, param_t *param, int *offset_
 			}
 
 			start_index = start_index != INT_MIN ? start_index : 0;
-			end_index = end_index != INT_MIN ? end_index : param->array_size;
+			end_index = end_index != INT_MIN ? end_index : array_size;
 			if (start_index < 0) {
-				start_index = param->array_size + start_index;
+				start_index = array_size + start_index;
 				// If the index is still less than 0, then we have an error.
 				if (start_index < 0) {
 					return -1;
@@ -262,7 +261,7 @@ static int param_parse_multiple_offsets(char * arg, param_t *param, int *offset_
 
 			// Same goes for the end index.
 			if (end_index < 0) {
-				end_index = param->array_size + end_index;
+				end_index = array_size + end_index;
 				if (end_index < 0) {
 					return -1;
 				}
@@ -274,18 +273,17 @@ static int param_parse_multiple_offsets(char * arg, param_t *param, int *offset_
 				return SLASH_EINVAL;
 			}
 
-			if (end_index > param->array_size) {
+			if (end_index > array_size) {
 				fprintf(stderr, "End index in slice is greater than param array size.\n");
 				return SLASH_EINVAL;
 			}
 
 			for (int i = start_index; i < end_index; i++) {
-				offset_array[current_index++] = i;
-				if (current_index >= param->array_size) {
+				if (current_index >= array_size) {
 					fprintf(stderr, "Amount of value indexes entered is greater than param array size.\n");
 					return -1;
 				}
-
+				offset_array[current_index++] = i;
 			}
 
 		} else {
@@ -295,36 +293,40 @@ static int param_parse_multiple_offsets(char * arg, param_t *param, int *offset_
 
 		token = strtok(NULL, ",");
 	}
+	*expected_value_amount = current_index;
 
 	return 0;
 }
 
-static int parse_param_array(char * arg, int node, param_t **param, int **offset_array) {
-	char * offset_token;
-	int parse_offset_string = param_get_offset_string(arg, &offset_token);
-	if (parse_offset_string < 0) {
+static int parse_param_offset_string(char * arg_in,  int node, param_t **param, char ** arg_out) {
+	if (param_get_offset_string(arg_in, arg_out) < 0) {
 		return -1;
 	}
 
-	if (param_parse_from_str(node, arg, param) < 0) {
+	if (param_parse_from_str(node, arg_in, param) < 0) {
 		if (*param == NULL) {
-			fprintf(stderr, "%s not found.\n", arg);
+			fprintf(stderr, "%s not found.\n", arg_in);
 		}
 
 		return -1;
 	}
 
-	*offset_array = (int *)malloc(sizeof(int) * (*param)->array_size);
-	for (int i = 0; i < (*param)->array_size; i++) {
-		(*offset_array)[i] = INT_MIN;
-	}
-
-	if (param_parse_multiple_offsets(offset_token, *param, *offset_array) < 0) {
-		return -1;
-	}
-
 	return 0;
 }
+
+static int hasDuplicates(int arr[], int size) {
+
+	for (int i = 0; i < size; i++) {
+		for (int j = i+1; j < size; j++) {
+			if (arr[i] == arr[j]) {
+				return 1;
+			}
+		}
+	}
+
+    return 0; 
+}
+
 
 static void param_slash_parse(char * arg, int node, param_t **param, int *offset) {
 
@@ -497,7 +499,7 @@ static int cmd_get(struct slash *slash) {
             optparse_del(parser);
 			return SLASH_EIO;
 		}
-		
+
 	}
 
     optparse_del(parser);
@@ -541,42 +543,63 @@ static int cmd_set(struct slash *slash) {
 
 	// offset array, amount of possible offsets should be equal to param->array_size.
 	// Default set to INT_MIN to determine if they've been set or not, since an offset can be < 0.
-
 	int * offset_array = NULL;
+	char * offset_token;
 
-	int param_parse = parse_param_array(name, node, &param, &offset_array);
-	if (param_parse < 0) {
-		fprintf(stderr, "Param parsing error\n");
+	// Get param name and offsets as a char array, if any offsets exist.
+	if (parse_param_offset_string(name, node, &param, &offset_token) < 0) {
+		fprintf(stderr, "Error when parsing offset string.\n");
 		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
 	if (param == NULL) {
-		printf("%s not found\n", name);
+		fprintf(stderr, "%s not found\n", name);
         optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
-	int offset_array_length = 0;
-	for (int i = 0; i < param->array_size; i++) {
-		if (offset_array[i] == INT_MIN) {
-			break;
+	int expected_value_amount = 0;
+
+	// If param is of type data or string we only want to set on a single offset, that being -1.
+	// Else we allocate memory for the offset array, fill it with INT_MIN, and parse the offset string to integers.
+	// Lastly we set the expected_value_amount, this should match the amount of offsets put.
+	if (param->type == PARAM_TYPE_DATA || param->type == PARAM_TYPE_STRING) {
+		offset_array = (int *)malloc(sizeof(int));
+		offset_array[0] = -1;
+		expected_value_amount = 1;
+
+	} else {
+		offset_array = (int *)malloc(sizeof(int) * param->array_size);
+
+		for (int i = 0; i < param->array_size; i++) {
+			offset_array[i] = INT_MIN;
 		}
 
-		offset_array_length++;
+		if (param_offsets_parse_from_str(offset_token, param->array_size, offset_array, &expected_value_amount) < 0) {
+			free(offset_array);
+			optparse_del(parser);
+			return SLASH_EINVAL;
+		}
+
+		offset_array = (int *)realloc(offset_array, sizeof(int)*expected_value_amount);
+
+		if(hasDuplicates(offset_array, expected_value_amount) == 1) {
+			// offset_array has duplicate offsets. This should give an error.
+			fprintf(stderr,"Offset array contain duplicate offsets.\n");
+			free(offset_array);
+			optparse_del(parser);
+			return SLASH_EINVAL;
+		}
+
 	}
 
-	int adjusted_offset_array[offset_array_length];
-	for (int i = 0; i < offset_array_length; i++) {
-		adjusted_offset_array[i] = offset_array[i];
-	}
-
-	int expected_value_amount = sizeof(adjusted_offset_array) / sizeof(adjusted_offset_array[0]);
-	int single_offset_flag = expected_value_amount == 1 ? 1 : 0;
+	offset_token = '\0';
 
 	if (param->array_size == 1) {
 		if (expected_value_amount > 1) {
 			fprintf(stderr, "Cannot do array and slicing operations on a non-array parameter.\n");
+			free(offset_array);
 			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
@@ -585,6 +608,7 @@ static int cmd_set(struct slash *slash) {
 
 	if (param->mask & PM_READONLY && !force) {
 		printf("--force is required to set a readonly parameter\n");
+		free(offset_array);
         optparse_del(parser);
 		return SLASH_EINVAL;
 	}
@@ -592,14 +616,16 @@ static int cmd_set(struct slash *slash) {
 	/* Check if Value is present */
 	if (++argi >= slash->argc) {
 		printf("missing parameter value\n");
+		free(offset_array);
         optparse_del(parser);
 		return SLASH_EINVAL;
 	}
 
 	// Parse expected amount of values
-	// We expect an amount of values equal to the size of adjusted_offset_array.
-	// The size of adjusted_offset_array can at most be equal to the param->array_size.
+	// We expect an amount of values equal to the size of offset_array.
+	// The size of offset_array can at most be equal to the param->array_size.
 	if (parse_slash_values(slash->argv, argi, 2, 1, expected_value_amount) < 0) {
+		free(offset_array);
 		optparse_del(parser);
 		return SLASH_EINVAL;
 	}
@@ -619,6 +645,7 @@ static int cmd_set(struct slash *slash) {
 		char *arg = slash->argv[i];
 		if (!arg) {
 			fprintf(stderr, "Missing closing bracket\n");
+			free(offset_array);
 			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
@@ -627,8 +654,9 @@ static int cmd_set(struct slash *slash) {
 		// If we can, then we're dealing with a value array.
 		if (strchr(arg, '[')) {
 			// If we're dealing with a value array, but only a single offset, then we should throw an error.
-			if (single_offset_flag) {
+			if (expected_value_amount == 1) {
 				fprintf(stderr, "cannot set array into indexed parameter value\n");
+				free(offset_array);
 				optparse_del(parser);
 				return SLASH_EINVAL;
 			}
@@ -653,20 +681,17 @@ static int cmd_set(struct slash *slash) {
 		// Convert the valuebuf str to a value of the param type. 
 		if (param_str_to_value(param->type, arg, valuebuf) < 0) {
 			fprintf(stderr, "invalid parameter value\n");
+			free(offset_array);
 			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
 
+
 		// If we're dealing with a single value, we should loop the sliced array instead of the values.
 		// Breaking afterwards, since this means we're done setting params.
 		if (single_value_flag) {
-			if (single_offset_flag) {
-				param_queue_add(&queue, param, adjusted_offset_array[0], valuebuf);
-				break;
-			}
-
 			for (int j = 0; j < expected_value_amount; j++) {
-				param_queue_add(&queue, param, adjusted_offset_array[j], valuebuf);
+				param_queue_add(&queue, param, offset_array[j], valuebuf);
 			}
 
 			break;
@@ -675,15 +700,17 @@ static int cmd_set(struct slash *slash) {
 		// If we're not dealing with a single value, we should look at iterations.
 		// If iterations ever becomes greater than expected_value_amount, it means the amount of values are greater than the slice. 
 		if (iterations > expected_value_amount) {
-			optparse_del(parser);
 			fprintf(stderr, "Values array is longer than value indexes\n");
+			free(offset_array);
+			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
 
 		// Add to the queue.
-		if (param_queue_add(&queue, param, adjusted_offset_array[iterations], valuebuf) < 0) {
-			optparse_del(parser);
+		if (param_queue_add(&queue, param, offset_array[iterations], valuebuf) < 0) {
 			fprintf(stderr, "Param_queue_add failed\n");
+			free(offset_array);
+			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
 
@@ -693,8 +720,9 @@ static int cmd_set(struct slash *slash) {
 		// then the slice length must be greater than the value array length.
 		// This shouldnt be possible, so we throw an error.
 		if (should_break == 0 && iterations != expected_value_amount) {
-			optparse_del(parser);
 			fprintf(stderr, "Amount of value indexes is greater than value array\n");
+			free(offset_array);
+			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
 
@@ -729,10 +757,7 @@ static int cmd_set(struct slash *slash) {
 		param_print(param, -1, NULL, 0, 2, time_now.tv_sec);
 	}
 
-	if (offset_array != NULL) {
-		free(offset_array);
-	}
-
+	free(offset_array);
     optparse_del(parser);
 	return SLASH_SUCCESS;
 }
