@@ -8,7 +8,7 @@ if not meson.is_subproject()
     gmock_lib = static_library('gmock', install: false) 
 endif
 
-executable(
+vmem_block_tests = executable(
     'vmem_block_tests',
     sources: [
         'vmem_block_tests.cpp',
@@ -17,3 +17,5 @@ executable(
     include_directories : param_inc,
     link_with : param_lib
 )
+
+test('vmem_block_tests', vmem_block_tests)
