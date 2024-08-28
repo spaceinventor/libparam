@@ -88,8 +88,8 @@ TEST(vmem_block, upload_random_download_compare) {
     generate_random_data(&write_buffer[0], TEST_BUFFER_SIZE);
 
     // 2. Generate an empty "eMMC"
-    g_emmc_data_ptr = &g_emmc_data_write[0];
-    memset(g_emmc_data_ptr, 0, EMMC_SIZE);
+    g_emmc_data_ptr = &g_emmc_data_write[STFW_FIFO_SIZE * 3];
+    memset(g_emmc_data_ptr, 0, STFW_FIFO_SIZE);
 
     // 3. Write the random test buffer to the empty "eMMC"
     for (offset=0;offset<TEST_BUFFER_SIZE;offset+=TEST_WRITE_CHUNK_SIZE) {
@@ -105,7 +105,7 @@ TEST(vmem_block, upload_random_download_compare) {
     }
 
     // 4. Flush any cached data to the "eMMC"
-    vmem_block_flush(&vmem_stfw0);
+    vmem_block_flush(&vmem_stfw3);
 
     // 5. Verify that the data was written correctly to the "eMMC"
     EXPECT_TRUE( 0 == memcmp(&write_buffer[0], g_emmc_data_ptr, TEST_BUFFER_SIZE) );
@@ -144,8 +144,8 @@ TEST(vmem_block, upload_random_download_compare_at_offset) {
     generate_random_data(&write_buffer[0], TEST_BUFFER_SIZE);
 
     // 2. Generate an empty "eMMC"
-    g_emmc_data_ptr = &g_emmc_data_write[0];
-    memset(g_emmc_data_ptr, 0, EMMC_SIZE);
+    g_emmc_data_ptr = &g_emmc_data_write[STFW_FIFO_SIZE * 3];
+    memset(g_emmc_data_ptr, 0, STFW_FIFO_SIZE);
 
     // 3. Write the random test buffer to the empty "eMMC"
     for (offset=0;offset<TEST_BUFFER_SIZE;offset+=TEST_WRITE_CHUNK_SIZE) {
@@ -161,7 +161,7 @@ TEST(vmem_block, upload_random_download_compare_at_offset) {
     }
 
     // 4. Flush any cached data to the "eMMC"
-    vmem_block_flush(&vmem_stfw0);
+    vmem_block_flush(&vmem_stfw3);
 
     // 5. Verify that the data was written correctly to the "eMMC"
     EXPECT_TRUE( 0 == memcmp(&write_buffer[0], &g_emmc_data_ptr[TEST_BUFFER_OFFSET], TEST_BUFFER_SIZE) );

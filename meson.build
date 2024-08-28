@@ -1,4 +1,4 @@
-project('param', 'c')
+project('param', 'c', 'cpp', subproject_dir:'lib')
 
 conf = configuration_data()
 conf.set('PARAM_HAVE_SYS_QUEUE', get_option('list_dynamic') or get_option('list_pool') > 0)
@@ -6,6 +6,16 @@ conf.set('PARAM_LIST_DYNAMIC', get_option('list_dynamic'))
 conf.set('PARAM_LIST_POOL', get_option('list_pool'))
 conf.set('PARAM_HAVE_SCHEDULER', get_option('scheduler'))
 conf.set('PARAM_HAVE_COMMANDS', get_option('commands'))
+# From now on, VMEM API is 64bits, breaking earlier ABI. 
+# New user code can use the fact that this macro is defined (its value is not relevant, just the fact that it is defined)
+# to check that the libparam version included (typically through convoluted dependency paths) does support the 64-bits API
+# and #error if it doesnt.
+VMEM_64_BITS_API_description = '''From now on, VMEM API is 64bits, breaking earlier ABI. 
+New user code can use the fact that this macro is defined (its value is not relevant, just the fact that it is defined)
+to check that the libparam version included (typically through convoluted dependency paths) does support the 64-bits API
+and #error if it doesnt.'''
+
+conf.set('PARAM_VMEM_64_BITS_API', 1, description: VMEM_64_BITS_API_description)
 
 if get_option('have_float') == false
 	conf.set('MPACK_FLOAT', 0)
@@ -144,3 +154,7 @@ param_lib = library('param',
 )
 
 param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib)
+
+if not meson.is_subproject()
+	subdir('tests')
+endif
