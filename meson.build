@@ -1,4 +1,4 @@
-project('param', 'c', 'cpp', subproject_dir:'lib')
+project('param', 'c', subproject_dir:'lib')
 
 conf = configuration_data()
 conf.set('PARAM_HAVE_SYS_QUEUE', get_option('list_dynamic') or get_option('list_pool') > 0)
