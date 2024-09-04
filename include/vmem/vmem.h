@@ -46,12 +46,15 @@ typedef struct vmem_s {
 	 * doing it with a little trick. */
 	union {
 		struct {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 			uint32_t vaddr32;
 			uint32_t vaddr_pad;
+#elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+			uint32_t vaddr_pad;
+			uint32_t vaddr32;
 #else
-			uint32_t vaddr_pad;
-			uint32_t vaddr32;
+#error "Cannot compile-time detect endianness"
 #endif
 		};
 		uint64_t vaddr;
