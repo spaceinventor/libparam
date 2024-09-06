@@ -1,4 +1,4 @@
-project('param', 'c', subproject_dir: 'lib')
+project('param', 'c', subproject_dir: 'lib', default_options: ['b_lundef=false'])
 
 conf = configuration_data()
 conf.set('PARAM_HAVE_SYS_QUEUE', get_option('list_dynamic') or get_option('list_pool') > 0)
@@ -149,19 +149,17 @@ param_lib = library('param',
 	include_directories : param_inc,
 	c_args: ['-DSLASH_SECTION="param_cmds"'],
 	dependencies : [slash_dep, csp_dep, clib_dep],
-	pic:true,
-	install : true
+	install : not meson.is_subproject()
 )
 param_dep = declare_dependency(
 	include_directories : param_inc,
 	link_with : param_lib,
 )
 
-install_subdir('include', install_dir : '.')
-install_headers(libparam_h, install_dir : 'include')
-pkg = import('pkgconfig')
-pkg.generate(param_lib, filebase: 'param')
-
 if not meson.is_subproject()
+	install_subdir('include', install_dir : '.')
+	install_headers(libparam_h, install_dir : 'include')
+	pkg = import('pkgconfig')
+	pkg.generate(param_lib, filebase: 'param')
     subdir('tests')
 endif
