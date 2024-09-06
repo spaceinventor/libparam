@@ -144,33 +144,18 @@ endif
 do_install = not meson.is_subproject()
 
 param_inc = include_directories('.', 'include')
-if get_option('default_library') == 'static'
-	param_lib = static_library('param',
-		sources: [param_src, libparam_h],
-		include_directories : param_inc,
-		c_args: ['-DSLASH_SECTION="param_cmds"'],
-		dependencies : [slash_dep, csp_dep, clib_dep],
-		pic:true,
-		install : true
-	)
-	param_dep = declare_dependency(
-		include_directories : param_inc,
-		link_with : param_lib,
-	)
-else
-	param_lib = shared_library('param',
-		sources: [param_src, libparam_h],
-		include_directories : param_inc,
-		c_args: ['-DSLASH_SECTION="param_cmds"'],
-		dependencies : [slash_dep, csp_dep, clib_dep],
-		install : true
-	)
-	param_shared_dep = declare_dependency(
-		include_directories : param_inc,
-		link_with : param_lib,
-		dependencies : [slash_dep, csp_dep, clib_dep],
-	)
-endif
+
+param_lib = library('param',
+	sources: [param_src, libparam_h],
+	include_directories : param_inc,
+	c_args: ['-DSLASH_SECTION="param_cmds"'],
+	dependencies : [slash_dep, csp_dep, clib_dep],
+	install : not meson.is_subproject()
+)
+param_dep = declare_dependency(
+	include_directories : param_inc,
+	link_with : param_lib,
+)
 
 if not meson.is_subproject()
 	install_subdir('include', install_dir : '.')
