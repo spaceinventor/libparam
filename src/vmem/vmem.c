@@ -12,10 +12,6 @@
 #include <vmem/vmem.h>
 
 
-/* The symbols __start_vmem and __stop_vmem will only be generated if the user defines any VMEMs.
-    We therefore use __attribute__((weak)) so we can compile in the absence of these. */
-__attribute__((weak)) int __start_vmem = 0, __stop_vmem = 0;
-
 /**
  * @brief VMEM Memory copy function - 32-bit version ONLY
  * 
