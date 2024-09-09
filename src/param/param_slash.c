@@ -66,6 +66,8 @@ static void param_completer(struct slash *slash, char * token) {
 	char * orig_slash_buf = NULL;
 	char *skip_prefix = NULL;
 
+	int node = slash_dfl_node;
+
 	/* TODO: find better way than hardcoding the command names */
 	if (!strncmp(slash->buffer, "get", strlen("get"))) {
 		skip_prefix = "get";
@@ -74,6 +76,11 @@ static void param_completer(struct slash *slash, char * token) {
 	} else if (!strncmp(slash->buffer, "cmd add", strlen("cmd add"))) {
 		skip_prefix = "cmd add";
 	}
+
+	/* Build args */
+    optparse_t * parser = optparse_new(skip_prefix, "");
+    optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
+    optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
 
 	if (skip_prefix) {
 		orig_slash_buf = slash->buffer;
@@ -98,8 +105,8 @@ static void param_completer(struct slash *slash, char * token) {
 		if (tokenlen > strlen(param->name))
 			continue;
 
-		if (strncmp(token, param->name,
-				slash_min(strlen(param->name), tokenlen)) == 0) {
+		if (strncmp(token, param->name, slash_min(strlen(param->name), tokenlen)) == 0
+			&& param->node == node) {
 
 			/* Count matches */
 			matches++;
