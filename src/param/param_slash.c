@@ -90,6 +90,9 @@ static void param_completer(struct slash *slash, char * token) {
 		while ((param = param_list_iterate(&i)) != NULL)
 			if (strmatch(param->name, token, strlen(param->name), strlen(token)))
 				param_print(param, -1, NULL, 0, 2, 0);
+		if (orig_slash_buf) {
+			slash_completer_revert_skip(slash, orig_slash_buf);
+		}
 		return;
 	}
 
