@@ -64,34 +64,61 @@ static void param_completer(struct slash *slash, char * token) {
 	size_t prefixlen = -1;
 	param_t *prefix = NULL;
 	char * orig_slash_buf = NULL;
-	char *skip_prefix = NULL;
 
-	/* TODO: find better way than hardcoding the command names */
-	if (!strncmp(slash->buffer, "get", strlen("get"))) {
-		skip_prefix = "get";
-	} else if (!strncmp(slash->buffer, "set", strlen("set"))) {
-		skip_prefix = "set";
-	} else if (!strncmp(slash->buffer, "cmd add", strlen("cmd add"))) {
-		skip_prefix = "cmd add";
-	}
+	int node = slash_dfl_node;
 
-	if (skip_prefix) {
-		orig_slash_buf = slash->buffer;
-		slash_completer_skip_flagged_prefix(slash, skip_prefix);
-		token = slash->buffer;
+	/* Build args */
+    optparse_t * parser = optparse_new("", "");
+    optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
+    int argi = optparse_parse(parser, slash->argc, (const char **) slash->argv);
+
+	/* 
+	This is really important: the original slash->buffer MUST be saved and restored to its original
+	value, otherwise, there will be trouble whenever it is freed (usually during csh clean up)
+	*/
+	orig_slash_buf = slash->buffer;
+
+	/* The following code basically skips the cmd line all the way up to the last non option argument,
+	a.k.a. the very thing we're trying to complete */
+	if(argi != -1) {			
+		/* If options where given, skip past them */
+ 		if (argi == slash->argc) {
+			/* All arguments were cmd line options or their arguments, point past them*/
+			slash->buffer = slash->buffer + strlen(slash->buffer);
+		} else if (argi == 0) {
+			/* No cmd line options, "token" already points to what is to be completed */	
+			slash->buffer = token;
+		} else {
+			/* the remaining argument (at index slash->argc - 1) is leftovers after processing the options, a.k.a. the very thing we're trying to complete */
+			slash->buffer = slash->buffer + strlen(slash->buffer) - strlen(slash->argv[slash->argc - 1]);
+		}
+	} else {
+		/* Error parsing the options, bail out */
+		return;
 	}
+	/* Skip possibly trailing whitespaces*/
+	while(*slash->buffer == ' ') {
+		slash->buffer++;
+	}
+	/* Finally, set "token" to the actual bit that needs completing */
+	token = slash->buffer;
 
 	size_t tokenlen = strlen(token);
 
 	param_t * param;
 	param_list_iterator i = { };
+	bool found_completion = false;
 	if (has_wildcard(token, strlen(token))) {
 		// Only print parameters when globbing is involved.
-		while ((param = param_list_iterate(&i)) != NULL)
-			if (strmatch(param->name, token, strlen(param->name), strlen(token)))
+		while ((param = param_list_iterate(&i)) != NULL) {
+			if (strmatch(param->name, token, strlen(param->name), strlen(token))) {
 				param_print(param, -1, NULL, 0, 2, 0);
-		if (orig_slash_buf) {
-			slash_completer_revert_skip(slash, orig_slash_buf);
+				found_completion = true;
+			}
+		}
+		slash_completer_revert_skip(slash, orig_slash_buf);
+		if(!found_completion) {
+			printf("\nNo matching parameter found on node %d\n", node);
 		}
 		return;
 	}
@@ -101,11 +128,12 @@ static void param_completer(struct slash *slash, char * token) {
 		if (tokenlen > strlen(param->name))
 			continue;
 
-		if (strncmp(token, param->name,
-				slash_min(strlen(param->name), tokenlen)) == 0) {
+		if (strncmp(token, param->name, slash_min(strlen(param->name), tokenlen)) == 0
+			&& param->node == node) {
 
 			/* Count matches */
 			matches++;
+			found_completion = true;
 
 			/* Find common prefix */
 			if (prefixlen == (size_t) -1) {
@@ -130,6 +158,7 @@ static void param_completer(struct slash *slash, char * token) {
 	}
 
 	if (!matches) {
+		printf("\nNo matching parameter found on node %d\n", node);
 		slash_bell(slash);
 	} else {
 		strncpy(token, prefix->name, prefixlen);
@@ -137,7 +166,7 @@ static void param_completer(struct slash *slash, char * token) {
 		slash->cursor = slash->length = (token - slash->buffer) + prefixlen;
 	}
 
-	if (skip_prefix) slash_completer_revert_skip(slash, orig_slash_buf);
+	slash_completer_revert_skip(slash, orig_slash_buf);
 }
 
 static int cmd_get(struct slash *slash) {
@@ -212,7 +241,11 @@ static int cmd_get(struct slash *slash) {
 	return SLASH_SUCCESS;
 
 }
-slash_command_completer(get, cmd_get, param_completer, "<param>", "Get");
+static void param_get_cmd_completer(struct slash *slash, char * token) {
+	param_completer(slash, token);
+}
+
+slash_command_completer(get, cmd_get, param_get_cmd_completer, "<param>", "Get");
 
 static int cmd_set(struct slash *slash) {
 	
@@ -305,8 +338,10 @@ static int cmd_set(struct slash *slash) {
     optparse_del(parser);
 	return SLASH_SUCCESS;
 }
-slash_command_completer(set, cmd_set, param_completer, "<param> <value>", "Set");
-
+static void param_set_cmd_completer(struct slash *slash, char * token) {
+	param_completer(slash, token);
+}
+slash_command_completer(set, cmd_set, param_set_cmd_completer, "<param> <value>", "Set");
 
 
 static int cmd_add(struct slash *slash) {
@@ -425,7 +460,11 @@ static int cmd_add(struct slash *slash) {
     optparse_del(parser);
 	return SLASH_SUCCESS;
 }
-slash_command_sub_completer(cmd, add, cmd_add, param_completer, "<param>[offset] [value]", "Add a new parameter to a command");
+static void param_cmd_add_cmd_completer(struct slash *slash, char * token) {
+	param_completer(slash, token);
+}
+slash_command_sub_completer(cmd, add, cmd_add, param_cmd_add_cmd_completer, "<param>[offset] [value]", "Add a new parameter to a command");
+
 
 static int cmd_run(struct slash *slash) {
 
