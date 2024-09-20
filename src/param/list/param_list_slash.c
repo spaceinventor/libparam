@@ -216,6 +216,16 @@ static int list_add(struct slash *slash)
 slash_command_sub(list, add, list_add, "<name> <id> <type>", NULL);
 
 
+int param_sort_fnc(const void* p1, const void* p2) {
+
+    param_t* param1 = *(param_t**)p1;
+    param_t* param2 = *(param_t**)p2;
+
+    if (param1->id > param2->id) return 1;
+    if (param1->id < param2->id) return -1;
+    return 0;
+}
+
 
 static int list_save(struct slash *slash) {
 
@@ -224,19 +234,19 @@ static int list_save(struct slash *slash) {
 
     optparse_t * parser = optparse_new("list save", "[name wildcard=*]");
     optparse_add_help(parser);
-	optparse_add_string(parser, 'f', "filename", "PATH", &filename, "write to file");
+    optparse_add_string(parser, 'f', "filename", "PATH", &filename, "write to file");
     optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
         optparse_del(parser);
-	    return SLASH_EINVAL;
+       return SLASH_EINVAL;
     }
 
     FILE * out = stdout;
 
     if (filename) {
-	    FILE * fd = fopen(filename, "w");
+       FILE * fd = fopen(filename, "w");
         if (fd) {
             out = fd;
             printf("Writing to file %s\n", filename);
@@ -244,41 +254,50 @@ static int list_save(struct slash *slash) {
     }
 
     param_t * param;
-	param_list_iterator i = {};
-	while ((param = param_list_iterate(&i)) != NULL) {
+    param_list_iterator i = {};
+    param_t* param_sorted[1024];
+    int param_cnt = 0;
+
+    while ((param = param_list_iterate(&i)) != NULL) {
 
         if ((node >= 0) && (param->node != node)) {
-			continue;
-		}
+            continue;
+        }
+        param_sorted[param_cnt] = param;
+        param_cnt++;
+    };
 
+    qsort(param_sorted, param_cnt, sizeof(param_sorted[0]), param_sort_fnc);
+
+    for (int i = 0; i < param_cnt; i++) {
         fprintf(out, "list add ");
-        if (param->array_size > 1) {
-            fprintf(out, "-a %u ", param->array_size);
+        if (param_sorted[i]->array_size > 1) {
+            fprintf(out, "-a %u ", param_sorted[i]->array_size);
         }
-        if ((param->docstr != NULL) && (strlen(param->docstr) > 0)) {
-            fprintf(out, "-c \"%s\" ", param->docstr);
+        if ((param_sorted[i]->docstr != NULL) && (strlen(param_sorted[i]->docstr) > 0)) {
+            fprintf(out, "-c \"%s\" ", param_sorted[i]->docstr);
         }
-        if ((param->unit != NULL) && (strlen(param->unit) > 0)) {
-            fprintf(out, "-u \"%s\" ", param->unit);
+        if ((param_sorted[i]->unit != NULL) && (strlen(param_sorted[i]->unit) > 0)) {
+            fprintf(out, "-u \"%s\" ", param_sorted[i]->unit);
         }
-        if (param->node != 0) {
-            fprintf(out, "-n %u ", param->node);
+        if (param_sorted[i]->node != 0) {
+            fprintf(out, "-n %u ", param_sorted[i]->node);
         }
         
-		if (param->mask > 0) {
-			unsigned int mask = param->mask;
+        if (param_sorted[i]->mask > 0) {
+            unsigned int mask = param_sorted[i]->mask;
         
             list_add_output(mask, out);
             list_add_output_user_flags(mask,out);
-		}
-		
-        fprintf(out, "%s %u ", param->name, param->id);
+        }
+
+        fprintf(out, "%s %u ", param_sorted[i]->name, param_sorted[i]->id);
 
         char typestr[10];
-        param_type_str(param->type, typestr, 10);
+        param_type_str(param_sorted[i]->type, typestr, 10);
         fprintf(out, "%s\n", typestr);
 
-	}
+    }
 
     if (out != stdout) {
         fflush(out);
