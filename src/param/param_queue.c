@@ -141,6 +141,8 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
     			break;
 			}
 
+			return_code = -1;
+			printf("Param decoding failed for ID %u:%u, skipping parameter\n", node, id);
 		}
 	}
 
