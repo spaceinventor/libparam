@@ -106,17 +106,19 @@ static int vmem_client_slash_download(struct slash *slash)
 		printf("No previous status file to resume from\n");
 		fd = fopen(file, "w+");
 	} else {
+		if (fscanf(fd_status, "%u", &offset) != 1) {
+			fprintf(stderr, "Failed to read offset from status file");
+			optparse_del(parser);
+			fclose(fd_status);
+			return SLASH_EINVAL;
+		}
 		printf("Found status file\n");
-		printf("Type 'yes' + enter to continue:\n");
+		printf("Type 'yes' + enter to continue from offset: %u, else from beginning\n", offset);
 		char * c = slash_readline(slash);
 
 		if (strcmp(c, "yes") != 0) {
 			fd = fopen(file, "w+");
 		} else {
-			if (fscanf(fd_status, "%u", &offset) != 1) {
-				fprintf(stderr, "Failed to read offset from status file");
-				// @edvard Do we panic here, if offset remains 0?
-			}
 			fd = fopen(file, "a");
 		}
 		fclose(fd_status);
@@ -139,7 +141,14 @@ static int vmem_client_slash_download(struct slash *slash)
 	/* Allocate memory for reply */
 	char * data = malloc(length - offset);
 
-	unsigned int count = vmem_download(node, timeout, address + offset, length - offset, data, version, use_rdp);
+	int count = vmem_download(node, timeout, address + offset, length - offset, data, version, use_rdp);
+	if(count < 0){
+		printf("Connection failed\n");
+		fclose(fd);
+		free(data);
+    	optparse_del(parser);
+		return SLASH_EINVAL;
+	}
 
 	/* Write data */
 	int written = fwrite(data, 1, count, fd);
