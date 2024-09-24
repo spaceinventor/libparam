@@ -1,12 +1,4 @@
-/*
- * vmem_client.h
- *
- *  Created on: Oct 27, 2016
- *      Author: johan
- */
-
-#ifndef LIB_PARAM_INCLUDE_VMEM_VMEM_CLIENT_H_
-#define LIB_PARAM_INCLUDE_VMEM_VMEM_CLIENT_H_
+#pragma once
 
 #include <stdint.h>
 #include <vmem/vmem_server.h>
@@ -18,4 +10,16 @@ int vmem_client_find(int node, int timeout, void * dataout, int version, char * 
 int vmem_client_backup(int node, int vmem_id, int timeout, int backup_or_restore);
 int vmem_client_calc_crc32(int node, int timeout, uint64_t address, uint32_t length, uint32_t * crc_out, int version);
 
-#endif /* LIB_PARAM_INCLUDE_VMEM_VMEM_CLIENT_H_ */
+/**
+ * @brief Abort any transfer that is ongoing
+ * 
+ * This function can be called from outside the task that is currently running a transfer
+ * The transferring task will monitor the abort flag and then stop on the next coming
+ * opportunity.
+ * 
+ * The flag is not thread safe and will thus abort all transfers.
+ * The flag is reset at the next call to up or download
+ * 
+ */
+void vmem_client_abort(void);
+
