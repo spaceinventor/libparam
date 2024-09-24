@@ -12,9 +12,16 @@
 
 #include <vmem/vmem_client.h>
 
+static int abort = 0;
+
+void vmem_client_abort(void) {
+	abort = 1;
+}
+
 int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp)
 {
 	uint32_t time_begin = csp_get_ms();
+	abort = 0;
 
 	/* Establish RDP connection */
 	uint32_t opts = CSP_O_CRC32;
@@ -58,6 +65,11 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 		if (packet == NULL)
 			break;
 
+		if (abort) {
+			csp_buffer_free(packet);
+			break;
+		}
+
 		//csp_hex_dump("Download", packet->data, packet->length);
 
 		/* RX overflow check */
@@ -98,6 +110,7 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version) {
 
 	uint32_t time_begin = csp_get_ms();
+	abort = 0;
 
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP | CSP_O_CRC32);
@@ -129,6 +142,11 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 	uint32_t count = 0;
 	int dotcount = 0;
 	while((count < length) && csp_conn_is_active(conn)) {
+
+		if (abort) {
+			csp_buffer_free(packet);
+			break;
+		}
 
 		if (dotcount % 32 == 0)
 			printf("  ");

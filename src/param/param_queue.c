@@ -101,6 +101,7 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
 
 			mpack_tag_t tag = mpack_read_tag(&reader);
 			if (mpack_reader_error(&reader) != mpack_ok) {
+				printf("Param decoding failed for ID %u:%u, skipping packet\n", node, id);
 				break;
 			}
 
@@ -141,6 +142,7 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
     			break;
 			}
 
+			printf("Param decoding failed for ID %u:%u, skipping parameter\n", node, id);
 		}
 	}
 
