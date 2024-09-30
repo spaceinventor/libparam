@@ -92,7 +92,9 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
 					param_enter_critical();
 			}
 
-			*param->timestamp = timestamp;
+			if (param->node != 0) {
+				*param->timestamp = timestamp;
+			}
 
 			param_deserialize_from_mpack_to_param(NULL, queue, param, offset, &reader);
 		} else {
