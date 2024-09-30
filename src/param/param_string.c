@@ -397,7 +397,8 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 			struct tm timestamp;
 			char timestamp_buffer[40];
 			time_t param_timestamp = (time_t)*param->timestamp;
-			timestamp = *localtime(&param_timestamp);
+			struct tm timeinfo;
+			timestamp = *localtime_r(&param_timestamp, &timeinfo);
 			strftime(timestamp_buffer, sizeof(timestamp_buffer), "%a %Y-%m-%d %H:%M:%S %Z", &timestamp);
 
 			fprintf(file, "\t%s", timestamp_buffer);
