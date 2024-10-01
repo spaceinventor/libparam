@@ -43,7 +43,7 @@ static void cache_flush(const vmem_block_driver_t *drv, vmem_block_cache_t *cach
 
     if (cache->is_modified && cache->is_valid) {
         int32_t res;
-        printf("::cache_flush() The cache is modified, write it to device\n");
+        //printf("::cache_flush() The cache is modified, write it to device\n");
         res = drv->api.write(drv, cache->start_block, (cache->size / drv->device->bsize), cache->data);
         if (res) {
             printf("Error, could not write to block device '%s'\n", drv->device->name);
@@ -59,7 +59,7 @@ static uint32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *
 
     uint32_t size;
 
-    printf("::cache_write(%p,0x%"PRIX64",0x%"PRIXPTR",%"PRIu32")\n", drv, address, (uintptr_t)data, length);
+    //printf("::cache_write(%p,0x%"PRIX64",0x%"PRIXPTR",%"PRIu32")\n", drv, address, (uintptr_t)data, length);
 
     if (!address_in_cache(drv, cache, address)) {
         printf("::cache_write() Flush the cache and re-read from address 0x%"PRIX64"\n", address);
@@ -98,10 +98,10 @@ static uint8_t *cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *c
     uint32_t block = (address / drv->device->bsize);
     uint32_t block_offset = (address % drv->device->bsize);
 
-    printf("::cache_read(%p,0x%"PRIX64",%"PRIu32")\n", drv, address, (length ? (*length) : 0));
+    //printf("::cache_read(%p,0x%"PRIX64",%"PRIu32")\n", drv, address, (length ? (*length) : 0));
 
     if (!address_in_cache(drv, cache, address)) {
-        printf("::cache_read() Address not in cache, read from device\n");
+        //printf("::cache_read() Address not in cache, read from device\n");
         int32_t res;
         /* The current block is outside the cache or the cache is invalid */
         res = drv->api.read(drv, block, (cache->size / drv->device->bsize), cache->data);
@@ -132,7 +132,7 @@ void vmem_block_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len)
     uintptr_t destaddr = (uintptr_t)dataout;
     uint64_t srcaddr = physaddr;
 
-    printf("vmem_block_read(%"PRIXPTR",0x%"PRIX64",%"PRIXPTR",%"PRIu32") => 0x%"PRIX64"\n", (uintptr_t)vmem, addr, (uintptr_t)dataout, len, srcaddr);
+    //printf("vmem_block_read(%"PRIXPTR",0x%"PRIX64",%"PRIXPTR",%"PRIu32") => 0x%"PRIX64"\n", (uintptr_t)vmem, addr, (uintptr_t)dataout, len, srcaddr);
 
     while (len) {
         uint8_t *data;
@@ -161,7 +161,7 @@ void vmem_block_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_
     uintptr_t srcaddr = (uintptr_t)datain;
     uint64_t destaddr = physaddr;
 
-    printf("vmem_block_write(%"PRIXPTR",0x%"PRIX64",%"PRIXPTR",%"PRIu32") => 0x%"PRIX64"\n", (uintptr_t)vmem, addr, (uintptr_t)datain, len, destaddr);
+    //printf("vmem_block_write(%"PRIXPTR",0x%"PRIX64",%"PRIXPTR",%"PRIu32") => 0x%"PRIX64"\n", (uintptr_t)vmem, addr, (uintptr_t)datain, len, destaddr);
 
     while (len) {
         uint32_t nbytes;
