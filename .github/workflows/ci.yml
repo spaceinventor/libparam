@@ -1,0 +1,26 @@
+name: libparam CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v1
+      - name: Install gcovr
+        run: pip3 install gcovr==5.0      
+      - uses: BSFishy/meson-build@v1.0.3
+        with:
+          action: build
+          options: --verbose
+          setup-options: -Db_coverage=true -Ddefault_library=static
+          directory: builddir
+          meson-version: 1.5.1
+          ninja-version: 1.11.1.1
+          gcovr-version: 5.0
+      - name: Run gcovr
+        run: ninja -C builddir test coverage-text && tail -n3 builddir/meson-logs/coverage.txt

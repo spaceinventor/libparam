@@ -168,16 +168,23 @@ int param_str_to_value(param_type_e type, char *in, void *out) {
 	case PARAM_TYPE_DATA: {
 		int len = strlen(in) / 2;
 
-		unsigned int nibble(char c) {
+		if (2*len != strlen(in))
+			return -1;
+
+		int nibble(char c) {
 			if (c >= '0' && c <= '9') return      c - '0';
 			if (c >= 'A' && c <= 'F') return 10 + c - 'A';
 			if (c >= 'a' && c <= 'f') return 10 + c - 'a';
 			return -1;
 		}
 
-		for (int i = 0; i < len; i++)
-			((char *) out)[i] = (nibble(in[i*2]) << 4) + nibble(in[i*2+1]);
-			
+		for (int i = 0; i < len; i++) {
+			int nibble1 = nibble(in[i*2]);
+			int nibble2 = nibble(in[i*2+1]);
+			if (nibble1 < 0 || nibble2 < 0) return -1;
+			((char *) out)[i] = (nibble1 << 4) + nibble2;
+		}
+
 		return len;
 	}
 
@@ -397,7 +404,8 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 			struct tm timestamp;
 			char timestamp_buffer[40];
 			time_t param_timestamp = (time_t)*param->timestamp;
-			timestamp = *localtime(&param_timestamp);
+			struct tm timeinfo;
+			timestamp = *localtime_r(&param_timestamp, &timeinfo);
 			strftime(timestamp_buffer, sizeof(timestamp_buffer), "%a %Y-%m-%d %H:%M:%S %Z", &timestamp);
 
 			fprintf(file, "\t%s", timestamp_buffer);
