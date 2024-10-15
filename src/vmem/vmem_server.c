@@ -191,7 +191,7 @@ void vmem_server_handler(csp_conn_t * conn)
 				}
 
 				/* Fill in the VMEM data */
-				strncpy(&list->name[0], vmem->name, sizeof(list->name));
+				strncpy(&list->name[0], vmem->name, sizeof(list->name)-1);
 				list->vaddr = htobe64(vmem->vaddr);
 				list->size = htobe64(vmem->size);
 				list->type = vmem->type;
