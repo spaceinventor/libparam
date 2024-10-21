@@ -190,8 +190,9 @@ void vmem_server_handler(csp_conn_t * conn)
 					list = (vmem_list3_t *)&packet->data[packet->length];
 				}
 
-				/* Fill in the VMEM data */
-				strncpy(&list->name[0], vmem->name, sizeof(list->name)-1);
+				/* Fill in the VMEM data, handle cases when name does not contain NULL termination */
+				strncpy(list->name, vmem->name, sizeof(list->name)-1);
+				list->name[sizeof(list->name)-1] = '\0';
 				list->vaddr = htobe64(vmem->vaddr);
 				list->size = htobe64(vmem->size);
 				list->type = vmem->type;
