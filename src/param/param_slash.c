@@ -288,6 +288,11 @@ static int param_offsets_parse_from_str(char * arg, int array_size, int *offset_
 
 		} else {
 			int val = atoi(token);
+
+			if (val < 0) {
+				val = val + array_size;
+			}
+
 			offset_array[current_index++] = val;
 		}
 
@@ -545,7 +550,6 @@ static void param_get_cmd_completer(struct slash *slash, char * token) {
 slash_command_completer(get, cmd_get, param_get_cmd_completer, "<param>", "Get");
 
 static int cmd_set(struct slash *slash) {
-
 	int node = slash_dfl_node;
 	int paramver = 2;
 	int server = 0;
@@ -580,7 +584,7 @@ static int cmd_set(struct slash *slash) {
 	// offset array, amount of possible offsets should be equal to param->array_size.
 	// Default set to INT_MIN to determine if they've been set or not, since an offset can be < 0.
 	int * offset_array = NULL;
-	char * offset_token;
+	char * offset_token = NULL;
 
 	// Get param name and offsets as a char array, if any offsets exist.
 	if (parse_param_offset_string(name, node, &param, &offset_token) < 0) {
@@ -617,6 +621,7 @@ static int cmd_set(struct slash *slash) {
 			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
+		
 
 		offset_array = (int *)realloc(offset_array, sizeof(int)*expected_value_amount);
 
@@ -639,7 +644,6 @@ static int cmd_set(struct slash *slash) {
 			optparse_del(parser);
 			return SLASH_EINVAL;
 		}
-
 	}
 
 	if (param->mask & PM_READONLY && !force) {
