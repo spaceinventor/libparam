@@ -249,30 +249,37 @@ static void param_print_value(FILE * file, param_t * param, int offset) {
 
 	char value_str[1024] = {};
 
-	if (count > 1)
-		sprintf(value_str + strlen(value_str), "[");
-
-	for(int i = offset; i < offset + count; i++) {
-		
-		if(*param->timestamp > 0 || param->node == 0){
-			param_value_str(param, i, value_str + strlen(value_str), 128 - strlen(value_str));
-		}
-		else {
-			sprintf(value_str + strlen(value_str), "-");
-		}
-		if (i + 1 < count)
-			sprintf(value_str + strlen(value_str), " ");
+	if (count > 1) {
+		strcat(value_str, "[");
 	}
 
-	if (count > 1)
-		sprintf(value_str + strlen(value_str), "]");
+	for(int i = offset; i < offset + count; i++) {
+		char value[64];
 
-	if (param->unit != NULL && strlen(param->unit))
-		sprintf(value_str + strlen(value_str), " %s", param->unit);
+		if(*param->timestamp > 0 || param->node == 0){
+			param_value_str(param, i, value, sizeof(value));
+			strcat(value_str, value);
+		}
+		else {
+			strcat(value_str, "-");
+		}
+		if (i + 1 < count) {
+			strcat(value_str, " ");
+		}
+	}
+
+	if (count > 1) {
+		strcat(value_str, "]");
+	}
+
+	if (param->unit != NULL && strlen(param->unit)) {
+		strcat(value_str, " ");
+		strcat(value_str, param->unit);
+	}
 
 	int remain = 20 - strlen(value_str);
 	while(remain-- > 0) {
-		sprintf(value_str + strlen(value_str), " ");
+		strcat(value_str, " ");
 	}
 
 	fprintf(file, "%s", value_str);
