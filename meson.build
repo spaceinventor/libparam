@@ -1,4 +1,4 @@
-project('param', 'c', subproject_dir:'lib')
+project('param', 'c', subproject_dir:'lib', meson_version: '>=0.64.0', version: run_command('./get_pip_ersion.py').stdout().strip(),)
 
 conf = configuration_data()
 conf.set('PARAM_HAVE_SYS_QUEUE', get_option('list_dynamic') or get_option('list_pool') > 0)
@@ -158,3 +158,65 @@ param_dep = declare_dependency(include_directories : param_inc, link_with : para
 if not meson.is_subproject()
     subdir('tests')
 endif
+
+if get_option('enable_python3_bindings')
+
+	sipyparam_sources = [
+
+		# Module itself
+		'src/bindings/python/sipyparam.c',
+
+		# Parameter classes
+		'src/bindings/python/parameter/parameter.c',
+		'src/bindings/python/parameter/parameterarray.c',
+		'src/bindings/python/parameter/parameterlist.c',
+		'src/bindings/python/parameter/pythonarrayparameter.c',
+		'src/bindings/python/parameter/pythongetsetarrayparameter.c',
+		'src/bindings/python/parameter/pythongetsetparameter.c',
+		'src/bindings/python/parameter/pythonparameter.c',
+
+		# Wrapper functions
+		'src/bindings/python/wrapper/param_py.c',
+		'src/bindings/python/wrapper/spaceboot_py.c',
+		'src/bindings/python/wrapper/param_list_py.c',
+		'src/bindings/python/wrapper/vmem_client_py.c',
+
+		# Utilities
+		'src/bindings/python/utils.c',
+	]
+
+	pycsh_config_h = configure_file(output: 'sipyparamconfig.h', configuration: conf, install_dir: 'include/param/', install: false)
+
+	# Add .pyi file for type-hints
+	pyi = configure_file(input: 'src/bindings/python/sipyparam.pyi', output: 'sipyparam.pyi', copy: true)
+
+	# Also add __init__.py for high-level APIs
+	__init__py = configure_file(input: 'src/bindings/python/__init__.py', output: '__init__.py', copy: true)
+
+	# "pure : false" allows the __init__.py package to contain both 'native' Python .pyi and a compiled .so files.
+	py = import('python').find_installation('python3', pure : false)
+	# py.dependency() doesn't work with version constraint. Use plain
+	# dependency() instead
+	pydep = dependency('python3', version : '>=3.10', required : true)
+	py.extension_module('sipyparam', sipyparam_sources,
+                    	dependencies : [param_dep, csp_dep, pydep],
+						subdir : 'sipyparam',
+                    	install : true)
+	py.install_sources([pyi, __init__py], subdir: 'sipyparam')
+
+	# If we mark libparam itself as install: true,
+	#	it will be installed in a seperate site-packages/.sipyparam.mesonpy.libs/ directory when installing with pip.
+	#	This directory will also work for the purpose of resolving symbols for the extension module.
+	# Alternativly we can use the following custom_target() to bundle libparam.so into the .whl.
+	#	This allows us to write the __init__.py to prioritize whether to use the bundled or system package/symbols.
+	#   Using a custom target for this takes inpiration from: https://github.com/mesonbuild/meson-python/discussions/556
+	copy_csp_lib = custom_target('libparam_pip',
+		output: 'libparam_pip.so',
+		install: true,
+		install_dir: py.get_install_dir() / 'sipyparam',
+		input: param_lib,  # TODO Kevin: Would it ever make sense to include slash here?
+		command: ['cp', '@INPUT@', '@OUTPUT@'],
+		build_by_default: true
+	)
+endif
+
