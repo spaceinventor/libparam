@@ -41,14 +41,14 @@ typedef struct vmem_block_driver_api_s {
 } vmem_block_driver_api_t;
 
 typedef struct vmem_block_device_s {
-	char *name;
+	const char *name;
 	uint32_t bsize;
 	uint32_t total_nblocks;
 	vmem_binit_t * const init;
 } vmem_block_device_t;
 
 typedef struct vmem_block_driver_s {
-	char *name;
+	const char *name;
 	const vmem_block_device_t * const device;
 	const vmem_block_driver_api_t api;
 } vmem_block_driver_t;
