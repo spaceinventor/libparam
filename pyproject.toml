@@ -1,0 +1,35 @@
+[project]
+name = 'sipyparam'
+dynamic = ["version"]
+description = 'SI libparam Python bindings'
+readme = 'README.md'  # <-- Isn't specifically made for the Python bindings
+requires-python = '>=3.10'
+authors = []
+
+[tool.setuptools-git-versioning]
+enabled = true
+
+[build-system]
+build-backend = 'mesonpy'
+requires = ['meson-python']
+
+[tool.meson-python.args]
+setup = [
+  "-Denable_python3_bindings=true",
+  "-Dbuildtype=debug",  # TODO: CSP cannot compile the ZMQ interface without assert
+
+  # default_library=static ensures that libcsp itself is linked statically into sipyparam.
+  #   This allows the user to simply "import sipyparam",
+  #   without needing to worry about LD_LIBRARY_PATH, PYTHONPATH or installing libcsp.so system-wide.
+  # This unfortunatly doesn't allow for importing the bindings into a context where the symbols are already present,
+  #   as will likely typically be the case with an embedded Python interpreter.
+  # Right now we still use (the default) dynamic linking.
+  #   But we install a copy of libcsp.so into the .whl,
+  #   which we may use if we fail to find the required symbols in the existing namespace.
+  #   This allows for both the standard use-case, where the user just wants to pip install libcsp and import it.
+  #   But it also allows for more niece use-cases where they want to link against specific existing symbols.
+  #"-Ddefault_library=static",
+]
+# Skip CSP as PIP freaks out when trying to install its headers into the wheel.
+#   P.S Many thanks to JB
+install = ['--skip-subprojects', 'csp']
