@@ -585,6 +585,10 @@ void param_list_destroy(param_t * param) {
 
 param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, int array_size, char * name, char * unit, char * help, int storage_type) {
 
+	if (storage_type == 0xFFFF) {
+		storage_type = -1;
+	}
+
 	if (array_size < 1)
 		array_size = 1;
 
