@@ -722,7 +722,7 @@ void param_list_save(const char * const filename, int node, int skip_node) {
     }
 }
 
-void list_add_output(unsigned int mask, FILE * out){
+void list_add_output(uint32_t mask, FILE * out){
 
 	fprintf(out, "-m \"");
 
@@ -801,18 +801,20 @@ void list_add_output(unsigned int mask, FILE * out){
 }
 
 
-void list_add_output_user_flags(unsigned int mask, FILE * out){
+void list_add_output_user_flags(uint32_t mask, FILE * out){
 
-	if((mask & PM_USER_FLAGS) > 0){
+	mask &= PM_USER_FLAGS;
+
+	if (mask > 0){
 		fprintf(out, "-M \"");
-		  for (int i = 16; i < 32; i++) {
-                if (mask & (1<<i)) {
-                    mask &= ~ (1<<i);
-                    printf("%d", i-15);
-                }
-            }
+		for (int i = PM_USER_FLAGS_OFFSET; i < 8*sizeof(mask); i++) {
+			if (mask & (1<<i)) {
+				mask &= ~ (1<<i);
+				printf("%x", i-PM_USER_FLAGS_OFFSET);
+			}
+		}
 
-            printf("\" ");
+		printf("\" ");
 	}
 	// Output:  -M "23" for PM_KEYCONF
 
