@@ -473,6 +473,27 @@ uint32_t param_maskstr_to_mask(const char * str) {
 
 }
 
+uint32_t param_umaskstr_to_mask(const char * str) {
+
+	uint32_t mask = 0;
+
+	for (int i = 0; i < strlen(str); i++) {
+
+		if (str[i] == '0') {
+			/* strtol returns 0 for invalid characters, therefore handled independent */
+			mask |= 1;
+			continue;
+		}
+		char strdigit[2] = {str[i], '\0'};
+		long digit = strtol(strdigit, NULL, 16);
+		if (digit > 0 && digit < 16) {
+			mask |= 1 << digit;
+		}
+	}
+
+	return mask << PM_USER_FLAGS_OFFSET;
+}
+
 uint32_t param_typestr_to_typeid(const char * str) {
 
 	if (str == NULL)

@@ -199,6 +199,9 @@ static int list_add(struct slash *slash)
 	if (maskstr)
 		mask = param_maskstr_to_mask(maskstr);
 
+	if (umaskstr)
+		mask |= param_umaskstr_to_mask(umaskstr);
+
     //printf("name %s, id %u, type %s, typeid %u, mask %x, arraylen %u, help %s, unit %s\n", name, id, type, typeid, mask, array_len, helpstr, unitstr);
 
     param_t * param = param_list_create_remote(id, node, typeid, mask, array_len, name, unitstr, helpstr, vmem_type);
