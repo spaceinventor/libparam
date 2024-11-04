@@ -731,11 +731,6 @@ void list_add_output(uint32_t mask, FILE * out){
 		fprintf(out, "r");
 	}
 
-	if (mask & PM_REMOTE) {
-		mask &= ~ PM_REMOTE;
-		fprintf(out, "R");
-	}
-
 	if (mask & PM_CONF) {
 		mask &= ~ PM_CONF;
 		fprintf(out, "c");
