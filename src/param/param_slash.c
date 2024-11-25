@@ -544,10 +544,14 @@ static int cmd_pull(struct slash *slash) {
 		include_mask = param_maskstr_to_mask(include_mask_str);
 	if (exclude_mask_str)
 	    exclude_mask = param_maskstr_to_mask(exclude_mask_str);
+
 	int result = SLASH_SUCCESS;
 	uint8_t num_nodes = 0;
 	uint16_t *nodes;
-	if(nodes_str) {
+	if(NULL == nodes_str) {
+		nodes = calloc(num_nodes, sizeof(uint16_t));
+		nodes[0] = server;
+	} else {
 		char *cur_node = strdup(nodes_str);
 		char *start = cur_node;
 		char *end = cur_node + strlen(cur_node);
@@ -568,15 +572,11 @@ static int cmd_pull(struct slash *slash) {
 			if(node_id != 0) {
 				nodes[idx++] = node_id;
 			}
-			while(*(++cur_node) == 0);
+			while(*(++cur_node) != 0);
+			cur_node++;
 		}
-		/* Clear screen */
-		printf("\e[1;1H\e[2J");
 		free(start);
 		num_nodes = idx;
-	} else {
-		nodes = calloc(num_nodes, sizeof(uint16_t));
-		nodes[0] = server;
 	}	
 	for (uint8_t i = 0; i < num_nodes; i++) {
 		if (param_pull_all(CSP_PRIO_HIGH, 1, nodes[i], include_mask, exclude_mask, timeout, paramver)) {
