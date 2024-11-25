@@ -528,7 +528,7 @@ static int cmd_pull(struct slash *slash) {
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to pull parameters from (default = <env>))");
 	optparse_add_string(parser, 'm', "imask", "MASK", &include_mask_str, "Include mask (param letters)");
 	optparse_add_string(parser, 'e', "emask", "MASK", &exclude_mask_str, "Exclude mask (param letters)");
-	optparse_add_string(parser, 0, "nodes", "NODES", &nodes_str, "Comma separated list of nodes to pull parameters from");
+	optparse_add_string(parser, 'n', "nodes", "NODES", &nodes_str, "Comma separated list of nodes to pull parameters from");
 	optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system version (default = 2)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
@@ -588,7 +588,7 @@ static int cmd_pull(struct slash *slash) {
 	optparse_del(parser);
 	return result;
 }
-slash_command(pull, cmd_pull, "", "Pull all metrics");
+slash_command(pull, cmd_pull, "[OPTIONS]", "Pull all metrics from given CSP node(s)");
 
 static int cmd_new(struct slash *slash) {
 
