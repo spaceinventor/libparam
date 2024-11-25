@@ -519,6 +519,7 @@ static int cmd_pull(struct slash *slash) {
 	unsigned int server = slash_dfl_node;
 	char * include_mask_str = NULL;
 	char * exclude_mask_str = NULL;
+	char * nodes_str = NULL;
 	int paramver = 2;
 
     optparse_t * parser = optparse_new("pull", "");
@@ -527,6 +528,7 @@ static int cmd_pull(struct slash *slash) {
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to pull parameters from (default = <env>))");
 	optparse_add_string(parser, 'm', "imask", "MASK", &include_mask_str, "Include mask (param letters)");
 	optparse_add_string(parser, 'e', "emask", "MASK", &exclude_mask_str, "Exclude mask (param letters)");
+	optparse_add_string(parser, 0, "nodes", "NODES", &nodes_str, "Comma separated list of nodes to pull parameters from");
     optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system version (default = 2)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
@@ -542,15 +544,49 @@ static int cmd_pull(struct slash *slash) {
 		include_mask = param_maskstr_to_mask(include_mask_str);
 	if (exclude_mask_str)
 	    exclude_mask = param_maskstr_to_mask(exclude_mask_str);
-
-	if (param_pull_all(CSP_PRIO_HIGH, 1, server, include_mask, exclude_mask, timeout, paramver)) {
-		printf("No response\n");
-        optparse_del(parser);
-		return SLASH_EIO;
+	int result = SLASH_SUCCESS;
+	uint8_t num_nodes = 0;
+	uint16_t *nodes;
+	if(nodes_str) {
+		char *cur_node = strdup(nodes_str);
+		char *start = cur_node;
+		char *end = cur_node + strlen(cur_node);
+		uint8_t idx = 0;
+		while(*cur_node) {
+			if(*cur_node == ',') {
+				*cur_node = 0;
+				num_nodes++;
+			}
+			cur_node++;
+		}
+		num_nodes++;
+		nodes = calloc(num_nodes, sizeof(uint16_t));
+		uint16_t node_id = 0;
+		cur_node = start;
+		while(cur_node < end) {
+			node_id = atoi(cur_node);
+			if(node_id != 0) {
+				nodes[idx++] = node_id;
+			}
+			while(*(++cur_node) == 0);
+		}
+		/* Clear screen */
+		printf("\e[1;1H\e[2J");
+		free(start);
+		num_nodes = idx;
+	} else {
+		nodes = calloc(num_nodes, sizeof(uint16_t));
+		nodes[0] = server;
+	}	
+	for (uint8_t i = 0; i < num_nodes; i++) {
+		if (param_pull_all(CSP_PRIO_HIGH, 1, nodes[i], include_mask, exclude_mask, timeout, paramver)) {
+			printf("No response from %d\n", nodes[i]);
+			result = SLASH_EIO;
+		}
 	}
-
+	free(nodes);
     optparse_del(parser);
-	return SLASH_SUCCESS;
+	return result;
 }
 slash_command(pull, cmd_pull, "", "Pull all metrics");
 

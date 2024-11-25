@@ -56,7 +56,7 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 
 			/* Print the local RAM copy of the remote parameter */
 			if (param) {
-				param_print(param, -1, NULL, 0, 0, 0);
+				param_print(param, -1, NULL, 0, verbose, 0);
 			}
 
 		}
