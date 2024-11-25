@@ -522,14 +522,14 @@ static int cmd_pull(struct slash *slash) {
 	char * nodes_str = NULL;
 	int paramver = 2;
 
-    optparse_t * parser = optparse_new("pull", "");
+	optparse_t * parser = optparse_new("pull", "");
     optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in milliseconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to pull parameters from (default = <env>))");
 	optparse_add_string(parser, 'm', "imask", "MASK", &include_mask_str, "Include mask (param letters)");
 	optparse_add_string(parser, 'e', "emask", "MASK", &exclude_mask_str, "Exclude mask (param letters)");
 	optparse_add_string(parser, 0, "nodes", "NODES", &nodes_str, "Comma separated list of nodes to pull parameters from");
-    optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system version (default = 2)");
+	optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system version (default = 2)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -585,7 +585,7 @@ static int cmd_pull(struct slash *slash) {
 		}
 	}
 	free(nodes);
-    optparse_del(parser);
+	optparse_del(parser);
 	return result;
 }
 slash_command(pull, cmd_pull, "", "Pull all metrics");
