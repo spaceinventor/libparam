@@ -65,7 +65,7 @@ static uint32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *
 
     //printf("::cache_write(%p,0x%"PRIX64",0x%"PRIXPTR",%"PRIu32")\n", drv, address, (uintptr_t)data, length);
 
-    if (!cache) {
+    if (!cache && data != (uintptr_t)NULL && length > 0) {
         int32_t res;
         uint32_t len = 0;
 
@@ -154,7 +154,7 @@ static uint32_t cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *c
 
     //printf("::cache_read(%p,0x%"PRIX64",0x%"PRIXPTR",%"PRIu32")\n", drv, address, data, length);
 
-    if (!cache) {
+    if (!cache && data != (uintptr_t)NULL && length > 0) {
         int32_t res;
         uint32_t len = 0;
 
