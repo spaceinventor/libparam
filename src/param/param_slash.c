@@ -549,6 +549,7 @@ static int cmd_pull(struct slash *slash) {
 	uint8_t num_nodes = 0;
 	uint16_t *nodes;
 	if(NULL == nodes_str) {
+		num_nodes++;
 		nodes = calloc(num_nodes, sizeof(uint16_t));
 		nodes[0] = server;
 	} else {
