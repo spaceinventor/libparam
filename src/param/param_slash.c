@@ -174,7 +174,7 @@ static int cmd_get(struct slash *slash) {
 	int node = slash_dfl_node;
 	int paramver = 2;
 	int server = 0;
-	int prio = CSP_PRIO_HIGH;
+	int prio = CSP_PRIO_NORM;
 
     optparse_t * parser = optparse_new("get", "<name>");
     optparse_add_help(parser);
@@ -256,7 +256,7 @@ static int cmd_set(struct slash *slash) {
 	int server = 0;
 	int ack_with_pull = true;
 	int force = false;
-	int prio = CSP_PRIO_HIGH;
+	int prio = CSP_PRIO_NORM;
 
     optparse_t * parser = optparse_new("set", "<name>[offset] <value>");
     optparse_add_help(parser);
@@ -476,7 +476,7 @@ static int cmd_run(struct slash *slash) {
 	unsigned int server = slash_dfl_node;
 	unsigned int hwid = 0;
 	int ack_with_pull = true;
-	int prio = CSP_PRIO_HIGH;
+	int prio = CSP_PRIO_NORM;
 
     optparse_t * parser = optparse_new("run", "");
     optparse_add_help(parser);
@@ -527,7 +527,7 @@ static int cmd_pull(struct slash *slash) {
 	char * exclude_mask_str = NULL;
 	char * nodes_str = NULL;
 	int paramver = 2;
-	int prio = CSP_PRIO_HIGH;
+	int prio = CSP_PRIO_NORM;
 
 	optparse_t * parser = optparse_new("pull", "");
 	optparse_add_help(parser);
