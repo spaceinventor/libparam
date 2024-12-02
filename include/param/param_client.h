@@ -34,7 +34,7 @@
  * @param version       1 or 2
  * @return              0 = ok, -1 on network error
  */
-int param_pull_single(param_t *param, int offset, uint8_t prio, int verbose, int host, int timeout, int version);
+int param_pull_single(param_t *param, int offset, int prio, int verbose, int host, int timeout, int version);
 
 /**
  * PULL all
@@ -47,7 +47,7 @@ int param_pull_single(param_t *param, int offset, uint8_t prio, int verbose, int
  * @param version       1 or 2
  * @return              0 = OK, -1 on network error
  */
-int param_pull_all(uint8_t prio, int verbose, int host, uint32_t include_mask, uint32_t exclude_mask, int timeout, int version);
+int param_pull_all(int prio, int verbose, int host, uint32_t include_mask, uint32_t exclude_mask, int timeout, int version);
 
 /**
  * PUSH single:
@@ -64,7 +64,7 @@ int param_pull_all(uint8_t prio, int verbose, int host, uint32_t include_mask, u
  * @param ack_with_pull ack with param queue
  * @return              0 = OK, -1 on network error
  */
-int param_push_single(param_t *param, int offset, void *value, int verbose, int host, int timeout, int version, bool ack_with_pull);
+int param_push_single(param_t *param, int offset, int prio, void *value, int verbose, int host, int timeout, int version, bool ack_with_pull);
 
 /**
  * QUEUE PARAMETER API
@@ -99,7 +99,7 @@ int param_pull_queue(param_queue_t *queue, uint8_t prio, int verbose, int host, 
  * @param ack_with_pull ack with param queue
  * @return              0 = OK, -1 on network error
  */
-int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, uint32_t hwid, bool ack_with_pull);
+int param_push_queue(param_queue_t *queue, int prio, int verbose, int host, int timeout, uint32_t hwid, bool ack_with_pull);
 
 
 #endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_CLIENT_H_ */
