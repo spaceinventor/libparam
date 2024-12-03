@@ -10,9 +10,9 @@
 		if (i > (unsigned int) param->array_size) { \
 			return 0; \
 		} \
-		if (param->vmem && param->vmem->read) { \
+		if (param->vmem) { \
 			_type data = 0; \
-			param->vmem->read(param->vmem, param->vaddr + i * param->array_step, &data, sizeof(data)); \
+			vmem_read(&data, param->vmem->vaddr + param->vaddr + i * param->array_step, sizeof(data)); \
 			if (param->vmem->big_endian == 1) { \
 				data = _swapfct(data); \
 			} \
@@ -88,10 +88,10 @@ void param_get_data(param_t * param, void * outbuf, int len)
 		if (i > (unsigned int) param->array_size) { \
 			return; \
 		} \
-		if (param->vmem && param->vmem->write) { \
+		if (param->vmem) { \
 			if (param->vmem->big_endian == 1) \
 				value = _swapfct(value); \
-			param->vmem->write(param->vmem, param->vaddr + i * param->array_step, &value, sizeof(_type)); \
+			vmem_write(param->vmem->vaddr + param->vaddr + i * param->array_step, &value, sizeof(_type)); \
 		} else { \
 			/* Aligned access directly to RAM */ \
 			*(_type*)(param->addr + i * param->array_step) = value; \
