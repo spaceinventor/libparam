@@ -181,7 +181,7 @@ int param_pull_single(param_t *param, int offset, uint8_t prio, int verbose, int
 
 	packet->length = queue.used + 2;
 	packet->id.pri = prio;
-	return param_transaction(packet, host, timeout, param_transaction_callback_pull, verbose, version, NULL);
+	return param_transaction(packet, *param->node, timeout, param_transaction_callback_pull, verbose, version, NULL);
 }
 
 

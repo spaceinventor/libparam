@@ -21,7 +21,7 @@
 #include <mpack/mpack.h>
 
 static inline uint16_t param_get_short_id(param_t * param, unsigned int isarray, unsigned int reserved) {
-	uint16_t node = param->node;
+	uint16_t node = *param->node;
 	return (node << 11) | ((isarray & 0x1) << 10) | ((reserved & 0x1) << 2) | ((param->id) & 0x1FF);
 }
 
@@ -51,7 +51,7 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 
 	} else {
 
-		int node = param->node;
+		int node = *param->node;
 		uint32_t timestamp = *param->timestamp;
 		int array_flag = (offset >= 0) ? 1 : 0;
 		int node_flag = (queue->last_node != node) ? 1 : 0;
