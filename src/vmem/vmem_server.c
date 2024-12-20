@@ -165,13 +165,10 @@ void vmem_server_handler(csp_conn_t * conn)
 			csp_send(conn, packet);
 
 		} else if (request->version == 3) {
-			
-			uint16_t nof_vmem = ((uintptr_t)&__stop_vmem - (uintptr_t)&__start_vmem) / sizeof(vmem_t);
 
-			vmem_t * vmem = NULL;
 			vmem_list3_t * list;
 
-			vmem = (vmem_t *) &__start_vmem;
+			vmem_t * vmem = (vmem_t *) &__start_vmem;
 			int i = 0;
 
 			/* The first byte of each packet contains the flag signalling the first and last packet */
@@ -179,7 +176,7 @@ void vmem_server_handler(csp_conn_t * conn)
 			packet->data[0] = 0b01000000; /* First packet */
 			list = (vmem_list3_t *)&packet->data[packet->length];
 
-			while (i < nof_vmem) {
+			while (vmem < (vmem_t *) &__stop_vmem) {
 				if ((packet->length + sizeof(vmem_list3_t)) > VMEM_SERVER_MTU) {
 					/* We need to advance to the next packet, but first send the existing one */
 					csp_send(conn, packet);
@@ -193,16 +190,18 @@ void vmem_server_handler(csp_conn_t * conn)
 					list = (vmem_list3_t *)&packet->data[packet->length];
 				}
 
-				/* Fill in the VMEM data */
-				strncpy(&list->name[0], vmem[i].name, sizeof(list->name));
-				list->vaddr = htobe64(vmem[i].vaddr);
-				list->size = htobe64(vmem[i].size);
-				list->type = vmem[i].type;
+				/* Fill in the VMEM data, handle cases when name does not contain NULL termination */
+				strncpy(list->name, vmem->name, sizeof(list->name)-1);
+				list->name[sizeof(list->name)-1] = '\0';
+				list->vaddr = htobe64(vmem->vaddr);
+				list->size = htobe64(vmem->size);
+				list->type = vmem->type;
 				list->vmem_id = i;
 				packet->length += sizeof(vmem_list3_t);
 
 				/* Advance to the next VMEM */
-				i++; list++;
+				vmem++;
+				list++;
 			}
 
 			packet->data[0] |= 0b10000000; /* Last packet */

@@ -6,6 +6,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "libparam.h"
 #ifdef PARAM_LIST_DYNAMIC
@@ -184,7 +185,7 @@ int param_list_remove(int node, uint8_t verbose) {
 }
 void param_list_remove_specific(param_t * param, uint8_t verbose, int destroy) {
 
-    if (verbose) {
+    if (verbose >= 2) {
         printf("Removing param: %s:%u[%d]\n", param->name, param->node, param->array_size);
     }
     SLIST_REMOVE(&param_list_head, param, param_s, next);
@@ -269,132 +270,6 @@ unsigned int param_list_packed_size(int list_version) {
 		case 3: return sizeof(param_transfer3_t);
 		default: return 0;
 	}
-}
-
-int param_list_unpack(int node, void * data, int length, int list_version, int include_remotes) {
-
-	uint16_t strlen;
-	uint16_t addr;
-	uint16_t id;
-	uint8_t type;
-	unsigned int size;
-	uint32_t mask;
-	uint16_t storage_type = -1;
-	char * name;
-	char * unit;
-	char * help;
-
-	if (list_version == 1) {
-
-		param_transfer_t * new_param = data;
-		name = new_param->name;
-		strlen = length - offsetof(param_transfer_t, name);
-		if (strlen >= sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name))
-			strlen = sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name) - 1;
-		name[strlen] = '\0';
-		addr = be16toh(new_param->id) >> 11;
-		id = be16toh(new_param->id) & 0x7FF;
-		type = new_param->type;
-		size = new_param->size;
-		mask = be32toh(new_param->mask) | PM_REMOTE;
-		unit = NULL;
-		help = NULL;
-
-		/* Ensure strings are null terminated */
-		name[sizeof(new_param->name)-1] = '\0';
-
-	} else if (list_version == 2) {
-
-		param_transfer2_t * new_param = data;
-		name = new_param->name;
-		strlen = length - offsetof(param_transfer2_t, name);
-		if (strlen >= sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name))
-			strlen = sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name) - 1;
-		name[strlen] = '\0';
-		addr = be16toh(new_param->node);
-		id = be16toh(new_param->id);
-		type = new_param->type;
-		size = new_param->size;
-		mask = be32toh(new_param->mask) | PM_REMOTE;
-		unit = NULL;
-		help = NULL;
-
-		/* Ensure strings are null terminated */
-		name[sizeof(new_param->name)-1] = '\0';
-
-	} else {
-
-		param_transfer3_t * new_param = data;
-		name = new_param->name;
-		addr = be16toh(new_param->node);
-		id = be16toh(new_param->id);
-		type = new_param->type;
-		size = new_param->size;
-		mask = be32toh(new_param->mask) | PM_REMOTE;
-		storage_type = new_param->storage_type;
-		unit = new_param->unit;
-		help = new_param->help;
-
-		/* Ensure strings are null terminated */
-		name[sizeof(new_param->name)-1] = '\0';
-		unit[sizeof(new_param->unit)-1] = '\0';
-		help[sizeof(new_param->help)-1] = '\0';
-
-	}
-
-	if (addr == 0)
-		addr = node;
-
-	if (size == 255)
-		size = 1;
-
-	if(!include_remotes && node != addr) {
-		return 1;
-	}
-
-	//printf("Storage type %d\n", storage_type);
-
-	param_t * param = param_list_create_remote(id, addr, type, mask, size, name, unit, help, storage_type);
-
-	if (param != NULL) {
-		printf("Got param: %s:%u[%d]\n", param->name, param->node, param->array_size);
-
-		/* Add to list */
-		if (param_list_add(param) != 0)
-			param_list_destroy(param);
-
-		return 0;
-	} else {
-		return -1;
-	}
-}
-
-int param_list_download(int node, int timeout, int list_version, int include_remotes) {
-
-	/* Establish RDP connection */
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_LIST, timeout, CSP_O_RDP | CSP_O_CRC32);
-	if (conn == NULL)
-		return -1;
-
-	int count = 0;
-	int count_remotes = 0;
-	csp_packet_t * packet;
-	while((packet = csp_read(conn, timeout)) != NULL) {
-
-		//csp_hex_dump("Response", packet->data, packet->length);
-		if ((count_remotes += param_list_unpack(node, packet->data, packet->length, list_version, include_remotes)) < 0) {
-			csp_buffer_free(packet);
-			break;
-		}
-
-		csp_buffer_free(packet);
-		count++;
-	}
-
-	printf("Received %u parameters, of which %u remote parameters were skipped\n", count, count_remotes);
-	csp_close(conn);
-
-	return count;
 }
 
 int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int list_version) {
@@ -579,11 +454,141 @@ static void param_list_destroy_impl(param_t * param) {
 
 #if defined PARAM_LIST_DYNAMIC || PARAM_LIST_POOL > 0
 
+int param_list_unpack(int node, void * data, int length, int list_version, int include_remotes) {
+
+	uint16_t strlen;
+	uint16_t addr;
+	uint16_t id;
+	uint8_t type;
+	unsigned int size;
+	uint32_t mask;
+	uint16_t storage_type = -1;
+	char * name;
+	char * unit;
+	char * help;
+
+	if (list_version == 1) {
+
+		param_transfer_t * new_param = data;
+		name = new_param->name;
+		strlen = length - offsetof(param_transfer_t, name);
+		if (strlen >= sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name))
+			strlen = sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name) - 1;
+		name[strlen] = '\0';
+		addr = be16toh(new_param->id) >> 11;
+		id = be16toh(new_param->id) & 0x7FF;
+		type = new_param->type;
+		size = new_param->size;
+		mask = be32toh(new_param->mask) | PM_REMOTE;
+		unit = NULL;
+		help = NULL;
+
+		/* Ensure strings are null terminated */
+		name[sizeof(new_param->name)-1] = '\0';
+
+	} else if (list_version == 2) {
+
+		param_transfer2_t * new_param = data;
+		name = new_param->name;
+		strlen = length - offsetof(param_transfer2_t, name);
+		if (strlen >= sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name))
+			strlen = sizeof(param_transfer2_t) - offsetof(param_transfer2_t, name) - 1;
+		name[strlen] = '\0';
+		addr = be16toh(new_param->node);
+		id = be16toh(new_param->id);
+		type = new_param->type;
+		size = new_param->size;
+		mask = be32toh(new_param->mask) | PM_REMOTE;
+		unit = NULL;
+		help = NULL;
+
+		/* Ensure strings are null terminated */
+		name[sizeof(new_param->name)-1] = '\0';
+
+	} else {
+
+		param_transfer3_t * new_param = data;
+		name = new_param->name;
+		addr = be16toh(new_param->node);
+		id = be16toh(new_param->id);
+		type = new_param->type;
+		size = new_param->size;
+		mask = be32toh(new_param->mask) | PM_REMOTE;
+		storage_type = new_param->storage_type;
+		unit = new_param->unit;
+		help = new_param->help;
+
+		/* Ensure strings are null terminated */
+		name[sizeof(new_param->name)-1] = '\0';
+		unit[sizeof(new_param->unit)-1] = '\0';
+		help[sizeof(new_param->help)-1] = '\0';
+
+	}
+
+	if (addr == 0)
+		addr = node;
+
+	if (size == 255)
+		size = 1;
+
+	if(!include_remotes && node != addr) {
+		return 1;
+	}
+
+	//printf("Storage type %d\n", storage_type);
+
+	param_t * param = param_list_create_remote(id, addr, type, mask, size, name, unit, help, storage_type);
+
+	if (param != NULL) {
+		printf("Got param: %s:%u[%d]\n", param->name, param->node, param->array_size);
+
+		/* Add to list */
+		if (param_list_add(param) != 0)
+			param_list_destroy(param);
+
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
+int param_list_download(int node, int timeout, int list_version, int include_remotes) {
+
+	/* Establish RDP connection */
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, PARAM_PORT_LIST, timeout, CSP_O_RDP | CSP_O_CRC32);
+	if (conn == NULL)
+		return -1;
+
+	int count = 0;
+	int count_remotes = 0;
+	csp_packet_t * packet;
+	while((packet = csp_read(conn, timeout)) != NULL) {
+
+		//csp_hex_dump("Response", packet->data, packet->length);
+		if ((count_remotes += param_list_unpack(node, packet->data, packet->length, list_version, include_remotes)) < 0) {
+			csp_buffer_free(packet);
+			break;
+		}
+
+		csp_buffer_free(packet);
+		count++;
+	}
+
+	printf("Received %u parameters, of which %u remote parameters were skipped\n", count, count_remotes);
+	csp_close(conn);
+
+	return count;
+}
+
 void param_list_destroy(param_t * param) {
 	param_list_destroy_impl(param);
 }
 
 param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, int array_size, char * name, char * unit, char * help, int storage_type) {
+
+	if (storage_type == 0xFFFF) {
+		storage_type = -1;
+	}
 
 	if (array_size < 1)
 		array_size = 1;
@@ -638,18 +643,92 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 }
 #endif
 
-void list_add_output(unsigned int mask, FILE * out){
+
+int param_sort_fnc(const void* p1, const void* p2) {
+
+    param_t* param1 = *(param_t**)p1;
+    param_t* param2 = *(param_t**)p2;
+
+    if (param1->id > param2->id) return 1;
+    if (param1->id < param2->id) return -1;
+    return 0;
+}
+
+void param_list_save(const char * const filename, int node, int skip_node) {
+
+    FILE * out = stdout;
+
+    if (filename) {
+       FILE * fd = fopen(filename, "w");
+        if (fd) {
+            out = fd;
+            printf("Writing to file %s\n", filename);
+        }
+    }
+
+    param_t * param;
+    param_list_iterator i = {};
+    param_t* param_sorted[1024];
+    int param_cnt = 0;
+
+    while ((param = param_list_iterate(&i)) != NULL) {
+
+        if ((node >= 0) && (param->node != node)) {
+            continue;
+        }
+        param_sorted[param_cnt] = param;
+        param_cnt++;
+    };
+
+    qsort(param_sorted, param_cnt, sizeof(param_sorted[0]), param_sort_fnc);
+
+    for (int i = 0; i < param_cnt; i++) {
+        fprintf(out, "list add ");
+        if (param_sorted[i]->array_size > 1) {
+            fprintf(out, "-a %u ", param_sorted[i]->array_size);
+        }
+        if ((param_sorted[i]->docstr != NULL) && (strlen(param_sorted[i]->docstr) > 0)) {
+            fprintf(out, "-c \"%s\" ", param_sorted[i]->docstr);
+        }
+        if ((param_sorted[i]->unit != NULL) && (strlen(param_sorted[i]->unit) > 0)) {
+            fprintf(out, "-u \"%s\" ", param_sorted[i]->unit);
+        }
+        if (param_sorted[i]->node != 0 && !skip_node) {
+            fprintf(out, "-n %u ", param_sorted[i]->node);
+        }
+        
+        if (param_sorted[i]->mask > 0) {
+            unsigned int mask = param_sorted[i]->mask;
+        
+            list_add_output(mask, out);
+            list_add_output_user_flags(mask,out);
+        }
+
+        if (param_sorted[i]->vmem != NULL && param_sorted[i]->vmem->type > 0) {
+            fprintf(out, "-v %u ", param_sorted[i]->vmem->type);
+        }
+
+        fprintf(out, "%s %u ", param_sorted[i]->name, param_sorted[i]->id);
+
+        char typestr[10];
+        param_type_str(param_sorted[i]->type, typestr, 10);
+        fprintf(out, "%s\n", typestr);
+
+    }
+
+    if (out != stdout) {
+        fflush(out);
+        fclose(out);
+    }
+}
+
+void list_add_output(uint32_t mask, FILE * out){
 
 	fprintf(out, "-m \"");
 
 	if (mask & PM_READONLY) {
 		mask &= ~ PM_READONLY;
 		fprintf(out, "r");
-	}
-
-	if (mask & PM_REMOTE) {
-		mask &= ~ PM_REMOTE;
-		fprintf(out, "R");
 	}
 
 	if (mask & PM_CONF) {
@@ -717,18 +796,20 @@ void list_add_output(unsigned int mask, FILE * out){
 }
 
 
-void list_add_output_user_flags(unsigned int mask, FILE * out){
+void list_add_output_user_flags(uint32_t mask, FILE * out){
 
-	if((mask & PM_USER_FLAGS) > 0){
+	mask &= PM_USER_FLAGS;
+
+	if (mask > 0){
 		fprintf(out, "-M \"");
-		  for (int i = 16; i < 32; i++) {
-                if (mask & (1<<i)) {
-                    mask &= ~ (1<<i);
-                    printf("%d", i-15);
-                }
-            }
+		for (int i = PM_USER_FLAGS_OFFSET; i < 8*sizeof(mask); i++) {
+			if (mask & (1<<i)) {
+				mask &= ~ (1<<i);
+				fprintf(out, "%x", i-PM_USER_FLAGS_OFFSET);
+			}
+		}
 
-            printf("\" ");
+		fprintf(out, "\" ");
 	}
 	// Output:  -M "23" for PM_KEYCONF
 

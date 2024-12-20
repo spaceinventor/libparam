@@ -241,8 +241,8 @@ void param_serve(csp_packet_t * packet) {
 			packet->length -= sizeof(uint32_t);
 
 			//printf("hwid %d\n", hwid);
-			int serial_get(void);
-			if ((hwid != serial_get()) && (hwid != 1234)) {
+			__attribute__((weak)) int serial_get(void);
+			if ((serial_get != NULL && hwid != serial_get()) && (hwid != 1234)) {
 				printf("hwid did not match\n");
 				csp_buffer_free(packet);
 				break;

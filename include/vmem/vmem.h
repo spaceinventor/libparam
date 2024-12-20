@@ -76,7 +76,7 @@ int vmem_ptr_to_index(vmem_t * vmem);
 vmem_t * vmem_vaddr_to_vmem(uint64_t vaddr);
 int vmem_flush(vmem_t *vmem);
 
-extern int __start_vmem, __stop_vmem;
+extern int __start_vmem __attribute__((weak)), __stop_vmem __attribute__((weak));
 
 #ifdef __cplusplus
 }

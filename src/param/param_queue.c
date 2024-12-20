@@ -6,6 +6,8 @@
  */
 
 #include <stdio.h>
+#include <stdarg.h>
+
 #include <csp/csp.h>
 #include <mpack/mpack.h>
 
@@ -16,6 +18,23 @@
 #include <param/param_string.h>
 
 #include "param_serializer.h"
+
+/* Allows controlling the debug leve from build system */
+#ifndef PARAM_QUEUE_DBG_LEVEL
+#define PARAM_QUEUE_DBG_LEVEL 1
+#endif
+
+/* Set this to 0 if you think the stdbuf2 is flooded by messages from this module */
+static uint8_t param_queue_dbg_level = PARAM_QUEUE_DBG_LEVEL;
+
+static void param_queue_dbg(const char *msg, ...) {
+	if (param_queue_dbg_level == 1) {
+		va_list start;
+		va_start(start, msg);
+		vfprintf(stdout, msg, start);
+		va_end(start);
+	}
+}
 
 void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int used, param_queue_type_e type, int version) {
 	queue->buffer = buffer;
@@ -35,8 +54,8 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	}
 
 	if ((queue->type == PARAM_QUEUE_TYPE_GET) && (value != NULL)) {
-		printf("Cannot mix GET/SET commands\n");
-		printf("Queue type %u value %p\n", queue->type, value);
+		param_queue_dbg("Cannot mix GET/SET commands\n");
+		param_queue_dbg("Queue type %u value %p\n", queue->type, value);
 		return -1;
 	}
 
@@ -92,7 +111,9 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
 					param_enter_critical();
 			}
 
-			*param->timestamp = timestamp;
+			if (param->node != 0) {
+				*param->timestamp = timestamp;
+			}
 
 			param_deserialize_from_mpack_to_param(NULL, queue, param, offset, &reader);
 		} else {
@@ -101,7 +122,7 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
 
 			mpack_tag_t tag = mpack_read_tag(&reader);
 			if (mpack_reader_error(&reader) != mpack_ok) {
-				printf("Param decoding failed for ID %u:%u, skipping packet\n", node, id);
+				param_queue_dbg("Param decoding failed for ID %u:%u, skipping packet\n", node, id);
 				break;
 			}
 
@@ -142,7 +163,7 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
     			break;
 			}
 
-			printf("Param decoding failed for ID %u:%u, skipping parameter\n", node, id);
+			param_queue_dbg("Param decoding failed for ID %u:%u, skipping parameter\n", node, id);
 		}
 	}
 

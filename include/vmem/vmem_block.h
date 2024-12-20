@@ -41,14 +41,15 @@ typedef struct vmem_block_driver_api_s {
 } vmem_block_driver_api_t;
 
 typedef struct vmem_block_device_s {
-	char *name;
+	const char *name;
 	uint32_t bsize;
+	uint8_t *oneblock;
 	uint32_t total_nblocks;
 	vmem_binit_t * const init;
 } vmem_block_device_t;
 
 typedef struct vmem_block_driver_s {
-	char *name;
+	const char *name;
 	const vmem_block_device_t * const device;
 	const vmem_block_driver_api_t api;
 } vmem_block_driver_t;
@@ -72,12 +73,14 @@ typedef struct vmem_block_region_s {
 
 /* Macros for defining block- devices, drivers and regions */
 #define VMEM_DEFINE_BLOCK_DEVICE(name_in, strname, _bsize, _total_nblocks, init_fn) \
+	static uint8_t vmem_oneblock_##name_in##_storage[_bsize]; \
 	__attribute__((section("vmem_bdevice"))) \
 	__attribute__((aligned(4))) \
 	__attribute__((used)) \
 	static const vmem_block_device_t vmem_##name_in##_device = { \
 		.name = strname, \
 		.bsize = (_bsize), \
+		.oneblock = &vmem_oneblock_##name_in##_storage[0], \
 		.total_nblocks = (_total_nblocks), \
 		.init = init_fn, \
 	};
@@ -92,11 +95,11 @@ typedef struct vmem_block_region_s {
 		}, \
 	};
 
-#define VMEM_DEFINE_BLOCK_REGION(name_in, strname, addr_in, size_in, _vaddr, driver_in, cache_in) \
+#define VMEM_DEFINE_BLOCK_REGION(name_in, strname, addr_in, size_in, _vaddr, driver_in, cache_ptr) \
 	static const vmem_block_region_t vmem_##name_in##_region = { \
 		.physaddr = addr_in, \
 		.driver = &vmem_##driver_in##_driver, \
-		.cache = &vmem_##cache_in##_cache, \
+		.cache = cache_ptr, \
 	}; \
 	__attribute__((section("vmem"))) \
 	__attribute__((aligned(8))) \

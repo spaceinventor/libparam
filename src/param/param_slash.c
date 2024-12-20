@@ -476,12 +476,14 @@ static int cmd_get(struct slash *slash) {
 	int node = slash_dfl_node;
 	int paramver = 2;
 	int server = 0;
+	int prio = CSP_PRIO_NORM;
 
     optparse_t * parser = optparse_new("get", "<name>");
     optparse_add_help(parser);
     optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
 	optparse_add_int(parser, 's', "server", "NUM", 0, &server, "server to get parameters from (default = node))");
     optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system version (default = 2)");
+	optparse_add_int(parser, 'p', "prio", "NUM", 0, &prio, "CSP priority (0 = CRITICAL, 1 = HIGH, 2 = NORM (default), 3 = LOW)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -531,7 +533,7 @@ static int cmd_get(struct slash *slash) {
 		if (server > 0)
 			dest = server;
 
-		if (param_pull_single(param, offset, CSP_PRIO_HIGH, 1, dest, slash_dfl_timeout, paramver) < 0) {
+		if (param_pull_single(param, offset, prio, 1, dest, slash_dfl_timeout, paramver) < 0) {
 			printf("No response\n");
             optparse_del(parser);
 			return SLASH_EIO;
@@ -555,6 +557,7 @@ static int cmd_set(struct slash *slash) {
 	int server = 0;
 	int ack_with_pull = true;
 	int force = false;
+	int prio = CSP_PRIO_NORM;
 
     optparse_t * parser = optparse_new("set", "<name>[offset] <value>");
     optparse_add_help(parser);
@@ -563,6 +566,7 @@ static int cmd_set(struct slash *slash) {
     optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system version (default = 2)");
 	optparse_add_set(parser, 'a', "no_ack_push", 0, &ack_with_pull, "Disable ack with param push queue");
     optparse_add_set(parser, 'f', "force", true, &force, "force setting readonly params");
+	optparse_add_int(parser, 'p', "prio", "NUM", 0, &prio, "CSP priority (0 = CRITICAL, 1 = HIGH, 2 = NORM (default), 3 = LOW)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -789,7 +793,7 @@ static int cmd_set(struct slash *slash) {
 		csp_timestamp_t time_now;
 		csp_clock_get_time(&time_now);
 		*param->timestamp = 0;
-		if (param_push_queue(&queue, 3, dest, slash_dfl_timeout, 0, ack_with_pull) < 0) {
+		if (param_push_single(param, offset, prio, valuebuf, 0, dest, slash_dfl_timeout, paramver, ack_with_pull) < 0) {
 			printf("No response\n");
 			optparse_del(parser);
 			return SLASH_EIO;
@@ -935,6 +939,7 @@ static int cmd_run(struct slash *slash) {
 	unsigned int server = slash_dfl_node;
 	unsigned int hwid = 0;
 	int ack_with_pull = true;
+	int prio = CSP_PRIO_NORM;
 
     optparse_t * parser = optparse_new("run", "");
     optparse_add_help(parser);
@@ -942,6 +947,7 @@ static int cmd_run(struct slash *slash) {
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to push parameters to (default = <env>))");
 	optparse_add_unsigned(parser, 'h', "hwid", "NUM", 16, &hwid, "include hardware id filter (default = off)");
 	optparse_add_set(parser, 'a', "no_ack_push", 0, &ack_with_pull, "Disable ack with param push queue");
+	optparse_add_int(parser, 'p', "prio", "NUM", 0, &prio, "CSP priority (0 = CRITICAL, 1 = HIGH, 2 = NORM (default), 3 = LOW)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -953,7 +959,7 @@ static int cmd_run(struct slash *slash) {
 
 		csp_timestamp_t time_now;
 		csp_clock_get_time(&time_now);
-		if (param_push_queue(&param_queue, 0, server, timeout, hwid, ack_with_pull) < 0) {
+		if (param_push_queue(&param_queue, prio, 0, server, timeout, hwid, ack_with_pull) < 0) {
 			printf("No response\n");
             optparse_del(parser);
 			return SLASH_EIO;
@@ -963,7 +969,7 @@ static int cmd_run(struct slash *slash) {
 	}
 
 	if (param_queue.type == PARAM_QUEUE_TYPE_GET) {
-		if (param_pull_queue(&param_queue, CSP_PRIO_HIGH, 1, server, timeout)) {
+		if (param_pull_queue(&param_queue, prio, 1, server, timeout)) {
 			printf("No response\n");
             optparse_del(parser);
 			return SLASH_EIO;
@@ -982,15 +988,19 @@ static int cmd_pull(struct slash *slash) {
 	unsigned int server = slash_dfl_node;
 	char * include_mask_str = NULL;
 	char * exclude_mask_str = NULL;
+	char * nodes_str = NULL;
 	int paramver = 2;
+	int prio = CSP_PRIO_NORM;
 
-    optparse_t * parser = optparse_new("pull", "");
-    optparse_add_help(parser);
+	optparse_t * parser = optparse_new("pull", "");
+	optparse_add_help(parser);
 	optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout in milliseconds (default = <env>)");
 	optparse_add_unsigned(parser, 's', "server", "NUM", 0, &server, "server to pull parameters from (default = <env>))");
 	optparse_add_string(parser, 'm', "imask", "MASK", &include_mask_str, "Include mask (param letters)");
 	optparse_add_string(parser, 'e', "emask", "MASK", &exclude_mask_str, "Exclude mask (param letters)");
-    optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system version (default = 2)");
+	optparse_add_string(parser, 'n', "nodes", "NODES", &nodes_str, "Comma separated list of nodes to pull parameters from");
+	optparse_add_int(parser, 'v', "paramver", "NUM", 0, &paramver, "parameter system version (default = 2)");
+	optparse_add_int(parser, 'p', "prio", "NUM", 0, &prio, "CSP priority (0 = CRITICAL, 1 = HIGH, 2 = NORM (default), 3 = LOW)");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -1006,16 +1016,51 @@ static int cmd_pull(struct slash *slash) {
 	if (exclude_mask_str)
 	    exclude_mask = param_maskstr_to_mask(exclude_mask_str);
 
-	if (param_pull_all(CSP_PRIO_HIGH, 1, server, include_mask, exclude_mask, timeout, paramver)) {
-		printf("No response\n");
-        optparse_del(parser);
-		return SLASH_EIO;
+	int result = SLASH_SUCCESS;
+	uint8_t num_nodes = 0;
+	uint16_t *nodes;
+	if(NULL == nodes_str) {
+		num_nodes++;
+		nodes = calloc(num_nodes, sizeof(uint16_t));
+		nodes[0] = server;
+	} else {
+		char *cur_node = strdup(nodes_str);
+		char *start = cur_node;
+		char *end = cur_node + strlen(cur_node);
+		uint8_t idx = 0;
+		while(*cur_node) {
+			if(*cur_node == ',') {
+				*cur_node = 0;
+				num_nodes++;
+			}
+			cur_node++;
+		}
+		num_nodes++;
+		nodes = calloc(num_nodes, sizeof(uint16_t));
+		uint16_t node_id = 0;
+		cur_node = start;
+		while(cur_node < end) {
+			node_id = atoi(cur_node);
+			if(node_id != 0) {
+				nodes[idx++] = node_id;
+			}
+			while(*(++cur_node) != 0);
+			cur_node++;
+		}
+		free(start);
+		num_nodes = idx;
+	}	
+	for (uint8_t i = 0; i < num_nodes; i++) {
+		if (param_pull_all(prio, 1, nodes[i], include_mask, exclude_mask, timeout, paramver)) {
+			printf("No response from %d\n", nodes[i]);
+			result = SLASH_EIO;
+		}
 	}
-
-    optparse_del(parser);
-	return SLASH_SUCCESS;
+	free(nodes);
+	optparse_del(parser);
+	return result;
 }
-slash_command(pull, cmd_pull, "", "Pull all metrics");
+slash_command(pull, cmd_pull, "[OPTIONS]", "Pull all metrics from given CSP node(s)");
 
 static int cmd_new(struct slash *slash) {
 

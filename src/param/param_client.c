@@ -56,7 +56,7 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 
 			/* Print the local RAM copy of the remote parameter */
 			if (param) {
-				param_print(param, -1, NULL, 0, 0, 0);
+				param_print(param, -1, NULL, 0, verbose, 0);
 			}
 
 		}
@@ -117,7 +117,7 @@ int param_transaction(csp_packet_t *packet, int host, int timeout, param_transac
 	return result;
 }
 
-int param_pull_all(uint8_t prio, int verbose, int host, uint32_t include_mask, uint32_t exclude_mask, int timeout, int version) {
+int param_pull_all(int prio, int verbose, int host, uint32_t include_mask, uint32_t exclude_mask, int timeout, int version) {
 
 	csp_packet_t *packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
@@ -162,7 +162,7 @@ int param_pull_queue(param_queue_t *queue, uint8_t prio, int verbose, int host, 
 }
 
 
-int param_pull_single(param_t *param, int offset, uint8_t prio, int verbose, int host, int timeout, int version) {
+int param_pull_single(param_t *param, int offset, int prio, int verbose, int host, int timeout, int version) {
 
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
@@ -185,7 +185,7 @@ int param_pull_single(param_t *param, int offset, uint8_t prio, int verbose, int
 }
 
 
-int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, uint32_t hwid, bool ack_with_pull) {
+int param_push_queue(param_queue_t *queue, int prio, int verbose, int host, int timeout, uint32_t hwid, bool ack_with_pull) {
 
 	if ((queue == NULL) || (queue->used == 0))
 		return 0;
@@ -211,7 +211,7 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, u
 	memcpy(&packet->data[2], queue->buffer, queue->used);
 
 	packet->length = queue->used + 2;
-	packet->id.pri = CSP_PRIO_HIGH;
+	packet->id.pri = prio;
 
 	/* Append hwid, no care given to endian at this point */
 	if (hwid > 0) {
@@ -240,7 +240,7 @@ int param_push_queue(param_queue_t *queue, int verbose, int host, int timeout, u
 	return 0;
 }
 
-int param_push_single(param_t *param, int offset, void *value, int verbose, int host, int timeout, int version, bool ack_with_pull) {
+int param_push_single(param_t *param, int offset, int prio, void *value, int verbose, int host, int timeout, int version, bool ack_with_pull) {
 
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
@@ -265,7 +265,7 @@ int param_push_single(param_t *param, int offset, void *value, int verbose, int 
 	param_queue_add(&queue, param, offset, value);
 
 	packet->length = queue.used + 2;
-	packet->id.pri = CSP_PRIO_HIGH;
+	packet->id.pri = prio;
 	int result = param_transaction(packet, host, timeout, cb, verbose, version, NULL);
 
 	if (result < 0) {
