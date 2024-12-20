@@ -17,7 +17,7 @@ jobs:
         with:
           action: build
           options: --verbose
-          setup-options: -Db_coverage=true -Ddefault_library=static
+          setup-options: -Db_coverage=true -Ddefault_library=static -Dslash=true
           directory: builddir
           meson-version: 1.5.1
           ninja-version: 1.11.1.1
