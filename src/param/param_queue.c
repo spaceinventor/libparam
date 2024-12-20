@@ -185,7 +185,7 @@ void param_queue_print(param_queue_t *queue) {
 		if (param) {
 			printf("cmd add ");
 			if (param->node > 0) {
-				printf("-n %d ", param->node);
+				printf("-n %d ", *param->node);
 			}
 			printf("%s", param->name);
 			if (offset >= 0) {
