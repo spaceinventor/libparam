@@ -18,7 +18,6 @@
 #include <param/param.h>
 #include <param/param_list.h>
 #include <time.h>
-#include <slash/dflopt.h>
 
 #ifndef MIN
 #define MIN(a,b) (((a)<(b))?(a):(b))
