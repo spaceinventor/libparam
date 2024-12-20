@@ -17,7 +17,7 @@ test('vmem_block_tests', vmem_block_tests)
 set_array_tests = executable(
     'set_array_tests',
     sources: ['param_slash_parse_array_tests.c', '../src/param/param_slash.c'],
-    dependencies: [csp_dep, slash_dep],
+    dependencies: [csp_dep, slash_dep, bsd_dep],
     include_directories : [param_inc, '../src/param'],
     link_with : param_lib
 )
