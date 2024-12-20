@@ -298,7 +298,7 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 
 	/* Node/ID */
 	if (verbose >= 1) {
-		fprintf(file, " %3u:%-2u", param->id, *param->node);
+		fprintf(file, " %3u:%-2u", param->id, param->node);
 	}
 
 	/* Name */
