@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <inttypes.h>
 #include <slash/slash.h>
@@ -31,7 +32,7 @@
 static char queue_buf[PARAM_SERVER_MTU];
 param_queue_t param_queue = { .buffer = queue_buf, .buffer_size = PARAM_SERVER_MTU, .type = PARAM_QUEUE_TYPE_EMPTY, .version = 2 };
 
-static int param_slash_parse_slice(char * token, int *start_index, int *end_index, int *slice_detected) {
+int param_slash_parse_slice(char * token, int *start_index, int *end_index, int *slice_detected) {
 	/**
 	 * Function to find offsets and check if slice delimitor is active.
 	 * @return Returns an array of three values. Defaults to INT_MIN if no value.
@@ -639,7 +640,7 @@ static int cmd_set(struct slash *slash) {
 
 	}
 
-	offset_token = '\0';
+	offset_token = NULL;
 
 	if (param->array_size == 1) {
 		if (expected_value_amount > 1) {
@@ -793,7 +794,7 @@ static int cmd_set(struct slash *slash) {
 		csp_timestamp_t time_now;
 		csp_clock_get_time(&time_now);
 		*param->timestamp = 0;
-		if (param_push_single(param, offset, prio, valuebuf, 0, dest, slash_dfl_timeout, paramver, ack_with_pull) < 0) {
+		if (param_push_queue(&queue, CSP_PRIO_NORM, 3, dest, slash_dfl_timeout, 0, ack_with_pull) < 0) {
 			printf("No response\n");
 			optparse_del(parser);
 			return SLASH_EIO;
