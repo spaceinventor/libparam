@@ -14,6 +14,8 @@ using namespace std;
 extern "C" int32_t binit_emmc(const vmem_block_device_t *dev);
 extern "C" int32_t bread_emmc(const vmem_block_driver_t *drv, uint32_t blockaddr, uint32_t n_blocks, uint8_t *data);
 extern "C" int32_t bwrite_emmc(const vmem_block_driver_t *drv, uint32_t blockaddr, uint32_t n_blocks, uint8_t *data);
+int slash_dfl_node = 0;
+unsigned int slash_dfl_timeout = 1000;
 
 VMEM_DEFINE_BLOCK_DEVICE(emmc0, "emmc0", EMMC_BLOCK_SIZE, 16777216, binit_emmc);
 VMEM_DEFINE_BLOCK_DRIVER(emmc, "emmc", bread_emmc, bwrite_emmc, emmc0);
