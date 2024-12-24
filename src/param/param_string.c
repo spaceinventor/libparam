@@ -19,7 +19,6 @@
 #include <param/param_list.h>
 #include <time.h>
 
-
 #ifndef MIN
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #endif
@@ -425,7 +424,21 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 	if ((verbose >= 3) && (param->docstr != NULL)) {
 		fprintf(file, "\t\t%s", param->docstr);
 	}
+	
+	if(verbose >= 4){
+		if (*param->timestamp > 0){		
+			struct tm timestamp;
+			char timestamp_buffer[40];
+			time_t param_timestamp = (time_t)*param->timestamp;
+			timestamp = *localtime(&param_timestamp);
+			strftime(timestamp_buffer, sizeof(timestamp_buffer), "%a %Y-%m-%d %H:%M:%S %Z", &timestamp);
 
+			fprintf(file, "\t%s", timestamp_buffer);
+		}
+		else{
+			fprintf(file, "\t%s", "-");
+		}
+	}
 
 	fprintf(file, "%s", param_mask_color_off());
 

@@ -13,11 +13,13 @@ jobs:
       - uses: actions/setup-python@v1
       - name: Install gcovr
         run: pip3 install gcovr==5.0      
+      - name: Install libbsd-dev
+        run: sudo apt-get install -y libbsd-dev
       - uses: BSFishy/meson-build@v1.0.3
         with:
           action: build
           options: --verbose
-          setup-options: -Db_coverage=true -Ddefault_library=static
+          setup-options: -Db_coverage=true -Ddefault_library=static -Dslash=true
           directory: builddir
           meson-version: 1.5.1
           ninja-version: 1.11.1.1

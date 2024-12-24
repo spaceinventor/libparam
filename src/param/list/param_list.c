@@ -808,11 +808,11 @@ void list_add_output_user_flags(uint32_t mask, FILE * out){
 		for (int i = PM_USER_FLAGS_OFFSET; i < 8*sizeof(mask); i++) {
 			if (mask & (1<<i)) {
 				mask &= ~ (1<<i);
-				printf("%x", i-PM_USER_FLAGS_OFFSET);
+				fprintf(out, "%x", i-PM_USER_FLAGS_OFFSET);
 			}
 		}
 
-		printf("\" ");
+		fprintf(out, "\" ");
 	}
 	// Output:  -M "23" for PM_KEYCONF
 
