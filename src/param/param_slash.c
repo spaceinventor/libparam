@@ -432,7 +432,7 @@ static void param_completer(struct slash *slash, char * token) {
 			continue;
 
 		if (strncmp(token, param->name, slash_min(strlen(param->name), tokenlen)) == 0
-			&& param->node == node) {
+			&& *param->node == node) {
 
 			/* Count matches */
 			matches++;
@@ -519,7 +519,7 @@ static int cmd_get(struct slash *slash) {
 		}
 
 		/* Node match */
-		if (param->node != node) {
+		if (*param->node != node) {
 			continue;
 		}
 
@@ -903,7 +903,7 @@ static int cmd_add(struct slash *slash) {
 			}
 
 			/* Node match */
-			if (param->node != node) {
+			if (*param->node != node) {
 				continue;
 			}
 
