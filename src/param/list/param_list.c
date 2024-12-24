@@ -34,8 +34,9 @@
  * defines two param_t structs and saves the storage size in a define.
  */
 #ifndef PARAM_STORAGE_SIZE
-static param_t param_size_set[2] __attribute__((aligned(1)));
-#define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set[1] - (intptr_t) &param_size_set[0])
+static param_t param_size_set0;
+static param_t param_size_set1;
+#define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set1 - (intptr_t) &param_size_set0)
 #endif
 
 #ifdef PARAM_HAVE_SYS_QUEUE
