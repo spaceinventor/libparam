@@ -794,7 +794,7 @@ static int cmd_set(struct slash *slash) {
 		csp_timestamp_t time_now;
 		csp_clock_get_time(&time_now);
 		*param->timestamp = 0;
-		if (param_push_queue(&queue, CSP_PRIO_NORM, 3, dest, slash_dfl_timeout, 0, ack_with_pull) < 0) {
+		if (param_push_queue(&queue, CSP_PRIO_NORM, 0, dest, slash_dfl_timeout, 0, ack_with_pull) < 0) {
 			printf("No response\n");
 			optparse_del(parser);
 			return SLASH_EIO;
