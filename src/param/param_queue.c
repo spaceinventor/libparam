@@ -25,7 +25,7 @@
 #endif
 
 /* Set this to 0 if you think the stdbuf2 is flooded by messages from this module */
-static uint8_t param_queue_dbg_level = PARAM_QUEUE_DBG_LEVEL;
+uint8_t param_queue_dbg_level = PARAM_QUEUE_DBG_LEVEL;
 
 static void param_queue_dbg(const char *msg, ...) {
 	if (param_queue_dbg_level == 1) {
