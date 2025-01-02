@@ -34,8 +34,9 @@
  * defines two param_t structs and saves the storage size in a define.
  */
 #ifndef PARAM_STORAGE_SIZE
-static param_t param_size_set[2] __attribute__((aligned(1)));
-#define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set[1] - (intptr_t) &param_size_set[0])
+static param_t param_size_set0;
+static param_t param_size_set1;
+#define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set1 - (intptr_t) &param_size_set0)
 #endif
 
 #ifdef PARAM_HAVE_SYS_QUEUE
@@ -116,7 +117,7 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 int param_list_add(param_t * item) {
 
 	param_t * param;
-	if ((param = param_list_find_id(item->node, item->id)) != NULL) {
+	if ((param = param_list_find_id(*item->node, item->id)) != NULL) {
 
 		/* To protect against updating local static params and ROM remote params
 		   When creating remote dynamic params using the macro
@@ -169,11 +170,11 @@ int param_list_remove(int node, uint8_t verbose) {
 		uint8_t match = 0;
 
 		if (node > 0)
-			match = param->node == node;
+			match = *param->node == node;
 
 		if (match) {
 			if (verbose)
-				printf("Removing param: %s:%u[%d]\n", param->name, param->node, param->array_size);
+				printf("Removing param: %s:%u[%d]\n", param->name, *param->node, param->array_size);
 			// Using SLIST_REMOVE() means we iterate twice, but it is simpler.
 			SLIST_REMOVE(&param_list_head, param, param_s, next);
 			param_list_destroy(param);
@@ -186,7 +187,7 @@ int param_list_remove(int node, uint8_t verbose) {
 void param_list_remove_specific(param_t * param, uint8_t verbose, int destroy) {
 
     if (verbose >= 2) {
-        printf("Removing param: %s:%u[%d]\n", param->name, param->node, param->array_size);
+        printf("Removing param: %s:%u[%d]\n", param->name, *param->node, param->array_size);
     }
     SLIST_REMOVE(&param_list_head, param, param_s, next);
     if (destroy) {
@@ -206,7 +207,7 @@ param_t * param_list_find_id(int node, int id) {
 
 	while ((param = param_list_iterate(&i)) != NULL) {
 
-		if (param->node != node)
+		if (*param->node != node)
 			continue;
 
 		if (param->id == id) {
@@ -230,7 +231,7 @@ param_t * param_list_find_name(int node, const char * name) {
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 
-		if (param->node != node)
+		if (*param->node != node)
 			continue;
 
 		if (strcmp(param->name, name) == 0) {
@@ -248,7 +249,7 @@ void param_list_print(uint32_t mask, int node, const char * globstr, int verbosi
 	param_t * param;
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
-		if ((node >= 0) && (param->node != node)) {
+		if ((node >= 0) && (*param->node != node)) {
 			continue;
 		}
 		if ((param->mask & mask) == 0) {
@@ -293,7 +294,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 		} else if (list_version == 2) {
 
 			param_transfer2_t * rparam = param_packed;
-			int node = param->node;
+			int node = *param->node;
 			rparam->id = htobe16(param->id);
 			rparam->node = htobe16(node);
 			rparam->type = param->type;
@@ -308,7 +309,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 		} else {
 
 			param_transfer3_t * rparam = param_packed;
-			int node = param->node;
+			int node = *param->node;
 			rparam->id = htobe16(param->id);
 			rparam->node = htobe16(node);
 			rparam->type = param->type;
@@ -425,6 +426,7 @@ typedef struct param_heap_s {
 		uint64_t alignme;
 		uint8_t *buffer;
 	};
+	uint16_t node;
 	uint32_t timestamp;
 	char name[36];
 	char unit[10];
@@ -540,7 +542,7 @@ int param_list_unpack(int node, void * data, int length, int list_version, int i
 	param_t * param = param_list_create_remote(id, addr, type, mask, size, name, unit, help, storage_type);
 
 	if (param != NULL) {
-		printf("Got param: %s:%u[%d]\n", param->name, param->node, param->array_size);
+		printf("Got param: %s:%u[%d]\n", param->name, *param->node, param->array_size);
 
 		/* Add to list */
 		if (param_list_add(param) != 0)
@@ -603,6 +605,8 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 		return NULL;
 	}
 
+	param_heap->node = node;
+
 	param->vmem = &param_heap->vmem;
 	param->callback = NULL;
 	param->name = param_heap->name;
@@ -612,7 +616,7 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	param->docstr = param_heap->help;
 
 	param->id = id;
-	param->node = node;
+	param->node = &param_heap->node;
 	param->type = type;
 	param->mask = mask;
 	param->array_size = array_size;
@@ -673,7 +677,7 @@ void param_list_save(const char * const filename, int node, int skip_node) {
 
     while ((param = param_list_iterate(&i)) != NULL) {
 
-        if ((node >= 0) && (param->node != node)) {
+        if ((node >= 0) && (*param->node != node)) {
             continue;
         }
         param_sorted[param_cnt] = param;
@@ -694,7 +698,7 @@ void param_list_save(const char * const filename, int node, int skip_node) {
             fprintf(out, "-u \"%s\" ", param_sorted[i]->unit);
         }
         if (param_sorted[i]->node != 0 && !skip_node) {
-            fprintf(out, "-n %u ", param_sorted[i]->node);
+            fprintf(out, "-n %u ", *param_sorted[i]->node);
         }
         
         if (param_sorted[i]->mask > 0) {
