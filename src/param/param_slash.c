@@ -524,7 +524,7 @@ static int cmd_get(struct slash *slash) {
 		}
 
 		/* Local parameters are printed directly */
-		if ((param->node == 0) && (server == 0)) {
+		if ((*param->node == 0) && (server == 0)) {
 			param_print(param, -1, NULL, 0, 0, 0);
 			continue;
 		}
@@ -774,7 +774,7 @@ static int cmd_set(struct slash *slash) {
 	}
 
 	/* Local parameters are set directly */
-	if (param->node == 0) {
+	if (*param->node == 0) {
 		param_queue_apply(&queue, 1, 0);
 
 		// if (offset < 0 && param->type != PARAM_TYPE_STRING && param->type != PARAM_TYPE_DATA) {

@@ -111,7 +111,7 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
 					param_enter_critical();
 			}
 
-			if (param->node != 0) {
+			if (*param->node != 0) {
 				*param->timestamp = timestamp;
 			}
 
@@ -184,7 +184,7 @@ void param_queue_print(param_queue_t *queue) {
 	PARAM_QUEUE_FOREACH(param, reader, queue, offset)
 		if (param) {
 			printf("cmd add ");
-			if (param->node > 0) {
+			if (*param->node > 0) {
 				printf("-n %d ", *param->node);
 			}
 			printf("%s", param->name);

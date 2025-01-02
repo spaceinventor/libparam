@@ -284,7 +284,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 		if (prio_only && (param->mask & PM_PRIO_MASK) == 0)
 			continue;
 
-		if (remote_only && param->node == 0)
+		if (remote_only && *param->node == 0)
 			continue;
 
 		if (list_version == 1) {
@@ -697,7 +697,7 @@ void param_list_save(const char * const filename, int node, int skip_node) {
         if ((param_sorted[i]->unit != NULL) && (strlen(param_sorted[i]->unit) > 0)) {
             fprintf(out, "-u \"%s\" ", param_sorted[i]->unit);
         }
-        if (param_sorted[i]->node != 0 && !skip_node) {
+        if (*param_sorted[i]->node != 0 && !skip_node) {
             fprintf(out, "-n %u ", *param_sorted[i]->node);
         }
         

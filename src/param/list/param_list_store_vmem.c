@@ -54,14 +54,14 @@ static void param_list_to_string(FILE * stream, int node_filter) {
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 
-		if ((node_filter >= 0) && (param->node != node_filter))
+		if ((node_filter >= 0) && (*param->node != node_filter))
 			continue;
 
 		/* Only store remote parameters */
-		if (param->node == 0)
+		if (*param->node == 0)
 			continue;
 
-		fprintf(stream, "%u,%u,%s,%u,%d,%x\n", param->node, param->id, param->name, param->type, param->array_size, param->mask);
+		fprintf(stream, "%u,%u,%s,%u,%d,%x\n", *param->node, param->id, param->name, param->type, param->array_size, param->mask);
 	}
 
 }
