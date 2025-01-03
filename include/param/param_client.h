@@ -8,6 +8,7 @@
 #ifndef LIB_PARAM_INCLUDE_PARAM_PARAM_CLIENT_H_
 #define LIB_PARAM_INCLUDE_PARAM_PARAM_CLIENT_H_
 
+#include <csp/csp_types.h>
 #include <param/param.h>
 #include <param/param_queue.h>
 
