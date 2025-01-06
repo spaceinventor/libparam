@@ -286,6 +286,9 @@ static void rparam_list_handler(csp_conn_t * conn)
 		if (packet == NULL)
 		    break;
 
+		if (param->mask & PM_REMOTE && *param->node == 0)
+			continue;
+
 		memset(packet->data, 0, 256);
 
 		param_transfer3_t * rparam = (void *) packet->data;
