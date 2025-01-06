@@ -32,11 +32,16 @@
  * The storage size (i.e. how closely two param_t structs are packed in memory)
  * varies from platform to platform (in example on x64 and arm32). This macro
  * defines two param_t structs and saves the storage size in a define.
+ * The linker may also put padding bytes between param_t's (even in the same section),
+ * but it appears that the same padding is added to the parameters below, so the macro will account for it.
+ * In addition, Newer GCC versions (gcc 13.3.0 and arm-none-eabi-gcc 13.2.1, common for Ubuntu 24.04)
+ * will put symbols in reverse order (when compared with gcc 11.4 and arm-none-eabi-gcc 10.3.1, common for Ubuntu 22.04).
+ * So that necessitates the abs() call, so the size doesn't become negative.
  */
 #ifndef PARAM_STORAGE_SIZE
-static param_t param_size_set0;
-static param_t param_size_set1;
-#define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set1 - (intptr_t) &param_size_set0)
+const param_t param_size_set0;
+const param_t param_size_set1;
+#define PARAM_STORAGE_SIZE abs((intptr_t) &param_size_set1 - (intptr_t) &param_size_set0)
 #endif
 
 #ifdef PARAM_HAVE_SYS_QUEUE
