@@ -192,7 +192,7 @@ typedef struct param_s {
 		.array_size = _array_count < 1 ? 1 : _array_count, \
 		.array_step = _array_step, \
 		.name = (char *) #_name, \
-		.mask = _flags, \
+		.mask = _flags | PM_REMOTE, \
 		.addr = _physaddr, \
 		.vaddr = 0, \
 		.vmem = NULL, \
@@ -211,7 +211,7 @@ typedef struct param_s {
 		.array_size = _array_count < 1 ? 1 : _array_count, \
 		.array_step = _array_step, \
 		.name = (char *) #_name, \
-		.mask = _flags, \
+		.mask = _flags | PM_REMOTE, \
 		.addr = _physaddr, \
 		.vaddr = 0, \
 		.vmem = NULL, \

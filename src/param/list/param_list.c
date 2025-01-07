@@ -87,18 +87,25 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 #endif
 		}
 
-		return iterator->element;
+		/* Static remote parameters without node configured are not handled */
+		if (!(iterator->element->mask & PM_REMOTE) || *iterator->element->node != 0) 
+			return iterator->element;
 	}
 
 	/* Static phase */
-	if (iterator->phase == 0) {
+	while (iterator->phase == 0) {
 
 		/* Increment in static memory */
 		iterator->element = (param_t *)(intptr_t)((char *)iterator->element + PARAM_STORAGE_SIZE);
 
 		/* Check if we are still within the bounds of the static memory area */
-		if (iterator->element < &__stop_param)
+		if (iterator->element < &__stop_param) {
+			/* Static remote parameters without node configured are not handled */
+			if (iterator->element->mask & PM_REMOTE && *iterator->element->node == 0)
+				continue;
+
 			return iterator->element;
+		}
 
 		/* Otherwise, switch to dynamic phase */
 		iterator->phase = 1;
