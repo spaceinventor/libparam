@@ -36,12 +36,16 @@
  * but it appears that the same padding is added to the parameters below, so the macro will account for it.
  * In addition, Newer GCC versions (gcc 13.3.0 and arm-none-eabi-gcc 13.2.1, common for Ubuntu 24.04)
  * will put symbols in reverse order (when compared with gcc 11.4 and arm-none-eabi-gcc 10.3.1, common for Ubuntu 22.04).
- * So that necessitates the abs() call, so the size doesn't become negative.
+ * So that necessitates `__attribute__((no_reorder))`, so the size doesn't become negative.
+ * `__attribute__((no_reorder))` is preferred over c_args '-fno-toplevel-reorder',
+ * as it doesn't require the user to modify their usage of libparam.
  */
 #ifndef PARAM_STORAGE_SIZE
+__attribute__((no_reorder))
 const param_t param_size_set0;
+__attribute__((no_reorder))
 const param_t param_size_set1;
-#define PARAM_STORAGE_SIZE abs((intptr_t) &param_size_set1 - (intptr_t) &param_size_set0)
+#define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set1 - (intptr_t) &param_size_set0)
 #endif
 
 #ifdef PARAM_HAVE_SYS_QUEUE
