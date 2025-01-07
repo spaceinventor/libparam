@@ -137,7 +137,7 @@ typedef struct param_s {
 	uint32_t _timestamp_##_name = 0; \
 	uint16_t _node_##_name = 0; \
 	__attribute__((section("param"))) \
-	__attribute__((used)) \
+	__attribute__((used, no_reorder)) \
 	param_t _name = { \
 		.vmem = NULL, \
 		.node = &_node_##_name, \
@@ -160,7 +160,7 @@ typedef struct param_s {
 	uint32_t _timestamp_##_name = 0; \
 	uint16_t _node_##_name = 0; \
 	__attribute__((section("param"))) \
-	__attribute__((used)) \
+	__attribute__((used, no_reorder)) \
 	param_t _name = { \
 		.node = &_node_##_name, \
 		.id = _id, \
@@ -184,7 +184,7 @@ typedef struct param_s {
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	__attribute__((section("param"))) \
-	__attribute__((used)) \
+	__attribute__((used, no_reorder)) \
 	param_t _name = { \
 		.node = _node, \
 		.id = _id, \
