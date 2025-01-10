@@ -6,6 +6,7 @@ conf.set('PARAM_LIST_DYNAMIC', get_option('list_dynamic'))
 conf.set('PARAM_LIST_POOL', get_option('list_pool'))
 conf.set('PARAM_HAVE_SCHEDULER', get_option('scheduler'))
 conf.set('PARAM_HAVE_COMMANDS', get_option('commands'))
+conf.set('PARAM_HAVE_COMMANDS_CLIENT', get_option('commands_client'))
 # From now on, VMEM API is 64bits, breaking earlier ABI. 
 # New user code can use the fact that this macro is defined (its value is not relevant, just the fact that it is defined)
 # to check that the libparam version included (typically through convoluted dependency paths) does support the 64-bits API
@@ -145,7 +146,7 @@ if get_option('slash') == true
 endif
 
 param_inc = include_directories('.', 'include')
-
+deps = [clib_dep, bsd_dep, csp_dep, slash_dep]
 param_lib = library('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
@@ -219,4 +220,3 @@ if get_option('enable_python3_bindings')
 		build_by_default: true
 	)
 endif
-

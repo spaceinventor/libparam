@@ -679,7 +679,7 @@ int param_schedule_server_update(uint64_t timestamp_nsec) {
                     temp_schedule.header.queue.buffer = (char *) ((long int) &temp_schedule + (long int) (sizeof(param_schedule_t)));
 
                     /* Execute the scheduled queue */
-                    if (param_push_queue(&temp_schedule.header.queue, 0, temp_schedule.header.host, 1000, 0, false) == 0){
+                    if (param_push_queue(&temp_schedule.header.queue, CSP_PRIO_NORM, 0, temp_schedule.header.host, 1000, 0, false) == 0){
                         temp_schedule.header.completed = 0x55;
                         temp_schedule.header.time = timestamp_nsec;
                     } else {

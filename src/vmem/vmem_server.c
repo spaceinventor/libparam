@@ -289,7 +289,7 @@ static void rparam_list_handler(csp_conn_t * conn)
 		memset(packet->data, 0, 256);
 
 		param_transfer3_t * rparam = (void *) packet->data;
-		int node = param->node;
+		int node = *param->node;
 		rparam->id = htobe16(param->id);
 		rparam->node = htobe16(node);
 		rparam->type = param->type;

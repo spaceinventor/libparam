@@ -14,6 +14,8 @@ using namespace std;
 extern "C" int32_t binit_emmc(const vmem_block_device_t *dev);
 extern "C" int32_t bread_emmc(const vmem_block_driver_t *drv, uint32_t blockaddr, uint32_t n_blocks, uint8_t *data);
 extern "C" int32_t bwrite_emmc(const vmem_block_driver_t *drv, uint32_t blockaddr, uint32_t n_blocks, uint8_t *data);
+int slash_dfl_node = 0;
+unsigned int slash_dfl_timeout = 1000;
 
 VMEM_DEFINE_BLOCK_DEVICE(emmc0, "emmc0", EMMC_BLOCK_SIZE, 16777216, binit_emmc);
 VMEM_DEFINE_BLOCK_DRIVER(emmc, "emmc", bread_emmc, bwrite_emmc, emmc0);
@@ -24,11 +26,11 @@ VMEM_DEFINE_BLOCK_CACHE(emmc_cache_reg2, EMMC_BLOCK_SIZE * 10);
 VMEM_DEFINE_BLOCK_CACHE(emmc_cache_reg3, EMMC_BLOCK_SIZE * 2);
 VMEM_DEFINE_BLOCK_CACHE(emmc_cache_reg4, EMMC_BLOCK_SIZE * 1);
 
-VMEM_DEFINE_BLOCK_REGION(stfw0, "stfw0", 0x0 + (0 * STFW_FIFO_SIZE), STFW_FIFO_SIZE, 0x1000000000ULL + (0 * STFW_FIFO_SIZE), emmc, emmc_cache_reg0);
-VMEM_DEFINE_BLOCK_REGION(stfw1, "stfw1", 0x0 + (1 * STFW_FIFO_SIZE), STFW_FIFO_SIZE, 0x1000000000ULL + (1 * STFW_FIFO_SIZE), emmc, emmc_cache_reg1);
-VMEM_DEFINE_BLOCK_REGION(stfw2, "stfw2", 0x0 + (2 * STFW_FIFO_SIZE), STFW_FIFO_SIZE, 0x1000000000ULL + (2 * STFW_FIFO_SIZE), emmc, emmc_cache_reg2);
-VMEM_DEFINE_BLOCK_REGION(stfw3, "stfw3", 0x0 + (3 * STFW_FIFO_SIZE), STFW_FIFO_SIZE, 0x1000000000ULL + (3 * STFW_FIFO_SIZE), emmc, emmc_cache_reg3);
-VMEM_DEFINE_BLOCK_REGION(stfw4, "stfw4", 0x0 + (4 * STFW_FIFO_SIZE), STFW_FIFO_SIZE, 0x1000000000ULL + (4 * STFW_FIFO_SIZE), emmc, emmc_cache_reg4);
+VMEM_DEFINE_BLOCK_REGION(stfw0, "stfw0", 0x0 + (0 * STFW_FIFO_SIZE), STFW_FIFO_SIZE, 0x1000000000ULL + (0 * STFW_FIFO_SIZE), emmc, &vmem_emmc_cache_reg0_cache);
+VMEM_DEFINE_BLOCK_REGION(stfw1, "stfw1", 0x0 + (1 * STFW_FIFO_SIZE), STFW_FIFO_SIZE, 0x1000000000ULL + (1 * STFW_FIFO_SIZE), emmc, &vmem_emmc_cache_reg1_cache);
+VMEM_DEFINE_BLOCK_REGION(stfw2, "stfw2", 0x0 + (2 * STFW_FIFO_SIZE), STFW_FIFO_SIZE, 0x1000000000ULL + (2 * STFW_FIFO_SIZE), emmc, &vmem_emmc_cache_reg2_cache);
+VMEM_DEFINE_BLOCK_REGION(stfw3, "stfw3", 0x0 + (3 * STFW_FIFO_SIZE), STFW_FIFO_SIZE, 0x1000000000ULL + (3 * STFW_FIFO_SIZE), emmc, &vmem_emmc_cache_reg3_cache);
+VMEM_DEFINE_BLOCK_REGION(stfw4, "stfw4", 0x0 + (4 * STFW_FIFO_SIZE), STFW_FIFO_SIZE, 0x1000000000ULL + (4 * STFW_FIFO_SIZE), emmc, &vmem_emmc_cache_reg4_cache);
 
 #define TEST_BUFFER_SIZE 10240
 #define TEST_BUFFER_OFFSET 78

@@ -92,7 +92,7 @@ typedef struct param_s {
 
 	/* Parameter declaration */
 	uint16_t id;
-	uint16_t node;
+	uint16_t * node;
 	param_type_e type;
 	uint32_t mask;
 	char *name;
@@ -135,11 +135,12 @@ typedef struct param_s {
 #define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
+	uint16_t _node_##_name = 0; \
 	__attribute__((section("param"))) \
-	__attribute__((used)) \
+	__attribute__((used, no_reorder)) \
 	param_t _name = { \
 		.vmem = NULL, \
-		.node = 0, \
+		.node = &_node_##_name, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
@@ -157,10 +158,11 @@ typedef struct param_s {
 #define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
+	uint16_t _node_##_name = 0; \
 	__attribute__((section("param"))) \
-	__attribute__((used)) \
+	__attribute__((used, no_reorder)) \
 	param_t _name = { \
-		.node = 0, \
+		.node = &_node_##_name, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
@@ -178,11 +180,11 @@ typedef struct param_s {
 
 #define PARAM_REMOTE_NODE_IGNORE 16382
 
-#define PARAM_DEFINE_REMOTE(_name, _node, _id, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
+#define PARAM_DEFINE_REMOTE(_id, _name, _node, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	__attribute__((section("param"))) \
-	__attribute__((used)) \
+	__attribute__((used, no_reorder)) \
 	param_t _name = { \
 		.node = _node, \
 		.id = _id, \
@@ -190,7 +192,7 @@ typedef struct param_s {
 		.array_size = _array_count < 1 ? 1 : _array_count, \
 		.array_step = _array_step, \
 		.name = (char *) #_name, \
-		.mask = _flags, \
+		.mask = _flags | PM_REMOTE, \
 		.addr = _physaddr, \
 		.vaddr = 0, \
 		.vmem = NULL, \
@@ -201,14 +203,15 @@ typedef struct param_s {
 #define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
+	uint16_t _node_##_name = _node; \
 	param_t _name = { \
-		.node = _node, \
+		.node = &_node_##_name, \
 		.id = _id, \
 		.type = _type, \
 		.array_size = _array_count < 1 ? 1 : _array_count, \
 		.array_step = _array_step, \
 		.name = (char *) #_name, \
-		.mask = _flags, \
+		.mask = _flags | PM_REMOTE, \
 		.addr = _physaddr, \
 		.vaddr = 0, \
 		.vmem = NULL, \

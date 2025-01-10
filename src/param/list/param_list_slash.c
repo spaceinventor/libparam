@@ -6,7 +6,6 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
 #include <slash/slash.h>
@@ -67,7 +66,7 @@ static int list_download(struct slash *slash)
 {
     unsigned int node = slash_dfl_node;
     unsigned int timeout = slash_dfl_timeout;
-    unsigned int version = 2;
+    unsigned int version = 3;
     int include_remotes = 0;
 
     optparse_t * parser = optparse_new("list download", "[node]\n\
@@ -78,7 +77,7 @@ Parameters can be manually added with 'list add'.");
     optparse_add_help(parser);
     optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
     optparse_add_unsigned(parser, 't', "timeout", "NUM", 0, &timeout, "timeout (default = <env>)");
-    optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 2)");
+    optparse_add_unsigned(parser, 'v', "version", "NUM", 0, &version, "version (default = 3)");
     optparse_add_set(parser, 'r', "remote", 1, &include_remotes, "Include remote params when storing list");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
@@ -139,6 +138,7 @@ static int list_add(struct slash *slash)
 {
     unsigned int node = slash_dfl_node;
     unsigned int array_len = 0;
+    int vmem_type = 0;
     char * helpstr = NULL;
     char * unitstr = NULL;
     char * maskstr = NULL;
@@ -148,6 +148,7 @@ static int list_add(struct slash *slash)
     optparse_add_help(parser);
     optparse_add_unsigned(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
     optparse_add_unsigned(parser, 'a', "array", "NUM", 0, &array_len, "array length (default = none)");
+    optparse_add_int(parser, 'v', "vmem", "NUM", 0, &vmem_type, "VMEM type (default = none)");
     optparse_add_string(parser, 'c', "comment", "STRING", (char **) &helpstr, "help text");
     optparse_add_string(parser, 'u', "unit", "STRING", (char **) &unitstr, "unit text");
 	optparse_add_string(parser, 'm', "emask", "STRING", &maskstr, "mask (param letters)");
@@ -198,9 +199,12 @@ static int list_add(struct slash *slash)
 	if (maskstr)
 		mask = param_maskstr_to_mask(maskstr);
 
+	if (umaskstr)
+		mask |= param_umaskstr_to_mask(umaskstr);
+
     //printf("name %s, id %u, type %s, typeid %u, mask %x, arraylen %u, help %s, unit %s\n", name, id, type, typeid, mask, array_len, helpstr, unitstr);
 
-    param_t * param = param_list_create_remote(id, node, typeid, mask, array_len, name, unitstr, helpstr, -1);
+    param_t * param = param_list_create_remote(id, node, typeid, mask, array_len, name, unitstr, helpstr, vmem_type);
     if (param == NULL) {
         printf("Unable to create param\n");
         optparse_del(parser);
@@ -216,26 +220,17 @@ static int list_add(struct slash *slash)
 slash_command_sub(list, add, list_add, "<name> <id> <type>", NULL);
 
 
-int param_sort_fnc(const void* p1, const void* p2) {
-
-    param_t* param1 = *(param_t**)p1;
-    param_t* param2 = *(param_t**)p2;
-
-    if (param1->id > param2->id) return 1;
-    if (param1->id < param2->id) return -1;
-    return 0;
-}
-
-
-static int list_save(struct slash *slash) {
+static int list_save_cmd(struct slash *slash) {
 
     char * filename = NULL;
     int node = slash_dfl_node;
+    int skip_node = 0;
 
     optparse_t * parser = optparse_new("list save", "[name wildcard=*]");
     optparse_add_help(parser);
     optparse_add_string(parser, 'f', "filename", "PATH", &filename, "write to file");
     optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
+    optparse_add_set(parser, 'N', "skipnode", 1, &skip_node, "Exclude node argument");
 
     int argi = optparse_parse(parser, slash->argc - 1, (const char **) slash->argv + 1);
     if (argi < 0) {
@@ -243,70 +238,9 @@ static int list_save(struct slash *slash) {
        return SLASH_EINVAL;
     }
 
-    FILE * out = stdout;
-
-    if (filename) {
-       FILE * fd = fopen(filename, "w");
-        if (fd) {
-            out = fd;
-            printf("Writing to file %s\n", filename);
-        }
-    }
-
-    param_t * param;
-    param_list_iterator i = {};
-    param_t* param_sorted[1024];
-    int param_cnt = 0;
-
-    while ((param = param_list_iterate(&i)) != NULL) {
-
-        if ((node >= 0) && (param->node != node)) {
-            continue;
-        }
-        param_sorted[param_cnt] = param;
-        param_cnt++;
-    };
-
-    qsort(param_sorted, param_cnt, sizeof(param_sorted[0]), param_sort_fnc);
-
-    for (int i = 0; i < param_cnt; i++) {
-        fprintf(out, "list add ");
-        if (param_sorted[i]->array_size > 1) {
-            fprintf(out, "-a %u ", param_sorted[i]->array_size);
-        }
-        if ((param_sorted[i]->docstr != NULL) && (strlen(param_sorted[i]->docstr) > 0)) {
-            fprintf(out, "-c \"%s\" ", param_sorted[i]->docstr);
-        }
-        if ((param_sorted[i]->unit != NULL) && (strlen(param_sorted[i]->unit) > 0)) {
-            fprintf(out, "-u \"%s\" ", param_sorted[i]->unit);
-        }
-        if (param_sorted[i]->node != 0) {
-            fprintf(out, "-n %u ", param_sorted[i]->node);
-        }
-        
-        if (param_sorted[i]->mask > 0) {
-            unsigned int mask = param_sorted[i]->mask;
-        
-            list_add_output(mask, out);
-            list_add_output_user_flags(mask,out);
-        }
-
-        fprintf(out, "%s %u ", param_sorted[i]->name, param_sorted[i]->id);
-
-        char typestr[10];
-        param_type_str(param_sorted[i]->type, typestr, 10);
-        fprintf(out, "%s\n", typestr);
-
-    }
-
-    if (out != stdout) {
-        fflush(out);
-        fclose(out);
-    }
-
+    param_list_save(filename, node, skip_node);
 
     optparse_del(parser);
     return SLASH_SUCCESS;
 }
-slash_command_sub(list, save, list_save, "", "Save parameters");
-
+slash_command_sub(list, save, list_save_cmd, "", "Save parameters");
