@@ -81,7 +81,8 @@ In case the parameter belongs to another executable, the parameter must be defin
     int VERSION = 2; /* Current param interface version */
 
     uint8_t _state[2];
-    PARAM_DEFINE_REMOTE(state, NODE, PARAMID_STATE, PARAM_TYPE_UINT8, \
+    uint16_t node;
+    PARAM_DEFINE_REMOTE(PARAMID_STATE, state, &node, PARAM_TYPE_UINT8, \
     sizeof(_state)/sizeof(_state[0]), sizeof(_state[0]), PM_TELEM, &_state[0], NULL);
 
 
@@ -90,13 +91,13 @@ and then, to access the remote parameter
 
 .. code-block:: c
 
-    if (param_pull_single(&state, INDEX_ALL, VERBOSE, state.node, TIMEOUT, 2) < 0)
+    if (param_pull_single(&state, INDEX_ALL, CSP_PRIO_NORM, VERBOSE, *state.node, TIMEOUT, 2) < 0)
         printf("Retrieving parameter value failed\n");
     
     if (param_get_uint8_array(&state, idx) == 0)
         param_set_uint8_array(&state, idx, 1);
 
-    if (param_push_single(&state, idx, VERBOSE, state.node, TIMEOUT, VERSION) < 0)
+    if (param_push_single(&state, idx, CSP_PRIO_NORM, NULL, VERBOSE, *state.node, TIMEOUT, VERSION) < 0)
         printf("Storing parameter value failed\n");
 
 When modifying multiple remote parameters, a queue can be built to efficiently retrieve or store multiple parameters in a single CSP packet.
@@ -112,7 +113,7 @@ When modifying multiple remote parameters, a queue can be built to efficiently r
 
     /* Trigger CSP to request value from parameter server */
     packet->length = queue.used + 2;
-    if (param_pull_queue(&queue, CSP_PRIO_HIGH, VERBOSE, state.host, TIMEOUT) < 0)
+    if (param_pull_queue(&queue, CSP_PRIO_NORM, VERBOSE, &state.node, TIMEOUT) < 0)
         printf("Retrieving multiple parameter values failed\n");
 
     /* Modify parameters */
@@ -128,7 +129,7 @@ When modifying multiple remote parameters, a queue can be built to efficiently r
     param_queue_add(&queue, &counter, INDEX_ALL, NULL);
 
     /* Trigger CSP to push queue values */
-    if (param_push_queue(&queue, VERBOSE, state.host, TIMEOUT, 0) < 0)
+    if (param_push_queue(&queue, CSP_PRIO_NORM, VERBOSE, &state.node, TIMEOUT, 0) < 0)
         printf("Storing multiple parameter values failed\n");
 
 Parameter properties
