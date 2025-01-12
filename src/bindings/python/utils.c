@@ -345,7 +345,7 @@ PyObject * sipyparam_util_get_type(PyObject * self, PyObject * args) {
 	if (self && PyObject_TypeCheck(self, &ParameterType)) {
 		ParameterObject *_self = (ParameterObject *)self;
 
-		node = _self->param->node;
+		node = *_self->param->node;
 		param = _self->param;
 
 	} else {
@@ -503,7 +503,7 @@ PyObject * sipyparam_util_parameter_list(uint32_t mask, int node, const char * g
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 
-		if ((node >= 0) && (param->node != node)) {
+		if ((node >= 0) && (*param->node != node)) {
 			continue;
 		}
 		if ((param->mask & mask) == 0) {
@@ -553,18 +553,19 @@ PyObject * _sipyparam_util_get_single(param_t *param, int offset, int autopull, 
 	} else
 		offset = -1;
 
-	if (autopull && (param->node != 0)) {
+	if (autopull && (*param->node != 0)) {
 
 		for (size_t i = 0; i < (retries > 0 ? retries : 1); i++) {
 			int param_pull_res;
 			Py_BEGIN_ALLOW_THREADS;
-			param_pull_res = param_pull_single(param, offset,  CSP_PRIO_NORM, 1, (host != INT_MIN ? host : param->node), timeout, paramver);
+			param_pull_res = param_pull_single(param, offset,  CSP_PRIO_NORM, 1, (host != INT_MIN ? host : *param->node), timeout, paramver);
 			Py_END_ALLOW_THREADS;
-			if (param_pull_res)
+			if (param_pull_res) {
 				if (i >= retries-1) {
 					PyErr_SetString(PyExc_ConnectionError, "No response");
 					return NULL;
 				}
+			}
 		}	
 	}
 
@@ -680,7 +681,7 @@ PyObject * _sipyparam_util_get_array(param_t *param, int autopull, int host, int
 
 	// Pull the value for every index using a queue (if we're allowed to),
 	// instead of pulling them individually.
-	if (autopull && param->node != 0) {
+	if (autopull && *param->node != 0) {
 		void * queuebuffer = malloc(PARAM_SERVER_MTU);
 		param_queue_t queue = { };
 		param_queue_init(&queue, queuebuffer, PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_GET, paramver);
@@ -690,7 +691,7 @@ PyObject * _sipyparam_util_get_array(param_t *param, int autopull, int host, int
 		}
 
 		for (size_t i = 0; i < (retries > 0 ? retries : 1); i++) {
-			if (param_pull_queue(&queue, CSP_PRIO_NORM, 0, param->node, timeout)) {
+			if (param_pull_queue(&queue, CSP_PRIO_NORM, 0, *param->node, timeout)) {
 				PyErr_SetString(PyExc_ConnectionError, "No response.");
 				free(queuebuffer);
 				return 0;
@@ -841,7 +842,7 @@ int _sipyparam_util_set_single(param_t *param, PyObject *value, int offset, int 
 		param_str_to_value(param->type, (char*)PyUnicode_AsUTF8(strvalue), valuebuf);
 	}
 
-	int dest = (host != INT_MIN ? host : param->node);
+	int dest = (host != INT_MIN ? host : *param->node);
 
 	// TODO Kevin: The way we set the parameters has been refactored,
 	//	confirm that it still behaves like the original (especially for remote host parameters).
@@ -850,7 +851,8 @@ int _sipyparam_util_set_single(param_t *param, PyObject *value, int offset, int 
 		for (size_t i = 0; i < (retries > 0 ? retries : 1); i++) {
 			int param_push_res;
 			Py_BEGIN_ALLOW_THREADS;  // Only allow threads for remote parameters, as local ones could have Python callbacks.
-			param_push_res = param_push_single(param, offset, valuebuf, 1, dest, timeout, paramver, false);
+			// TODO Kevin: Argument for prio?
+			param_push_res = param_push_single(param, offset, CSP_PRIO_NORM, valuebuf, 1, dest, timeout, paramver, false);
 			Py_END_ALLOW_THREADS;
 			if (param_push_res < 0)
 				if (i >= retries-1) {
@@ -943,7 +945,7 @@ int _sipyparam_util_set_array(param_t *param, PyObject *value, int host, int tim
 
 #if 0  /* TODO Kevin: When should we use queues with the new cmd system? */
 		// Set local parameters immediately, use the global queue if autosend if off.
-		param_queue_t *usequeue = (!autosend ? &param_queue_set : ((param->node != 0) ? &queue : NULL));
+		param_queue_t *usequeue = (!autosend ? &param_queue_set : ((*param->node != 0) ? &queue : NULL));
 #endif
 		_sipyparam_util_set_single(param, item, i, host, timeout, retries, paramver, 1, verbose);
 		
@@ -952,8 +954,9 @@ int _sipyparam_util_set_array(param_t *param, PyObject *value, int host, int tim
 
 	param_queue_print(&queue);
 	
-	if (param->node != 0)
-		if (param_push_queue(&queue, 1, param->node, 100, 0, false) < 0) {  // TODO Kevin: We should probably have a parameter for hwid here.
+	if (*param->node != 0)
+		// TODO Kevin: Argument for prio?
+		if (param_push_queue(&queue, CSP_PRIO_NORM, 1, *param->node, 100, 0, false) < 0) {  // TODO Kevin: We should probably have a parameter for hwid here.
 			PyErr_SetString(PyExc_ConnectionError, "No response.");
 			free(queuebuffer);
 			Py_DECREF(value);

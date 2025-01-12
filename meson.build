@@ -1,4 +1,4 @@
-project('param', 'c', subproject_dir:'lib', meson_version: '>=0.64.0', version: run_command('./get_pip_ersion.py').stdout().strip(),)
+project('param', 'c', subproject_dir:'lib', meson_version: '>=1.6.0', version: run_command('./get_pip_ersion.py').stdout().strip(),)
 
 conf = configuration_data()
 conf.set('PARAM_HAVE_SYS_QUEUE', get_option('list_dynamic') or get_option('list_pool') > 0)
@@ -116,9 +116,8 @@ if get_option('collector') == true
 	])
 endif
 
-slash_dep = []
+slash_dep = dependency('slash', fallback : ['slash', 'slash_dep'], required: false)
 if get_option('slash') == true
-	slash_dep = dependency('slash', fallback : ['slash', 'slash_dep'], required: false)
 	if slash_dep.found()
 		param_src += files([
 			'src/param/list/param_list_slash.c',	
@@ -145,22 +144,25 @@ if get_option('slash') == true
 	endif
 endif
 
-param_inc = include_directories('.', 'include')
-deps = [clib_dep, bsd_dep, csp_dep, slash_dep]
-param_lib = library('param',
-	sources: [param_src, libparam_h],
-	include_directories : param_inc,
-	dependencies : [clib_dep, bsd_dep, csp_dep, slash_dep],
-	install : false
-)
-
-param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib)
-
-if not meson.is_subproject()
-    subdir('tests')
-endif
+param_deps = [clib_dep, bsd_dep, csp_dep, slash_dep]
+param_link_args = []
 
 if get_option('enable_python3_bindings')
+
+	# "pure : false" allows the __init__.py package to contain both 'native' Python .pyi and a compiled .so files.
+	py = import('python').find_installation('python3', pure : false)
+
+	# Automatically generate linker arguments for embedding a Python interpreter.
+	# Raw output should look something like: "-L/usr/lib/python3.10/config-3.10-x86_64-linux-gnu -L/usr/lib/x86_64-linux-gnu -lpython3.10 -lcrypt -ldl  -lm -lm"
+	# It should be a list when passed to Meson, so we use .split() to get:
+	# ['-L/usr/lib/python'+python_version+'/config-'+python_version+'-x86_64-linux-gnu',
+	# 		'-L/usr/lib/x86_64-linux-gnu',
+	# 		'-lpython'+python_version,
+	# 		'-lcrypt',
+	# 		'-ldl',
+	# 		'-lm']
+	python_ldflags = run_command('python'+py.language_version()+'-config', '--ldflags', '--embed').stdout().strip().split()
+	param_link_args += python_ldflags
 
 	sipyparam_sources = [
 
@@ -186,6 +188,36 @@ if get_option('enable_python3_bindings')
 		'src/bindings/python/utils.c',
 	]
 
+	# Add the binding sources to the normal library as well, which is the preferred link target (over the Python module) when embedding into applications.
+	param_src += sipyparam_sources
+
+	# py.dependency() doesn't work with version constraint.
+	# Use plain dependency() instead.
+	pydep = dependency('python3', version : '>=3.10', required : true)
+	param_deps += pydep
+
+endif
+
+
+param_inc = include_directories('.', 'include')
+
+param_lib = library('param',
+	sources: [param_src, libparam_h],
+	include_directories : param_inc,
+	dependencies : param_deps,
+	link_args : param_link_args,
+	install : false
+)
+
+param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib)
+
+if not meson.is_subproject() and slash_dep.found()
+    subdir('tests')
+endif
+
+
+if get_option('enable_python3_bindings')
+
 	pycsh_config_h = configure_file(output: 'sipyparamconfig.h', configuration: conf, install_dir: 'include/param/', install: false)
 
 	# Add .pyi file for type-hints
@@ -193,30 +225,29 @@ if get_option('enable_python3_bindings')
 
 	# Also add __init__.py for high-level APIs
 	__init__py = configure_file(input: 'src/bindings/python/__init__.py', output: '__init__.py', copy: true)
-
-	# "pure : false" allows the __init__.py package to contain both 'native' Python .pyi and a compiled .so files.
-	py = import('python').find_installation('python3', pure : false)
-	# py.dependency() doesn't work with version constraint. Use plain
-	# dependency() instead
-	pydep = dependency('python3', version : '>=3.10', required : true)
+	
 	py.extension_module('sipyparam', sipyparam_sources,
-                    	dependencies : [param_dep, csp_dep, pydep],
+						# TODO Kevin: `.as_static()` is responsible for a required Meson version bump from 0.64.0 to 1.6.0,
+						#	maybe find another way?
+                    	dependencies : [param_dep.as_static(), csp_dep, pydep],
 						subdir : 'sipyparam',
                     	install : true)
 	py.install_sources([pyi, __init__py], subdir: 'sipyparam')
 
 	# If we mark libparam itself as install: true,
-	#	it will be installed in a seperate site-packages/.sipyparam.mesonpy.libs/ directory when installing with pip.
+	#	it will be installed in a separate site-packages/.sipyparam.mesonpy.libs/ directory when installing with pip.
 	#	This directory will also work for the purpose of resolving symbols for the extension module.
 	# Alternativly we can use the following custom_target() to bundle libparam.so into the .whl.
 	#	This allows us to write the __init__.py to prioritize whether to use the bundled or system package/symbols.
 	#   Using a custom target for this takes inpiration from: https://github.com/mesonbuild/meson-python/discussions/556
-	copy_csp_lib = custom_target('libparam_pip',
-		output: 'libparam_pip.so',
-		install: true,
-		install_dir: py.get_install_dir() / 'sipyparam',
-		input: param_lib,  # TODO Kevin: Would it ever make sense to include slash here?
-		command: ['cp', '@INPUT@', '@OUTPUT@'],
-		build_by_default: true
-	)
+	# EDIT: Let's instead assume that we will link statically (if not with the application, then at least with libparam).
+	#copy_csp_lib = custom_target('libparam_pip',
+	#	output: 'libparam_pip.so',
+	#	install: true,
+	#	install_dir: py.get_install_dir() / 'sipyparam',
+	#	input: param_lib,  # TODO Kevin: Would it ever make sense to include slash here?
+	#	command: ['cp', '@INPUT@', '@OUTPUT@'],
+	#	build_by_default: true
+	#)
+
 endif

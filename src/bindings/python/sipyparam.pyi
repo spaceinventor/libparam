@@ -347,14 +347,15 @@ class ParameterList(_pylist[Parameter | ParameterArray], _Iterable):
         :raises TypeError: When attempting to append a non-Parameter object.
         """
 
-    def pull(self, node: int = None, timeout: int = None, paramver: int = 2) -> None:
+    # TODO Kevin: Have some dependency on CSP, so prio can be shown to default to CSP_PRIO_NORM.
+    def pull(self, node: int = None, timeout: int = None, paramver: int = 2, prio: int = 2) -> None:
         """
         Pulls all Parameters in the list as a single request.
 
         :raises ConnectionError: When no response is received.
         """
 
-    def push(self, node: int = None, timeout: int = None, hwid: int = None, paramver: int = 2) -> None:
+    def push(self, node: int = None, timeout: int = None, hwid: int = None, paramver: int = 2, prio: int = 2) -> None:
         """
         Pushes all Parameters in the list in a single packet.
 

@@ -57,11 +57,13 @@ static PyObject * ParameterList_pull(ParameterListObject *self, PyObject *args, 
 	unsigned int node = sipyparam_dfl_node;
 	unsigned int timeout = sipyparam_dfl_timeout;
 	int paramver = 2;
+	csp_prio_t prio = CSP_PRIO_NORM;
 
-	static char *kwlist[] = {"node", "timeout", "paramver", NULL};
+	static char *kwlist[] = {"node", "timeout", "paramver", "prio", NULL};
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|IIi", kwlist, &node, &timeout, &paramver))
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|IIiH", kwlist, &node, &timeout, &paramver, &prio)) {
 		return NULL;  // TypeError is thrown
+	}
 
 	void * queuebuffer CLEANUP_FREE = malloc(PARAM_SERVER_MTU);
 	param_queue_t queue = { };
@@ -90,7 +92,7 @@ static PyObject * ParameterList_pull(ParameterListObject *self, PyObject *args, 
 
 	}
 
-	if (param_pull_queue(&queue, CSP_PRIO_NORM, 0, node, timeout)) {
+	if (param_pull_queue(&queue, prio, 0, node, timeout)) {
 		PyErr_SetString(PyExc_ConnectionError, "No response.");
 		return 0;
 	}
@@ -107,10 +109,11 @@ static PyObject * ParameterList_push(ParameterListObject *self, PyObject *args, 
 	unsigned int timeout = sipyparam_dfl_timeout;
 	uint32_t hwid = 0;
 	int paramver = 2;
+	csp_prio_t prio = CSP_PRIO_NORM;
 
-	static char *kwlist[] = {"node", "timeout", "hwid", "paramver", NULL};
+	static char *kwlist[] = {"node", "timeout", "hwid", "paramver", "prio", NULL};
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|IIIi", kwlist, &node, &timeout, &hwid, &paramver))
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|IIIiH", kwlist, &node, &timeout, &hwid, &paramver, &prio))
 		return NULL;  // TypeError is thrown
 
 	void * queuebuffer CLEANUP_FREE = malloc(PARAM_SERVER_MTU);
@@ -142,7 +145,7 @@ static PyObject * ParameterList_push(ParameterListObject *self, PyObject *args, 
 		}
 	}
 
-	if (param_push_queue(&queue, 1, node, timeout, hwid, false) < 0) {
+	if (param_push_queue(&queue, prio, 1, node, timeout, hwid, false) < 0) {
 		PyErr_SetString(PyExc_ConnectionError, "No response.");
 		return NULL;
 	}

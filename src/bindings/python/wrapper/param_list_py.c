@@ -161,7 +161,7 @@ static int param_list_remove_py(int node, uint8_t verbose) {
 		uint8_t match = node < 0;  // -1 means all nodes (except for 0)
 
 		if (node > 0)
-			match = param->node == node;
+			match = *param->node == node;
 
 		if (match) {
             ParameterObject *python_parameter = Parameter_wraps_param(param);
@@ -230,7 +230,7 @@ PyObject * sipyparam_param_list_save(PyObject * self, PyObject * args, PyObject 
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 
-        if ((node >= 0) && (param->node != node)) {
+        if ((node >= 0) && (*param->node != node)) {
 			continue;
 		}
 
@@ -244,8 +244,8 @@ PyObject * sipyparam_param_list_save(PyObject * self, PyObject * args, PyObject 
         if ((param->unit != NULL) && (strlen(param->unit) > 0)) {
             fprintf(out, "-u \"%s\" ", param->unit);
         }
-        if (param->node != 0 && include_node) {
-            fprintf(out, "-n %u ", param->node);
+        if (*param->node != 0 && include_node) {
+            fprintf(out, "-n %u ", *param->node);
         }
         
 		if (param->mask > 0) {
