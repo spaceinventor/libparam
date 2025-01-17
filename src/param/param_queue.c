@@ -21,14 +21,14 @@
 
 /* Allows controlling the debug leve from build system */
 #ifndef PARAM_QUEUE_DBG_LEVEL
-#define PARAM_QUEUE_DBG_LEVEL 1
+#define PARAM_QUEUE_DBG_LEVEL 3
 #endif
 
-/* Set this to 0 if you think the stdbuf2 is flooded by messages from this module */
+/* Reduce value if stdout is being flooded */
 uint8_t param_queue_dbg_level = PARAM_QUEUE_DBG_LEVEL;
 
-static void param_queue_dbg(const char *msg, ...) {
-	if (param_queue_dbg_level == 1) {
+static void param_queue_dbg(uint8_t severity, const char *msg, ...) {
+	if (severity <= param_queue_dbg_level) {
 		va_list start;
 		va_start(start, msg);
 		vfprintf(stdout, msg, start);
@@ -54,8 +54,8 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	}
 
 	if ((queue->type == PARAM_QUEUE_TYPE_GET) && (value != NULL)) {
-		param_queue_dbg("Cannot mix GET/SET commands\n");
-		param_queue_dbg("Queue type %u value %p\n", queue->type, value);
+		param_queue_dbg(1, "Cannot mix GET/SET commands\n");
+		param_queue_dbg(1, "Queue type %u value %p\n", queue->type, value);
 		return -1;
 	}
 
@@ -122,7 +122,7 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
 
 			mpack_tag_t tag = mpack_read_tag(&reader);
 			if (mpack_reader_error(&reader) != mpack_ok) {
-				param_queue_dbg("Param decoding failed for ID %u:%u, skipping packet\n", node, id);
+				param_queue_dbg(2, "Param decoding failed for ID %u:%u, skipping packet\n", node, id);
 				break;
 			}
 
@@ -163,7 +163,7 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
     			break;
 			}
 
-			param_queue_dbg("Param decoding failed for ID %u:%u, skipping parameter\n", node, id);
+			param_queue_dbg(3, "Param decoding failed for ID %u:%u, skipping parameter\n", node, id);
 		}
 	}
 
