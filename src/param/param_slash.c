@@ -374,6 +374,7 @@ static void param_completer(struct slash *slash, char * token) {
     optparse_t * parser = optparse_new("", "");
     optparse_add_int(parser, 'n', "node", "NUM", 0, &node, "node (default = <env>)");
     int argi = optparse_parse(parser, slash->argc, (const char **) slash->argv);
+	optparse_del(parser);
 
 	/* 
 	This is really important: the original slash->buffer MUST be saved and restored to its original
