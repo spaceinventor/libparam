@@ -253,7 +253,7 @@ static void param_print_value(FILE * file, param_t * param, int offset) {
 	}
 
 	for(int i = offset; i < offset + count; i++) {
-		char value[64];
+		char value[sizeof(value_str)];
 
 		if(*param->timestamp > 0 || *param->node == 0){
 			param_value_str(param, i, value, sizeof(value));
