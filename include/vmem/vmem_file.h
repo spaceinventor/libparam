@@ -9,6 +9,21 @@
 #define LIB_PARAM_INCLUDE_VMEM_VMEM_FILE_H_
 
 #include <vmem/vmem.h>
+#include <stdint.h>
+#if UINTPTR_MAX == 0xFFFFFFFFFFFFFFFFULL
+#define __64BIT__ 1
+#else
+#define __64BIT__ 0
+#endif
+
+#if __64BIT__
+#define VMEM_FILE_VADDR_INITIALIZER(name_in) \
+		.vaddr = (uint64_t)vmem_##name_in##_buf
+#else
+#define VMEM_FILE_VADDR_INITIALIZER(name_in) \
+		.vaddr32 = (uint32_t)vmem_##name_in##_buf, \
+		.vaddr_pad = 0
+#endif
 
 typedef struct {
 	void * physaddr;
@@ -35,7 +50,7 @@ void vmem_file_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t
 		.read = vmem_file_read, \
 		.write = vmem_file_write, \
 		.driver = &vmem_##name_in##_driver, \
-		.vaddr = (uint64_t)vmem_##name_in##_buf, \
+		VMEM_FILE_VADDR_INITIALIZER(name_in), \
 		.ack_with_pull = 1, \
 	};
 
