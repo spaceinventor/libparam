@@ -180,13 +180,13 @@ typedef struct param_s {
 
 #define PARAM_REMOTE_NODE_IGNORE 16382
 
-#define PARAM_DEFINE_REMOTE(_id, _name, _node, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
+#define PARAM_DEFINE_REMOTE(_id, _name, _nodeaddr, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	__attribute__((section("param"))) \
 	__attribute__((used, no_reorder)) \
 	param_t _name = { \
-		.node = _node, \
+		.node = _nodeaddr, \
 		.id = _id, \
 		.type = _type, \
 		.array_size = _array_count < 1 ? 1 : _array_count, \
