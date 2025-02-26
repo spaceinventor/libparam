@@ -86,48 +86,35 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 			iterator->element = SLIST_FIRST(&param_list_head);
 #endif
 		}
-
-		/* Static remote parameters without node configured are not handled */
-		if (!(iterator->element->mask & PM_REMOTE) || *iterator->element->node != 0) 
-			return iterator->element;
+	} else {
+		if(iterator->phase == 0){
+			/* Increment in static memory */
+			iterator->element = (param_t *)(intptr_t)((char *)iterator->element + PARAM_STORAGE_SIZE);
+		}
+#ifdef PARAM_HAVE_SYS_QUEUE
+		else if(iterator->phase == 1){
+			iterator->element = SLIST_NEXT(iterator->element, next);
+		}
+#endif
 	}
 
-	/* Static phase */
-	while (iterator->phase == 0) {
-
-		/* Increment in static memory */
-		iterator->element = (param_t *)(intptr_t)((char *)iterator->element + PARAM_STORAGE_SIZE);
-
-		/* Check if we are still within the bounds of the static memory area */
-		if (iterator->element < &__stop_param) {
-			/* Static remote parameters without node configured are not handled */
-			if (iterator->element->mask & PM_REMOTE && *iterator->element->node == 0)
+	if(iterator->phase == 0){
+		while(iterator->element < &__stop_param){
+			if (iterator->element->mask & PM_REMOTE && *iterator->element->node == 0){
+				iterator->element = (param_t *)(intptr_t)((char *)iterator->element + PARAM_STORAGE_SIZE);
 				continue;
-
+			}
 			return iterator->element;
 		}
 
-		/* Otherwise, switch to dynamic phase */
 		iterator->phase = 1;
 #ifdef PARAM_HAVE_SYS_QUEUE
 		iterator->element = SLIST_FIRST(&param_list_head);
-		return iterator->element;
-#else
-		return NULL;
+#else 
+		iterator->element = NULL;
 #endif
 	}
-
-#ifdef PARAM_HAVE_SYS_QUEUE
-	/* Dynamic phase */
-	if (iterator->phase == 1) {
-
-		iterator->element = SLIST_NEXT(iterator->element, next);
-		return iterator->element;
-	}
-#endif
-
-	return NULL;
-
+	return iterator->element;
 }
 
 int param_list_add(param_t * item) {
