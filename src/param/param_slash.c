@@ -605,6 +605,7 @@ static int cmd_set(struct slash *slash) {
 		return SLASH_EINVAL;
 	}
 
+	*param->timestamp = 0; /* Reset parameter timestamp before adding to queue, to avoid serializing it. */
 	int expected_value_amount = 0;
 
 	// If param is of type data or string we only want to set on a single offset, that being -1.
@@ -794,7 +795,6 @@ static int cmd_set(struct slash *slash) {
 			dest = server;
 		csp_timestamp_t time_now;
 		csp_clock_get_time(&time_now);
-		*param->timestamp = 0;
 		if (param_push_queue(&queue, CSP_PRIO_NORM, 0, dest, slash_dfl_timeout, 0, ack_with_pull) < 0) {
 			printf("No response\n");
 			optparse_del(parser);
