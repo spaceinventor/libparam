@@ -92,7 +92,7 @@ typedef struct param_s {
 
 	/* Parameter declaration */
 	uint16_t id;
-	uint16_t * node;
+	uint16_t const * node;
 	param_type_e type;
 	uint32_t mask;
 	char *name;
@@ -183,10 +183,11 @@ typedef struct param_s {
 #define PARAM_DEFINE_REMOTE(_id, _name, _node, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
+	uint16_t _node_##_name = _node; \
 	__attribute__((section("param"))) \
 	__attribute__((used, no_reorder)) \
 	param_t _name = { \
-		.node = _node, \
+		.node = &_node_##_name, \
 		.id = _id, \
 		.type = _type, \
 		.array_size = _array_count < 1 ? 1 : _array_count, \
