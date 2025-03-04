@@ -116,41 +116,12 @@ if get_option('collector') == true
 	])
 endif
 
-slash_dep = []
-if get_option('slash') == true
-	slash_dep = dependency('slash', fallback : ['slash', 'slash_dep'], required: false)
-	if slash_dep.found()
-		param_src += files([
-			'src/param/list/param_list_slash.c',	
-			'src/param/param_slash.c',	
-			'src/vmem/vmem_client_slash.c',
-			#'src/objstore/objstore_slash.c',
-		])
-		if get_option('have_fopen') == true
-			param_src += files([
-				'src/vmem/vmem_client_slash_ftp.c',
-				#'src/param/list/param_list_store_slash.c'
-			])
-		endif
-		if get_option('scheduler_client') == true
-			param_src += files([
-				'src/param/scheduler/param_scheduler_slash.c',
-			])	
-		endif
-		if get_option('commands_client') == true
-			param_src += files([
-			'src/param/commands/param_commands_slash.c',
-			])	
-		endif
-	endif
-endif
-
 param_inc = include_directories('.', 'include')
-deps = [clib_dep, bsd_dep, csp_dep, slash_dep]
+deps = [clib_dep, bsd_dep, csp_dep]
 param_lib = library('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
-	dependencies : [clib_dep, bsd_dep, csp_dep, slash_dep],
+	dependencies : [clib_dep, bsd_dep, csp_dep],
 	install : false
 )
 
