@@ -2,8 +2,6 @@
 #include <string.h>
 #include <param/param.h>
 
-#include "param_wildcard.h"
-
 // Function that matches input str with
 // given wildcard pattern
 // 'n' and 'm' are the length of 'str' and 'pattern' respectively.

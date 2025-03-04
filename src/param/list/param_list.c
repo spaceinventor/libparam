@@ -20,7 +20,7 @@
 #include <param/param_server.h>
 #include <param/param_string.h>
 
-#include "../param_wildcard.h"
+#include <param/param_wildcard.h>
 #include "param_list.h"
 
 
