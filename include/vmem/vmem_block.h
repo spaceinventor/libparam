@@ -16,6 +16,8 @@
 extern "C" {
 #endif
 
+#define VMEM_BLOCK_OPTION_CACHE_WRITETHRU 0x00000001UL
+
 /* Forward definitions of driver and device objects */
 struct vmem_block_driver_s;
 typedef struct vmem_block_driver_s vmem_block_driver_t;
@@ -58,6 +60,7 @@ typedef struct vmem_block_region_s {
 	uint64_t physaddr;
 	const vmem_block_driver_t * const driver;
 	vmem_block_cache_t * cache;
+	uint32_t options;
 } vmem_block_region_t;
 
 #define VMEM_DEFINE_BLOCK_CACHE(name_in, _csize) \
@@ -95,11 +98,12 @@ typedef struct vmem_block_region_s {
 		}, \
 	};
 
-#define VMEM_DEFINE_BLOCK_REGION(name_in, strname, addr_in, size_in, _vaddr, driver_in, cache_ptr) \
+#define VMEM_DEFINE_BLOCK_REGION(name_in, strname, addr_in, size_in, _vaddr, driver_in, cache_ptr, options_in) \
 	static const vmem_block_region_t vmem_##name_in##_region = { \
 		.physaddr = addr_in, \
 		.driver = &vmem_##driver_in##_driver, \
 		.cache = cache_ptr, \
+		.options = options_in, \
 	}; \
 	__attribute__((section("vmem"))) \
 	__attribute__((aligned(8))) \

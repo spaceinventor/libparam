@@ -266,16 +266,30 @@ void vmem_block_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_
 
     //printf("vmem_block_write(%"PRIXPTR",0x%"PRIX64",%"PRIXPTR",%"PRIu32") => 0x%"PRIX64"\n", (uintptr_t)vmem, addr, (uintptr_t)datain, len, destaddr);
 
+    vmem_block_cache_t *cache;
+    if (reg->options & VMEM_BLOCK_OPTION_CACHE_WRITETHRU) {
+        /* If we have a cache associated but the region has options set for it to be ignored in write_thru */
+        cache = NULL;
+    } else {
+        cache = reg->cache;
+    }
+
     /* Split it up into parts decided by the caching layer */
     while (len) {
         uint32_t nbytes;
 
         /* Try writing all we have, and adjust accordingly afterwards */
-        nbytes = cache_write(reg->driver, reg->cache, destaddr, srcaddr, len);
+        nbytes = cache_write(reg->driver, cache, destaddr, srcaddr, len);
         /* Update length, source and destination index' */
         len -= nbytes;
         srcaddr += nbytes;
         destaddr += nbytes;
+    }
+
+    /* Decide if we are to invalidate the cache, if it is associated */
+    if (reg->cache && (reg->options & VMEM_BLOCK_OPTION_CACHE_WRITETHRU)) {
+        printf("vmem_block_write() Invalidated the cache\n");
+        reg->cache->is_valid = false;
     }
 
 }
