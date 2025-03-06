@@ -87,7 +87,6 @@ Parameters can be manually added with 'list add'.");
     }
 
     if (++argi < slash->argc) {
-        printf("Node as argument, is deprecated\n");
         node = atoi(slash->argv[argi]);
     }
 
@@ -122,7 +121,6 @@ This makes it possible to download them again, in cases where they've changed.")
     }
 
     if (++argi < slash->argc) {
-        printf("Node as argument, is deprecated\n");
         node = atoi(slash->argv[argi]);
     }
 
