@@ -31,7 +31,7 @@ typedef enum {
     PARAM_PUSH_REQUEST_V2  = 7,
     PARAM_PULL_ALL_REQUEST_V2 = 8,
 	PARAM_SCHEDULE_PUSH = 9,
-	//PARAM_SCHEDULE_PULL = 10,
+	PARAM_PUSH_V2 = 10,
 	PARAM_SCHEDULE_ADD_RESPONSE = 11, // same response for adding push or pull schedule
 	PARAM_SCHEDULE_SHOW_REQUEST = 12,
 	PARAM_SCHEDULE_SHOW_RESPONSE = 13,
@@ -71,3 +71,26 @@ typedef enum {
  * @param packet
  */
 void param_serve(csp_packet_t * packet);
+
+#define NUM_PUSHQUEUES 4
+typedef struct param_pushqueue_s {
+	param_t * param;
+	uint32_t queue;
+} param_pushqueue_t;
+
+enum {
+	PARAM_PUSHQUEUE_0,
+	PARAM_PUSHQUEUE_1,
+	PARAM_PUSHQUEUE_2,
+	PARAM_PUSHQUEUE_3,
+};
+
+#define PARAM_ADD_PUSHQUEUE(paramname, queueid) \
+__attribute__((section("param_pushqueue"))) \
+param_pushqueue_t _param_pushqueue_##param = { \
+	.param = &paramname, \
+	.queue = queueid, \
+};
+
+extern uint16_t param_pushqueue_periodicity[NUM_PUSHQUEUES];
+extern uint16_t param_pushqueue_destination[NUM_PUSHQUEUES];
