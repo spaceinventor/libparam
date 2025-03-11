@@ -14,8 +14,12 @@
 #include <param/param_queue.h>
 #include <param/param_server.h>
 #include <param/param_list.h>
+#ifdef PARAM_HAVE_SCHEDULER
 #include <param/param_scheduler.h>
+#endif
+#ifdef PARAM_HAVE_COMMANDS
 #include <param/param_commands.h>
+#endif
 
 struct param_serve_context {
 	csp_packet_t * request;

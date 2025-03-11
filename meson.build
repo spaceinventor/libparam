@@ -4,9 +4,6 @@ conf = configuration_data()
 conf.set('PARAM_HAVE_SYS_QUEUE', get_option('list_dynamic') or get_option('list_pool') > 0)
 conf.set('PARAM_LIST_DYNAMIC', get_option('list_dynamic'))
 conf.set('PARAM_LIST_POOL', get_option('list_pool'))
-conf.set('PARAM_HAVE_SCHEDULER', get_option('scheduler'))
-conf.set('PARAM_HAVE_COMMANDS', get_option('commands'))
-conf.set('PARAM_HAVE_COMMANDS_CLIENT', get_option('commands_client'))
 # From now on, VMEM API is 64bits, breaking earlier ABI. 
 # New user code can use the fact that this macro is defined (its value is not relevant, just the fact that it is defined)
 # to check that the libparam version included (typically through convoluted dependency paths) does support the 64-bits API
@@ -73,32 +70,7 @@ if get_option('have_fopen') == true
 	param_src += files([
 		'src/vmem/vmem_file.c',
 		'src/vmem/vmem_mmap.c',
-		#'src/param/list/param_list_store_vmem.c',
 	])
-endif
-
-if get_option('scheduler') == true
-	param_src += files([
-		'src/param/scheduler/param_scheduler.c',
-	])	
-endif
-
-if get_option('scheduler_client') == true
-	param_src += files([
-		'src/param/scheduler/param_scheduler_client.c',
-	])	
-endif
-
-if get_option('commands') == true
-	param_src += files([
-		'src/param/commands/param_commands.c',
-	])	
-endif
-
-if get_option('commands_client') == true
-	param_src += files([
-		'src/param/commands/param_commands_client.c',
-	])	
 endif
 
 if get_option('vmem_fram') == true
@@ -116,41 +88,12 @@ if get_option('collector') == true
 	])
 endif
 
-slash_dep = []
-if get_option('slash') == true
-	slash_dep = dependency('slash', fallback : ['slash', 'slash_dep'], required: false)
-	if slash_dep.found()
-		param_src += files([
-			'src/param/list/param_list_slash.c',	
-			'src/param/param_slash.c',	
-			'src/vmem/vmem_client_slash.c',
-			#'src/objstore/objstore_slash.c',
-		])
-		if get_option('have_fopen') == true
-			param_src += files([
-				'src/vmem/vmem_client_slash_ftp.c',
-				#'src/param/list/param_list_store_slash.c'
-			])
-		endif
-		if get_option('scheduler_client') == true
-			param_src += files([
-				'src/param/scheduler/param_scheduler_slash.c',
-			])	
-		endif
-		if get_option('commands_client') == true
-			param_src += files([
-			'src/param/commands/param_commands_slash.c',
-			])	
-		endif
-	endif
-endif
-
 param_inc = include_directories('.', 'include')
-deps = [clib_dep, bsd_dep, csp_dep, slash_dep]
+deps = [clib_dep, bsd_dep, csp_dep]
 param_lib = library('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
-	dependencies : [clib_dep, bsd_dep, csp_dep, slash_dep],
+	dependencies : [clib_dep, bsd_dep, csp_dep],
 	install : false
 )
 
