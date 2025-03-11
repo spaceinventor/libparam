@@ -25,7 +25,7 @@
 #endif
 
 /* Reduce value if stdout is being flooded */
-uint8_t param_queue_dbg_level = PARAM_QUEUE_DBG_LEVEL;
+uint32_t param_queue_dbg_level = PARAM_QUEUE_DBG_LEVEL;
 
 static void param_queue_dbg(uint8_t severity, const char *msg, ...) {
 	if (severity <= param_queue_dbg_level) {
