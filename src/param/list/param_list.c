@@ -530,15 +530,15 @@ int param_list_unpack(int node, void * data, int length, int list_version, int i
 
 	}
 
+	if(!include_remotes && addr != 0) {
+		return 1;
+	}
+
 	if (addr == 0)
 		addr = node;
 
 	if (size == 255)
 		size = 1;
-
-	if(!include_remotes && node != addr) {
-		return 1;
-	}
 
 	//printf("Storage type %d\n", storage_type);
 
