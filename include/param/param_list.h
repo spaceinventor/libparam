@@ -18,6 +18,7 @@ extern "C" {
 typedef struct param_list_iterator_s {
 	int phase;							// Hybrid iterator has multiple phases (0 == Static, 1 == Dynamic List)
 	param_t * element;
+	param_t ** element_addr;            // Only used for "static" phase parameters above
 } param_list_iterator;
 
 param_t * param_list_iterate(param_list_iterator * iterator);
