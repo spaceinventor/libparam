@@ -7,7 +7,7 @@
 
 #define PARAM_GET(_type, _name, _swapfct) \
 	_type param_get_##_name##_array(param_t * param, unsigned int i) { \
-		if (i > (unsigned int) param->array_size) { \
+		if (i >= (unsigned int) param->array_size) { \
 			return 0; \
 		} \
 		if (param->vmem && param->vmem->read) { \
@@ -85,7 +85,7 @@ void param_get_data(param_t * param, void * outbuf, int len)
 
 #define PARAM_SET(_type, name_in, _swapfct) \
 	void __param_set_##name_in(param_t * param, _type value, bool do_callback, unsigned int i) { \
-		if (i > (unsigned int) param->array_size) { \
+		if (i >= (unsigned int) param->array_size) { \
 			return; \
 		} \
 		if (param->vmem && param->vmem->write) { \
