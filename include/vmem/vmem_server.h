@@ -33,6 +33,16 @@ typedef enum {
 typedef struct {
 	uint8_t version;
 	uint8_t type;
+} __attribute__((packed)) vmem_request_hdr_t;
+
+typedef struct {
+	union {
+		struct {
+			uint8_t version;
+			uint8_t type;
+		};
+		vmem_request_hdr_t hdr;
+	};
 	union {
 		uint8_t body[0];
 		struct {
