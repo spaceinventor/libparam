@@ -366,6 +366,7 @@ typedef struct param_heap_s {
 		uint64_t alignme;
 		uint8_t *buffer;
 	};
+	uint16_t node;
 	uint32_t timestamp;
 	char name[36];
 	char unit[10];
@@ -389,6 +390,7 @@ static param_heap_t * param_list_alloc(int type, int array_size) {
 	}
 
 	param_heap_t* param = &param_heap[param_heap_used];
+	memset(param, 0, sizeof(param_heap_t));
 	param_heap_used++;
 
 	param->buffer = &param_buffer[param_buffer_used];
