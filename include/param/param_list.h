@@ -84,8 +84,6 @@ void param_list_store_file_load(char * filename);
 void param_list_store_vmem_save(vmem_t * vmem);
 void param_list_store_vmem_load(vmem_t * vmem);
 
-void param_list_save(const char * const filename, int node, int skip_node);
-
 /* From param_list.c */
 void list_add_output(uint32_t mask, FILE * out);
 void list_add_output_user_flags(uint32_t mask, FILE * out);
