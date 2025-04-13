@@ -30,6 +30,7 @@ enum vmem_types{
 	VMEM_TYPE_FRAM_CACHE = 8,
 	VMEM_TYPE_NOR_FLASH = 9,
 	VMEM_TYPE_BLOCK = 10,
+	VMEM_TYPE_UNKNOWN = -1,
 };
 
 typedef struct vmem_s {
