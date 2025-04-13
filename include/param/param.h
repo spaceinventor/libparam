@@ -136,10 +136,10 @@ typedef struct param_s {
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	uint16_t _node_##_name = 0; \
-	__attribute__((section("param"))) \
+	__attribute__((section("param_data"))) \
 	__attribute__((used, no_reorder)) \
 	param_t _name = { \
-		.vmem = NULL, \
+	   .vmem = NULL, \
 		.node = &_node_##_name, \
 		.id = _id, \
 		.type = _type, \
@@ -153,16 +153,18 @@ typedef struct param_s {
 		.addr = (void *)(_physaddr), \
 		.vaddr = 0, \
 		.docstr = _docstr, \
-	}
+	}; \
+	__attribute__((section("param"))) \
+	const param_t * const ___##_name = &_name;
 
 #define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	uint16_t _node_##_name = 0; \
-	__attribute__((section("param"))) \
+	__attribute__((section("param_data"))) \
 	__attribute__((used, no_reorder)) \
 	param_t _name = { \
-		.node = &_node_##_name, \
+	   .node = &_node_##_name, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
@@ -176,14 +178,16 @@ typedef struct param_s {
 		.vaddr = _vmem_addr, \
 		.vmem = &vmem_##_vmem_name, \
 		.docstr = _docstr, \
-	}
+	}; \
+	__attribute__((section("param"))) \
+	const param_t * const ___##_name = &_name;
 
 #define PARAM_REMOTE_NODE_IGNORE 16382
 
 #define PARAM_DEFINE_REMOTE(_id, _name, _nodeaddr, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
-	__attribute__((section("param"))) \
+	__attribute__((section("param_data"))) \
 	__attribute__((used, no_reorder)) \
 	param_t _name = { \
 		.node = _nodeaddr, \
@@ -198,7 +202,9 @@ typedef struct param_s {
 		.vmem = NULL, \
 		.timestamp = &_timestamp_##_name, \
 		.docstr = _docstr, \
-	};
+	}; \
+	__attribute__((section("param"))) \
+	const param_t * const ___##_name = &_name;
 
 #define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
