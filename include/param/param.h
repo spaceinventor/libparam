@@ -136,8 +136,8 @@ typedef struct param_s {
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	uint16_t _node_##_name = 0; \
+	const __attribute__((__aligned__(__alignof__(param_t)))) \
 	__attribute__((section("param"))) \
-	__attribute__((used, no_reorder)) \
 	param_t _name = { \
 		.vmem = NULL, \
 		.node = &_node_##_name, \
@@ -159,6 +159,7 @@ typedef struct param_s {
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	uint16_t _node_##_name = 0; \
+	const __attribute__((__aligned__(__alignof__(param_t)))) \
 	__attribute__((section("param"))) \
 	__attribute__((used, no_reorder)) \
 	param_t _name = { \
@@ -183,8 +184,8 @@ typedef struct param_s {
 #define PARAM_DEFINE_REMOTE(_id, _name, _nodeaddr, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
+	const __attribute__((__aligned__(__alignof__(param_t)))) \
 	__attribute__((section("param"))) \
-	__attribute__((used, no_reorder)) \
 	param_t _name = { \
 		.node = _nodeaddr, \
 		.id = _id, \

@@ -28,26 +28,6 @@
 #include <sys/queue.h>
 #endif
 
-/**
- * The storage size (i.e. how closely two param_t structs are packed in memory)
- * varies from platform to platform (in example on x64 and arm32). This macro
- * defines two param_t structs and saves the storage size in a define.
- * The linker may also put padding bytes between param_t's (even in the same section),
- * but it appears that the same padding is added to the parameters below, so the macro will account for it.
- * In addition, Newer GCC versions (gcc 13.3.0 and arm-none-eabi-gcc 13.2.1, common for Ubuntu 24.04)
- * will put symbols in reverse order (when compared with gcc 11.4 and arm-none-eabi-gcc 10.3.1, common for Ubuntu 22.04).
- * So that necessitates `__attribute__((no_reorder))`, so the size doesn't become negative.
- * `__attribute__((no_reorder))` is preferred over c_args '-fno-toplevel-reorder',
- * as it doesn't require the user to modify their usage of libparam.
- */
-#ifndef PARAM_STORAGE_SIZE
-__attribute__((no_reorder))
-const param_t param_size_set0;
-__attribute__((no_reorder))
-const param_t param_size_set1;
-#define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set1 - (intptr_t) &param_size_set0)
-#endif
-
 #ifdef PARAM_HAVE_SYS_QUEUE
 static SLIST_HEAD(param_list_head_s, param_s) param_list_head = {};
 #endif
@@ -89,7 +69,7 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 	} else {
 		if(iterator->phase == 0){
 			/* Increment in static memory */
-			iterator->element = (param_t *)(intptr_t)((char *)iterator->element + PARAM_STORAGE_SIZE);
+			iterator->element = (param_t *)(intptr_t)((char *)iterator->element + sizeof(param_t));
 		}
 #ifdef PARAM_HAVE_SYS_QUEUE
 		else if(iterator->phase == 1){
@@ -101,7 +81,7 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 	if(iterator->phase == 0){
 		while(iterator->element < &__stop_param){
 			if (iterator->element->mask & PM_REMOTE && *iterator->element->node == 0){
-				iterator->element = (param_t *)(intptr_t)((char *)iterator->element + PARAM_STORAGE_SIZE);
+				iterator->element = (param_t *)(intptr_t)((char *)iterator->element + sizeof(param_t));
 				continue;
 			}
 			return iterator->element;
