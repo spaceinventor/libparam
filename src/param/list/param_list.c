@@ -28,58 +28,33 @@
 #include <sys/queue.h>
 #endif
 
-/**
- * The storage size (i.e. how closely two param_t structs are packed in memory)
- * varies from platform to platform (in example on x64 and arm32). This macro
- * defines two param_t structs and saves the storage size in a define.
- * The linker may also put padding bytes between param_t's (even in the same section),
- * but it appears that the same padding is added to the parameters below, so the macro will account for it.
- * In addition, Newer GCC versions (gcc 13.3.0 and arm-none-eabi-gcc 13.2.1, common for Ubuntu 24.04)
- * will put symbols in reverse order (when compared with gcc 11.4 and arm-none-eabi-gcc 10.3.1, common for Ubuntu 22.04).
- * So that necessitates `__attribute__((no_reorder))`, so the size doesn't become negative.
- * `__attribute__((no_reorder))` is preferred over c_args '-fno-toplevel-reorder',
- * as it doesn't require the user to modify their usage of libparam.
- */
-#ifndef PARAM_STORAGE_SIZE
-__attribute__((no_reorder))
-const param_t param_size_set0;
-__attribute__((no_reorder))
-const param_t param_size_set1;
-#define PARAM_STORAGE_SIZE ((intptr_t) &param_size_set1 - (intptr_t) &param_size_set0)
-#endif
-
 #ifdef PARAM_HAVE_SYS_QUEUE
 static SLIST_HEAD(param_list_head_s, param_s) param_list_head = {};
 #endif
 
-uint8_t param_is_static(param_t * param) {
+__attribute__((weak)) extern const param_t __start_param_data;
+__attribute__((weak)) extern const param_t __stop_param_data;
+__attribute__((weak)) extern const param_ptr __start_param;
+__attribute__((weak)) extern const param_ptr __stop_param;
+uint8_t param_is_static(param_ptr param) {
 
-	__attribute__((weak)) extern param_t __start_param;
-	__attribute__((weak)) extern param_t __stop_param;
-
-	if ((&__start_param != NULL) && (&__start_param != &__stop_param)) {
-		if (param >= &__start_param && param < &__stop_param)
+	if ((&__start_param_data != NULL) && (&__start_param_data != &__stop_param_data)) {
+		if (param >= &__start_param_data && param < &__stop_param_data)
 			return 1;
 	}
 	return 0;
 }
 
-param_t * param_list_iterate(param_list_iterator * iterator) {
-
-	/**
-	 * GNU Linker symbols. These will be autogenerate by GCC when using
-	 * __attribute__((section("param"))
-	 */
-	__attribute__((weak)) extern param_t __start_param;
-	__attribute__((weak)) extern param_t __stop_param;
+const param_t * param_list_iterate(param_list_iterator * iterator) {
 
 	/* First element */
 	if (iterator->element == NULL) {
 
 		/* Static */
-		if ((&__start_param != NULL) && (&__start_param != &__stop_param)) {
+		if ((&__start_param_data != NULL) && (&__start_param != &__stop_param)) {
 			iterator->phase = 0;
-			iterator->element = &__start_param;
+			iterator->element = __start_param;
+			iterator->element_addr = &__start_param;
 		} else {
 			iterator->phase = 1;
 #ifdef PARAM_HAVE_SYS_QUEUE
@@ -89,19 +64,21 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 	} else {
 		if(iterator->phase == 0){
 			/* Increment in static memory */
-			iterator->element = (param_t *)(intptr_t)((char *)iterator->element + PARAM_STORAGE_SIZE);
+			iterator->element_addr = iterator->element_addr + 1;
+			iterator->element = *iterator->element_addr;
 		}
 #ifdef PARAM_HAVE_SYS_QUEUE
 		else if(iterator->phase == 1){
-			iterator->element = SLIST_NEXT(iterator->element, next);
+			iterator->element = SLIST_NEXT((iterator->element), next);
 		}
 #endif
 	}
 
 	if(iterator->phase == 0){
-		while(iterator->element < &__stop_param){
+		while(iterator->element_addr != &__stop_param){
 			if (iterator->element->mask & PM_REMOTE && *iterator->element->node == 0){
-				iterator->element = (param_t *)(intptr_t)((char *)iterator->element + PARAM_STORAGE_SIZE);
+				iterator->element_addr = iterator->element_addr + 1;
+				iterator->element = *iterator->element_addr;
 				continue;
 			}
 			return iterator->element;
@@ -117,10 +94,10 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 	return iterator->element;
 }
 
-int param_list_add(param_t * item) {
+int param_list_add(param_ptr item) {
 
 	param_t * param;
-	if ((param = param_list_find_id(*item->node, item->id)) != NULL) {
+	if ((param = (param_t*)param_list_find_id(*item->node, item->id)) != NULL) {
 
 		/* To protect against updating local static params and ROM remote params
 		   When creating remote dynamic params using the macro
@@ -187,7 +164,7 @@ int param_list_remove(int node, uint8_t verbose) {
 
 	return count;
 }
-void param_list_remove_specific(param_t * param, uint8_t verbose, int destroy) {
+void param_list_remove_specific(param_ptr param, uint8_t verbose, int destroy) {
 
     if (verbose >= 2) {
         printf("Removing param: %s:%u[%d]\n", param->name, *param->node, param->array_size);
@@ -199,13 +176,13 @@ void param_list_remove_specific(param_t * param, uint8_t verbose, int destroy) {
 }
 #endif
 
-param_t * param_list_find_id(int node, int id) {
+const param_t * param_list_find_id(int node, int id) {
 	
 	if (node < 0)
 		node = 0;
 
-	param_t * found = NULL;
-	param_t * param;
+	const param_t * found = NULL;
+	const param_t * param;
 	param_list_iterator i = {};
 
 	while ((param = param_list_iterate(&i)) != NULL) {
@@ -224,13 +201,13 @@ param_t * param_list_find_id(int node, int id) {
 	return found;
 }
 
-param_t * param_list_find_name(int node, const char * name) {
+const param_t * param_list_find_name(int node, const char * name) {
 	
 	if (node < 0 )
 		node = 0;
 
-	param_t * found = NULL;
-	param_t * param;
+	const param_t * found = NULL;
+	const param_t * param;
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 
@@ -249,7 +226,7 @@ param_t * param_list_find_name(int node, const char * name) {
 }
 
 void param_list_print(uint32_t mask, int node, const char * globstr, int verbosity) {
-	param_t * param;
+	const param_t * param;
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 		if ((node >= 0) && (*param->node != node)) {
@@ -278,7 +255,7 @@ unsigned int param_list_packed_size(int list_version) {
 
 int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int list_version) {
 
-	param_t * param;
+	const param_t * param;
 	int num_params = 0;
 
 	void* param_packed = buf;
@@ -406,7 +383,7 @@ void param_list_clear() {
 }
 
 /* WARNING: This function resets complete list */
-static void param_list_destroy_impl(param_t * param) {
+static void param_list_destroy_impl(param_ptr param) {
 
 	param_heap_used = 0;
 	param_buffer_used = 0;
@@ -453,7 +430,7 @@ static param_heap_t * param_list_alloc(int type, int array_size) {
 	return param_heap;
 }
 
-static void param_list_destroy_impl(param_t * param) {
+static void param_list_destroy_impl(param_ptr param) {
 	free(param->addr);
 	free(param);
 }
@@ -587,7 +564,7 @@ int param_list_download(int node, int timeout, int list_version, int include_rem
 	return count;
 }
 
-void param_list_destroy(param_t * param) {
+void param_list_destroy(param_ptr param) {
 	param_list_destroy_impl(param);
 }
 

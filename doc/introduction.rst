@@ -33,7 +33,7 @@ A custom variable array can be accessed as a parameter by applying the following
 .. code-block:: c
 
     uint8_t _state[2];
-    void state_cb(param_t * param, int index);
+    void state_cb(param_ptr param, int index);
     PARAM_DEFINE_STATIC_RAM(PARAMID_STATE, state, PARAM_TYPE_UINT8, \
         sizeof(_state)/sizeof(_state[0]), sizeof(_state[0]), PM_TELEM, state_cb, NULL, \
         &_state[0], "0 = idle, 1 = waiting, 2 = running");
@@ -68,8 +68,8 @@ Reading and doing a local modification of index 0 of the state parameter from pr
 
     int idx = 0;
 
-    if (param_get_uint8_array(&state, idx) == 0)
-        param_set_uint8_array(&state, idx, 1);
+    if (param_get_uint8_array(state, idx) == 0)
+        param_set_uint8_array(state, idx, 1);
 
 In case the parameter belongs to another executable, the parameter must be defined in the client executable to be accessible. No matter if the parameter on server-side is stored in VMEM or RAM, the client needs a RAM variable to cache the parameter when reading and modifying. A complete example of the same routine as above looks like
 
@@ -91,13 +91,13 @@ and then, to access the remote parameter
 
 .. code-block:: c
 
-    if (param_pull_single(&state, INDEX_ALL, CSP_PRIO_NORM, VERBOSE, *state.node, TIMEOUT, 2) < 0)
+    if (param_pull_single(state, INDEX_ALL, CSP_PRIO_NORM, VERBOSE, *state.node, TIMEOUT, 2) < 0)
         printf("Retrieving parameter value failed\n");
     
-    if (param_get_uint8_array(&state, idx) == 0)
-        param_set_uint8_array(&state, idx, 1);
+    if (param_get_uint8_array(state, idx) == 0)
+        param_set_uint8_array(state, idx, 1);
 
-    if (param_push_single(&state, idx, CSP_PRIO_NORM, NULL, VERBOSE, *state.node, TIMEOUT, VERSION) < 0)
+    if (param_push_single(state, idx, CSP_PRIO_NORM, NULL, VERBOSE, *state.node, TIMEOUT, VERSION) < 0)
         printf("Storing parameter value failed\n");
 
 When modifying multiple remote parameters, a queue can be built to efficiently retrieve or store multiple parameters in a single CSP packet.
@@ -108,8 +108,8 @@ When modifying multiple remote parameters, a queue can be built to efficiently r
     uint8_t queue_buf[PARAM_SERVER_MTU-2];
     param_queue_init(&queue, queue_buf, PARAM_SERVER_MTU-2, 0, PARAM_QUEUE_TYPE_GET, VERSION);
 
-    param_queue_add(&queue, &state, idx, NULL);
-    param_queue_add(&queue, &counter, INDEX_ALL, NULL);
+    param_queue_add(&queue, state, idx, NULL);
+    param_queue_add(&queue, counter, INDEX_ALL, NULL);
 
     /* Trigger CSP to request value from parameter server */
     packet->length = queue.used + 2;
@@ -120,13 +120,13 @@ When modifying multiple remote parameters, a queue can be built to efficiently r
     if (param_get_uint8_array(&state, idx) == 0)
         param_set_uint8_array(&state, idx, 1);
 
-    param_set_uint16(&counter, param_get_uint16(&counter) + 1);
+    param_set_uint16(counter, param_get_uint16(counter) + 1);
 
     /* Allocate new CSP packet and rebuild queue */
     param_queue_init(&queue, queue_buf, PARAM_SERVER_MTU-2, 0, PARAM_QUEUE_TYPE_SET, VERSION);
 
-    param_queue_add(&queue, &state, idx, NULL);
-    param_queue_add(&queue, &counter, INDEX_ALL, NULL);
+    param_queue_add(&queue, state, idx, NULL);
+    param_queue_add(&queue, counter, INDEX_ALL, NULL);
 
     /* Trigger CSP to push queue values */
     if (param_push_queue(&queue, CSP_PRIO_NORM, VERBOSE, &state.node, TIMEOUT, 0) < 0)

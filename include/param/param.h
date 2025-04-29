@@ -107,7 +107,7 @@ typedef struct param_s {
 	int array_step;
 
 	/* Local info */
-	void (*callback)(struct param_s * param, int offset);
+	void (*callback)(const struct param_s * param, int offset);
 	uint32_t * timestamp;
 
 #ifdef PARAM_HAVE_SYS_QUEUE
@@ -118,6 +118,8 @@ typedef struct param_s {
 
 
 } param_t;
+
+typedef const param_t * param_ptr;
 
 /**
  * DEFINITION HELPERS:
@@ -136,10 +138,10 @@ typedef struct param_s {
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	uint16_t _node_##_name = 0; \
-	__attribute__((section("param"))) \
+	__attribute__((section("param_data"))) \
 	__attribute__((used, no_reorder)) \
-	param_t _name = { \
-		.vmem = NULL, \
+	const param_t _p##_name = { \
+	   .vmem = NULL, \
 		.node = &_node_##_name, \
 		.id = _id, \
 		.type = _type, \
@@ -153,16 +155,18 @@ typedef struct param_s {
 		.addr = (void *)(_physaddr), \
 		.vaddr = 0, \
 		.docstr = _docstr, \
-	}
+	}; \
+	__attribute__((section("param"))) \
+	const param_ptr _name = &_p##_name;
 
 #define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	uint16_t _node_##_name = 0; \
-	__attribute__((section("param"))) \
+	__attribute__((section("param_data"))) \
 	__attribute__((used, no_reorder)) \
-	param_t _name = { \
-		.node = &_node_##_name, \
+	const param_t _p##_name = { \
+	   .node = &_node_##_name, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
@@ -176,16 +180,18 @@ typedef struct param_s {
 		.vaddr = _vmem_addr, \
 		.vmem = &vmem_##_vmem_name, \
 		.docstr = _docstr, \
-	}
+	}; \
+	__attribute__((section("param"))) \
+	const param_ptr _name = &_p##_name;
 
 #define PARAM_REMOTE_NODE_IGNORE 16382
 
 #define PARAM_DEFINE_REMOTE(_id, _name, _nodeaddr, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
-	__attribute__((section("param"))) \
+	__attribute__((section("param_data"))) \
 	__attribute__((used, no_reorder)) \
-	param_t _name = { \
+	const param_t _p##_name = { \
 		.node = _nodeaddr, \
 		.id = _id, \
 		.type = _type, \
@@ -198,13 +204,15 @@ typedef struct param_s {
 		.vmem = NULL, \
 		.timestamp = &_timestamp_##_name, \
 		.docstr = _docstr, \
-	};
+	}; \
+	__attribute__((section("param"))) \
+	const param_ptr _name = &_p##_name;
 
 #define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	uint32_t _timestamp_##_name = 0; \
 	uint16_t _node_##_name = _node; \
-	param_t _name = { \
+	const param_t _p##_name = { \
 		.node = &_node_##_name, \
 		.id = _id, \
 		.type = _type, \
@@ -217,12 +225,13 @@ typedef struct param_s {
 		.vmem = NULL, \
 		.timestamp = &_timestamp_##_name, \
 		.docstr = _docstr, \
-	};
+	}; \
+	const param_ptr _name = &_p##_name;
 
 /* Native getter functions, will return native types */
 #define PARAM_GET(type, name) \
-	type param_get_##name(param_t * param); \
-	type param_get_##name##_array(param_t * param, unsigned int i);
+	type param_get_##name(param_ptr param); \
+	type param_get_##name##_array(param_ptr param, unsigned int i);
 PARAM_GET(uint8_t, uint8)
 PARAM_GET(uint16_t, uint16)
 PARAM_GET(uint32_t, uint32)
@@ -237,10 +246,10 @@ PARAM_GET(double, double)
 
 /* Native setter functions, these take a native type as argument */
 #define PARAM_SET(type, name) \
-	void param_set_##name(param_t * param, type value); \
-	void param_set_##name##_nocallback(param_t * param, type value); \
-	void param_set_##name##_array(param_t * param, unsigned int i, type value); \
-	void param_set_##name##_array_nocallback(param_t * param, unsigned int i, type value);
+	void param_set_##name(param_ptr param, type value); \
+	void param_set_##name##_nocallback(param_ptr param, type value); \
+	void param_set_##name##_array(param_ptr param, unsigned int i, type value); \
+	void param_set_##name##_array_nocallback(param_ptr param, unsigned int i, type value);
 PARAM_SET(uint8_t, uint8)
 PARAM_SET(uint16_t, uint16)
 PARAM_SET(uint32_t, uint32)
@@ -254,24 +263,24 @@ PARAM_SET(double, double)
 #undef PARAM_SET
 
 /* Non-native types needs to go through a function which includes a void pointer and the length */
-void param_set_data(param_t * param, const void * inbuf, int len);
-void param_set_data_nocallback(param_t * param, const void * inbuf, int len);
-void param_get_data(param_t * param, void * outbuf, int len);
-void param_set_string(param_t * param, const char * inbuf, int len);
+void param_set_data(param_ptr param, const void * inbuf, int len);
+void param_set_data_nocallback(param_ptr param, const void * inbuf, int len);
+void param_get_data(param_ptr param, void * outbuf, int len);
+void param_set_string(param_ptr param, const char * inbuf, int len);
 #define param_get_string param_get_data
 
 /* Generic setter function:
  * This function can be used to set data of any type
  */
-void param_set(param_t * param, unsigned int offset, void * value);
-void param_get(param_t * param, unsigned int offset, void * value);
+void param_set(param_ptr param, unsigned int offset, void * value);
+void param_get(param_ptr param, unsigned int offset, void * value);
 
 /* Returns the size of a native type */
 int param_typesize(param_type_e type);
-int param_size(param_t * param);
+int param_size(param_ptr param);
 
 /* Copies from one parameter to another */
-void param_copy(param_t * dest, param_t * src);
+void param_copy(param_ptr dest, param_ptr src);
 
 /* External hooks to get atomic writes */
 extern __attribute__((weak)) void param_enter_critical(void);

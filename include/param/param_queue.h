@@ -42,7 +42,7 @@ extern uint32_t param_queue_dbg_level;
 
 void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int used, param_queue_type_e type, int version);
 
-int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value);
+int param_queue_add(param_queue_t *queue, param_ptr param, int offset, void *value);
 
 /**
  * @brief 						Applies the content of a queue to memory.
@@ -57,7 +57,7 @@ void param_queue_print(param_queue_t *queue);
 void param_queue_print_local(param_queue_t *queue);
 void param_queue_print_params(param_queue_t *queue, uint32_t ref_timestamp);
 
-typedef int (*param_queue_callback_f)(void * context, param_queue_t *queue, param_t * param, int offset, void *reader);
+typedef int (*param_queue_callback_f)(void * context, param_queue_t *queue, param_ptr param, int offset, void *reader);
 int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback, void * context);
 
 
@@ -70,7 +70,7 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, long unsig
 		int id, node, offset = -1; \
 		long unsigned int timestamp = 0; \
 		param_deserialize_id(&reader, &id, &node, &timestamp, &offset, queue); \
-		param_t * param = param_list_find_id(node, id); \
+		const param_t * param = param_list_find_id(node, id); \
 
 
 #ifdef __cplusplus

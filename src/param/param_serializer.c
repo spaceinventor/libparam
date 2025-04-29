@@ -20,7 +20,7 @@
 
 #include <mpack/mpack.h>
 
-static inline uint16_t param_get_short_id(param_t * param, unsigned int isarray, unsigned int reserved) {
+static inline uint16_t param_get_short_id(param_ptr param, unsigned int isarray, unsigned int reserved) {
 	uint16_t node = *param->node;
 	return (node << 11) | ((isarray & 0x1) << 10) | ((reserved & 0x1) << 2) | ((param->id) & 0x1FF);
 }
@@ -37,7 +37,7 @@ static inline uint16_t param_parse_short_id_paramid(uint16_t short_id) {
 	return short_id & 0x1FF;
 }
 
-void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, param_queue_t *queue) {
+void param_serialize_id(mpack_writer_t *writer, param_ptr param, int offset, param_queue_t *queue) {
 
 	if (queue->version == 1) {
 
@@ -158,7 +158,7 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, long unsig
 
 }
 
-int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * writer, void * value, param_queue_t * queue) {
+int param_serialize_to_mpack(param_ptr param, int offset, mpack_writer_t * writer, void * value, param_queue_t * queue) {
 
 	/* Remember the initial position if we need to abort later due to buffer full */
 	char * init_pos = writer->position;
@@ -340,7 +340,7 @@ int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * write
 
 }
 
-void param_deserialize_from_mpack_to_param(void * context, void * queue, param_t * param, int offset, mpack_reader_t * reader) {
+void param_deserialize_from_mpack_to_param(void * context, void * queue, param_ptr param, int offset, mpack_reader_t * reader) {
 
 	if (offset < 0)
 		offset = 0;

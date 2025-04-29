@@ -46,7 +46,7 @@ static void __send(struct param_serve_context *ctx, int end) {
 	csp_sendto_reply(ctx->request, ctx->response, CSP_O_SAME);
 }
 
-static int __add(struct param_serve_context *ctx, param_t * param, int offset) {
+static int __add(struct param_serve_context *ctx, const param_t * param, int offset) {
 
 	int result = param_queue_add(&ctx->q_response, param, offset, NULL);
 	if (result != 0) {
@@ -94,7 +94,7 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 			param_deserialize_id(&reader, &id, &node, &timestamp, &offset, &q_request);
 			if (server_addr == node)
 				node = 0;
-			param_t * param = param_list_find_id(node, id);
+			const param_t * param = param_list_find_id(node, id);
 			if (param) {
 				if(ack_with_pull) {
 					/* Move reader forward to skip values as we normally use a get queue */
@@ -110,7 +110,7 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 						param_deserialize_id(&_reader, &_id, &_node, &_timestamp, &_offset, &ctx.q_response);
 						if (server_addr == _node)
 							_node = 0;
-						param_t * _param = param_list_find_id(_node, _id);
+						const param_t * _param = param_list_find_id(_node, _id);
 
 						/* Move reader forward to skip values */
 						mpack_discard(&_reader);
@@ -143,7 +143,7 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 	} else {
 
 		/* Loop the full parameter list */
-		param_t * param;
+		const param_t * param;
 		param_list_iterator i = {};
 		while ((param = param_list_iterate(&i)) != NULL) {
 			uint32_t include_mask = be32toh(ctx.request->data32[1]);
@@ -330,5 +330,3 @@ void param_serve(csp_packet_t * packet) {
 
 
 }
-
-

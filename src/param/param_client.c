@@ -49,7 +49,7 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 			param_deserialize_id(&reader, &id, &node, &timestamp, &offset, &queue);
 			if (node == 0)
 				node = from;
-			param_t * param = param_list_find_id(node, id);
+			const param_t * param = param_list_find_id(node, id);
 
 			/* We need to discard the data field, to get to next paramid */
 			mpack_discard		(&reader);
@@ -162,7 +162,7 @@ int param_pull_queue(param_queue_t *queue, uint8_t prio, int verbose, int host, 
 }
 
 
-int param_pull_single(param_t *param, int offset, int prio, int verbose, int host, int timeout, int version) {
+int param_pull_single(param_ptr param, int offset, int prio, int verbose, int host, int timeout, int version) {
 
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
@@ -240,7 +240,7 @@ int param_push_queue(param_queue_t *queue, int prio, int verbose, int host, int 
 	return 0;
 }
 
-int param_push_single(param_t *param, int offset, int prio, void *value, int verbose, int host, int timeout, int version, bool ack_with_pull) {
+int param_push_single(param_ptr param, int offset, int prio, void *value, int verbose, int host, int timeout, int version, bool ack_with_pull) {
 
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)

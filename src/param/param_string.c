@@ -30,7 +30,7 @@
 #define SCNx8       __SCN8(x)
 #endif
 
-void param_value_str(param_t *param, unsigned int i, char * out, int len)
+void param_value_str(param_ptr param, unsigned int i, char * out, int len)
 {
 	switch (param->type) {
 #define PARAM_SWITCH_SNPRINTF(casename, strtype, strcast, name) \
@@ -222,7 +222,7 @@ void param_type_str(param_type_e type, char * out, int len)
 	}
 }
 
-static void param_print_value(FILE * file, param_t * param, int offset) {
+static void param_print_value(FILE * file, param_ptr param, int offset) {
 
 	if (param == NULL) {
 		return;
@@ -285,7 +285,7 @@ static void param_print_value(FILE * file, param_t * param, int offset) {
 
 }
 
-void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int nodes_count, int verbose, uint32_t ref_timestamp)
+void param_print_file(FILE* file, param_ptr param, int offset, int nodes[], int nodes_count, int verbose, uint32_t ref_timestamp)
 {
 	if (param == NULL)
 		return;
@@ -307,7 +307,7 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 	/* Value table */
 	if (nodes_count > 0 && nodes != NULL) {
 		for(int i = 0; i < nodes_count; i++) {
-			param_t * specific_param = param_list_find_id(nodes[i], param->id);
+			const param_t * specific_param = param_list_find_id(nodes[i], param->id);
 			param_print_value(file, specific_param, offset);
 		}
 
@@ -431,7 +431,7 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 
 }
 
-void param_print(param_t * param, int offset, int nodes[], int nodes_count, int verbose, uint32_t ref_timestamp) {
+void param_print(param_ptr param, int offset, int nodes[], int nodes_count, int verbose, uint32_t ref_timestamp) {
 
 	param_print_file(stdout, param, offset, nodes, nodes_count, verbose, ref_timestamp);
 }
@@ -535,7 +535,7 @@ uint32_t param_typestr_to_typeid(const char * str) {
 
 }
 
-const char * param_mask_color(const param_t *param) {
+const char * param_mask_color(param_ptr param) {
     unsigned int mask = param->mask;
 
     if (mask & PM_CONF) {

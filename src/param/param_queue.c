@@ -46,7 +46,7 @@ void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int u
 	queue->client_timestamp = 0;
 }
 
-int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value) {
+int param_queue_add(param_queue_t *queue, param_ptr param, int offset, void *value) {
 
 	/* Ensure we always send nodeid on the first element of the queue */
 	if (queue->used == 0) {
@@ -90,7 +90,7 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
 			node = from;
 
 		/* First we search on the specified node in the request or response */
-		param_t * param = param_list_find_id(node, id);
+		const param_t * param = param_list_find_id(node, id);
 
 		if (!param) {
 
@@ -224,7 +224,7 @@ void param_queue_print_params(param_queue_t *queue, uint32_t ref_timestamp) {
 				int _id, _node, _offset = -1;
 				long unsigned int _timestamp = 0;
 				param_deserialize_id(&_reader, &_id, &_node, &_timestamp, &_offset, queue);
-				param_t * _param = param_list_find_id(_node, _id);
+				const param_t * _param = param_list_find_id(_node, _id);
 				if(queue->type == PARAM_QUEUE_TYPE_SET){
 					mpack_discard(&_reader);
 				}
