@@ -120,6 +120,7 @@ typedef struct param_s {
 } param_t;
 
 typedef const param_t * param_ptr;
+#define DECLARE_PARAM(_name) extern const param_ptr _name
 
 /**
  * DEFINITION HELPERS:
