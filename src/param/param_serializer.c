@@ -20,6 +20,18 @@
 
 #include <mpack/mpack.h>
 
+#define PARAM_HEADER_ARRAY_POS 15
+#define PARAM_HEADER_NODE_POS 14
+#define PARAM_HEADER_TIMESTAMP_POS 13
+#define PARAM_HEADER_EXTENDEDID_POS 12
+#define PARAM_HEADER_ID_MASK 0x3ff
+
+static const uint16_t known_header_mask = (1 << PARAM_HEADER_ARRAY_POS)
+										| (1 << PARAM_HEADER_NODE_POS)
+										| (1 << PARAM_HEADER_TIMESTAMP_POS)
+										| (1 << PARAM_HEADER_EXTENDEDID_POS)
+										|       PARAM_HEADER_ID_MASK;
+
 static inline uint16_t param_get_short_id(param_t * param, unsigned int isarray, unsigned int reserved) {
 	uint16_t node = *param->node;
 	return (node << 11) | ((isarray & 0x1) << 10) | ((reserved & 0x1) << 2) | ((param->id) & 0x1FF);
@@ -58,7 +70,11 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 		int timestamp_flag = (queue->last_timestamp != timestamp) ? 1 : 0;
 		int extendedid_flag = (param->id > 0x3ff) ? 1 : 0;
 
-		uint16_t header = array_flag << 15 | node_flag << 14 | timestamp_flag << 13 | extendedid_flag << 12 | (param->id & 0x3ff);
+		uint16_t header = array_flag << PARAM_HEADER_ARRAY_POS 
+						| node_flag << PARAM_HEADER_NODE_POS
+						| timestamp_flag << PARAM_HEADER_TIMESTAMP_POS
+						| extendedid_flag << PARAM_HEADER_EXTENDEDID_POS
+						|(param->id & PARAM_HEADER_ID_MASK);
 		header = htobe16(header);
 		mpack_write_u16(writer, header);
 
@@ -113,11 +129,11 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, long unsig
 			return;
 
 		header = be16toh(header);
-		int array_flag = header & 0x8000;
-		int node_flag = header & 0x4000;
-		int timestamp_flag = header & 0x2000;
-		int extendedid_flag = header & 0x1000;
-		*id = header & 0x3ff;
+		int array_flag = (header >> PARAM_HEADER_ARRAY_POS) & 1;
+		int node_flag = (header >> PARAM_HEADER_NODE_POS) & 1;
+		int timestamp_flag = (header >> PARAM_HEADER_TIMESTAMP_POS) & 1;
+		int extendedid_flag = (header >> PARAM_HEADER_EXTENDEDID_POS) & 1;
+		*id = header & PARAM_HEADER_ID_MASK;
 
 		if (array_flag) {
 			char _offset;
@@ -152,6 +168,10 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, long unsig
 			char _extendedid;
 			mpack_read_bytes(reader, &_extendedid, 1);
 			*id |= ((uint16_t)_extendedid << 8)&0xFFFF;
+		}
+
+		if ((header & ~known_header_mask) != 0) {
+			printf("ERROR: Unknown param header bits: 0x%x\n", header);
 		}
 
 	}
