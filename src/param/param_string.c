@@ -30,6 +30,13 @@
 #define SCNx8       __SCN8(x)
 #endif
 
+static	int nibble(char c) {
+	if (c >= '0' && c <= '9') return      c - '0';
+	if (c >= 'A' && c <= 'F') return 10 + c - 'A';
+	if (c >= 'a' && c <= 'f') return 10 + c - 'a';
+	return -1;
+}
+
 void param_value_str(param_t *param, unsigned int i, char * out, int len)
 {
 	switch (param->type) {
@@ -59,7 +66,7 @@ void param_value_str(param_t *param, unsigned int i, char * out, int len)
 		}
 		break;
 	}
-	
+
 	case PARAM_TYPE_DOUBLE: {
 		double val = param_get_double_array(param, i);
 		if ((fabs(val) < 0.00001) && (val != 0)) {
@@ -163,19 +170,12 @@ int param_str_to_value(param_type_e type, char *in, void *out) {
 	case PARAM_TYPE_STRING:
 		strcpy(out, in);
 		return strlen(in);
-			
+
 	case PARAM_TYPE_DATA: {
 		int len = strlen(in) / 2;
 
 		if (2*len != strlen(in))
 			return -1;
-
-		int nibble(char c) {
-			if (c >= '0' && c <= '9') return      c - '0';
-			if (c >= 'A' && c <= 'F') return 10 + c - 'A';
-			if (c >= 'a' && c <= 'f') return 10 + c - 'a';
-			return -1;
-		}
 
 		for (int i = 0; i < len; i++) {
 			int nibble1 = nibble(in[i*2]);
@@ -328,7 +328,7 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 		}
 
 		fprintf(file, "\t");
-		
+
 		if (param->mask > 0) {
 			unsigned int mask = param->mask;
 
@@ -406,7 +406,7 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 	}
 
 	if(verbose >= 4){
-		if (*param->timestamp > 0){		
+		if (*param->timestamp > 0){
 			struct tm timestamp;
 			char timestamp_buffer[40];
 			time_t param_timestamp = (time_t)*param->timestamp;
@@ -420,11 +420,11 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 			fprintf(file, "\t%s", "-");
 		}
 	}
-	
+
 	if ((verbose >= 3) && (param->docstr != NULL)) {
 		fprintf(file, "\t\t%s", param->docstr);
 	}
-	
+
 	fprintf(file, "%s", param_mask_color_off());
 
 	fprintf(file, "\n");
