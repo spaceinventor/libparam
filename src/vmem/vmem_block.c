@@ -121,7 +121,8 @@ static uint32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *
             /* There is not a cache hit, so flush and read a new one */
             cache_flush(drv, cache);
             /* Read in the cache and ignore the return value */
-            (void)cache_read(drv, cache, address, (uintptr_t)NULL, 0);
+            uint8_t tmp;
+            (void)cache_read(drv, cache, address, (uintptr_t)&tmp, 1);
         }
 
         /* The address is within the cache and it is valid */
