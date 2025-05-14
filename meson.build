@@ -98,6 +98,11 @@ param_lib = library('param',
 )
 
 param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib)
+param_link_whole_dep = declare_dependency(
+	include_directories : param_inc,
+	link_with : param_lib,
+	link_whole: [param_lib]
+)
 
 if not meson.is_subproject()
     subdir('tests')
