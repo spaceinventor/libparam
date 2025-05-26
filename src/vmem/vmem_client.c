@@ -53,7 +53,6 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 
 	/* Go into download loop */
 	uint32_t count = 0;
-	int dotcount = 0;
 
 	while(1) { 
 
@@ -78,14 +77,6 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 			break;
 		}
 
-		if (dotcount % 32 == 0)
-			printf("  ");
-		printf(".");
-		fflush(stdout);
-		dotcount++;
-		if (dotcount % 32 == 0)
-			printf(" - %.0f K\n", (count / 1024.0));
-
 		/* Put data */
 		memcpy((void *) ((intptr_t) dataout + count), packet->data, packet->length);
 
@@ -94,8 +85,6 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 
 		csp_buffer_free(packet);
 	}
-
-	printf(" - %.0f K\n", (count / 1024.0));
 
 	csp_close(conn);
 
@@ -140,21 +129,12 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 	csp_send(conn, packet);
 
 	uint32_t count = 0;
-	int dotcount = 0;
 	while((count < length) && csp_conn_is_active(conn)) {
 
 		if (abort) {
 			csp_buffer_free(packet);
 			break;
 		}
-
-		if (dotcount % 32 == 0)
-			printf("  ");
-		printf(".");
-		fflush(stdout);
-		dotcount++;
-		if (dotcount % 32 == 0)
-			printf(" - %.0f K\n", (count / 1024.0));
 
 		/* Prepare packet */
 		csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
@@ -169,8 +149,6 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 		csp_send(conn, packet);
 
 	}
-
-	printf(" - %.0f K\n", (count / 1024.0));
 
 	csp_close(conn);
 
