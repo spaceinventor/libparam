@@ -180,7 +180,6 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 		unsigned int window_size = 0;
 		csp_rdp_get_opt(&window_size, NULL, NULL, NULL, NULL, NULL);
 		printf("Upload didn't complete, suggested offset to resume: %"PRIu32"\n", count - ((window_size + 1) * VMEM_SERVER_MTU));
-		return -1;
 	} else {
 		printf("  Uploaded %"PRIu32" bytes in %.03f s at %"PRIu32" Bps\n", count, time_total / 1000.0, (uint32_t)(count / ((float)time_total / 1000.0)) );
 	}
