@@ -112,7 +112,8 @@ int param_queue_apply(param_queue_t *queue, int apply_local, int from) {
 			}
 
 			if (*param->node != 0) {
-				*param->timestamp = timestamp;
+				param->timestamp->tv_sec = timestamp;
+				param->timestamp->tv_nsec = 0;
 			}
 
 			param_deserialize_from_mpack_to_param(NULL, queue, param, offset, &reader);

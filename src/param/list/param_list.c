@@ -367,7 +367,7 @@ typedef struct param_heap_s {
 		uint8_t *buffer;
 	};
 	uint16_t node;
-	uint32_t timestamp;
+	csp_timestamp_t timestamp;
 	char name[36];
 	char unit[10];
 	char help[150];
@@ -432,7 +432,7 @@ typedef struct param_heap_s {
 		uint8_t *buffer;
 	};
 	uint16_t node;
-	uint32_t timestamp;
+	csp_timestamp_t timestamp;
 	char name[36];
 	char unit[10];
 	char help[150];

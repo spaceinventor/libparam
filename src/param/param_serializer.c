@@ -64,10 +64,9 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 	} else {
 
 		int node = *param->node;
-		uint32_t timestamp = *param->timestamp;
 		int array_flag = (offset >= 0) ? 1 : 0;
 		int node_flag = (queue->last_node != node) ? 1 : 0;
-		int timestamp_flag = (queue->last_timestamp != timestamp) ? 1 : 0;
+		int timestamp_flag = (queue->last_timestamp != param->timestamp->tv_sec) ? 1 : 0;
 		int extendedid_flag = (param->id > 0x3ff) ? 1 : 0;
 
 		uint16_t header = array_flag << PARAM_HEADER_ARRAY_POS 
@@ -90,8 +89,8 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 		}
 
 		if (timestamp_flag) {
-			queue->last_timestamp = timestamp;
-			uint32_t _timestamp = htobe32(timestamp);
+			queue->last_timestamp = param->timestamp->tv_sec;
+			uint32_t _timestamp = htobe32(param->timestamp->tv_sec);
 			mpack_write_bytes(writer, (char*) &_timestamp, 4);
 		}
 

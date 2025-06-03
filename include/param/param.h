@@ -9,9 +9,10 @@
 #define SRC_PARAM_PARAM_H_
 
 #include <stdint.h>
+#include <csp/csp_types.h>
 #include <vmem/vmem.h>
 
-#include "libparam.h"
+#include <libparam.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -108,7 +109,7 @@ typedef struct param_s {
 
 	/* Local info */
 	void (*callback)(struct param_s * param, int offset);
-	uint32_t * timestamp;
+	csp_timestamp_t * timestamp;
 
 #ifdef PARAM_HAVE_SYS_QUEUE
 	/* single linked list:
@@ -134,7 +135,7 @@ typedef struct param_s {
  */
 #define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
-	uint32_t _timestamp_##_name = 0; \
+	csp_timestamp_t _timestamp_##_name = { .tv_sec = 0, .tv_nsec = 0 }; \
 	uint16_t _node_##_name = 0; \
 	__attribute__((section("param"))) \
 	__attribute__((used, no_reorder)) \
@@ -157,7 +158,7 @@ typedef struct param_s {
 
 #define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
 	; /* Catch const param defines */ \
-	uint32_t _timestamp_##_name = 0; \
+	csp_timestamp_t _timestamp_##_name = { .tv_sec = 0, .tv_nsec = 0 }; \
 	uint16_t _node_##_name = 0; \
 	__attribute__((section("param"))) \
 	__attribute__((used, no_reorder)) \
@@ -182,7 +183,7 @@ typedef struct param_s {
 
 #define PARAM_DEFINE_REMOTE(_id, _name, _nodeaddr, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
-	uint32_t _timestamp_##_name = 0; \
+	csp_timestamp_t _timestamp_##_name = { .tv_sec = 0, .tv_nsec = 0 }; \
 	__attribute__((section("param"))) \
 	__attribute__((used, no_reorder)) \
 	param_t _name = { \
@@ -202,7 +203,7 @@ typedef struct param_s {
 
 #define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
-	uint32_t _timestamp_##_name = 0; \
+	csp_timestamp_t _timestamp_##_name = { .tv_sec = 0, .tv_nsec = 0 }; \
 	uint16_t _node_##_name = _node; \
 	param_t _name = { \
 		.node = &_node_##_name, \

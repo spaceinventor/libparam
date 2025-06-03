@@ -255,7 +255,7 @@ static void param_print_value(FILE * file, param_t * param, int offset) {
 	for(int i = offset; i < offset + count; i++) {
 		char value[sizeof(value_str)];
 
-		if(*param->timestamp > 0 || *param->node == 0){
+		if(param->timestamp->tv_sec > 0 || *param->node == 0){
 			param_value_str(param, i, value, sizeof(value));
 			strcat(value_str, value);
 		}
@@ -290,7 +290,7 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 	if (param == NULL)
 		return;
 
-	if(ref_timestamp && ref_timestamp > *param->timestamp){
+	if(ref_timestamp > 0 && ref_timestamp > param->timestamp->tv_sec){
 		fprintf(file, "\033[90m");
 	} else {
 		fprintf(file, "%s", param_mask_color(param));
@@ -406,10 +406,10 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 	}
 
 	if(verbose >= 4){
-		if (*param->timestamp > 0){
+		if (param->timestamp->tv_sec > 0){
 			struct tm timestamp;
 			char timestamp_buffer[40];
-			time_t param_timestamp = (time_t)*param->timestamp;
+			time_t param_timestamp = param->timestamp->tv_sec;
 			struct tm timeinfo;
 			timestamp = *localtime_r(&param_timestamp, &timeinfo);
 			strftime(timestamp_buffer, sizeof(timestamp_buffer), "%a %Y-%m-%d %H:%M:%S %Z", &timestamp);
