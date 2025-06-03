@@ -31,8 +31,8 @@ typedef struct param_queue_s {
 
 	/* State used by serializer */
 	uint16_t last_node;
-	uint32_t last_timestamp;
-	uint32_t client_timestamp;
+	csp_timestamp_t last_timestamp;
+	csp_timestamp_t client_timestamp;
 } param_queue_t;
 
 /**
@@ -61,14 +61,14 @@ typedef int (*param_queue_callback_f)(void * context, param_queue_t *queue, para
 int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback, void * context);
 
 
-void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, long unsigned int *timestamp, int *offset, param_queue_t *queue);
+void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, csp_timestamp_t *timestamp, int *offset, param_queue_t *queue);
 
 #define PARAM_QUEUE_FOREACH(param, reader, queue, offset) \
 	mpack_reader_t reader; \
 	mpack_reader_init_data(&reader, queue->buffer, queue->used); \
 	while(reader.data < reader.end) { \
 		int id, node, offset = -1; \
-		long unsigned int timestamp = 0; \
+		csp_timestamp_t timestamp = { .tv_sec = 0, .tv_nsec = 0 }; \
 		param_deserialize_id(&reader, &id, &node, &timestamp, &offset, queue); \
 		param_t * param = param_list_find_id(node, id); \
 

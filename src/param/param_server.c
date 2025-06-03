@@ -90,7 +90,7 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 
 		while(reader.data < reader.end) {
 			int id, node, offset = -1;
-			long unsigned int timestamp = 0;
+			csp_timestamp_t timestamp = { .tv_sec = 0, .tv_nsec = 0 };
 			param_deserialize_id(&reader, &id, &node, &timestamp, &offset, &q_request);
 			if (server_addr == node)
 				node = 0;
@@ -106,7 +106,7 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 					int found = 0;
 					while(_reader.data < _reader.end) {
 						int _id, _node, _offset = -1;
-						long unsigned int _timestamp = 0;
+						csp_timestamp_t _timestamp = { .tv_sec = 0, .tv_nsec = 0 };
 						param_deserialize_id(&_reader, &_id, &_node, &_timestamp, &_offset, &ctx.q_response);
 						if (server_addr == _node)
 							_node = 0;
