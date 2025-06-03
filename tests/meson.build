@@ -7,7 +7,7 @@ vmem_block_tests = executable(
     sources: [
         'vmem_block_tests.cpp',
     ],
-    dependencies: [gtest_dep, gmock_dep, gtest_main_dep],
+    dependencies: [gtest_dep, gmock_dep, gtest_main_dep, param_dep],
     include_directories : param_inc,
     link_with : param_lib
 )

@@ -97,7 +97,7 @@ param_lib = library('param',
 	install : false
 )
 
-param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib)
+param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib, dependencies: [clib_dep, bsd_dep, csp_dep])
 param_link_whole_dep = declare_dependency(
 	include_directories : param_inc,
 	link_with : param_lib,
