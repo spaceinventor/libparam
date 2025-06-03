@@ -110,7 +110,7 @@ param_t * param_list_iterate(param_list_iterator * iterator) {
 		iterator->phase = 1;
 #ifdef PARAM_HAVE_SYS_QUEUE
 		iterator->element = SLIST_FIRST(&param_list_head);
-#else 
+#else
 		iterator->element = NULL;
 #endif
 	}
@@ -200,7 +200,7 @@ void param_list_remove_specific(param_t * param, uint8_t verbose, int destroy) {
 #endif
 
 param_t * param_list_find_id(int node, int id) {
-	
+
 	if (node < 0)
 		node = 0;
 
@@ -225,7 +225,7 @@ param_t * param_list_find_id(int node, int id) {
 }
 
 param_t * param_list_find_name(int node, const char * name) {
-	
+
 	if (node < 0 )
 		node = 0;
 
@@ -263,7 +263,7 @@ void param_list_print(uint32_t mask, int node, const char * globstr, int verbosi
 		}
 
 		param_print(param, -1, NULL, 0, verbosity, 0);
-		
+
 	}
 }
 
@@ -291,7 +291,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 			continue;
 
 		if (list_version == 1) {
-			
+
 			// Not supported
 
 		} else if (list_version == 2) {
@@ -303,7 +303,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 			rparam->type = param->type;
 			rparam->size = param->array_size;
 			rparam->mask = htobe32(param->mask);
-			
+
 			strlcpy(rparam->name, param->name, sizeof(rparam->name));
 
 			/* Ensure strings are null terminated */
@@ -318,7 +318,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 			rparam->type = param->type;
 			rparam->size = param->array_size;
 			rparam->mask = htobe32(param->mask);
-			
+
 			strlcpy(rparam->name, param->name, sizeof(rparam->name));
 
 			if (param->vmem) {
@@ -339,7 +339,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 			rparam->help[sizeof(rparam->help)-1] = '\0';
 
 		}
-		
+
 		param_packed += param_list_packed_size(list_version);
 		num_params++;
 
@@ -350,7 +350,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 	}
 
 	return num_params;
-	
+
 }
 
 #if defined PARAM_LIST_DYNAMIC && PARAM_LIST_POOL > 0
@@ -604,7 +604,7 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	if (param_heap == NULL) {
 		return NULL;
 	}
-	
+
 	param_t * param = &param_heap->param;
 	if (param == NULL) {
 		return NULL;
@@ -638,7 +638,7 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	param->vmem->big_endian = false;
 	param->vmem->restore = NULL;
 	param->vmem->write = NULL;
-	
+
 	strlcpy(param->name, name, 36);
 	if (unit) {
 		strlcpy(param->unit, unit, 10);
@@ -651,3 +651,173 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 
 }
 #endif
+
+static int param_sort_fnc(const void* p1, const void* p2) {
+
+    param_t* param1 = *(param_t**)p1;
+    param_t* param2 = *(param_t**)p2;
+
+    if (param1->id > param2->id) return 1;
+    if (param1->id < param2->id) return -1;
+    return 0;
+}
+
+void list_add_output(uint32_t mask, FILE * out) {
+
+	fprintf(out, "-m \"");
+
+	if (mask & PM_READONLY) {
+		mask &= ~ PM_READONLY;
+		fprintf(out, "r");
+	}
+
+	if (mask & PM_CONF) {
+		mask &= ~ PM_CONF;
+		fprintf(out, "c");
+	}
+
+	if (mask & PM_TELEM) {
+		mask &= ~ PM_TELEM;
+		fprintf(out, "t");
+	}
+
+	if (mask & PM_HWREG) {
+		mask &= ~ PM_HWREG;
+		fprintf(out, "h");
+	}
+
+	if (mask & PM_ERRCNT) {
+		mask &= ~ PM_ERRCNT;
+		fprintf(out, "e");
+	}
+
+	if (mask & PM_SYSINFO) {
+		mask &= ~ PM_SYSINFO;
+		fprintf(out, "i");
+	}
+
+	if (mask & PM_SYSCONF) {
+		mask &= ~ PM_SYSCONF;
+		fprintf(out, "C");
+	}
+
+	if (mask & PM_WDT) {
+		mask &= ~ PM_WDT;
+		fprintf(out, "w");
+	}
+
+	if (mask & PM_DEBUG) {
+		mask &= ~ PM_DEBUG;
+		fprintf(out, "d");
+	}
+
+	if (mask & PM_ATOMIC_WRITE) {
+		mask &= ~ PM_ATOMIC_WRITE;
+		fprintf(out, "o");
+	}
+
+	if (mask & PM_CALIB) {
+		mask &= ~ PM_CALIB;
+		fprintf(out, "q");
+	}
+
+	switch(mask & PM_PRIO_MASK) {
+		case PM_PRIO1: fprintf(out, "1"); mask &= ~ PM_PRIO_MASK; break;
+		case PM_PRIO2: fprintf(out, "2"); mask &= ~ PM_PRIO_MASK; break;
+		case PM_PRIO3: fprintf(out, "3"); mask &= ~ PM_PRIO_MASK; break;
+	}
+
+
+	//if (mask)
+	//	fprintf(out, "+%x", mask);
+
+	fprintf(out, "\" ");
+
+}
+
+void list_add_output_user_flags(uint32_t mask, FILE * out) {
+
+	mask &= PM_USER_FLAGS;
+
+	if (mask > 0){
+		fprintf(out, "-M \"");
+		for (uint8_t i = PM_USER_FLAGS_OFFSET; i < 8*sizeof(mask); i++) {
+			if (mask & (1<<i)) {
+				mask &= ~ (1<<i);
+				fprintf(out, "%"PRIu8, i-PM_USER_FLAGS_OFFSET);
+			}
+		}
+
+		fprintf(out, "\" ");
+	}
+	// Output:  -M "23" for PM_KEYCONF
+
+}
+
+void param_list_save(const char * const filename, int node, int skip_node) {
+
+    FILE * out = stdout;
+
+    if (filename) {
+        FILE * fd = fopen(filename, "w");
+        if (fd) {
+            out = fd;
+            printf("Writing to file %s\n", filename);
+        }
+    }
+
+    param_t * param;
+    param_list_iterator i = {};
+    param_t* param_sorted[1024];
+    int param_cnt = 0;
+
+    while ((param = param_list_iterate(&i)) != NULL) {
+
+        if ((node >= 0) && (*param->node != node)) {
+            continue;
+        }
+        param_sorted[param_cnt] = param;
+        param_cnt++;
+    };
+
+    qsort(param_sorted, param_cnt, sizeof(param_sorted[0]), param_sort_fnc);
+
+    for (int i = 0; i < param_cnt; i++) {
+        fprintf(out, "list add ");
+        if (param_sorted[i]->array_size > 1) {
+            fprintf(out, "-a %u ", param_sorted[i]->array_size);
+        }
+        if ((param_sorted[i]->docstr != NULL) && (strlen(param_sorted[i]->docstr) > 0)) {
+            fprintf(out, "-c \"%s\" ", param_sorted[i]->docstr);
+        }
+        if ((param_sorted[i]->unit != NULL) && (strlen(param_sorted[i]->unit) > 0)) {
+            fprintf(out, "-u \"%s\" ", param_sorted[i]->unit);
+        }
+        if (*param_sorted[i]->node != 0 && !skip_node) {
+            fprintf(out, "-n %u ", *param_sorted[i]->node);
+        }
+
+        if (param_sorted[i]->mask > 0) {
+            unsigned int mask = param_sorted[i]->mask;
+
+            list_add_output(mask, out);
+            list_add_output_user_flags(mask,out);
+        }
+
+        if (param_sorted[i]->vmem != NULL && param_sorted[i]->vmem->type != VMEM_TYPE_UNKNOWN) {
+            fprintf(out, "-v %u ", param_sorted[i]->vmem->type);
+        }
+
+        fprintf(out, "%s %u ", param_sorted[i]->name, param_sorted[i]->id);
+
+        char typestr[10];
+        param_type_str(param_sorted[i]->type, typestr, 10);
+        fprintf(out, "%s\n", typestr);
+
+    }
+
+    if (out != stdout) {
+        fflush(out);
+        fclose(out);
+    }
+}

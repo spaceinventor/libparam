@@ -76,9 +76,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
  */
 int param_list_download(int node, int timeout, int list_version, int include_remotes);
 
-/* From param_list_store_file.c */
-void param_list_store_file_save(char * filename);
-void param_list_store_file_load(char * filename);
+void param_list_save(const char * const filename, int node, int skip_node);
 
 /* From param_list_store_vmem.c */
 void param_list_store_vmem_save(vmem_t * vmem);
