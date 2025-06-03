@@ -24,12 +24,14 @@
 #define PARAM_HEADER_NODE_POS 14
 #define PARAM_HEADER_TIMESTAMP_POS 13
 #define PARAM_HEADER_EXTENDEDID_POS 12
+#define PARAM_HEADER_EXTENDEDTIMESTAMP_POS 11
 #define PARAM_HEADER_ID_MASK 0x3ff
 
 static const uint16_t known_header_mask = (1 << PARAM_HEADER_ARRAY_POS)
 										| (1 << PARAM_HEADER_NODE_POS)
 										| (1 << PARAM_HEADER_TIMESTAMP_POS)
 										| (1 << PARAM_HEADER_EXTENDEDID_POS)
+										| (1 << PARAM_HEADER_EXTENDEDTIMESTAMP_POS)
 										|       PARAM_HEADER_ID_MASK;
 
 static inline uint16_t param_get_short_id(param_t * param, unsigned int isarray, unsigned int reserved) {
@@ -131,6 +133,7 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, csp_timest
 		int array_flag = (header >> PARAM_HEADER_ARRAY_POS) & 1;
 		int node_flag = (header >> PARAM_HEADER_NODE_POS) & 1;
 		int timestamp_flag = (header >> PARAM_HEADER_TIMESTAMP_POS) & 1;
+		int extendedtimestamp_flag = (header >> PARAM_HEADER_EXTENDEDTIMESTAMP_POS) & 1;
 		int extendedid_flag = (header >> PARAM_HEADER_EXTENDEDID_POS) & 1;
 		*id = header & PARAM_HEADER_ID_MASK;
 
@@ -159,8 +162,19 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, csp_timest
 				queue->last_timestamp = queue->client_timestamp;
 			} else {
 				queue->last_timestamp.tv_sec = _timestamp;
-				queue->last_timestamp.tv_nsec = 0;
+				if (extendedtimestamp_flag) {
+					uint32_t _timestamp_ns;
+					mpack_read_bytes(reader, (char*) &_timestamp_ns, 4);
+					_timestamp_ns = be32toh(_timestamp_ns);
+					queue->last_timestamp.tv_nsec = _timestamp_ns;
+				} else {
+					queue->last_timestamp.tv_nsec = 0;
+				}
 			}
+		} else if (extendedtimestamp_flag) {
+			/* Invalid header combination, discard header field */
+			uint32_t _timestamp_ns;
+			mpack_read_bytes(reader, (char*) &_timestamp_ns, 4);
 		}
 		*timestamp = queue->last_timestamp;
 
