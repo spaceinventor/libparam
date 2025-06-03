@@ -8,9 +8,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <param/param.h>
-#include <param_config.h>
 
 #include "param_collector_config.h"
+
+#define PARAMID_COLLECTOR_CNFSTR            200
+#define PARAMID_COLLECTOR_RUN               201
+#define PARAMID_COLLECTOR_VERBOSE           202
+
 
 struct param_collector_config_s param_collector_config[16] = {0};
 
