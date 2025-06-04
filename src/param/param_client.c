@@ -24,16 +24,9 @@ typedef void (*param_transaction_callback_f)(csp_packet_t *response, int verbose
 static void param_transaction_callback_pull(csp_packet_t *response, int verbose, int version, void * context) {
 
 	int from = response->id.src;
-	//csp_hex_dump("pull response", response->data, response->length);
-	//printf("From %d\n", from);
-
 	param_queue_t queue;
-	csp_timestamp_t time_now;
-	csp_clock_get_time(&time_now);
 	param_queue_init(&queue, &response->data[2], response->length - 2, response->length - 2, PARAM_QUEUE_TYPE_SET, version);
 	queue.last_node = response->id.src;
-	queue.client_timestamp = time_now;
-	queue.last_timestamp = queue.client_timestamp;
 
 	/* Write data to local memory */
 	param_queue_apply(&queue, 0, from);
