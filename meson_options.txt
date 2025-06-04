@@ -4,3 +4,4 @@ option('have_fopen', type: 'boolean', value: false, description: 'POSIX fopen av
 option('list_dynamic', type: 'boolean', value: false, description: 'Compile support for dynamic param list (requres sys/queue.h) and dynamic memory allocation')
 option('list_pool', type: 'integer', value: 0, description: 'Compile support for pre-allocated param list (requres sys/queue.h)')
 option('have_float', type: 'boolean', value: true, description: 'Support float/double')
+option('num_publishqueues', type: 'integer', value: 0, description: 'Number of param publish queues required')

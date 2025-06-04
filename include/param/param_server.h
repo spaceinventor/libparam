@@ -8,6 +8,7 @@
 #pragma once 
 
 #include <csp/csp_types.h>
+#include <param/param.h>
 
 #define PARAM_SERVER_MTU 200
 #define PARAM_PORT_SERVER 10
@@ -62,6 +63,8 @@ typedef enum {
  * Second byte on all packets contains flags
  */
 #define PARAM_FLAG_END (1 << 7)
+#define PARAM_FLAG_NOACK (1 << 6)
+#define PARAM_FLAG_PULLWITHACK (1 << 0)
 
 /**
  * Handle incoming parameter requests
@@ -71,3 +74,42 @@ typedef enum {
  * @param packet
  */
 void param_serve(csp_packet_t * packet);
+
+#if PARAM_NUM_PUBLISHQUEUES > 4
+#error A maximum number of four param queues are supported
+#endif
+
+#if PARAM_NUM_PUBLISHQUEUES > 0
+typedef struct param_publish_s {
+	param_t * param;
+	uint32_t queue;
+} param_publish_t;
+
+typedef enum {
+	PARAM_PUBLISHQUEUE_0 = 0,
+#if PARAM_NUM_PUBLISHQUEUES >= 2
+	PARAM_PUBLISHQUEUE_1 = 1,
+#endif
+#if PARAM_NUM_PUBLISHQUEUES >= 3
+	PARAM_PUBLISHQUEUE_2 = 2,
+#endif
+#if PARAM_NUM_PUBLISHQUEUES >= 4
+	PARAM_PUBLISHQUEUE_3 = 3,
+#endif
+} param_publish_id_t;
+
+#define PARAM_ADD_PUBLISH(paramname, queueid) \
+param_publish_t __param_publish_##paramname##queueid = { \
+	.param = &paramname, \
+	.queue = queueid, \
+}; \
+__attribute__((section("param_publish"))) \
+param_publish_t const * _param_publish_##paramname##queueid = & __param_publish_##paramname##queueid;
+
+typedef bool (*param_shall_publish_t)(uint8_t queue);
+
+void param_publish_periodic();
+void param_publish_configure(param_publish_id_t queueid, uint16_t destination, uint16_t periodicity_ms, csp_prio_t csp_prio);
+void param_publish_init(param_shall_publish_t criteria_cb);
+
+#endif
