@@ -5,7 +5,7 @@ Summary
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 libparam is designed to enable easy access to configuration as well as telemetry on modules and software that is communicating using CSP.
 
-The library allows access to RAM variables as well as persistant configuration and even direct access to hardware peripherals on a module. Parameters can be read and modified using the Space Inventor Command Shell, CSH, which is available as open source along with the Parameter System C implementation.
+The library allows access to RAM variables as well as persistent configuration and even direct access to hardware peripherals on a module. Parameters can be read and modified using the Space Inventor Command Shell, CSH, which is available as open source along with the Parameter System C implementation.
 
 Organization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -50,20 +50,7 @@ For a parameter that has a value stored in an FRAM configuration memory, the fol
 
 First, a VMEM area is defined, specifically an FRAM-base configuration storage. The particular VMEM belongs to the first 0x100 bytes of a physical address space in an FRAM memory chip. The parameter is defined to be located 6 bytes into that VMEM aread.
 
-For the parameter service to be available, the VMEM thread and the Parameter port binding must be available. for a Linux application, this is done by the following routing, usually located after the CSP initialization snippet in the application main function.
-
-.. code-block:: c
-
-    static pthread_t vmem_server_handle;
-    pthread_create(&vmem_server_handle, NULL, &vmem_server_task, NULL);
-    csp_bind_callback(param_serve, PARAM_PORT_SERVER);
-
-Client side implementation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-For user  access to parameters using a shell, consult the CSH manual. The following section describes a method for doing programmatic access to local and remote parameters, for example an AOCS application accessing sensors and actuators. Accessing parameters on the module itself is convenient for VMEM-based parameters that are not directly accessible in the memory space, or if the callback shall be triggered upon writing. 
-
-Reading and doing a local modification of index 0 of the state parameter from previous section is done by
-
+For the paramethttps://github.com/spaceinventor/libparam
 .. code-block:: c
 
     int idx = 0;
@@ -131,6 +118,8 @@ When modifying multiple remote parameters, a queue can be built to efficiently r
     /* Trigger CSP to push queue values */
     if (param_push_queue(&queue, CSP_PRIO_NORM, VERBOSE, &state.node, TIMEOUT, 0) < 0)
         printf("Storing multiple parameter values failed\n");
+
+
 
 Parameter properties
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -238,3 +227,71 @@ A parameter can be flagged using one or more masks, each represented by a bit in
      - PM_CALIB
      - Calibration gains and offsets
      - q
+
+.. raw:: pdf
+
+    PageBreak 
+
+Publishing parameters
+~~~~~~~~~~~~~~~~~~~~~
+
+As of **libparam** version X.X.X, it is possible to easily *publish* parameters in order to make it easier for interested parties to be notified
+about parameter values without resorting to network (and CPU) intensive polling operations.
+
+The publish feature is a build-time configuration that can be turned on using the ``num_publishqueues`` Meson option, whose value shall be an integer in the range 0-4.
+Setting it to 0 (the default value) is equivalent to turning the publish feature completely OFF.
+
+Values from 1 to 4 will create the corresponding number of publishing queues, allowing a module to publish on, at most, 4 queues.
+
+Publishing parameter example
+****************************
+
+During the initialisation process, you will need to configure the queues you want to use by calling the ``param_publish_configure`` API and initialise the publish system.
+Configuring queues means:
+
+- indicating wich CSP node will receive the published parameters
+- how often the parameters will be published
+- the CSP priority that the queue will be assigned (see the CSP documentation)
+
+Initialising means calling the initialisation function with a callback (optional).
+
+This callback will be called by the publishing system to decide whether to perform a publish operation for a given queue:
+
+.. code-block:: c
+
+  static bool shall_publish(uint8_t q) {
+    return q == 1 || telemetry_is_valid();
+  }
+
+  void hook_init(void) {
+    /* High freq data for AOCS */
+    param_publish_configure(PARAM_PUBLISHQUEUE_0, param_get_uint16_array(&param_publish_destination, PARAM_PUBLISHQUEUE_0), 200, CSP_PRIO_HIGH);
+
+    /* Low freq data for HK */
+    param_publish_configure(PARAM_PUBLISHQUEUE_1, param_get_uint16_array(&param_publish_destination, PARAM_PUBLISHQUEUE_1), 5000, CSP_PRIO_LOW);
+
+    param_publish_init(shall_publish);
+  }
+
+Then you need to indicate which parameters shall be published, using the ``PARAM_ADD_PUBLISH`` macro.
+
+For example, to publish the ``state`` parameter defined previously on queue 0:
+
+.. code-block:: c
+
+  PARAM_ADD_PUBLISH(state, PARAM_PUBLISHQUEUE_0);
+
+
+And finally, you need to frequently call the ``param_publish_periodic`` API which will take care of publishing the registered parameters to the correct queues.
+The frequency of the calls will determine how accurately the periodicity of the configured publishing queue will be respected.
+
+This function can be called as part of a sampling loop function for example:
+
+.. code-block:: c
+
+  void my_sample(void) 
+  {
+    /* Sampling and parameter update code goes here */
+    /* and finally */
+    param_publish_periodic();
+  }
