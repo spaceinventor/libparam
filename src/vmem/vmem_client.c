@@ -107,7 +107,7 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 
 }
 
-int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version) {
+int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t * lengthio, int version, int verbose) {
 
 	uint32_t time_begin = csp_get_ms();
 	abort = 0;
@@ -115,13 +115,18 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP | CSP_O_CRC32);
 	if (conn == NULL) {
-		printf("Connection could not be established\n");
+		if(verbose == 1) {
+			printf("Connection could not be established\n");
+		}
+		*lengthio = 0;
 		return -1;
 	}
 
-	csp_packet_t * packet = csp_buffer_get(sizeof(vmem_request_t));
-	if (packet == NULL)
+	csp_packet_t * packet = csp_buffer_get(0);
+	if (packet == NULL) {
+		*lengthio = 0;
 		return -1;
+	}
 
 	vmem_request_t * request = (void *) packet->data;
 	request->version = version;
@@ -129,10 +134,10 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 
 	if (version == 2) {
 		request->data2.address = htobe64(address);
-		request->data2.length = htobe32(length);
+		request->data2.length = htobe32(*lengthio);
 	} else {
 		request->data.address = htobe32((uint32_t)(address & 0x00000000FFFFFFFFULL));
-		request->data.length = htobe32(length);
+		request->data.length = htobe32(*lengthio);
 	}
 	packet->length = sizeof(vmem_request_t);
 
@@ -141,24 +146,26 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 
 	uint32_t count = 0;
 	int dotcount = 0;
-	while((count < length) && csp_conn_is_active(conn)) {
+	while((count < *lengthio) && csp_conn_is_active(conn)) {
 
 		if (abort) {
 			csp_buffer_free(packet);
 			break;
 		}
 
-		if (dotcount % 32 == 0)
-			printf("  ");
-		printf(".");
-		fflush(stdout);
-		dotcount++;
-		if (dotcount % 32 == 0)
-			printf(" - %.0f K\n", (count / 1024.0));
+		if(verbose == 2) {
+			if (dotcount % 32 == 0)
+				printf("  ");
+			printf(".");
+			fflush(stdout);
+			dotcount++;
+			if (dotcount % 32 == 0)
+				printf(" - %.0f K\n", (count / 1024.0));
+		}
 
 		/* Prepare packet */
-		csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
-		packet->length = VMEM_MIN(VMEM_SERVER_MTU, length - count);
+		csp_packet_t * packet = csp_buffer_get(0);
+		packet->length = VMEM_MIN(VMEM_SERVER_MTU, *lengthio - count);
 
 		/* Copy data */
 		memcpy(packet->data, (void *) ((intptr_t) datain + count), packet->length);
@@ -170,21 +177,20 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 
 	}
 
-	printf(" - %.0f K\n", (count / 1024.0));
+	if(verbose == 2) {
+		printf(" - %.0f K\n", (count / 1024.0));
+	}
 
 	csp_close(conn);
 
 	uint32_t time_total = csp_get_ms() - time_begin;
 
-	if(count != length){
-		unsigned int window_size = 0;
-		csp_rdp_get_opt(&window_size, NULL, NULL, NULL, NULL, NULL);
-		printf("Upload didn't complete, suggested offset to resume: %"PRIu32"\n", count - ((window_size + 1) * VMEM_SERVER_MTU));
-	} else {
+	if(verbose == 1) {
 		printf("  Uploaded %"PRIu32" bytes in %.03f s at %"PRIu32" Bps\n", count, time_total / 1000.0, (uint32_t)(count / ((float)time_total / 1000.0)) );
 	}
 
-	return count;
+	*lengthio = count;
+	return 0;
 }
 
 static csp_packet_t * vmem_client_list_get(int node, int timeout, int version) {
