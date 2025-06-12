@@ -61,6 +61,9 @@ void param_get(param_t * param, unsigned int offset, void * value) {
 	PARAM_GET(PARAM_TYPE_FLOAT, float, float)
 	PARAM_GET(PARAM_TYPE_DOUBLE, double, double)
 	case PARAM_TYPE_STRING:
+		param_get_data(param, value, param->array_size-1);
+		((char*)value)[param->array_size] = '\0';
+		break;
 	case PARAM_TYPE_DATA:
 		param_get_data(param, value, param->array_size);
 		break;
@@ -154,7 +157,7 @@ void param_set(param_t * param, unsigned int offset, void * value) {
 	PARAM_SET(PARAM_TYPE_FLOAT, float, float)
 	PARAM_SET(PARAM_TYPE_DOUBLE, double, double)
 	case PARAM_TYPE_STRING:
-		param_set_data(param, value, strlen(value) + 1);
+		param_set_data(param, value, strnlen(value, param->array_size-1));
 		break;
 	case PARAM_TYPE_DATA:
 		param_set_data(param, value, param->array_size);
