@@ -115,7 +115,7 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP | CSP_O_CRC32);
 	if (conn == NULL) {
-		if(verbose == 1) {
+		if(verbose > 0) {
 			printf("Connection could not be established\n");
 		}
 		*lengthio = 0;
@@ -125,7 +125,7 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 	csp_packet_t * packet = csp_buffer_get(0);
 	if (packet == NULL) {
 		*lengthio = 0;
-		return -1;
+		return -2;
 	}
 
 	vmem_request_t * request = (void *) packet->data;
@@ -153,7 +153,7 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 			break;
 		}
 
-		if(verbose == 2) {
+		if(verbose > 1) {
 			if (dotcount % 32 == 0)
 				printf("  ");
 			printf(".");
@@ -177,7 +177,7 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 
 	}
 
-	if(verbose == 2) {
+	if(verbose > 1) {
 		printf(" - %.0f K\n", (count / 1024.0));
 	}
 
@@ -185,11 +185,15 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 
 	uint32_t time_total = csp_get_ms() - time_begin;
 
-	if(verbose == 1) {
+	if(verbose > 0) {
 		printf("  Uploaded %"PRIu32" bytes in %.03f s at %"PRIu32" Bps\n", count, time_total / 1000.0, (uint32_t)(count / ((float)time_total / 1000.0)) );
 	}
 
-	*lengthio = count;
+	if(*lengthio != count){
+		*lengthio = count;
+		return -3;
+	}
+
 	return 0;
 }
 
