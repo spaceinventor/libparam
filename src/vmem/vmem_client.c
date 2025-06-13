@@ -5,12 +5,15 @@
  *      Author: johan
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <csp/arch/csp_time.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #include <vmem/vmem_client.h>
+#include <param/param_error.h>
+#include "csp/csp_error.h"
 
 static int abort = 0;
 
@@ -18,12 +21,13 @@ void vmem_client_abort(void) {
 	abort = 1;
 }
 
-int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp)
-{
+ssize_t vmem_download(uint16_t node, uint32_t timeout, uint64_t address, char * dataout, uint32_t length, int use_rdp, int version, int verbosity) {
 
 	if((address > UINT32_MAX) && version != 2){
-		printf("  Error: Address out of range 64-bit addresses require version 2\n");
-		return -1;
+		if(verbosity > 0){
+			printf("  Error: Address out of range 64-bit addresses require version 2\n");
+		}
+		return PARAM_ERR_INVAL;
 	}
 
 	uint32_t time_begin = csp_get_ms();
@@ -35,12 +39,16 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 		opts |= CSP_O_RDP;
 	}
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, opts);
-	if (conn == NULL)
-		return -1;
+	if (conn == NULL){
+		if(verbosity > 0) {
+			printf("  Connection could not be established\n");
+		}
+		return CSP_ERR_TIMEDOUT;
+	}
 
 	csp_packet_t * packet = csp_buffer_get(sizeof(vmem_request_t));
 	if (packet == NULL)
-		return -1;
+		return CSP_ERR_NOMEM;
 
 	vmem_request_t * request = (void *) packet->data;
 	request->version = version;
@@ -84,13 +92,15 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 			break;
 		}
 
-		if (dotcount % 32 == 0)
-			printf("  ");
-		printf(".");
-		fflush(stdout);
-		dotcount++;
-		if (dotcount % 32 == 0)
-			printf(" - %.0f K\n", (count / 1024.0));
+		if(verbosity > 1) {
+			if (dotcount % 32 == 0)
+				printf("  ");
+			printf(".");
+			fflush(stdout);
+			dotcount++;
+			if (dotcount % 32 == 0)
+				printf(" - %.0f K\n", (count / 1024.0));
+		}
 
 		/* Put data */
 		memcpy((void *) ((intptr_t) dataout + count), packet->data, packet->length);
@@ -101,43 +111,50 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 		csp_buffer_free(packet);
 	}
 
-	printf(" - %.0f K\n", (count / 1024.0));
+	if(verbosity > 1) {
+		printf(" - %.0f K\n", (count / 1024.0));
+	}
 
 	csp_close(conn);
 
 	uint32_t time_total = csp_get_ms() - time_begin;
 
-	printf("  Downloaded %u bytes in %.03f s at %u Bps\n", (unsigned int) count, time_total / 1000.0, (unsigned int) (count / ((float)time_total / 1000.0)) );
+	if(verbosity > 0) {
+		printf("  Downloaded %u bytes in %.03f s at %u Bps\n", (unsigned int) count, time_total / 1000.0, (unsigned int) (count / ((float)time_total / 1000.0)) );
+	}
 
 	return count;
 
 }
 
-int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t * lengthio, int version, int verbose) {
-
+ssize_t vmem_upload(uint16_t node, uint32_t timeout, uint64_t address, const char * datain, uint32_t length, int use_rdp, int version, int verbosity) {
 
 	if((address > UINT32_MAX) && version != 2){
-		printf("  Error: Address out of range 64-bit addresses require version 2\n");
-		return -1;
+		if(verbosity > 0){
+			printf("  Error: Address out of range 64-bit addresses require version 2\n");
+		}
+		return PARAM_ERR_INVAL;
 	}
 
 	uint32_t time_begin = csp_get_ms();
 	abort = 0;
 
 	/* Establish RDP connection */
-	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP | CSP_O_CRC32);
+	uint32_t opts = CSP_O_CRC32;
+	if (use_rdp) {
+		opts |= CSP_O_RDP;
+	}
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, opts);
 	if (conn == NULL) {
-		if(verbose > 0) {
-			printf("Connection could not be established\n");
+		if(verbosity > 0) {
+			printf("  Connection could not be established\n");
 		}
-		*lengthio = 0;
-		return -1;
+		return CSP_ERR_TIMEDOUT;
 	}
 
 	csp_packet_t * packet = csp_buffer_get(0);
 	if (packet == NULL) {
-		*lengthio = 0;
-		return -2;
+		return CSP_ERR_NOMEM;
 	}
 
 	vmem_request_t * request = (void *) packet->data;
@@ -146,10 +163,10 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 
 	if (version == 2) {
 		request->data2.address = htobe64(address);
-		request->data2.length = htobe32(*lengthio);
+		request->data2.length = htobe32(length);
 	} else {
 		request->data.address = htobe32((uint32_t)(address & 0x00000000FFFFFFFFULL));
-		request->data.length = htobe32(*lengthio);
+		request->data.length = htobe32(length);
 	}
 	packet->length = sizeof(vmem_request_t);
 
@@ -158,14 +175,13 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 
 	uint32_t count = 0;
 	int dotcount = 0;
-	while((count < *lengthio) && csp_conn_is_active(conn)) {
+	while((count < length) && csp_conn_is_active(conn)) {
 
 		if (abort) {
-			csp_buffer_free(packet);
 			break;
 		}
 
-		if(verbose > 1) {
+		if(verbosity > 1) {
 			if (dotcount % 32 == 0)
 				printf("  ");
 			printf(".");
@@ -177,7 +193,10 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 
 		/* Prepare packet */
 		csp_packet_t * packet = csp_buffer_get(0);
-		packet->length = VMEM_MIN(VMEM_SERVER_MTU, *lengthio - count);
+		if(packet == NULL) {
+			break;
+		}
+		packet->length = VMEM_MIN(VMEM_SERVER_MTU, length - count);
 
 		/* Copy data */
 		memcpy(packet->data, (void *) ((intptr_t) datain + count), packet->length);
@@ -189,7 +208,7 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 
 	}
 
-	if(verbose > 1) {
+	if(verbosity > 1) {
 		printf(" - %.0f K\n", (count / 1024.0));
 	}
 
@@ -197,16 +216,11 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 
 	uint32_t time_total = csp_get_ms() - time_begin;
 
-	if(verbose > 0) {
+	if(verbosity > 0) {
 		printf("  Uploaded %"PRIu32" bytes in %.03f s at %"PRIu32" Bps\n", count, time_total / 1000.0, (uint32_t)(count / ((float)time_total / 1000.0)) );
 	}
 
-	if(*lengthio != count){
-		*lengthio = count;
-		return -3;
-	}
-
-	return 0;
+	return count;
 }
 
 static csp_packet_t * vmem_client_list_get(int node, int timeout, int version) {

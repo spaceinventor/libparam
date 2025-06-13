@@ -10,6 +10,8 @@
 
 #include <stdint.h>
 #include <vmem/vmem.h>
+#include <param/param_error.h>
+
 
 #include "libparam.h"
 
