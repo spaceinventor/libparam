@@ -20,6 +20,12 @@ void vmem_client_abort(void) {
 
 int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp)
 {
+
+	if((address > UINT32_MAX) && version != 2){
+		printf("  Error: Address out of range 64-bit addresses require version 2\n");
+		return -1;
+	}
+
 	uint32_t time_begin = csp_get_ms();
 	abort = 0;
 
@@ -108,6 +114,12 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 }
 
 int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t * lengthio, int version, int verbose) {
+
+
+	if((address > UINT32_MAX) && version != 2){
+		printf("  Error: Address out of range 64-bit addresses require version 2\n");
+		return -1;
+	}
 
 	uint32_t time_begin = csp_get_ms();
 	abort = 0;
@@ -358,6 +370,11 @@ int vmem_client_backup(int node, int vmem_id, int timeout, int backup_or_restore
 int vmem_client_calc_crc32(int node, int timeout, uint64_t address, uint32_t length, uint32_t * crc_out, int version) {
 
 	int res = -1;
+
+	if((address > UINT32_MAX) && version != 2){
+		printf("  Error: 64 bit address only supported in version 2\n");
+		return res;
+	}
 
 	uint32_t time_begin = csp_get_ms();
 
