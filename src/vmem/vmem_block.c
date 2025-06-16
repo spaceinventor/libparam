@@ -20,8 +20,8 @@ extern __attribute__((weak)) vmem_block_device_t __start_vmem_bdevice;
 extern __attribute__((weak)) vmem_block_device_t __stop_vmem_bdevice;
 
 
-static uint32_t cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address, uintptr_t data, uint32_t length);
-static uint32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address, uintptr_t data, uint32_t length);
+static int32_t cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address, uintptr_t data, uint32_t *length);
+static int32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address, uintptr_t data, uint32_t *length);
 static void cache_flush(const vmem_block_driver_t *drv, vmem_block_cache_t *cache);
 static bool address_in_cache(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address);
 
@@ -56,7 +56,7 @@ static void cache_flush(const vmem_block_driver_t *drv, vmem_block_cache_t *cach
 
 }
 
-static uint32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address, uintptr_t data, uint32_t length) {
+static int32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address, uintptr_t data, uint32_t *length) {
 
     uint32_t block_addr = (address / drv->device->bsize);
     uint32_t unalign = (address % drv->device->bsize);
@@ -64,7 +64,7 @@ static uint32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *
     uint32_t size = 0;
 
     //printf("::cache_write(%p,0x%"PRIX64",0x%"PRIXPTR",%"PRIu32")\n", drv, address, (uintptr_t)data, length);
-    if (data == (uintptr_t)NULL || length == 0) {
+    if (data == (uintptr_t)NULL || (*length) == 0) {
         return 0;
     }
     if (!cache) {
@@ -74,46 +74,46 @@ static uint32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *
         if (unalign) {
             /* We need to read a least one block, if we are not aligned */
             res = drv->api.read(drv, block_addr, 1, drv->device->oneblock);
-            if (res) { printf("Error, could not read from device\n"); return 0; }
+            if (res) { printf("Error, could not read from device\n"); return res; }
             len = (drv->device->bsize - unalign);
-            if (len > length) {
-                len = length;
+            if (len > (*length)) {
+                len = (*length);
             }
             /* Update the part of the oneblock we actually need to write, and write it back */
             memcpy(&drv->device->oneblock[unalign], (void *)data, len);
             res = drv->api.write(drv, block_addr, 1, drv->device->oneblock);
-            if (res) { printf("Error , could not write to device\n"); return 0; }
+            if (res) { printf("Error, could not write to device\n"); return res; }
             data += len;
             addr += len;
         }
         
         /* Write the most part of what can be written directly as whole blocks */
-        uint32_t nblocks = (length - len) / drv->device->bsize;
+        uint32_t nblocks = ((*length) - len) / drv->device->bsize;
         if (nblocks > 0) {
             block_addr = addr / drv->device->bsize;
             res = drv->api.write(drv, block_addr, nblocks, (void *)data);
-            if (res) { printf("Error, could not read from device\n"); return 0; }
+            if (res) { printf("Error, could not read from device\n"); return res; }
             data += (nblocks * drv->device->bsize);
             addr += (nblocks * drv->device->bsize);
         }
 
         /* Finally we must write any remaining parts */
-        if (addr < (address + length)) {
+        if (addr < (address + (*length))) {
             block_addr = addr / drv->device->bsize;
-            unalign = (address + length) % drv->device->bsize;
+            unalign = (address + (*length)) % drv->device->bsize;
             if (unalign) {
                 res = drv->api.read(drv, block_addr, 1, drv->device->oneblock);
-                if (res) { printf("Error, could not read from device\n"); return 0; }
+                if (res) { printf("Error, could not read from device\n"); return res; }
                 /* Update the part of the oneblock we actually need to write, and write it back */
                 memcpy(&drv->device->oneblock[0], (void *)data, unalign);
                 res = drv->api.write(drv, block_addr, 1, drv->device->oneblock);
-                if (res) { printf("Error , could not write to device\n"); return 0; }
+                if (res) { printf("Error, could not write to device\n"); return res; }
                 data += unalign;
             }
         }
 
         /* We wrote the entire length to the device */
-        size = length;
+        size = (*length);
     } else {
         /* Normal cache handling, since the length are shorter than the cache size */
         if (!address_in_cache(drv, cache, address)) {
@@ -122,14 +122,16 @@ static uint32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *
             cache_flush(drv, cache);
             /* Read in the cache and ignore the return value */
             uint8_t tmp;
-            (void)cache_read(drv, cache, address, (uintptr_t)&tmp, 1);
+            uint32_t __len = 1;
+            int32_t res = cache_read(drv, cache, address, (uintptr_t)&tmp, &__len);
+            if (res) { printf("Error, could not read from device\n"); return res; }
         }
 
         /* The address is within the cache and it is valid */
         uint32_t offset = (((block_addr - cache->start_block) * drv->device->bsize) + unalign);
 
         /* We need to adjust the amount we can actually write to the cache */
-        if ((length + offset) > cache->size) {
+        if (((*length) + offset) > cache->size) {
             /* We are about to write more than the entire cache */
             size = cache->size - offset;
             /* Copy the portion we can fit */
@@ -138,25 +140,26 @@ static uint32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *
             /* Then flush it */
             cache_flush(drv, cache);
         } else {
-            size = length;
+            size = (*length);
             memcpy(&cache->data[offset], (void *)data, size);
             cache->is_modified = true;
         }
     }
 
     /* Signal the actual length written */
-    return size;
+    (*length) = size;
+    return 0;
 }
 
-static uint32_t cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address, uintptr_t data, uint32_t length) {
+static int32_t cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address, uintptr_t data, uint32_t *length) {
 
     uint32_t block_addr = (address / drv->device->bsize);
     uint32_t unalign = (address % drv->device->bsize);
     uint32_t size = 0;
     uint64_t addr = address;
 
-    //printf("::cache_read(%p,0x%"PRIX64",0x%"PRIXPTR",%"PRIu32")\n", drv, address, data, length);
-    if (data == (uintptr_t)NULL || length == 0) {
+    //printf("::cache_read(%p,0x%"PRIX64",0x%"PRIXPTR",%"PRIu32")\n", drv, address, data, *length);
+    if (data == (uintptr_t)NULL || (*length) == 0) {
         return 0;
     }
 
@@ -167,11 +170,11 @@ static uint32_t cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *c
         /* If the starting address is not block aligned, we need to handle that special */
         if (unalign) {
             res = drv->api.read(drv, block_addr, 1, drv->device->oneblock);
-            if (res) { printf("Error, could no read from device '%s'\n", drv->device->name); }
+            if (res) { printf("Error, could no read from device '%s'\n", drv->device->name); return res; }
             /* Calculate the amount to move */
             len = (drv->device->bsize - unalign);
-            if (len > length) {
-                len = length;
+            if (len > (*length)) {
+                len = (*length);
             }
             /* Move the data from oneblock into the receiving buffer */
             memcpy((void *)data, &drv->device->oneblock[unalign], len);
@@ -180,19 +183,19 @@ static uint32_t cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *c
         }
 
         /* Read the most of what we can of whole blocks */
-        uint32_t nblocks = (length - len) / drv->device->bsize;
+        uint32_t nblocks = ((*length) - len) / drv->device->bsize;
         if (nblocks > 0) {
             block_addr = addr / drv->device->bsize;
             res = drv->api.read(drv, block_addr, nblocks, (void *)data);
-            if (res) { printf("Error, could no read from device '%s'\n", drv->device->name); }
+            if (res) { printf("Error, could no read from device '%s'\n", drv->device->name); return res; }
             data += (nblocks * drv->device->bsize);
             addr += (nblocks * drv->device->bsize);
         }
 
         /* Finally we must possibly read an unaligned block at the end */
-        if (addr < (address + length)) {
+        if (addr < (address + (*length))) {
             block_addr = addr / drv->device->bsize;
-            unalign = (address + length) % drv->device->bsize;
+            unalign = (address + (*length)) % drv->device->bsize;
             if (unalign) {
                 res = drv->api.read(drv, block_addr, 1, drv->device->oneblock);
                 if (res) { printf("Error, could no read from device '%s'\n", drv->device->name); }
@@ -203,7 +206,7 @@ static uint32_t cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *c
         }
 
         /* We read the entire length from the device */
-        size = length;
+        size = (*length);
     } else {
         /* Normal cache handling, since the length are shorter than the cache size */
         if (!address_in_cache(drv, cache, address)) {
@@ -223,8 +226,8 @@ static uint32_t cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *c
         uint32_t offset = (((block_addr - cache->start_block) * drv->device->bsize) + unalign);
 
         size = (cache->size - offset);
-        if (size > length) {
-            size = length;
+        if (size > (*length)) {
+            size = (*length);
         }
 
         if (data != 0) {
@@ -234,7 +237,8 @@ static uint32_t cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *c
     }
 
     /* Return the size of the data just read from the cache */
-    return size;
+    (*length) = size;
+    return 0;
 }
 
 void vmem_block_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len) {
@@ -247,10 +251,16 @@ void vmem_block_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len)
     //printf("vmem_block_read(%"PRIXPTR",0x%"PRIX64",%"PRIXPTR",%"PRIu32") => 0x%"PRIX64"\n", (uintptr_t)vmem, addr, (uintptr_t)dataout, len, srcaddr);
 
     while (len) {
-        uint32_t nbytes = 0;
+        uint32_t nbytes;
+        int32_t res;
 
         /* Read a chunk of data from the eMMC and cache it */
-        nbytes = cache_read(reg->driver, reg->cache, srcaddr, destaddr, len);
+        nbytes = len;
+        res = cache_read(reg->driver, reg->cache, srcaddr, destaddr, &nbytes);
+        if (res) {
+            printf("Error, could not read from block device '%s'\n", reg->driver->device->name);
+            break;
+        }
         /* Adjust the number of bytes to read from the cache */
         if (len < nbytes) {
             nbytes = len;
@@ -285,7 +295,13 @@ void vmem_block_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_
         uint32_t nbytes;
 
         /* Try writing all we have, and adjust accordingly afterwards */
-        nbytes = cache_write(reg->driver, cache, destaddr, srcaddr, len);
+        nbytes = len;
+        int32_t res = cache_write(reg->driver, cache, destaddr, srcaddr, &nbytes);
+        if (res) {
+            printf("Error, could not write to block device '%s'\n", reg->driver->device->name);
+            break;
+        }
+
         /* Update length, source and destination index' */
         len -= nbytes;
         srcaddr += nbytes;

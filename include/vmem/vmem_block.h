@@ -18,6 +18,10 @@ extern "C" {
 
 #define VMEM_BLOCK_OPTION_CACHE_WRITETHRU 0x00000001UL
 
+#define VMEM_BLOCK_STATE_UNKNOWN 0
+#define VMEM_BLOCK_STATE_READY 1
+#define VMEM_BLOCK_STATE_FAILED 2
+
 /* Forward definitions of driver and device objects */
 struct vmem_block_driver_s;
 typedef struct vmem_block_driver_s vmem_block_driver_t;
@@ -46,6 +50,7 @@ typedef struct vmem_block_device_s {
 	const char *name;
 	uint32_t bsize;
 	uint8_t *oneblock;
+	uint8_t *state;
 	uint32_t total_nblocks;
 	vmem_binit_t * const init;
 } vmem_block_device_t;
@@ -77,6 +82,7 @@ typedef struct vmem_block_region_s {
 /* Macros for defining block- devices, drivers and regions */
 #define VMEM_DEFINE_BLOCK_DEVICE(name_in, strname, _bsize, _total_nblocks, init_fn) \
 	static uint8_t vmem_oneblock_##name_in##_storage[_bsize]; \
+	static uint8_t vmem_##name_in##_block_state = VMEM_BLOCK_STATE_UNKNOWN; \
 	__attribute__((section("vmem_bdevice"))) \
 	__attribute__((aligned(4))) \
 	__attribute__((used)) \
@@ -84,6 +90,7 @@ typedef struct vmem_block_region_s {
 		.name = strname, \
 		.bsize = (_bsize), \
 		.oneblock = &vmem_oneblock_##name_in##_storage[0], \
+		.state = &vmem_##name_in##_block_state, \
 		.total_nblocks = (_total_nblocks), \
 		.init = init_fn, \
 	};
