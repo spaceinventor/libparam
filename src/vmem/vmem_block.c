@@ -310,7 +310,7 @@ void vmem_block_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_
 
     /* Decide if we are to invalidate the cache, if it is associated */
     if (reg->cache && (reg->options & VMEM_BLOCK_OPTION_CACHE_WRITETHRU)) {
-        printf("vmem_block_write() Invalidated the cache\n");
+        //printf("vmem_block_write() Invalidated the cache\n");
         reg->cache->is_valid = false;
     }
 
