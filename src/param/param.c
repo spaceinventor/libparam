@@ -5,6 +5,9 @@
 #include <csp/csp.h>
 #include <sys/types.h>
 
+#include "../vmem/vmem_internal.h"
+
+
 #define PARAM_GET(_type, _name, _swapfct) \
 	_type param_get_##_name##_array(param_t * param, unsigned int i) { \
 		if (i >= (unsigned int) param->array_size) { \
