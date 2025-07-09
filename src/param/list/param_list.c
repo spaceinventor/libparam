@@ -131,6 +131,7 @@ int param_list_add(param_t * item) {
 			param->type = item->type;
 			param->array_size = item->array_size;
 			param->array_step = item->array_step;
+			param->vmem->type = item->vmem->type;
 
 			if(param->name && item->name){
 				strcpy(param->name, item->name);
