@@ -76,7 +76,23 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
  */
 int param_list_download(int node, int timeout, int list_version, int include_remotes);
 
+
+
+/**
+ * @brief Print parameter definitions to stdout or file.
+ * 
+ * @param filename 			stdout if NULL otherwise, writes to specified filename.
+ * @param node				Node of which to save known parameters
+ * @param skip_node			Don't print node in parameter definitions. Running the output will then add it environment node, which is quite reusable.
+ * 
+ */
 void param_list_save(const char * const filename, int node, int skip_node);
+/**
+ * @brief Same as above, but with optional filtering on parameter names.
+ * 
+ * @param name_wildcard		Pattern string allowing '*' and '?', eg. "boot_img*". Will include all parameters if NULL.
+ */
+void param_list_save_wildcard(const char * const filename, int node, int skip_node, const char * const name_wildcard);
 
 /* From param_list_store_vmem.c */
 void param_list_store_vmem_save(vmem_t * vmem);

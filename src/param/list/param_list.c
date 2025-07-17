@@ -754,7 +754,7 @@ void list_add_output_user_flags(uint32_t mask, FILE * out) {
 
 }
 
-void param_list_save(const char * const filename, int node, int skip_node) {
+void param_list_save_wildcard(const char * const filename, int node, int skip_node, const char * const name_wildcard) {
 
     FILE * out = stdout;
 
@@ -772,6 +772,10 @@ void param_list_save(const char * const filename, int node, int skip_node) {
     int param_cnt = 0;
 
     while ((param = param_list_iterate(&i)) != NULL) {
+
+		if (name_wildcard && (strmatch(param->name, name_wildcard, strlen(param->name), strlen(name_wildcard)) == 0)) {
+			continue;
+		}
 
         if ((node >= 0) && (*param->node != node)) {
             continue;
@@ -820,4 +824,8 @@ void param_list_save(const char * const filename, int node, int skip_node) {
         fflush(out);
         fclose(out);
     }
+}
+
+void param_list_save(const char * const filename, int node, int skip_node) {
+	param_list_save_wildcard(filename, node, skip_node, NULL);
 }
