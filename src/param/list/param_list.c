@@ -189,6 +189,10 @@ int param_list_remove(int node, uint8_t verbose) {
 }
 void param_list_remove_specific(param_t * param, uint8_t verbose, int destroy) {
 
+    if (param_is_static(param)) {
+        return;  /* Nothing we can do :( */
+    }
+
     if (verbose >= 2) {
         printf("Removing param: %s:%u[%d]\n", param->name, *param->node, param->array_size);
     }
