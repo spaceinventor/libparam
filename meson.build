@@ -100,11 +100,13 @@ param_lib = library('param',
 )
 
 param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib, dependencies: [clib_dep, bsd_dep, csp_dep])
-param_link_whole_dep = declare_dependency(
-	include_directories : param_inc,
-	link_with : param_lib,
-	link_whole: [param_lib]
-)
+if get_option('default_library') == 'static'
+	param_link_whole_dep = declare_dependency(
+		include_directories : param_inc,
+		link_with : param_lib,
+		link_whole: [param_lib]
+	)
+endif
 
 if not meson.is_subproject()
     subdir('tests')
