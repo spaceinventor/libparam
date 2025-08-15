@@ -86,23 +86,27 @@ int param_transaction(csp_packet_t *packet, int host, int timeout, param_transac
 	}
 
 	int result = -1;
-	while((packet = csp_read(conn, timeout)) != NULL) {
-
-		int end = (packet->data[1] == PARAM_FLAG_END);
-
-		//csp_hex_dump("response", packet->data, packet->length);
-
-		if (callback) {
-			callback(packet, verbose, version, context);
-		} else {
-			csp_buffer_free(packet);
+	/* If timeout is not 0, wait for an acknowledgment */
+	if (timeout == 0) {
+		result = 0;
+	} else {
+		while((packet = csp_read(conn, timeout)) != NULL) {
+			
+			int end = (packet->data[1] == PARAM_FLAG_END);
+			
+			//csp_hex_dump("response", packet->data, packet->length);
+			
+			if (callback) {
+				callback(packet, verbose, version, context);
+			} else {
+				csp_buffer_free(packet);
+			}
+			
+			if (end) {
+				result = 0;
+				break;
+			}
 		}
-
-		if (end) {
-			result = 0;
-			break;
-		}
-
 	}
 
 	//printf("Successful param transaction, result: %d\n", result);
