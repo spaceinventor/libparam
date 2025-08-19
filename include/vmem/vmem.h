@@ -65,7 +65,7 @@ typedef struct vmem_s {
 	int big_endian;
 	int ack_with_pull; // allow ack with pull request
 	void * driver;
-} vmem_t;
+} vmem_t __attribute__((aligned(__alignof__(struct vmem_s))));
 
 void * vmem_memcpy(void * to, const void * from, uint32_t size);
 void * vmem_write(uint64_t to, const void * from, uint32_t size);

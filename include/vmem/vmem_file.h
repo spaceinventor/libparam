@@ -41,8 +41,8 @@ void vmem_file_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t
 		.filename = filename_in, \
 	}; \
 	__attribute__((section("vmem"))) \
-	__attribute__((aligned(1))) \
-	__attribute__((used)) \
+ 	__attribute__((aligned(__alignof__(vmem_t)))) \
+ 	__attribute__((used)) \
 	vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_FILE, \
 		.name = strname, \
