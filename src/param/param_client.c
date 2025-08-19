@@ -86,26 +86,31 @@ int param_transaction(csp_packet_t *packet, int host, int timeout, param_transac
 	}
 
 	int result = -1;
-	/* If timeout is not 0, wait for an acknowledgment */
+
+	/* If timeout is 0, do not wait for an acknowledgment */
 	if (timeout == 0) {
 		result = 0;
-	} else {
-		while((packet = csp_read(conn, timeout)) != NULL) {
-			
-			int end = (packet->data[1] == PARAM_FLAG_END);
-			
-			//csp_hex_dump("response", packet->data, packet->length);
-			
-			if (callback) {
-				callback(packet, verbose, version, context);
-			} else {
-				csp_buffer_free(packet);
-			}
-			
-			if (end) {
-				result = 0;
-				break;
-			}
+
+		csp_close(conn);
+		return result;
+	}
+
+	/* Wait for acknowledgment */
+	while((packet = csp_read(conn, timeout)) != NULL) {
+		
+		int end = (packet->data[1] == PARAM_FLAG_END);
+		
+		//csp_hex_dump("response", packet->data, packet->length);
+		
+		if (callback) {
+			callback(packet, verbose, version, context);
+		} else {
+			csp_buffer_free(packet);
+		}
+		
+		if (end) {
+			result = 0;
+			break;
 		}
 	}
 
@@ -203,6 +208,8 @@ int param_push_queue(param_queue_t *queue, int prio, int verbose, int host, int 
 	if (ack_with_pull) {
 		packet->data[1] = 1;
 		cb = param_transaction_callback_pull;
+	} else if (timeout == 0) {
+		packet->data[1] = PARAM_FLAG_NOACK;
 	}
 
 	memcpy(&packet->data[2], queue->buffer, queue->used);
@@ -249,6 +256,8 @@ int param_push_single(param_t *param, int offset, int prio, void *value, int ver
 	if (ack_with_pull) {
 		packet->data[1] = 1;
 		cb = param_transaction_callback_pull;
+	} else if (timeout == 0) {
+		packet->data[1] = PARAM_FLAG_NOACK;
 	}
 
 	if(version == 2) {
