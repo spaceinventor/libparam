@@ -161,7 +161,7 @@ void vmem_add(vmem_t * start, vmem_t * stop);
 
 /**
  * @brief Get the next VMEM list element from the given iterator
- * @param iter if NULL, will return a valid iterator from the first VMEM element
+ * @param iter valid iterator or if NULL, will return a valid iterator from the first VMEM element
  * @return pointer to the next vmem_iter_t object, NULL if end of list is reached
  */
 vmem_iter_t *vmem_next(vmem_iter_t * iter);
