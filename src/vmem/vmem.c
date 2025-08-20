@@ -207,22 +207,31 @@ vmem_t *vmem_from_iter(vmem_iter_t * iter) {
 }
 
 void vmem_add(vmem_t * start, vmem_t * stop) {
-	/* 
-	 * APMs without VMEMs will inherit the __start_vmem/__stop_vmem from the 
-	 * host application (CSH) so we check for those being already in our list
-	 * of VMEM blocks
-	 */
-	if(start != g_start.start) {
-		vmem_iter_t *new_vmem = calloc(sizeof(vmem_iter_t), 1);
-		if(new_vmem) {
-			new_vmem->start = start;
-			new_vmem->stop = stop;
-			new_vmem->current = start;
-			vmem_iter_t *iter;
-			for(iter = NULL; iter = vmem_next(iter); iter != NULL) {
-				if(!iter->next) {
-					iter->next = new_vmem;
-					break;
+	/* Handle case when host application has no VMEM (its __start_vmem/__stop_vmem are NULL) */
+	if(NULL == g_start.start) {
+		g_start.start = start;
+		g_start.stop = stop;
+		g_start.current = start;
+		g_start.idx = 0;
+		g_start.next = NULL;
+	} else {
+		/* 
+		* APMs without VMEMs will inherit the __start_vmem/__stop_vmem symbols from the 
+		* host application (CSH) so we check for those being already in our list
+		* of VMEM blocks
+		*/
+		if(start != g_start.start) {
+			vmem_iter_t *new_vmem = calloc(sizeof(vmem_iter_t), 1);
+			if(new_vmem) {
+				new_vmem->start = start;
+				new_vmem->stop = stop;
+				new_vmem->current = start;
+				vmem_iter_t *iter;
+				for(iter = NULL; iter = vmem_next(iter); iter != NULL) {
+					if(!iter->next) {
+						iter->next = new_vmem;
+						break;
+					}
 				}
 			}
 		}
