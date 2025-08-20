@@ -7,43 +7,18 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <csp/csp.h>
 
 #include <vmem/vmem.h>
 
-extern int __start_vmem, __stop_vmem;
-
-/* The symbols __start_vmem and __stop_vmem will only be generated if the user defines any VMEMs.
-    We therefore use __attribute__((weak)) so we can compile in the absence of these. */
-extern __attribute__((weak)) int __start_vmem, __stop_vmem;
-
-/**
- * @brief VMEM Memory copy function - 32-bit version ONLY
- * 
- * This method is only capable of handling 32-bit source and destination
- * addresses, which means that it CAN NOT handle the newest 64-bit addressing
- * 
- * @param to 32-bit destination address (virtual or physical)
- * @param from 32-bit source address (virtual or physical)
- * @param size Number fo bytes to copy
- * @return void* 
- */
 void * vmem_memcpy(void * to, const void * from, uint32_t size) {
 
 	return vmem_cpy((uint64_t)(uintptr_t)to, (uint64_t)(uintptr_t)from, (uint64_t)size);
 }
 
-/**
- * @brief Write chunk of data to VMEM from physical memory to virtual memory
- * 
- * @param to Virtual address to write the data to
- * @param from Physical address to read the data from
- * @param size Number of bytes to transfer 
- * @return void* 
- */
-
 void * vmem_write_direct(vmem_t * vmem, uint64_t to, const void * from, uint32_t size) {
-	
+
 	/* Write to VMEM */
 	if ((to >= vmem->vaddr) && (to + (uint64_t)size <= vmem->vaddr + vmem->size)) {
 		if (vmem->write) {
@@ -71,8 +46,9 @@ void * vmem_read_direct(vmem_t * vmem, void * to, uint64_t from, uint32_t size) 
 }
 
 void * vmem_write(uint64_t to, const void * from, uint32_t size) {
-
-	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
+	vmem_t *vmem;
+	for(vmem_iter_t *iter = NULL; iter = vmem_next(iter); iter != NULL) {
+		vmem = vmem_from_iter(iter);
 		/* Write to VMEM */
 		if ((to >= vmem->vaddr) && (to + (uint64_t)size <= vmem->vaddr + vmem->size)) {
 			if (vmem->write) {
@@ -89,7 +65,9 @@ void * vmem_write(uint64_t to, const void * from, uint32_t size) {
 
 void * vmem_read(void * to, uint64_t from, uint32_t size) {
 
-	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
+	vmem_t *vmem;
+	for(vmem_iter_t *iter = NULL; iter = vmem_next(iter); iter != NULL) {
+		vmem = vmem_from_iter(iter);
 		/* Read */
 		if ((from >= vmem->vaddr) && (from + (uint64_t)size <= vmem->vaddr + vmem->size)) {
 			if (vmem->read) {
@@ -106,7 +84,9 @@ void * vmem_read(void * to, uint64_t from, uint32_t size) {
 
 void * vmem_cpy(uint64_t to, uint64_t from, uint32_t size) {
 
-	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
+	vmem_t *vmem;
+	for(vmem_iter_t *iter = NULL; iter = vmem_next(iter); iter != NULL) {
+		vmem = vmem_from_iter(iter);
 
 		/* Write to VMEM */
 		if ((to >= vmem->vaddr) && (to + (uint64_t)size <= vmem->vaddr + vmem->size)) {
@@ -133,7 +113,9 @@ void * vmem_cpy(uint64_t to, uint64_t from, uint32_t size) {
 
 vmem_t * vmem_vaddr_to_vmem(uint64_t vaddr) {
 
-	for(vmem_t * vmem = (vmem_t *) &__start_vmem; vmem < (vmem_t *) &__stop_vmem; vmem++) {
+	vmem_t *vmem;
+	for(vmem_iter_t *iter = NULL; iter = vmem_next(iter); iter != NULL) {
+		vmem = vmem_from_iter(iter);
 
 		/* Find VMEM from vaddr */
 		if ((vaddr >= vmem->vaddr) && (vaddr <= vmem->vaddr + vmem->size)) {
@@ -154,11 +136,95 @@ int vmem_flush(vmem_t *vmem) {
 	return res;
 }
 
+/* VMEM arrays iterator */
+struct vmem_iter_s {
+	vmem_t *start;
+	vmem_t *stop;
+	vmem_t *current;
+	int idx;
+	struct vmem_iter_s * next;
+};
+
 vmem_t * vmem_index_to_ptr(int idx) {
-	return ((vmem_t *) &__start_vmem) + idx;
+	vmem_t *vmem;
+	for(vmem_iter_t *iter = NULL; iter = vmem_next(iter); iter != NULL) {
+		vmem = vmem_from_iter(iter);
+		if(iter->idx == idx) {
+			return iter->current;		
+		}
+	}
+	return NULL;
 }
 
 int vmem_ptr_to_index(vmem_t * vmem) {
-	return vmem - (vmem_t *) &__start_vmem;
+	vmem_t *cur_vmem;
+	for(vmem_iter_t *iter = NULL; iter = vmem_next(iter); iter != NULL) {
+		cur_vmem = vmem_from_iter(iter);
+		if(iter->current == vmem) {
+			return iter->idx;		
+		}
+	}
+	return -1;
 }
 
+static vmem_iter_t g_start = {
+	.start = (vmem_t *) &__start_vmem,
+	.stop = (vmem_t *) &__stop_vmem,
+	.current = NULL,
+	.idx = 0,
+	.next = NULL
+};
+
+vmem_iter_t *vmem_next(vmem_iter_t * iter) {
+	if(NULL == iter) {
+		iter = &g_start;
+		g_start.current = g_start.start;
+		g_start.idx = 0;
+	} else {
+		if(iter->current < (iter->stop - 1)) {
+			iter->current++;
+			iter->idx++;
+		} else {
+			if(iter->next) {
+				iter->current = iter->start;
+				iter->next->idx = iter->idx + 1;
+				iter = iter->next;
+				iter->current = iter->start;
+			} else {
+				iter = NULL;
+			}
+		}
+	}
+	return iter;
+}
+
+vmem_t *vmem_from_iter(vmem_iter_t * iter) {
+	vmem_t *res = NULL;
+	if(iter) {
+		res = iter->current;
+	}
+	return res;
+}
+
+void vmem_add(vmem_t * start, vmem_t * stop) {
+	/* 
+	 * APMs without VMEMs will inherit the __start_vmem/__stop_vmem from the 
+	 * host application (CSH) so we check for those being already in our list
+	 * of VMEM blocks
+	 */
+	if(start != g_start.start) {
+		vmem_iter_t *new_vmem = calloc(sizeof(vmem_iter_t), 1);
+		if(new_vmem) {
+			new_vmem->start = start;
+			new_vmem->stop = stop;
+			new_vmem->current = start;
+			vmem_iter_t *iter;
+			for(iter = NULL; iter = vmem_next(iter); iter != NULL) {
+				if(!iter->next) {
+					iter->next = new_vmem;
+					break;
+				}
+			}
+		}
+	}
+}

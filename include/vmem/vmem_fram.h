@@ -19,7 +19,7 @@ typedef struct {
 		.fram_addr = fram_addr_in, \
 	}; \
 	__attribute__((section("vmem"))) \
-	__attribute__((aligned(1))) \
+	__attribute__((__aligned__(__alignof__(vmem_t)))) \
 	__attribute__((used)) \
 	vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_FRAM, \

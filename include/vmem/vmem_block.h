@@ -84,7 +84,7 @@ typedef struct vmem_block_region_s {
 	static uint8_t vmem_oneblock_##name_in##_storage[_bsize]; \
 	static uint8_t vmem_##name_in##_block_state = VMEM_BLOCK_STATE_UNKNOWN; \
 	__attribute__((section("vmem_bdevice"))) \
-	__attribute__((aligned(4))) \
+	__attribute__((__aligned__(__alignof__(vmem_block_device_t)))) \
 	__attribute__((used)) \
 	static const vmem_block_device_t vmem_##name_in##_device = { \
 		.name = strname, \
@@ -113,7 +113,7 @@ typedef struct vmem_block_region_s {
 		.options = options_in, \
 	}; \
 	__attribute__((section("vmem"))) \
-	__attribute__((aligned(8))) \
+	__attribute__((__aligned__(__alignof__(vmem_t)))) \
 	__attribute__((used)) \
 	vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_BLOCK, \
