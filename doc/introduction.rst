@@ -50,7 +50,20 @@ For a parameter that has a value stored in an FRAM configuration memory, the fol
 
 First, a VMEM area is defined, specifically an FRAM-base configuration storage. The particular VMEM belongs to the first 0x100 bytes of a physical address space in an FRAM memory chip. The parameter is defined to be located 6 bytes into that VMEM aread.
 
-For the paramethttps://github.com/spaceinventor/libparam
+For the parameter service to be available, the VMEM thread and the Parameter port binding must be available. for a Linux application, this is done by the following routing, usually located after the CSP initialization snippet in the application main function.
+
+.. code-block:: c
+
+    static pthread_t vmem_server_handle;
+    pthread_create(&vmem_server_handle, NULL, &vmem_server_task, NULL);
+    csp_bind_callback(param_serve, PARAM_PORT_SERVER);
+
+Client side implementation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+For user  access to parameters using a shell, consult the CSH manual. The following section describes a method for doing programmatic access to local and remote parameters, for example an AOCS application accessing sensors and actuators. Accessing parameters on the module itself is convenient for VMEM-based parameters that are not directly accessible in the memory space, or if the callback shall be triggered upon writing. 
+
+Reading and doing a local modification of index 0 of the state parameter from previous section is done by
+
 .. code-block:: c
 
     int idx = 0;
