@@ -1,5 +1,7 @@
 project('param', 'c', subproject_dir:'lib')
 
+add_project_arguments(['-Wall'], language: 'c')
+
 conf = configuration_data()
 conf.set('PARAM_HAVE_SYS_QUEUE', get_option('list_dynamic') or get_option('list_pool') > 0)
 conf.set('PARAM_LIST_DYNAMIC', get_option('list_dynamic'))
