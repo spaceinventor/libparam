@@ -180,9 +180,8 @@ void vmem_server_handler(csp_conn_t * conn)
 
 			int i = 0;
 			packet->length = 0;
-			vmem_iter_t *iter = vmem_next(NULL);
 			vmem_t *vmem;
-			for (; iter = vmem_next(iter); iter != NULL) {
+			for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
 				vmem = vmem_from_iter(iter);
 				list[i].vaddr = htobe32((uint32_t)(vmem->vaddr & 0x00000000FFFFFFFFULL));
 				list[i].size = htobe32((uint32_t)(vmem->size & 0x00000000FFFFFFFFULL));
@@ -200,9 +199,8 @@ void vmem_server_handler(csp_conn_t * conn)
 
 			int i = 0;
 			packet->length = 0;
-			vmem_iter_t *iter;
 			vmem_t *vmem;
-			for (iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter), i++) {
+			for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter), i++) {
 				vmem = vmem_from_iter(iter);
 				list[i].vaddr = htobe64(vmem->vaddr);
 				list[i].size = htobe32((uint32_t)(vmem->size & 0x00000000FFFFFFFFULL));
@@ -225,9 +223,8 @@ void vmem_server_handler(csp_conn_t * conn)
 			packet->data[0] = 0b01000000; /* First packet */
 			list = (vmem_list3_t *)&packet->data[packet->length];
 
-			vmem_iter_t *iter = vmem_next(NULL);
 			vmem_t *vmem;
-			for (; iter = vmem_next(iter); iter != NULL) {
+			for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
 				vmem = vmem_from_iter(iter);
 				if ((packet->length + sizeof(vmem_list3_t)) > VMEM_SERVER_MTU) {
 					/* We need to advance to the next packet, but first send the existing one */
@@ -418,4 +415,3 @@ void vmem_server_loop(void * param) {
 	}
 
 }
-

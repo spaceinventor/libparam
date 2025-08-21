@@ -47,7 +47,7 @@ void * vmem_read_direct(vmem_t * vmem, void * to, uint64_t from, uint32_t size) 
 
 void * vmem_write(uint64_t to, const void * from, uint32_t size) {
 	vmem_t *vmem;
-	for(vmem_iter_t *iter = NULL; iter = vmem_next(iter); iter != NULL) {
+	for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
 		/* Write to VMEM */
 		if ((to >= vmem->vaddr) && (to + (uint64_t)size <= vmem->vaddr + vmem->size)) {
@@ -66,7 +66,7 @@ void * vmem_write(uint64_t to, const void * from, uint32_t size) {
 void * vmem_read(void * to, uint64_t from, uint32_t size) {
 
 	vmem_t *vmem;
-	for(vmem_iter_t *iter = NULL; iter = vmem_next(iter); iter != NULL) {
+	for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
 		/* Read */
 		if ((from >= vmem->vaddr) && (from + (uint64_t)size <= vmem->vaddr + vmem->size)) {
@@ -85,7 +85,7 @@ void * vmem_read(void * to, uint64_t from, uint32_t size) {
 void * vmem_cpy(uint64_t to, uint64_t from, uint32_t size) {
 
 	vmem_t *vmem;
-	for(vmem_iter_t *iter = NULL; iter = vmem_next(iter); iter != NULL) {
+	for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
 
 		/* Write to VMEM */
@@ -114,7 +114,7 @@ void * vmem_cpy(uint64_t to, uint64_t from, uint32_t size) {
 vmem_t * vmem_vaddr_to_vmem(uint64_t vaddr) {
 
 	vmem_t *vmem;
-	for(vmem_iter_t *iter = NULL; iter = vmem_next(iter); iter != NULL) {
+	for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
 
 		/* Find VMEM from vaddr */
@@ -146,9 +146,7 @@ struct vmem_iter_s {
 };
 
 vmem_t * vmem_index_to_ptr(int idx) {
-	vmem_t *vmem;
-	for(vmem_iter_t *iter = NULL; iter = vmem_next(iter); iter != NULL) {
-		vmem = vmem_from_iter(iter);
+	for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
 		if(iter->idx == idx) {
 			return iter->current;		
 		}
@@ -157,9 +155,7 @@ vmem_t * vmem_index_to_ptr(int idx) {
 }
 
 int vmem_ptr_to_index(vmem_t * vmem) {
-	vmem_t *cur_vmem;
-	for(vmem_iter_t *iter = NULL; iter = vmem_next(iter); iter != NULL) {
-		cur_vmem = vmem_from_iter(iter);
+	for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
 		if(iter->current == vmem) {
 			return iter->idx;		
 		}
@@ -226,8 +222,7 @@ void vmem_add(vmem_t * start, vmem_t * stop) {
 				new_vmem->start = start;
 				new_vmem->stop = stop;
 				new_vmem->current = start;
-				vmem_iter_t *iter;
-				for(iter = NULL; iter = vmem_next(iter); iter != NULL) {
+				for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
 					if(!iter->next) {
 						iter->next = new_vmem;
 						break;
