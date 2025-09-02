@@ -181,7 +181,7 @@ void vmem_server_handler(csp_conn_t * conn)
 			int i = 0;
 			packet->length = 0;
 			vmem_t *vmem;
-			for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
+			for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter), i++) {
 				vmem = vmem_from_iter(iter);
 				list[i].vaddr = htobe32((uint32_t)(vmem->vaddr & 0x00000000FFFFFFFFULL));
 				list[i].size = htobe32((uint32_t)(vmem->size & 0x00000000FFFFFFFFULL));
