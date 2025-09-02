@@ -70,6 +70,8 @@ typedef enum {
 #define PM_PRIO3               (3 << 12) //! q: Priority of parameter for logging and retrieval (two bits)
 #define PM_PRIO_MASK           (3 << 12) //! q: Priority of parameter for logging and retrieval (two bits)
 
+#define PM_HIDDEN              (1 << 15) //! H: Hidden parameter 
+
 /* Reserved flags:
  * Lower 16 is parameter system, upper 16 are user flags  */
 #define PM_PARAM_FLAGS        0x0000FFFF //! Lower 16-bits are reserved for parameter system and major class flags
