@@ -638,7 +638,7 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	param->vmem->read = NULL;
 	param->vmem->size = array_size*param_typesize(type);
 	param->vmem->type = storage_type;
-	param->vmem->vaddr = (uint64_t)param_heap->buffer;
+	param->vmem->vaddr = (uint64_t)(uintptr_t)param_heap->buffer;
 	param->vmem->backup = NULL;
 	param->vmem->big_endian = false;
 	param->vmem->restore = NULL;
