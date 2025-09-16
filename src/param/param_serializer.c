@@ -11,7 +11,7 @@
 
 #include <param/param.h>
 #include <param/param_server.h>
-#include "param_serializer.h"
+#include <param/param_serializer.h>
 
 #include <csp/arch/csp_time.h>
 #include <sys/types.h>

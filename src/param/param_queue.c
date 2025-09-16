@@ -18,7 +18,7 @@
 #include <param/param_list.h>
 #include <param/param_string.h>
 
-#include "param_serializer.h"
+#include <param/param_serializer.h>
 
 /* Allows controlling the debug leve from build system */
 #ifndef PARAM_QUEUE_DBG_LEVEL

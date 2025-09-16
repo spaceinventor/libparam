@@ -19,8 +19,6 @@
 #include <param/param_server.h>
 #include <param/param_queue.h>
 
-typedef void (*param_transaction_callback_f)(csp_packet_t *response, int verbose, int version, void * context);
-
 static void param_transaction_callback_pull(csp_packet_t *response, int verbose, int version, void * context) {
 
 	int from = response->id.src;

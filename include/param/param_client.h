@@ -102,5 +102,22 @@ int param_pull_queue(param_queue_t *queue, uint8_t prio, int verbose, int host, 
  */
 int param_push_queue(param_queue_t *queue, int prio, int verbose, int host, int timeout, uint32_t hwid, bool ack_with_pull);
 
+/**
+ * @brief prototype for transaction callback function
+ */
+typedef void (*param_transaction_callback_f)(csp_packet_t *response, int verbose, int version, void * context);
+
+/**
+ * @brief Perform a parameter transaction (duh!)
+ * @param packet a valid CSP packet containing a valid param server operation as defined by param_packet_type_e in param_server.h
+ * @param host node ID of remote host
+ * @param timeout how long to wait for a response in ms
+ * @param callback optional function that will be called for each received packet during the transaction. If given, it MUST free the packet using csp_buffer_free()
+ * @param verbose flag indicating if debug information should be printed
+ * @param version PARAM protocol version
+ * @param context optional contaxt pointer that will be passed to the callback
+ * @return 0 in case of success, -1 on failure (timeout, network error, etc.)
+ */
+int param_transaction(csp_packet_t *packet, int host, int timeout, param_transaction_callback_f callback, int verbose, int version, void * context);
 
 #endif /* LIB_PARAM_INCLUDE_PARAM_PARAM_CLIENT_H_ */
