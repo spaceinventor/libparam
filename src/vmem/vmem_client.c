@@ -188,6 +188,66 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 	return count;
 }
 
+int vmem_upload_ex(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version, vmem_upload_progress_cb cb) {
+
+	abort = 0;
+
+	/* Establish RDP connection */
+	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP | CSP_O_CRC32);
+	if (conn == NULL) {
+		return CSP_ERR_TIMEDOUT;
+	}
+
+	csp_packet_t * packet = csp_buffer_get(sizeof(vmem_request_t));
+	if (packet == NULL)
+		return CSP_ERR_NOBUFS;
+
+	vmem_request_t * request = (void *) packet->data;
+	request->version = version;
+	request->type = VMEM_SERVER_UPLOAD;
+
+	if (version == 2) {
+		request->data2.address = htobe64(address);
+		request->data2.length = htobe32(length);
+	} else {
+		request->data.address = htobe32((uint32_t)(address & 0x00000000FFFFFFFFULL));
+		request->data.length = htobe32(length);
+	}
+	packet->length = sizeof(vmem_request_t);
+
+	/* Send request */
+	csp_send(conn, packet);
+
+	uint32_t count = 0;
+	while((count < length) && csp_conn_is_active(conn)) {
+
+		if (abort) {
+			csp_buffer_free(packet);
+			break;
+		}
+		if(cb) {
+			cb(length, count);
+		}
+
+		/* Prepare packet */
+		csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
+		packet->length = VMEM_MIN(VMEM_SERVER_MTU, length - count);
+
+		/* Copy data */
+		memcpy(packet->data, (void *) ((intptr_t) datain + count), packet->length);
+
+		/* Increment */
+		count += packet->length;
+
+		csp_send(conn, packet);
+
+	}
+
+	csp_close(conn);
+
+	return count;
+}
+
 static csp_packet_t * vmem_client_list_get(int node, int timeout, int version) {
 
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_CRC32);
