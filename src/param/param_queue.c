@@ -20,6 +20,15 @@
 
 #include <param/param_serializer.h>
 
+#define PARAM_QUEUE_FOREACH(param, reader, queue, offset) \
+	mpack_reader_t reader; \
+	mpack_reader_init_data(&reader, queue->buffer, queue->used); \
+	while(reader.data < reader.end) { \
+		int id, node, offset = -1; \
+		csp_timestamp_t timestamp = { .tv_sec = 0, .tv_nsec = 0 }; \
+		param_deserialize_id(&reader, &id, &node, &timestamp, &offset, queue); \
+		param_t * param = param_list_find_id(node, id); \
+
 /* Allows controlling the debug leve from build system */
 #ifndef PARAM_QUEUE_DBG_LEVEL
 #define PARAM_QUEUE_DBG_LEVEL 3
@@ -77,7 +86,7 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	return 0;
 }
 
-int param_queue_apply(param_queue_t *queue, int from) {
+int param_queue_apply(param_queue_t *queue, int host) {
 	int return_code = 0;
 	int atomic_write = 0;
 
@@ -93,11 +102,11 @@ int param_queue_apply(param_queue_t *queue, int from) {
 		csp_timestamp_t timestamp = { .tv_sec = 0, .tv_nsec = 0 };
 		param_deserialize_id(&reader, &id, &node, &timestamp, &offset, queue);
 
-		/* If the from address is set, and the nodeid is 0, substitue with the source address */
+		/* For handling of responess on client side, replace localhost with host node */
 		if (node == 0)
-			node = from;
+			node = host;
 
-		/* First we search on the specified node in the request or response */
+		/* Search on the specified node in the request or response */
 		param_t * param = param_list_find_id(node, id);
 
 		if (param) {

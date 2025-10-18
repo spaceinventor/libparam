@@ -47,10 +47,10 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 /**
  * @brief 						Applies the content of a queue to memory.
  * @param queue[in]				Pointer to queue
- * @param from[in]              If from is set and the node is 0, it will be set to from
+ * @param host[in]              If host is set and the node is 0, it will be set to host
  * @return 						0 OK, -1 ERROR
  */
-int param_queue_apply(param_queue_t *queue, int from);
+int param_queue_apply(param_queue_t *queue, int host);
 
 void param_queue_print(param_queue_t *queue);
 void param_queue_print_local(param_queue_t *queue);
@@ -58,19 +58,6 @@ void param_queue_print_params(param_queue_t *queue, uint32_t ref_timestamp);
 
 typedef int (*param_queue_callback_f)(void * context, param_queue_t *queue, param_t * param, int offset, void *reader);
 int param_queue_foreach(param_queue_t *queue, param_queue_callback_f callback, void * context);
-
-
-void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, csp_timestamp_t *timestamp, int *offset, param_queue_t *queue);
-
-#define PARAM_QUEUE_FOREACH(param, reader, queue, offset) \
-	mpack_reader_t reader; \
-	mpack_reader_init_data(&reader, queue->buffer, queue->used); \
-	while(reader.data < reader.end) { \
-		int id, node, offset = -1; \
-		csp_timestamp_t timestamp = { .tv_sec = 0, .tv_nsec = 0 }; \
-		param_deserialize_id(&reader, &id, &node, &timestamp, &offset, queue); \
-		param_t * param = param_list_find_id(node, id); \
-
 
 #ifdef __cplusplus
 }
