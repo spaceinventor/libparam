@@ -18,16 +18,15 @@
 #include <param/param_list.h>
 #include <param/param_server.h>
 #include <param/param_queue.h>
+#include <param/param_serializer.h>
 
 static void param_transaction_callback_pull(csp_packet_t *response, int verbose, int version, void * context) {
 
-	int from = response->id.src;
 	param_queue_t queue;
 	param_queue_init(&queue, &response->data[2], response->length - 2, response->length - 2, PARAM_QUEUE_TYPE_SET, version);
-	queue.last_node = response->id.src;
 
 	/* Write data to local memory */
-	param_queue_apply(&queue, from);
+	param_queue_apply(&queue, response->id.src);
 
 	if (!verbose) {
 		csp_buffer_free(response);
@@ -46,7 +45,7 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 		csp_timestamp_t timestamp = { .tv_sec = 0, .tv_nsec = 0 };
 		param_deserialize_id(&reader, &id, &node, &timestamp, &offset, &queue);
 		if (node == 0)
-			node = from;
+			node = response->id.src;
 		param_t * param = param_list_find_id(node, id);
 
 		/* We need to discard the data field, to get to next paramid */

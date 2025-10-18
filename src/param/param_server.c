@@ -14,6 +14,7 @@
 #include <param/param_queue.h>
 #include <param/param_server.h>
 #include <param/param_list.h>
+#include <param/param_serializer.h>
 #ifdef PARAM_HAVE_SCHEDULER
 #include <param/param_scheduler.h>
 #endif
@@ -99,8 +100,6 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 		return;
 	}
 
-	int server_addr = request->id.dst;
-
 	if (all == 0) {
 
 		/* Loop list in request */
@@ -114,8 +113,6 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 			int id, node, offset = -1;
 			csp_timestamp_t timestamp = { .tv_sec = 0, .tv_nsec = 0 };
 			param_deserialize_id(&reader, &id, &node, &timestamp, &offset, &q_request);
-			if (server_addr == node)
-				node = 0;
 			param_t * param = param_list_find_id(node, id);
 			if (param) {
 				if(ack_with_pull) {
@@ -130,8 +127,6 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 						int _id, _node, _offset = -1;
 						csp_timestamp_t _timestamp = { .tv_sec = 0, .tv_nsec = 0 };
 						param_deserialize_id(&_reader, &_id, &_node, &_timestamp, &_offset, &ctx.q_response);
-						if (server_addr == _node)
-							_node = 0;
 						param_t * _param = param_list_find_id(_node, _id);
 
 						/* Move reader forward to skip values */
@@ -209,7 +204,7 @@ static void param_serve_push(csp_packet_t * packet, int send_ack, int version) {
 
 	param_queue_t queue;
 	param_queue_init(&queue, &packet->data[2], packet->length - 2, packet->length - 2, PARAM_QUEUE_TYPE_SET, version);
-	int result = param_queue_apply(&queue, packet->id.src);
+	int result = param_queue_apply(&queue, 0);
 
 	if ((result != 0) || (send_ack == 0)) {
 		if (result != 0) {
