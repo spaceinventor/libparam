@@ -27,7 +27,7 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 	queue.last_node = response->id.src;
 
 	/* Write data to local memory */
-	param_queue_apply(&queue, 0, from);
+	param_queue_apply(&queue, from);
 
 	if (!verbose) {
 		csp_buffer_free(response);
@@ -240,7 +240,7 @@ int param_push_queue(param_queue_t *queue, int prio, int verbose, int host, int 
 		// param_queue_print(queue);
 	}
 	if(!ack_with_pull){
-		param_queue_apply(queue, 0, host);
+		param_queue_apply(queue, host);
 	}
 
 	return 0;
