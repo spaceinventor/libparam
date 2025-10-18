@@ -202,15 +202,14 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
  * @brief Apply a parameter queue parsed from the provided packet.
  *
  * @param packet Packet containing the parameter queue.
- * @param node_override 1 to allow parameters to be applied to local parameters.
  */
-static void param_serve_push(csp_packet_t * packet, int send_ack, int version, int node_override) {
+static void param_serve_push(csp_packet_t * packet, int send_ack, int version) {
 
 	//csp_hex_dump("set handler", packet->data, packet->length);
 
 	param_queue_t queue;
 	param_queue_init(&queue, &packet->data[2], packet->length - 2, packet->length - 2, PARAM_QUEUE_TYPE_SET, version);
-	int result = param_queue_apply(&queue, node_override, packet->id.src);
+	int result = param_queue_apply(&queue, packet->id.src);
 
 	if ((result != 0) || (send_ack == 0)) {
 		if (result != 0) {
@@ -251,17 +250,17 @@ void param_serve(csp_packet_t * packet) {
 			break;
 
 		case PARAM_PULL_RESPONSE:
-			param_serve_push(packet, 0, 1, 0);
+			param_serve_push(packet, 0, 1);
 			break;
 		case PARAM_PULL_RESPONSE_V2:
-			param_serve_push(packet, 0, 2, 0);
+			param_serve_push(packet, 0, 2);
 			break;
 
 		case PARAM_PUSH_REQUEST:
-			param_serve_push(packet, 1, 1, 1);
+			param_serve_push(packet, 1, 1);
 			break;
 		case PARAM_PUSH_REQUEST_V2:
-			param_serve_push(packet, 1, 2, 1);
+			param_serve_push(packet, 1, 2);
 			break;
 		case PARAM_PUSH_REQUEST_V2_HWID: {
 
@@ -278,7 +277,7 @@ void param_serve(csp_packet_t * packet) {
 				break;
 			}
 
-			param_serve_push(packet, 1, 2, 1);
+			param_serve_push(packet, 1, 2);
 
 			break;
 		}

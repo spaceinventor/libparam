@@ -47,11 +47,10 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 /**
  * @brief 						Applies the content of a queue to memory.
  * @param queue[in]				Pointer to queue
- * @param apply_local[in]	 	If the apply local flag is set the node will be set to 0.
  * @param from[in]              If from is set and the node is 0, it will be set to from
  * @return 						0 OK, -1 ERROR
  */
-int param_queue_apply(param_queue_t *queue, int apply_local, int from);
+int param_queue_apply(param_queue_t *queue, int from);
 
 void param_queue_print(param_queue_t *queue);
 void param_queue_print_local(param_queue_t *queue);

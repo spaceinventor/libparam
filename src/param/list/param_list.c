@@ -206,7 +206,7 @@ void param_list_remove_specific(param_t * param, uint8_t verbose, int destroy) {
 
 param_t * param_list_find_id(int node, int id) {
 
-	if (csp_iflist_get_by_addr(node) != NULL)
+	if (csp_iflist_get_by_addr(node) != NULL || csp_iflist_get_by_broadcast(node) != NULL)
 		node = 0;
 
 	param_t * found = NULL;
