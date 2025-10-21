@@ -217,7 +217,7 @@ void vmem_add(vmem_t * start, vmem_t * stop) {
 		* of VMEM blocks
 		*/
 		if(start != g_start.start) {
-			vmem_iter_t *new_vmem = calloc(sizeof(vmem_iter_t), 1);
+			vmem_iter_t *new_vmem = calloc(1, sizeof(vmem_iter_t));
 			if(new_vmem) {
 				new_vmem->start = start;
 				new_vmem->stop = stop;
