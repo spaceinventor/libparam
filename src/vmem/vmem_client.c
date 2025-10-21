@@ -18,7 +18,13 @@ void vmem_client_abort(void) {
 	abort = 1;
 }
 
-int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp)
+int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp) {
+
+	return vmem_download_progress(node, timeout, address, length, dataout, version, use_rdp, vmem_progress);
+
+}
+
+int vmem_download_progress(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp, vmem_progress_cb cb)
 {
 	uint32_t time_begin = csp_get_ms();
 	abort = 0;
@@ -30,11 +36,11 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 	}
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, opts);
 	if (conn == NULL)
-		return -1;
+		return CSP_ERR_TIMEDOUT;
 
 	csp_packet_t * packet = csp_buffer_get(sizeof(vmem_request_t));
 	if (packet == NULL)
-		return -1;
+		return CSP_ERR_NOBUFS;
 
 	vmem_request_t * request = (void *) packet->data;
 	request->version = version;
@@ -53,7 +59,6 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 
 	/* Go into download loop */
 	uint32_t count = 0;
-	int dotcount = 0;
 
 	while(1) { 
 
@@ -77,14 +82,9 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 			csp_buffer_free(packet);
 			break;
 		}
-
-		if (dotcount % 32 == 0)
-			printf("  ");
-		printf(".");
-		fflush(stdout);
-		dotcount++;
-		if (dotcount % 32 == 0)
-			printf(" - %.0f K\n", (count / 1024.0));
+		if(cb) {
+			cb(length, count);
+		}
 
 		/* Put data */
 		memcpy((void *) ((intptr_t) dataout + count), packet->data, packet->length);
@@ -107,21 +107,37 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 
 }
 
+void vmem_progress(uint32_t total, uint32_t sofar) {
+
+	if ((sofar / VMEM_SERVER_MTU) % 32 == 0) {
+		printf("  ");
+	}
+	printf(".");
+	fflush(stdout);
+	if ((sofar / VMEM_SERVER_MTU + 1) % 32 == 0) {
+		printf(" - %.0f K\n", (sofar / 1024.0));
+	}
+}
+
 int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version) {
 
-	uint32_t time_begin = csp_get_ms();
+	return vmem_upload_progress(node, timeout, address, datain, length, version, vmem_progress);
+
+}
+
+int vmem_upload_progress(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version, vmem_progress_cb cb) {
+
 	abort = 0;
 
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP | CSP_O_CRC32);
 	if (conn == NULL) {
-		printf("Connection could not be established\n");
-		return -1;
+		return CSP_ERR_TIMEDOUT;
 	}
 
 	csp_packet_t * packet = csp_buffer_get(sizeof(vmem_request_t));
 	if (packet == NULL)
-		return -1;
+		return CSP_ERR_NOBUFS;
 
 	vmem_request_t * request = (void *) packet->data;
 	request->version = version;
@@ -140,21 +156,15 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 	csp_send(conn, packet);
 
 	uint32_t count = 0;
-	int dotcount = 0;
 	while((count < length) && csp_conn_is_active(conn)) {
 
 		if (abort) {
 			csp_buffer_free(packet);
 			break;
 		}
-
-		if (dotcount % 32 == 0)
-			printf("  ");
-		printf(".");
-		fflush(stdout);
-		dotcount++;
-		if (dotcount % 32 == 0)
-			printf(" - %.0f K\n", (count / 1024.0));
+		if(cb) {
+			cb(length, count);
+		}
 
 		/* Prepare packet */
 		csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
@@ -170,20 +180,7 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 
 	}
 
-	printf(" - %.0f K\n", (count / 1024.0));
-
 	csp_close(conn);
-
-	uint32_t time_total = csp_get_ms() - time_begin;
-
-	if(count != length){
-		unsigned int window_size = 0;
-		csp_rdp_get_opt(&window_size, NULL, NULL, NULL, NULL, NULL);
-		printf("Upload didn't complete, suggested offset to resume: %"PRIu32"\n", count - ((window_size + 1) * VMEM_SERVER_MTU));
-		return -1;
-	} else {
-		printf("  Uploaded %"PRIu32" bytes in %.03f s at %"PRIu32" Bps\n", count, time_total / 1000.0, (uint32_t)(count / ((float)time_total / 1000.0)) );
-	}
 
 	return count;
 }
