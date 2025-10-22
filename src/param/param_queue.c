@@ -216,6 +216,8 @@ void param_queue_print(param_queue_t *queue) {
 #endif
 			}
 			printf("\n");
+		} else {
+			printf("param definition for ID: %d on node: %d not loaded, run \"list add\" maybe ?\n", id, node);
 		}
 	}
 }
