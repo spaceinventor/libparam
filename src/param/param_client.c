@@ -29,29 +29,33 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 	/* Write data to local memory */
 	param_queue_apply(&queue, 0, from);
 
-	if (verbose) {
+	if (!verbose) {
+		csp_buffer_free(response);
+		return;
+	}
+	/* Loop over paramid's in pull response */
+	mpack_reader_t reader;
+	mpack_reader_init_data(&reader, queue.buffer, queue.used);
+	if(reader.data == reader.end) {
+		printf("No parameters returned in response\n");
+		csp_buffer_free(response);
+		return;
+	}
+	while(reader.data < reader.end) {
+		int id, node, offset = -1;
+		csp_timestamp_t timestamp = { .tv_sec = 0, .tv_nsec = 0 };
+		param_deserialize_id(&reader, &id, &node, &timestamp, &offset, &queue);
+		if (node == 0)
+			node = from;
+		param_t * param = param_list_find_id(node, id);
 
-		/* Loop over paramid's in pull response */
-		mpack_reader_t reader;
-		mpack_reader_init_data(&reader, queue.buffer, queue.used);
-		while(reader.data < reader.end) {
-			int id, node, offset = -1;
-			csp_timestamp_t timestamp = { .tv_sec = 0, .tv_nsec = 0 };
-			param_deserialize_id(&reader, &id, &node, &timestamp, &offset, &queue);
-			if (node == 0)
-				node = from;
-			param_t * param = param_list_find_id(node, id);
+		/* We need to discard the data field, to get to next paramid */
+		mpack_discard		(&reader);
 
-			/* We need to discard the data field, to get to next paramid */
-			mpack_discard		(&reader);
-
-			/* Print the local RAM copy of the remote parameter */
-			if (param) {
-				param_print(param, -1, NULL, 0, verbose, 0);
-			}
-
+		/* Print the local RAM copy of the remote parameter */
+		if (param) {
+			param_print(param, -1, NULL, 0, verbose, 0);
 		}
-
 	}
 
 	csp_buffer_free(response);
