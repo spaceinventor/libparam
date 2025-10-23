@@ -177,7 +177,7 @@ int param_list_remove(int node, uint8_t verbose) {
 			match = *param->node == node;
 
 		if (match) {
-			if (verbose)
+			if (verbose >= 2)
 				printf("Removing param: %s:%u[%d]\n", param->name, *param->node, param->array_size);
 			// Using SLIST_REMOVE() means we iterate twice, but it is simpler.
 			SLIST_REMOVE(&param_list_head, param, param_s, next);
