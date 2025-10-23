@@ -26,7 +26,9 @@ typedef enum {
 	VMEM_SERVER_BACKUP,
 	VMEM_SERVER_UNLOCK,
 	VMEM_SERVER_CALCULATE_CRC32,
-
+	VMEM_SERVER_MOVE,
+	VMEM_SERVER_DECOMPRESS,
+	VMEM_SERVER_COMPRES,
 	VMEM_SERVER_USER_TYPES = 0x80,
 } vmem_request_type;
 
@@ -57,6 +59,11 @@ typedef struct {
 			uint64_t address;
 			uint64_t length;
 		} data3;
+		struct {
+			uint64_t src_address;
+			uint64_t dst_address;
+			uint64_t length;
+		} data4;
 		struct {
 			uint8_t vmem_id;
 		} vmem;
