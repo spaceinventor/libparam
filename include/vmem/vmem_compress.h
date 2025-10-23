@@ -32,3 +32,8 @@ void vmem_server_set_decompress_fnc(vmem_decompress_fnc_t fnc);
  * @param[in] fnc The function to handle compression requests.
  */
 void vmem_server_set_compress_fnc(vmem_compress_fnc_t fnc);
+
+
+vmem_decompress_fnc_t vmem_server_get_decompress_fnc(void);
+
+vmem_compress_fnc_t vmem_server_get_compress_fnc(void);
