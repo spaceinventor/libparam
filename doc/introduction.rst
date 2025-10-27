@@ -112,7 +112,6 @@ When modifying multiple remote parameters, a queue can be built to efficiently r
     param_queue_add(&queue, &counter, INDEX_ALL, NULL);
 
     /* Trigger CSP to request value from parameter server */
-    packet->length = queue.used + 2;
     if (param_pull_queue(&queue, CSP_PRIO_NORM, VERBOSE, &state.node, TIMEOUT) < 0)
         printf("Retrieving multiple parameter values failed\n");
 
