@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vmem/vmem.h>
-#include <vmem/vmem_compress.h>
+#include <vmem/vmem_codec.h>
 
 /**
  * @brief Write chunk of data to VMEM from physical memory

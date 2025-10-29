@@ -62,8 +62,8 @@ typedef struct {
 		struct {
 			uint64_t src_address;
 			uint64_t dst_address;
-			uint64_t length;
-		} data4;
+			uint32_t length;
+		} codec;
 		struct {
 			uint8_t vmem_id;
 		} vmem;

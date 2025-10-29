@@ -18,7 +18,7 @@
 
 #include <param/param_list.h>
 #include "../param/list/param_list.h"
-#include <vmem/vmem_compress.h>
+#include <vmem/vmem_codec.h>
 #include "vmem_internal.h"
 
 #include <libparam.h>
@@ -317,24 +317,24 @@ void vmem_server_handler(csp_conn_t * conn)
 		csp_send(conn, packet);
 
 	} else if (request->type == VMEM_SERVER_DECOMPRESS) {
-		uint64_t final_len;
-		int result = -1;
 
-		vmem_decompress_fnc_t decompress_fnc = vmem_server_get_decompress_fnc();
+		uint32_t final_len;
 
-		if(decompress_fnc == NULL) {
-			packet->data[0] = VMEM_SERVER_ENOSYS;
-			packet->length = 1;
-			csp_send(conn, packet);
+		vmem_decompress_fnc_t decompress_fnc = (vmem_decompress_fnc_t)vmem_server_get_decompress_fnc();
+
+		if (decompress_fnc == NULL) {
+			printf("warn: vmem_server no codec fnc\n");
+			csp_buffer_free(packet);
 			return;
 		}
 
-		uint64_t src_addr = be64toh(request->data4.src_address);
-		uint64_t src_len = be64toh(request->data4.length);
-		uint64_t dst_addr = be64toh(request->data4.dst_address);
+		uint64_t src_addr = be64toh(request->codec.src_address);
+		uint32_t src_len = be32toh(request->codec.length);
+		uint64_t dst_addr = be64toh(request->codec.dst_address);
 
-		packet->data[0] = decompress_fnc(dst_addr, &final_len, src_addr, src_len);
-		packet->length = 1;
+		packet->data32[0] = decompress_fnc(dst_addr, &final_len, src_addr, src_len);
+		packet->data32[1] = htobe32(final_len);
+		packet->length = 8;
 		csp_send(conn, packet);
 	} else {
 
