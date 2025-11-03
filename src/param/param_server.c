@@ -400,7 +400,7 @@ void param_publish_periodic() {
 		param_queue_init(&publishqueue, NULL, PARAM_SERVER_MTU, 0, PARAM_QUEUE_TYPE_SET, 2);
 
 		for (int i = 0; i < (&__stop_param_publish - &__start_param_publish); i++) {
-			param_publish_t * p = &__start_param_publish[i];
+			param_publish_t * p = (&__start_param_publish)[i];
 			if (p->queue == q) {
 				__add(ctx, p->param, -1);
 			}
