@@ -86,7 +86,7 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	return 0;
 }
 
-int param_queue_apply(param_queue_t *queue, int host) {
+int param_queue_apply_err_callback(param_queue_t *queue, int host, param_decode_err_callback_f err_callback, void * err_context) {
 	int return_code = 0;
 	int atomic_write = 0;
 
@@ -128,6 +128,9 @@ int param_queue_apply(param_queue_t *queue, int host) {
 			mpack_tag_t tag = mpack_read_tag(&reader);
 			if (mpack_reader_error(&reader) != mpack_ok) {
 				param_queue_dbg(2, "Param decoding failed for ID %u:%u, skipping packet\n", node, id);
+				if (err_callback) {
+					err_callback(node, id, err_context);
+				}
 				break;
 			}
 
@@ -169,6 +172,9 @@ int param_queue_apply(param_queue_t *queue, int host) {
 			}
 
 			param_queue_dbg(3, "Param decoding failed for ID %u:%u, skipping parameter\n", node, id);
+			if (err_callback) {
+				err_callback(node, id, err_context);
+			}
 		}
 	}
 
@@ -178,6 +184,10 @@ int param_queue_apply(param_queue_t *queue, int host) {
 	}
 
 	return return_code;
+}
+
+int param_queue_apply(param_queue_t *queue, int host) {
+	return param_queue_apply_err_callback(queue, host, NULL, NULL);
 }
 
 void param_queue_print(param_queue_t *queue) {
