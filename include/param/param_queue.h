@@ -44,7 +44,11 @@ void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int
 
 int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value);
 
-typedef void (*param_decode_err_callback_f)(uint16_t node, uint16_t id, void * context);
+/* Default callback for param decoding errors (in `param_queue_apply()`).
+	Can be called by a custom callback, if they also want a print. */
+void param_decode_err_dbg_print(uint16_t node, uint16_t id, uint8_t severity, void * context);
+
+typedef void (*param_decode_err_callback_f)(uint16_t node, uint16_t id, uint8_t severity, void * context);
 /**
  * @brief Same as `param_queue_apply()`, but with a (user-provided) contextualized callback whenever a parameter decoding error is encountered.
  * 

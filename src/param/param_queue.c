@@ -127,9 +127,8 @@ int param_queue_apply_err_callback(param_queue_t *queue, int host, param_decode_
 
 			mpack_tag_t tag = mpack_read_tag(&reader);
 			if (mpack_reader_error(&reader) != mpack_ok) {
-				param_queue_dbg(2, "Param decoding failed for ID %u:%u, skipping packet\n", node, id);
 				if (err_callback) {
-					err_callback(node, id, err_context);
+					err_callback(node, id, 2, err_context);
 				}
 				break;
 			}
@@ -171,9 +170,8 @@ int param_queue_apply_err_callback(param_queue_t *queue, int host, param_decode_
     			break;
 			}
 
-			param_queue_dbg(3, "Param decoding failed for ID %u:%u, skipping parameter\n", node, id);
 			if (err_callback) {
-				err_callback(node, id, err_context);
+				err_callback(node, id, 3, err_context);
 			}
 		}
 	}
@@ -186,8 +184,18 @@ int param_queue_apply_err_callback(param_queue_t *queue, int host, param_decode_
 	return return_code;
 }
 
+/* Default callback for param decoding errors (in `param_queue_apply()`).
+	Can be called by a custom callback, if they also want a print. */
+void param_decode_err_dbg_print(uint16_t node, uint16_t id, uint8_t severity, void * context) {
+	if (severity < 3) {
+		param_queue_dbg(severity, "Param decoding failed for ID %u:%u, skipping packet\n", node, id);
+	} else {
+		param_queue_dbg(severity, "Param decoding failed for ID %u:%u, skipping parameter\n", node, id);
+	}
+}
+
 int param_queue_apply(param_queue_t *queue, int host) {
-	return param_queue_apply_err_callback(queue, host, NULL, NULL);
+	return param_queue_apply_err_callback(queue, host, param_decode_err_dbg_print, NULL);
 }
 
 void param_queue_print(param_queue_t *queue) {
