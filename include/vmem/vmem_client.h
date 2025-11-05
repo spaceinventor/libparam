@@ -66,6 +66,8 @@ void vmem_client_list(int node, int timeout, int version);
 int vmem_client_find(int node, int timeout, void * dataout, int version, char * name, int namelen);
 int vmem_client_backup(int node, int vmem_id, int timeout, int backup_or_restore);
 int vmem_client_calc_crc32(int node, int timeout, uint64_t address, uint32_t length, uint32_t * crc_out, int version);
+int vmem_client_compress(int node, int timeout, uint64_t src_address, uint64_t dst_address, uint64_t length, int version);
+int vmem_client_decompress(int node, int timeout, uint64_t src_address, uint64_t dst_address, uint64_t length, int version);
 
 /**
  * @brief Abort any transfer that is ongoing
