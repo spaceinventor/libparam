@@ -33,17 +33,9 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 	/* Write data to local memory */
 	param_queue_apply_w_callback(&queue, response->id.src, param_queue_apply_callback, &queue_apply_context);
 
-	if (!verbose) {
-		csp_buffer_free(response);
-		return;
-	}
-	/* Loop over paramid's in pull response */
-	mpack_reader_t reader;
-	mpack_reader_init_data(&reader, queue.buffer, queue.used);
-	if(!queue_apply_context.num_unknown_params && !queue_apply_context.num_known_params) {
+	/* Should we always print error here, no matter `verbose`? */
+	if(verbose && !queue_apply_context.num_unknown_params && !queue_apply_context.num_known_params) {
 		printf("No parameters returned in response\n");
-		csp_buffer_free(response);
-		return;
 	}
 
 	csp_buffer_free(response);
