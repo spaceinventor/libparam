@@ -173,6 +173,9 @@ static vmem_iter_t g_start = {
 
 vmem_iter_t *vmem_next(vmem_iter_t * iter) {
 	if(NULL == iter) {
+		if (g_start.start == NULL) {
+			return NULL;
+		};
 		iter = &g_start;
 		g_start.current = g_start.start;
 		g_start.idx = 0;
