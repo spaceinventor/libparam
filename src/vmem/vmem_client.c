@@ -5,7 +5,7 @@
  *      Author: johan
  */
 
-#include "vmem/vmem_compress.h"
+#include <vmem/vmem_codec.h>
 #include <stdio.h>
 #include <csp/arch/csp_time.h>
 #include <sys/types.h>
@@ -411,24 +411,25 @@ int vmem_client_codec(int node, int timeout, uint64_t src_address, uint64_t dst_
 	vmem_request_t * request = (void *) packet->data;
 	request->version = version;
 	request->type = type;
-		request->data4.src_address = htobe64(src_address);
-		request->data4.dst_address = htobe64(dst_address);
-		request->data4.length = htobe64(length);
+		request->codec.src_address = htobe64(src_address);
+		request->codec.dst_address = htobe64(dst_address);
+		request->codec.length = htobe32(length);
 	packet->length = sizeof(vmem_request_t);
 
-	printf("Codec success from 0x%08"PRIX64" to 0x%08"PRIX64" %u bytes\n", 
-		src_address, dst_address, (unsigned int) length);
 
 	/* Send request */
 	csp_send(conn, packet);
 
 	/* Wait for the reponse from the server */
 	/* Blocking read */
+	/* TODO request with unpacked length */
 	packet = csp_read(conn, timeout);
 	if (packet) {
-		if (packet->data[0] == VMEM_SERVER_SUCCESS) {
+		if (packet->data[0] == VMEM_CODEC_SUCESS) {
+			printf("Codec success from 0x%08"PRIX64" to 0x%08"PRIX64" %u bytes\n", 
+				src_address, dst_address, (unsigned int) length);
 			res = 0;
-		} else if (packet->data[0] == VMEM_SERVER_ENOSYS) {
+		} else if (packet->data[0] == VMEM_CODEC_FAIL) {
 			res = -3;
 			printf("VMEM Codec not implemented on target\n");
 		}
