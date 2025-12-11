@@ -115,7 +115,8 @@ void * vmem_cpy(uint64_t to, uint64_t from, uint32_t size) {
 vmem_t * vmem_vaddr_to_vmem(uint64_t vaddr) {
 
 	vmem_t *vmem;
-	for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
+	vmem_iter_t start = {.idx = -1};
+	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
 
 		/* Find VMEM from vaddr */
@@ -138,7 +139,8 @@ int vmem_flush(vmem_t *vmem) {
 }
 
 vmem_t * vmem_index_to_ptr(int idx) {
-	for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
+	vmem_iter_t start = {.idx = -1};
+	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		if(iter->idx == idx) {
 			return iter->current;		
 		}
@@ -147,7 +149,8 @@ vmem_t * vmem_index_to_ptr(int idx) {
 }
 
 int vmem_ptr_to_index(vmem_t * vmem) {
-	for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
+	vmem_iter_t start = {.idx = -1};
+	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		if(iter->current == vmem) {
 			return iter->idx;		
 		}
