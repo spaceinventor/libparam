@@ -68,10 +68,15 @@ typedef struct vmem_s {
 } vmem_t __attribute__((aligned(__alignof__(struct vmem_s))));
 
 /**
- * @brief Opaque data type to iterate over available VMEM objects
- * @sa
+ * @brief data type to iterate over available VMEM objects
  */
-struct vmem_iter_s;
+struct vmem_iter_s {
+	vmem_t *start;
+	vmem_t *stop;
+	vmem_t *current;
+	int idx;
+	struct vmem_iter_s * next;
+};
 typedef struct vmem_iter_s vmem_iter_t;
 
 
