@@ -221,8 +221,8 @@ void vmem_add(vmem_t * start, vmem_t * stop) {
 				new_vmem->start = start;
 				new_vmem->stop = stop;
 				new_vmem->current = start;
-				vmem_iter_t start = {.idx = -1};
-				for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
+				vmem_iter_t start_iter = {.idx = -1};
+				for (vmem_iter_t *iter = vmem_next(&start_iter); iter != NULL; iter = vmem_next(iter)) {
 					if(!iter->next) {
 						iter->next = new_vmem;
 						break;
