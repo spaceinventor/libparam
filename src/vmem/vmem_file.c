@@ -6,40 +6,50 @@
  */
 
 #include <string.h>
-#include <stdio.h>
 #include <vmem/vmem.h>
 #include <vmem/vmem_file.h>
 
 void vmem_file_init(vmem_t * vmem) {
-
+	vmem_file_driver_t *driver = (vmem_file_driver_t *) vmem->driver;
 	/* Read from file */
-	FILE * stream = fopen(((vmem_file_driver_t *) vmem->driver)->filename, "r+");
-	if (stream == NULL)
-		return;
-	int read = fread(((vmem_file_driver_t *) vmem->driver)->physaddr, 1, vmem->size, stream);
-	(void) read;
-	//printf("Read %d bytes from %s\n", read, ((vmem_file_driver_t *) vmem->driver)->filename);
-	fclose(stream);
-
+	driver->stream = fopen(driver->filename, "r+");
+	if (driver->stream == NULL) {
+		driver->stream = fopen(driver->filename, "a");
+	} else {
+		int read = fread(driver->physaddr, 1, vmem->size, driver->stream);
+		(void) read;
+	}
 }
 
 void vmem_file_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len) {
+	vmem_file_driver_t *driver = (vmem_file_driver_t *) vmem->driver;
+	if(driver->stream == NULL) {
+		vmem_file_init(vmem);
+		if(driver->stream == NULL) {
+			printf("\nWARNING: vmem[%s]: file permission issues for associated filename: \"%s\"\n", vmem->name, driver->filename);
+		}
+	}
 	memcpy(dataout, ((vmem_file_driver_t *) vmem->driver)->physaddr + addr, len);
 }
 
 void vmem_file_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len) {
-	memcpy(((vmem_file_driver_t *) vmem->driver)->physaddr + addr, datain, len);
+	vmem_file_driver_t *driver = (vmem_file_driver_t *) vmem->driver;
+	memcpy(driver->physaddr + addr, datain, len);
 
-	/* Flush back to file */
-	FILE * stream = fopen(((vmem_file_driver_t *) vmem->driver)->filename, "w+");
-	if (stream == NULL) {
-		printf("Failed to open file %s\n", ((vmem_file_driver_t *) vmem->driver)->filename);
-		return;
+	if(driver->stream == NULL) {
+		vmem_file_init(vmem);
+		if(driver->stream == NULL) {
+			printf("\nWARNING: vmem[%s]: file permission issues for associated filename: \"%s\"\n", vmem->name, driver->filename);
+		}
 	}
-	int written = fwrite(((vmem_file_driver_t *) vmem->driver)->physaddr, 1, vmem->size, stream);
-	(void) written;
-	//printf("Wrote %d bytes to %s\n", written, ((vmem_file_driver_t *) vmem->driver)->filename);
-	fclose(stream);
+	if(driver->stream ) {
+		/* Flush back to file */
+		int res = fseek(driver->stream, 0, SEEK_SET);
+		(void)res;
+		int written = fwrite(driver->physaddr, 1, vmem->size, driver->stream);
+		fflush(driver->stream);
+		(void) written;
+	}
 }
 
 

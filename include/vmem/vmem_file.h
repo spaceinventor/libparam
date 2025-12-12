@@ -10,6 +10,7 @@
 
 #include <vmem/vmem.h>
 #include <stdint.h>
+#include <stdio.h>
 #if UINTPTR_MAX == 0xFFFFFFFFFFFFFFFFULL
 #define __64BIT__ 1
 #else
@@ -28,6 +29,7 @@
 typedef struct {
 	void * physaddr;
 	char * filename;
+	FILE * stream;
 } vmem_file_driver_t;
 
 void vmem_file_init(vmem_t * vmem);
