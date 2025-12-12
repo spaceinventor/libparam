@@ -11,6 +11,7 @@
 #include <csp/csp.h>
 
 #include <vmem/vmem.h>
+#include "vmem_internal.h"
 
 void * vmem_memcpy(void * to, const void * from, uint32_t size) {
 
@@ -47,7 +48,7 @@ void * vmem_read_direct(vmem_t * vmem, void * to, uint64_t from, uint32_t size) 
 
 void * vmem_write(uint64_t to, const void * from, uint32_t size) {
 	vmem_t *vmem;
-	vmem_iter_t start = {.idx = -1};
+	vmem_iter_t start = {0};
 	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
 		/* Write to VMEM */
@@ -66,7 +67,7 @@ void * vmem_write(uint64_t to, const void * from, uint32_t size) {
 
 void * vmem_read(void * to, uint64_t from, uint32_t size) {
 	vmem_t *vmem;
-	vmem_iter_t start = {.idx = -1};
+	vmem_iter_t start = {0};
 	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
 		/* Read */
@@ -85,7 +86,7 @@ void * vmem_read(void * to, uint64_t from, uint32_t size) {
 
 void * vmem_cpy(uint64_t to, uint64_t from, uint32_t size) {
 	vmem_t *vmem;
-	vmem_iter_t start = {.idx = -1};
+	vmem_iter_t start = {0};
 	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
 
@@ -115,7 +116,7 @@ void * vmem_cpy(uint64_t to, uint64_t from, uint32_t size) {
 vmem_t * vmem_vaddr_to_vmem(uint64_t vaddr) {
 
 	vmem_t *vmem;
-	vmem_iter_t start = {.idx = -1};
+	vmem_iter_t start = {0};
 	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
 
@@ -139,7 +140,7 @@ int vmem_flush(vmem_t *vmem) {
 }
 
 vmem_t * vmem_index_to_ptr(int idx) {
-	vmem_iter_t start = {.idx = -1};
+	vmem_iter_t start = {0};
 	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		if(iter->idx == idx) {
 			return iter->current;		
@@ -149,7 +150,7 @@ vmem_t * vmem_index_to_ptr(int idx) {
 }
 
 int vmem_ptr_to_index(vmem_t * vmem) {
-	vmem_iter_t start = {.idx = -1};
+	vmem_iter_t start = {0};
 	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		if(iter->current == vmem) {
 			return iter->idx;		
@@ -167,7 +168,7 @@ static vmem_iter_t g_start = {
 };
 
 vmem_iter_t *vmem_next(vmem_iter_t * iter) {
-	if(iter->idx == -1) {
+	if(iter->current == NULL) {
 		iter->idx = 0;
 		iter->current = g_start.start;
 		iter->start = g_start.start;
@@ -221,7 +222,7 @@ void vmem_add(vmem_t * start, vmem_t * stop) {
 				new_vmem->start = start;
 				new_vmem->stop = stop;
 				new_vmem->current = start;
-				vmem_iter_t start_iter = {.idx = -1};
+				vmem_iter_t start_iter = {0};
 				for (vmem_iter_t *iter = vmem_next(&start_iter); iter != NULL; iter = vmem_next(iter)) {
 					if(!iter->next) {
 						iter->next = new_vmem;
