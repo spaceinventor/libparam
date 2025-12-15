@@ -5,43 +5,42 @@
  *      Author: johan
  */
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
 #include <string.h>
 #include <vmem/vmem.h>
 #include <vmem/vmem_file.h>
 
 void vmem_file_init(vmem_t * vmem) {
 	vmem_file_driver_t *driver = (vmem_file_driver_t *) vmem->driver;
-	/* Read from file */
-	driver->stream = fopen(driver->filename, "r+");
-	if (driver->stream == NULL) {
-		driver->stream = fopen(driver->filename, "a");
-	} else {
+	if(driver->stream == NULL) {
+		/* Open file for reading/writing, creating it if it doesn't exist */
+		int fd = open(driver->filename, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR);
+		if (fd != -1) {
+			driver->stream = fdopen(fd, "r+");
+		}
+	}
+	if(driver->stream) {
+		/* Read in file data if any (fread will fail if the file was just created, leaving the content of driver->physaddr alone to what it currently is) */
 		int read = fread(driver->physaddr, 1, vmem->size, driver->stream);
 		(void) read;
+	} else {
+		printf("\nWARNING: vmem[%s]: permission/path issues for associated filename: \"%s\"\n", vmem->name, driver->filename);
 	}
 }
 
 void vmem_file_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len) {
 	vmem_file_driver_t *driver = (vmem_file_driver_t *) vmem->driver;
-	if(driver->stream == NULL) {
-		vmem_file_init(vmem);
-		if(driver->stream == NULL) {
-			printf("\nWARNING: vmem[%s]: file permission issues for associated filename: \"%s\"\n", vmem->name, driver->filename);
-		}
-	}
-	memcpy(dataout, ((vmem_file_driver_t *) vmem->driver)->physaddr + addr, len);
+	vmem_file_init(vmem);
+	memcpy(dataout, (void*)((intptr_t)driver->physaddr + addr), len);
 }
 
 void vmem_file_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len) {
 	vmem_file_driver_t *driver = (vmem_file_driver_t *) vmem->driver;
-	memcpy(driver->physaddr + addr, datain, len);
-
-	if(driver->stream == NULL) {
-		vmem_file_init(vmem);
-		if(driver->stream == NULL) {
-			printf("\nWARNING: vmem[%s]: file permission issues for associated filename: \"%s\"\n", vmem->name, driver->filename);
-		}
-	}
+	memcpy((void *)((intptr_t)driver->physaddr + addr), datain, len);
+	vmem_file_init(vmem);
 	if(driver->stream ) {
 		/* Flush back to file */
 		int res = fseek(driver->stream, 0, SEEK_SET);
@@ -51,5 +50,3 @@ void vmem_file_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t
 		(void) written;
 	}
 }
-
-
