@@ -5,3 +5,4 @@ option('list_dynamic', type: 'boolean', value: false, description: 'Compile supp
 option('list_pool', type: 'integer', value: 0, description: 'Compile support for pre-allocated param list (requres sys/queue.h)')
 option('have_float', type: 'boolean', value: true, description: 'Support float/double')
 option('num_publishqueues', type: 'integer', value: 0, description: 'Number of param publish queues required')
+option('serialize_extended_timestamp', type: 'boolean', value: false, description: 'Include ns part of timestamps when serializing parameters (network incompatible with libparam older than June 2025')
