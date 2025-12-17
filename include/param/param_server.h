@@ -108,7 +108,7 @@ param_publish_t const * _param_publish_##paramname##queueid = & __param_publish_
 
 typedef bool (*param_shall_publish_t)(uint8_t queue);
 
-void param_publish_periodic();
+void param_publish_periodic(void);
 void param_publish_configure(param_publish_id_t queueid, uint16_t destination, uint16_t periodicity_ms, csp_prio_t csp_prio);
 void param_publish_init(param_shall_publish_t criteria_cb);
 
