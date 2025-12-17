@@ -11,6 +11,7 @@
 #include <csp/csp.h>
 
 #include <vmem/vmem.h>
+#include "vmem_internal.h"
 
 void * vmem_memcpy(void * to, const void * from, uint32_t size) {
 
@@ -47,7 +48,8 @@ void * vmem_read_direct(vmem_t * vmem, void * to, uint64_t from, uint32_t size) 
 
 void * vmem_write(uint64_t to, const void * from, uint32_t size) {
 	vmem_t *vmem;
-	for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
+	vmem_iter_t start = {0};
+	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
 		/* Write to VMEM */
 		if ((to >= vmem->vaddr) && (to + (uint64_t)size <= vmem->vaddr + vmem->size)) {
@@ -64,9 +66,9 @@ void * vmem_write(uint64_t to, const void * from, uint32_t size) {
 }
 
 void * vmem_read(void * to, uint64_t from, uint32_t size) {
-
 	vmem_t *vmem;
-	for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
+	vmem_iter_t start = {0};
+	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
 		/* Read */
 		if ((from >= vmem->vaddr) && (from + (uint64_t)size <= vmem->vaddr + vmem->size)) {
@@ -83,9 +85,9 @@ void * vmem_read(void * to, uint64_t from, uint32_t size) {
 }
 
 void * vmem_cpy(uint64_t to, uint64_t from, uint32_t size) {
-
 	vmem_t *vmem;
-	for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
+	vmem_iter_t start = {0};
+	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
 
 		/* Write to VMEM */
@@ -114,7 +116,8 @@ void * vmem_cpy(uint64_t to, uint64_t from, uint32_t size) {
 vmem_t * vmem_vaddr_to_vmem(uint64_t vaddr) {
 
 	vmem_t *vmem;
-	for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
+	vmem_iter_t start = {0};
+	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
 
 		/* Find VMEM from vaddr */
@@ -136,17 +139,9 @@ int vmem_flush(vmem_t *vmem) {
 	return res;
 }
 
-/* VMEM arrays iterator */
-struct vmem_iter_s {
-	vmem_t *start;
-	vmem_t *stop;
-	vmem_t *current;
-	int idx;
-	struct vmem_iter_s * next;
-};
-
 vmem_t * vmem_index_to_ptr(int idx) {
-	for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
+	vmem_iter_t start = {0};
+	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		if(iter->idx == idx) {
 			return iter->current;		
 		}
@@ -155,7 +150,8 @@ vmem_t * vmem_index_to_ptr(int idx) {
 }
 
 int vmem_ptr_to_index(vmem_t * vmem) {
-	for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
+	vmem_iter_t start = {0};
+	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		if(iter->current == vmem) {
 			return iter->idx;		
 		}
@@ -172,13 +168,14 @@ static vmem_iter_t g_start = {
 };
 
 vmem_iter_t *vmem_next(vmem_iter_t * iter) {
-	if(NULL == iter) {
+	if(iter->current == NULL) {
+		iter->idx = 0;
+		iter->current = g_start.start;
+		iter->start = g_start.start;
+		iter->stop = g_start.stop;
 		if (g_start.start == NULL) {
 			return NULL;
 		};
-		iter = &g_start;
-		g_start.current = g_start.start;
-		g_start.idx = 0;
 	} else {
 		if(iter->current < (iter->stop - 1)) {
 			iter->current++;
@@ -225,7 +222,8 @@ void vmem_add(vmem_t * start, vmem_t * stop) {
 				new_vmem->start = start;
 				new_vmem->stop = stop;
 				new_vmem->current = start;
-				for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
+				vmem_iter_t start_iter = {0};
+				for (vmem_iter_t *iter = vmem_next(&start_iter); iter != NULL; iter = vmem_next(iter)) {
 					if(!iter->next) {
 						iter->next = new_vmem;
 						break;

@@ -21,6 +21,8 @@
 
 #include <libparam.h>
 #include <param/param_server.h>
+#include "vmem_internal.h"
+
 
 SLIST_HEAD(vmem_handler_obj_list_s, vmem_handler_obj_s);
 typedef struct vmem_handler_obj_list_s vmem_handler_obj_list_t;
@@ -181,7 +183,9 @@ void vmem_server_handler(csp_conn_t * conn)
 			int i = 0;
 			packet->length = 0;
 			vmem_t *vmem;
-			for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter), i++) {
+
+			vmem_iter_t start = {0};
+			for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 				vmem = vmem_from_iter(iter);
 				list[i].vaddr = htobe32((uint32_t)(vmem->vaddr & 0x00000000FFFFFFFFULL));
 				list[i].size = htobe32((uint32_t)(vmem->size & 0x00000000FFFFFFFFULL));
@@ -200,7 +204,8 @@ void vmem_server_handler(csp_conn_t * conn)
 			int i = 0;
 			packet->length = 0;
 			vmem_t *vmem;
-			for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter), i++) {
+			vmem_iter_t start = {0};
+			for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter), i++) {
 				vmem = vmem_from_iter(iter);
 				list[i].vaddr = htobe64(vmem->vaddr);
 				list[i].size = htobe32((uint32_t)(vmem->size & 0x00000000FFFFFFFFULL));
@@ -224,7 +229,8 @@ void vmem_server_handler(csp_conn_t * conn)
 			list = (vmem_list3_t *)&packet->data[packet->length];
 
 			vmem_t *vmem;
-			for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
+			vmem_iter_t start = {0};
+			for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 				vmem = vmem_from_iter(iter);
 				if ((packet->length + sizeof(vmem_list3_t)) > VMEM_SERVER_MTU) {
 					/* We need to advance to the next packet, but first send the existing one */
