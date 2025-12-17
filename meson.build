@@ -110,6 +110,6 @@ if get_option('default_library') == 'static'
 	)
 endif
 
-if not meson.is_subproject()
+if get_option('test') == true
     subdir('tests')
 endif
