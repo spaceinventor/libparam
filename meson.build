@@ -34,7 +34,7 @@ if get_option('have_fopen') == true
 	endif
 endif
 
-libparam_h = configure_file(output: 'libparam.h', configuration: conf)
+libparam_h = configure_file(output: 'libparam.h', configuration: conf, install_dir: 'include', install_tag: 'devel')
 
 csp_dep = dependency('csp', fallback : ['csp', 'csp_dep'])
 
@@ -98,7 +98,14 @@ param_lib = library('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
 	dependencies : [clib_dep, bsd_dep, csp_dep],
-	install : false
+	install : true,
+)
+install_subdir('include', install_dir : '.', install_tag: 'devel')
+
+pkg = import('pkgconfig')
+pkg.generate(
+	param_lib,
+	subdirs : ['.'],
 )
 
 param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib, dependencies: [clib_dep, bsd_dep, csp_dep])
