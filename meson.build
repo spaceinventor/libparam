@@ -99,12 +99,14 @@ param_lib = library('param',
 	include_directories : param_inc,
 	dependencies : [clib_dep, bsd_dep, csp_dep],
 	install : true,
+	soversion: meson.project_version()
 )
 install_subdir('include', install_dir : '.', install_tag: 'devel')
 
 pkg = import('pkgconfig')
 pkg.generate(
 	param_lib,
+	requires: ['csp'],
 	subdirs : ['.'],
 )
 
