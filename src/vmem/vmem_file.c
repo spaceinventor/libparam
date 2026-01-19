@@ -22,9 +22,6 @@ void vmem_file_init(vmem_t * vmem) {
 			driver->stream = fdopen(fd, "r+");
 		}
 		if(driver->stream) {
-			/* Read in file data if any (fread will fail if the file was just created, leaving the content of driver->physaddr alone to what it currently is) */
-			int res = fseek(driver->stream, 0, SEEK_SET);
-			(void)res;
 			int read = fread(driver->physaddr, 1, vmem->size, driver->stream);
 			(void) read;
 		} else {
