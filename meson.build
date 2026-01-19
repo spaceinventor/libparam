@@ -93,11 +93,15 @@ if get_option('collector') == true
 endif
 
 param_inc = include_directories('.', 'include')
-deps = [clib_dep, bsd_dep, csp_dep]
+if get_option('default_library') == 'static'
+	deps = [clib_dep, bsd_dep, csp_dep.partial_dependency(includes:true)]
+else
+	deps = [clib_dep, bsd_dep, csp_dep]
+endif
 param_lib = library('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
-	dependencies : [clib_dep, bsd_dep, csp_dep],
+	dependencies : deps,
 	install : true,
 )
 install_subdir('include', install_dir : '.', install_tag: 'devel')
