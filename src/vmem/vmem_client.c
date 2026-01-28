@@ -323,26 +323,6 @@ int vmem_client_find(int node, int timeout, void * dataout, int version, char * 
 	return 0;
 }
 
-int vmem_client_backup(int node, int vmem_id, int timeout, int backup_or_restore) {
-
-	vmem_request_t request;
-	request.version = VMEM_VERSION;
-	if (backup_or_restore) {
-		request.type = VMEM_SERVER_BACKUP;
-	} else {
-		request.type = VMEM_SERVER_RESTORE;
-	}
-	request.vmem.vmem_id = vmem_id;
-
-	int8_t response = -1;
-	if (!csp_transaction_w_opts(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, &request, sizeof(vmem_request_t), &response, 1, CSP_O_CRC32)) {
-		return -2;
-	}
-
-	return (int) response;
-
-}
-
 int vmem_client_calc_crc32(int node, int timeout, uint64_t address, uint32_t length, uint32_t * crc_out, int version) {
 
 	int res = -1;

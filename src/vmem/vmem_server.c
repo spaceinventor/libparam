@@ -23,8 +23,6 @@
 #include <param/param_server.h>
 #include "vmem_internal.h"
 
-static int unlocked = 0;
-
 #ifdef PARAM_LIST_DYNAMIC
 
 SLIST_HEAD(vmem_handler_obj_list_s, vmem_handler_obj_s);
@@ -265,63 +263,6 @@ void vmem_server_handler(csp_conn_t * conn)
 			packet->data[0] |= 0b10000000; /* Last packet */
 			csp_send(conn, packet);
 		}
-
-	} else if ((request->type == VMEM_SERVER_RESTORE) || (request->type == VMEM_SERVER_BACKUP)) {
-
-		vmem_t * vmem = vmem_index_to_ptr(request->vmem.vmem_id);
-		int result;
-		if (request->type == VMEM_SERVER_BACKUP) {
-			if (unlocked == 1 && vmem->backup != NULL) {
-				result = vmem->backup(vmem);
-			} else {
-				result = -4;
-			}
-		} else {
-			if (vmem->restore != NULL) {
-				result = vmem->restore(vmem);
-			} else {
-				result = -3;
-			}
-		}
-
-		packet->data[0] = (int8_t) result;
-		packet->length = 1;
-
-		csp_send(conn, packet);
-
-	} else if (request->type == VMEM_SERVER_UNLOCK) {
-
-		/* Step 1: Check initial unlock code */
-		if (be32toh(request->unlock.code) != 0x28140360) {
-			csp_buffer_free(packet);
-			return;
-		}
-
-		/* Step 2: Generate verification sequence */
-		unsigned int seed = csp_get_ms();
-		uint32_t verification_sequence = (uint32_t) rand_r(&seed);
-		request->unlock.code = htobe32(verification_sequence);
-
-		csp_send(conn, packet);
-
-		/* Step 3: Wait for verification return (you have 30 seconds only) */
-		if ((packet = csp_read(conn, 30000)) == NULL) {
-			return;
-		}
-
-		/* Update request pointer */
-		request = (void *) packet->data;
-
-		/* Step 4: Validate verification sequence */
-		if (be32toh(request->unlock.code) == verification_sequence) {
-			unlocked = 1;
-			request->unlock.code = htobe32(0);
-		} else {
-			unlocked = 0;
-			request->unlock.code = htobe32(0xFFFFFFFF);
-		}
-
-		csp_send(conn, packet);
 
 	} else {
 

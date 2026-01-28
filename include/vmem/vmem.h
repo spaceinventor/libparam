@@ -37,8 +37,6 @@ typedef struct vmem_s {
 	int type;
 	void (*read)(struct vmem_s * vmem, uint64_t addr, void * dataout, uint32_t len);
 	void (*write)(struct vmem_s * vmem, uint64_t addr, const void * datain, uint32_t len);
-	int (*backup)(struct vmem_s * vmem);
-	int (*restore)(struct vmem_s * vmem);
 	int (*flush)(struct vmem_s * vmem);
 	/* This anonymous union is needed to be able to handle 64-bit and 32-bit
 	 * systems interchangeably. Since the VMEM backend always expects 64-bit
