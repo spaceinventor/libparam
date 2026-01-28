@@ -35,11 +35,6 @@ typedef struct param_queue_s {
 	csp_timestamp_t client_timestamp;
 } param_queue_t;
 
-/**
- * @brief Control the amount of prints that the param_queue_* functions will output
- */
-extern uint32_t param_queue_dbg_level;
-
 void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int used, param_queue_type_e type, int version);
 
 int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value);
