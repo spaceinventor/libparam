@@ -57,17 +57,17 @@ typedef struct param_queue_apply_context_s {
 
 /* Default callback for param decoding errors (in `param_queue_apply()`).
 	Can be called by a custom callback, if they also want a print. */
-void param_queue_apply_callback(uint16_t node, uint16_t id, uint8_t severity, param_t * param, void * context);
+void param_queue_apply_callback(uint16_t node, uint16_t id, uint8_t debug_level, param_t * param, void * context);
 
 /**
  * To be called by `param_queue_apply_w_callback()`, after the parameter value has been applied, or failed to do so.
  * 
  * @param node[in]				Node of the parameter
  * @param id[in]				id of the parameter
- * @param severity[in]		When a parameter fails decoding, how bad is it?
+ * @param debug_level[in]		When a parameter fails decoding, how bad is it?
  * @param param[in]				Pointer to the parameter is if is found the global parameter list, otherwise NULL. Remember to check!
  */
-typedef void (*param_decode_callback_f)(uint16_t node, uint16_t id, uint8_t severity, param_t * param, void * context);
+typedef void (*param_decode_callback_f)(uint16_t node, uint16_t id, uint8_t debug_level, param_t * param, void * context);
 /**
  * @brief Same as `param_queue_apply()`, but with a (user-provided) contextualized callback whenever a parameter decoding error is encountered.
  * 

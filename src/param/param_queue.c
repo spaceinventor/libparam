@@ -179,7 +179,7 @@ int param_queue_apply_w_callback(param_queue_t *queue, int host, param_decode_ca
 
 /* Default callback for param decoding errors (in `param_queue_apply()`).
 	Can be called by a custom callback, if they also want a print. */
-void param_queue_apply_callback(uint16_t node, uint16_t id, uint8_t severity, param_t * param, void * context) {
+void param_queue_apply_callback(uint16_t node, uint16_t id, uint8_t debug_level, param_t * param, void * context) {
 
 	param_queue_apply_context_t * const queue_apply_context = (param_queue_apply_context_t*)context;
 
@@ -193,11 +193,11 @@ void param_queue_apply_callback(uint16_t node, uint16_t id, uint8_t severity, pa
 	}
 	queue_apply_context->num_unknown_params++;
 
-	if (severity > queue_apply_context->debug_print_level) {
+	if (debug_level > queue_apply_context->debug_print_level) {
 		return;
 	}
 
-	if (severity == 2) {
+	if (debug_level == 2) {
 		printf("Param decoding failed for ID %u:%u, skipping packet\n", node, id);
 	} else /* if (debug_level == 3) */ {
 		printf("Param decoding failed for ID %u:%u, skipping parameter\n", node, id);
