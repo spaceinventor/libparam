@@ -23,11 +23,13 @@
 #include <param/param_server.h>
 #include "vmem_internal.h"
 
+static int unlocked = 0;
+
+#ifdef PARAM_LIST_DYNAMIC
 
 SLIST_HEAD(vmem_handler_obj_list_s, vmem_handler_obj_s);
 typedef struct vmem_handler_obj_list_s vmem_handler_obj_list_t;
 
-static int unlocked = 0;
 static vmem_handler_obj_list_t g_vmem_handler_list = SLIST_HEAD_INITIALIZER();
 
 static vmem_handler_obj_t *vmem_server_find_handler(uint8_t type) {
@@ -69,6 +71,8 @@ int vmem_server_bind_type(uint8_t type, vmem_handler_t *func, vmem_handler_obj_t
 
 	return 0;
 }
+
+#endif
 
 void vmem_server_handler(csp_conn_t * conn)
 {
@@ -321,6 +325,8 @@ void vmem_server_handler(csp_conn_t * conn)
 
 	} else {
 
+
+#ifdef PARAM_LIST_DYNAMIC
 		/* Check the list of handlers, if we have one which will handle it */
 		vmem_handler_obj_t *obj = vmem_server_find_handler(request->type);
 		if (obj) {		
@@ -332,6 +338,9 @@ void vmem_server_handler(csp_conn_t * conn)
 			/* Free packet if not valid VMEM service request */
 			csp_buffer_free(packet);
 		}
+#else
+		csp_buffer_free(packet);
+#endif
 
 	}
 

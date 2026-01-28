@@ -7,8 +7,12 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 #include <csp/csp.h>
+
+#include "libparam.h"
+#ifdef PARAM_LIST_DYNAMIC
+#include <malloc.h>
+#endif
 
 #include <vmem/vmem.h>
 #include "vmem_internal.h"
@@ -159,7 +163,11 @@ int vmem_ptr_to_index(vmem_t * vmem) {
 	return -1;
 }
 
+#ifdef PARAM_LIST_DYNAMIC
 static vmem_iter_t g_start = {
+#else
+static const vmem_iter_t g_start = {
+#endif
 	.start = (vmem_t *) &__start_vmem,
 	.stop = (vmem_t *) &__stop_vmem,
 	.current = NULL,
@@ -203,6 +211,7 @@ vmem_t *vmem_from_iter(vmem_iter_t * iter) {
 	return res;
 }
 
+#ifdef PARAM_LIST_DYNAMIC
 void vmem_add(vmem_t * start, vmem_t * stop) {
 	/* Handle case when host application has no VMEM (its __start_vmem/__stop_vmem are NULL) */
 	if(NULL == g_start.start) {
@@ -237,3 +246,4 @@ void vmem_add(vmem_t * start, vmem_t * stop) {
 		}
 	}
 }
+#endif
