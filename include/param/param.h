@@ -111,7 +111,9 @@ typedef struct param_s {
 
 	/* Local info */
 	void (*callback)(struct param_s * param, int offset);
+#ifdef PARAM_HAVE_TIMESTAMP
 	csp_timestamp_t * timestamp;
+#endif
 
 #ifdef PARAM_HAVE_SYS_QUEUE
 	/* single linked list:
@@ -135,9 +137,22 @@ typedef struct param_s {
  * The size field is only important for non-native types such as string, data and vector.
  *
  */
+
+#ifdef PARAM_HAVE_TIMESTAMP
+#define PARAM_TIMESTAMP_DECL(_name) \
+    csp_timestamp_t _timestamp_##_name = { .tv_sec = 0, .tv_nsec = 0 };
+
+#define PARAM_TIMESTAMP_INIT(_name) \
+    .timestamp = &_timestamp_##_name,
+#else
+#define PARAM_TIMESTAMP_DECL(_name)
+#define PARAM_TIMESTAMP_INIT(_name)
+#endif
+
+
 #define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
-	csp_timestamp_t _timestamp_##_name = { .tv_sec = 0, .tv_nsec = 0 }; \
+	PARAM_TIMESTAMP_DECL(_name) \
 	uint16_t _node_##_name = 0; \
 	__attribute__((section("param"))) \
 	__attribute__((used, no_reorder)) \
@@ -152,7 +167,7 @@ typedef struct param_s {
 		.mask = _flags, \
 		.unit = _unit, \
 		.callback = _callback, \
-		.timestamp = &_timestamp_##_name, \
+		PARAM_TIMESTAMP_INIT(_name) \
 		.addr = (void *)(_physaddr), \
 		.vaddr = 0, \
 		.docstr = _docstr, \
@@ -160,7 +175,7 @@ typedef struct param_s {
 
 #define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
 	; /* Catch const param defines */ \
-	csp_timestamp_t _timestamp_##_name = { .tv_sec = 0, .tv_nsec = 0 }; \
+	PARAM_TIMESTAMP_DECL(_name) \
 	uint16_t _node_##_name = 0; \
 	__attribute__((section("param"))) \
 	__attribute__((used, no_reorder)) \
@@ -173,7 +188,7 @@ typedef struct param_s {
 		.array_step = _array_step, \
 		.mask = _flags, \
 		.callback = _callback, \
-		.timestamp = &_timestamp_##_name, \
+		PARAM_TIMESTAMP_INIT(_name) \
 		.unit = _unit, \
 		.addr = NULL, \
 		.vaddr = _vmem_addr, \
@@ -185,7 +200,7 @@ typedef struct param_s {
 
 #define PARAM_DEFINE_REMOTE(_id, _name, _nodeaddr, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
-	csp_timestamp_t _timestamp_##_name = { .tv_sec = 0, .tv_nsec = 0 }; \
+	PARAM_TIMESTAMP_DECL(_name) \
 	__attribute__((section("param"))) \
 	__attribute__((used, no_reorder)) \
 	param_t _name = { \
@@ -199,13 +214,13 @@ typedef struct param_s {
 		.addr = _physaddr, \
 		.vaddr = 0, \
 		.vmem = NULL, \
-		.timestamp = &_timestamp_##_name, \
+		PARAM_TIMESTAMP_INIT(_name) \
 		.docstr = _docstr, \
 	};
 
 #define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
-	csp_timestamp_t _timestamp_##_name = { .tv_sec = 0, .tv_nsec = 0 }; \
+	PARAM_TIMESTAMP_DECL(_name) \
 	uint16_t _node_##_name = _node; \
 	param_t _name = { \
 		.node = &_node_##_name, \
@@ -218,7 +233,7 @@ typedef struct param_s {
 		.addr = _physaddr, \
 		.vaddr = 0, \
 		.vmem = NULL, \
-		.timestamp = &_timestamp_##_name, \
+		PARAM_TIMESTAMP_INIT(_name) \
 		.docstr = _docstr, \
 	};
 

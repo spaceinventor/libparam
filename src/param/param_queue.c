@@ -97,9 +97,11 @@ int param_queue_apply(param_queue_t *queue, int host, int verbose) {
 					param_enter_critical();
 			}
 
+#ifdef PARAM_HAVE_TIMESTAMP
 			if (*param->node != 0) {
 				*param->timestamp = timestamp;
 			}
+#endif
 
 			param_deserialize_from_mpack_to_param(NULL, queue, param, offset, &reader);
 		} else {

@@ -1,6 +1,7 @@
 option('collector', type: 'boolean', value: false, description: 'Build collector')
 option('vmem_fram', type: 'boolean', value: false, description: 'Build vmem fram')
 option('have_fopen', type: 'boolean', value: false, description: 'POSIX fopen available')
+option('have_timestamp', type: 'boolean', value: true, description: 'Use parameter timestamping feature')
 option('list_dynamic', type: 'boolean', value: false, description: 'Compile support for dynamic param list (requres sys/queue.h) and dynamic memory allocation')
 option('list_pool', type: 'integer', value: 0, description: 'Compile support for pre-allocated param list (requres sys/queue.h)')
 option('have_float', type: 'boolean', value: true, description: 'Support float/double')

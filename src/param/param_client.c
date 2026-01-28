@@ -280,7 +280,11 @@ int param_push_single(param_t *param, int offset, int prio, void *value, int ver
 	}
 
 	/* If it was a remote parameter, set the value after the ack but not if ack with push which sets param timestamp */
+#ifdef PARAM_HAVE_TIMESTAMP
 	if (*param->node != 0 && value != NULL && param->timestamp->tv_sec == 0)
+#else
+	if (*param->node != 0 && value != NULL)
+#endif
 	{
 		if (offset < 0) {
 			for (int i = 0; i < param->array_size; i++)

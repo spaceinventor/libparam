@@ -255,6 +255,7 @@ static void param_print_value(FILE * file, param_t * param, int offset) {
 	for(int i = offset; i < offset + count; i++) {
 		char value[sizeof(value_str)];
 
+#ifdef PARAM_HAVE_TIMESTAMP
 		if(param->timestamp->tv_sec > 0 || *param->node == 0){
 			param_value_str(param, i, value, sizeof(value));
 			strcat(value_str, value);
@@ -262,6 +263,11 @@ static void param_print_value(FILE * file, param_t * param, int offset) {
 		else {
 			strcat(value_str, "-");
 		}
+#else
+		param_value_str(param, i, value, sizeof(value));
+		strcat(value_str, value);
+#endif
+
 		if (i + 1 < count) {
 			strcat(value_str, " ");
 		}
@@ -290,11 +296,16 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 	if (param == NULL)
 		return;
 
-	if(ref_timestamp > 0 && ref_timestamp > param->timestamp->tv_sec){
+#ifdef PARAM_HAVE_TIMESTAMP		
+	if(ref_timestamp > 0 && ref_timestamp > param->timestamp->tv_sec) {
 		fprintf(file, "\033[90m");
 	} else {
 		fprintf(file, "%s", param_mask_color(param));
 	}
+#else
+	fprintf(file, "%s", param_mask_color(param));
+#endif
+
 
 	/* Node/ID */
 	if (verbose >= 1) {
@@ -405,7 +416,8 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 
 	}
 
-	if(verbose >= 4){
+#ifdef PARAM_HAVE_TIMESTAMP	
+	if(verbose >= 4) {
 		if (param->timestamp->tv_sec > 0){
 			struct tm timestamp;
 			char timestamp_buffer[40];
@@ -420,6 +432,7 @@ void param_print_file(FILE* file, param_t * param, int offset, int nodes[], int 
 			fprintf(file, "\t%s", "-");
 		}
 	}
+#endif
 
 	if ((verbose >= 3) && (param->docstr != NULL)) {
 		fprintf(file, "\t\t%s", param->docstr);
