@@ -48,9 +48,10 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
  * @brief 						Applies the content of a queue to memory.
  * @param queue[in]				Pointer to queue
  * @param host[in]              If host is set and the node is 0, it will be set to host
+ * @param verbose[in]           2 prints if packet parse fails, 3 prints each missing param
  * @return 						0 OK, -1 ERROR
  */
-int param_queue_apply(param_queue_t *queue, int host);
+int param_queue_apply(param_queue_t *queue, int host, int verbose);
 
 void param_queue_print(param_queue_t *queue);
 void param_queue_print_local(param_queue_t *queue);

@@ -29,23 +29,6 @@
 		param_deserialize_id(&reader, &id, &node, &timestamp, &offset, queue); \
 		param_t * param = param_list_find_id(node, id); \
 
-/* Allows controlling the debug leve from build system */
-#ifndef PARAM_QUEUE_DBG_LEVEL
-#define PARAM_QUEUE_DBG_LEVEL 3
-#endif
-
-/* Reduce value if stdout is being flooded */
-uint32_t param_queue_dbg_level = PARAM_QUEUE_DBG_LEVEL;
-
-static void param_queue_dbg(uint8_t severity, const char *msg, ...) {
-	if (severity <= param_queue_dbg_level) {
-		va_list start;
-		va_start(start, msg);
-		vfprintf(stdout, msg, start);
-		va_end(start);
-	}
-}
-
 void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int used, param_queue_type_e type, int version) {
 	queue->buffer = buffer;
 	queue->buffer_size = buffer_size;
@@ -66,8 +49,6 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	}
 
 	if ((queue->type == PARAM_QUEUE_TYPE_GET) && (value != NULL)) {
-		param_queue_dbg(1, "Cannot mix GET/SET commands\n");
-		param_queue_dbg(1, "Queue type %u value %p\n", queue->type, value);
 		return -1;
 	}
 
@@ -86,7 +67,7 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	return 0;
 }
 
-int param_queue_apply(param_queue_t *queue, int host) {
+int param_queue_apply(param_queue_t *queue, int host, int verbose) {
 	int return_code = 0;
 	int atomic_write = 0;
 
@@ -127,7 +108,9 @@ int param_queue_apply(param_queue_t *queue, int host) {
 
 			mpack_tag_t tag = mpack_read_tag(&reader);
 			if (mpack_reader_error(&reader) != mpack_ok) {
-				param_queue_dbg(2, "Param decoding failed for ID %u:%u, skipping packet\n", node, id);
+				if (verbose >= 2) {
+					printf("Param decoding failed for ID %u:%u, skipping packet\n", node, id);
+				}
 				break;
 			}
 
@@ -168,7 +151,9 @@ int param_queue_apply(param_queue_t *queue, int host) {
     			break;
 			}
 
-			param_queue_dbg(3, "Param decoding failed for ID %u:%u, skipping parameter\n", node, id);
+			if (verbose >= 3) {
+				printf("Param ID %u:%u not found locally, skipping value\n", node, id);
+			}
 		}
 	}
 

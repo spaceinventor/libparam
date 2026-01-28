@@ -26,7 +26,7 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 	param_queue_init(&queue, &response->data[2], response->length - 2, response->length - 2, PARAM_QUEUE_TYPE_SET, version);
 
 	/* Write data to local memory */
-	param_queue_apply(&queue, response->id.src);
+	param_queue_apply(&queue, response->id.src, verbose);
 
 	if (!verbose) {
 		csp_buffer_free(response);
@@ -239,7 +239,7 @@ int param_push_queue(param_queue_t *queue, int prio, int verbose, int host, int 
 		// param_queue_print(queue);
 	}
 	if(!ack_with_pull){
-		param_queue_apply(queue, host);
+		param_queue_apply(queue, host, verbose);
 	}
 
 	return 0;
