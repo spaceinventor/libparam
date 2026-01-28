@@ -173,6 +173,7 @@ vmem_iter_t *vmem_next(vmem_iter_t * iter) {
 		iter->current = g_start.start;
 		iter->start = g_start.start;
 		iter->stop = g_start.stop;
+		iter->next = g_start.next;
 		if (g_start.start == NULL) {
 			return NULL;
 		};
@@ -225,6 +226,9 @@ void vmem_add(vmem_t * start, vmem_t * stop) {
 				vmem_iter_t start_iter = {0};
 				for (vmem_iter_t *iter = vmem_next(&start_iter); iter != NULL; iter = vmem_next(iter)) {
 					if(!iter->next) {
+						if(iter->start == g_start.start) {
+							g_start.next = new_vmem;
+						}
 						iter->next = new_vmem;
 						break;
 					}
