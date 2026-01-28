@@ -44,30 +44,11 @@ void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int
 
 int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value);
 
-/* Default context for `param_queue_apply()` */
-typedef struct param_queue_apply_context_s {
-	/* In argument */
-	const int verbose;
-	const int debug_print_level;
-
-	/* Out arguments */
-	int num_unknown_params;
-	int num_known_params;
-} param_queue_apply_context_t;
-
 /* Default callback for param decoding errors (in `param_queue_apply()`).
 	Can be called by a custom callback, if they also want a print. */
-void param_queue_apply_callback(uint16_t node, uint16_t id, uint8_t debug_level, param_t * param, void * context);
+void param_decode_err_dbg_print(uint16_t node, uint16_t id, uint8_t debug_level, void * context);
 
-/**
- * To be called by `param_queue_apply_w_callback()`, after the parameter value has been applied, or failed to do so.
- * 
- * @param node[in]				Node of the parameter
- * @param id[in]				id of the parameter
- * @param debug_level[in]		When a parameter fails decoding, how bad is it?
- * @param param[in]				Pointer to the parameter is if is found the global parameter list, otherwise NULL. Remember to check!
- */
-typedef void (*param_decode_callback_f)(uint16_t node, uint16_t id, uint8_t debug_level, param_t * param, void * context);
+typedef void (*param_decode_err_callback_f)(uint16_t node, uint16_t id, uint8_t debug_level, void * context);
 /**
  * @brief Same as `param_queue_apply()`, but with a (user-provided) contextualized callback whenever a parameter decoding error is encountered.
  * 
@@ -77,7 +58,7 @@ typedef void (*param_decode_callback_f)(uint16_t node, uint16_t id, uint8_t debu
  * @param err_context[in] 		User-supplied context for the callback function.
  * @return int 					0 OK, -1 ERROR
  */
-int param_queue_apply_w_callback(param_queue_t *queue, int host, param_decode_callback_f callback, void * context);
+int param_queue_apply_err_callback(param_queue_t *queue, int host, param_decode_err_callback_f err_callback, void * err_context);
 
 /**
  * @brief 						Applies the content of a queue to memory.

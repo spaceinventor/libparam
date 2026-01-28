@@ -76,7 +76,7 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	return 0;
 }
 
-int param_queue_apply_w_callback(param_queue_t *queue, int host, param_decode_callback_f callback, void * context) {
+int param_queue_apply_err_callback(param_queue_t *queue, int host, param_decode_err_callback_f err_callback, void * err_context) {
 	int return_code = 0;
 	int atomic_write = 0;
 
@@ -97,7 +97,7 @@ int param_queue_apply_w_callback(param_queue_t *queue, int host, param_decode_ca
 			node = host;
 
 		/* Search on the specified node in the request or response */
-		param_t * const param = param_list_find_id(node, id);
+		param_t * param = param_list_find_id(node, id);
 
 		if (param) {
 			if ((param->mask & PM_ATOMIC_WRITE) && (atomic_write == 0)) {
@@ -111,17 +111,14 @@ int param_queue_apply_w_callback(param_queue_t *queue, int host, param_decode_ca
 			}
 
 			param_deserialize_from_mpack_to_param(NULL, queue, param, offset, &reader);
-			if (callback) {
-				callback(node, id, -1, param, context);
-			}
 		} else {
 			// We couldn't find all parameters. Skip this one.
 			return_code = -1;
 
 			mpack_tag_t tag = mpack_read_tag(&reader);
 			if (mpack_reader_error(&reader) != mpack_ok) {
-				if (callback) {
-					callback(node, id, 2, NULL, context);
+				if (err_callback) {
+					err_callback(node, id, 2, err_context);
 				}
 				break;
 			}
@@ -163,8 +160,8 @@ int param_queue_apply_w_callback(param_queue_t *queue, int host, param_decode_ca
     			break;
 			}
 
-			if (callback) {
-				callback(node, id, 3, NULL, context);
+			if (err_callback) {
+				err_callback(node, id, 3, err_context);
 			}
 		}
 	}
@@ -179,21 +176,11 @@ int param_queue_apply_w_callback(param_queue_t *queue, int host, param_decode_ca
 
 /* Default callback for param decoding errors (in `param_queue_apply()`).
 	Can be called by a custom callback, if they also want a print. */
-void param_queue_apply_callback(uint16_t node, uint16_t id, uint8_t debug_level, param_t * param, void * context) {
+void param_decode_err_dbg_print(uint16_t node, uint16_t id, uint8_t debug_level, void * context) {
 
-	param_queue_apply_context_t * const queue_apply_context = (param_queue_apply_context_t*)context;
+	uint32_t selected_debug_level = *((uint32_t *) context);
 
-	if (param) {
-		queue_apply_context->num_known_params++;
-		if (queue_apply_context->verbose) {
-			/* Print the local RAM copy of the remote parameter */
-			param_print(param, -1, NULL, 0, queue_apply_context->verbose, 0);
-		}
-		return;
-	}
-	queue_apply_context->num_unknown_params++;
-
-	if (debug_level > queue_apply_context->debug_print_level) {
+	if (debug_level > selected_debug_level) {
 		return;
 	}
 
@@ -205,10 +192,7 @@ void param_queue_apply_callback(uint16_t node, uint16_t id, uint8_t debug_level,
 }
 
 int param_queue_apply(param_queue_t *queue, int host) {
-	param_queue_apply_context_t queue_apply_context = {
-		.debug_print_level = param_queue_dbg_level,
-	};
-	return param_queue_apply_w_callback(queue, host, param_queue_apply_callback, &queue_apply_context);
+	return param_queue_apply_err_callback(queue, host, param_decode_err_dbg_print, &param_queue_dbg_level);
 }
 
 void param_queue_print(param_queue_t *queue) {
