@@ -27,7 +27,7 @@
 		int id, node, offset = -1; \
 		csp_timestamp_t timestamp = { .tv_sec = 0, .tv_nsec = 0 }; \
 		param_deserialize_id(&reader, &id, &node, &timestamp, &offset, queue); \
-		param_t * param = param_list_find_id(node, id); \
+		const param_t * param = param_list_find_id(node, id); \
 
 void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int used, param_queue_type_e type, int version) {
 	queue->buffer = buffer;
@@ -41,7 +41,7 @@ void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int u
 	queue->client_timestamp.tv_nsec = 0;
 }
 
-int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value) {
+int param_queue_add(param_queue_t *queue, const param_t *param, int offset, void *value) {
 
 	/* Ensure we always send nodeid on the first element of the queue */
 	if (queue->used == 0) {
@@ -88,7 +88,7 @@ int param_queue_apply(param_queue_t *queue, int host, int verbose) {
 			node = host;
 
 		/* Search on the specified node in the request or response */
-		param_t * param = param_list_find_id(node, id);
+		const param_t * param = param_list_find_id(node, id);
 
 		if (param) {
 			if ((param->mask & PM_ATOMIC_WRITE) && (atomic_write == 0)) {
@@ -218,7 +218,7 @@ void param_queue_print_params(param_queue_t *queue, uint32_t ref_timestamp) {
 				int _id, _node, _offset = -1;
 				csp_timestamp_t _timestamp = { .tv_sec = 0, .tv_nsec = 0 };
 				param_deserialize_id(&_reader, &_id, &_node, &_timestamp, &_offset, queue);
-				param_t * _param = param_list_find_id(_node, _id);
+				const param_t * _param = param_list_find_id(_node, _id);
 				if(queue->type == PARAM_QUEUE_TYPE_SET){
 					mpack_discard(&_reader);
 				}

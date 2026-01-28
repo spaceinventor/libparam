@@ -46,7 +46,7 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 		param_deserialize_id(&reader, &id, &node, &timestamp, &offset, &queue);
 		if (node == 0)
 			node = response->id.src;
-		param_t * param = param_list_find_id(node, id);
+		const param_t * param = param_list_find_id(node, id);
 
 		/* We need to discard the data field, to get to next paramid */
 		mpack_discard		(&reader);

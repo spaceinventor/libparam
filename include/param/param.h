@@ -110,7 +110,7 @@ typedef struct param_s {
 	int array_step;
 
 	/* Local info */
-	void (*callback)(struct param_s * param, int offset);
+	void (*callback)(const struct param_s * param, int offset);
 #ifdef PARAM_HAVE_TIMESTAMP
 	csp_timestamp_t * timestamp;
 #endif
@@ -155,8 +155,8 @@ typedef struct param_s {
 	PARAM_TIMESTAMP_DECL(_name) \
 	uint16_t _node_##_name = 0; \
 	__attribute__((section("param"))) \
-	__attribute__((used, no_reorder)) \
-	param_t _name = { \
+	__attribute__((used, no_reorder, aligned(8))) \
+	const param_t _name = { \
 		.vmem = NULL, \
 		.node = &_node_##_name, \
 		.id = _id, \
@@ -178,8 +178,8 @@ typedef struct param_s {
 	PARAM_TIMESTAMP_DECL(_name) \
 	uint16_t _node_##_name = 0; \
 	__attribute__((section("param"))) \
-	__attribute__((used, no_reorder)) \
-	param_t _name = { \
+	__attribute__((used, no_reorder, aligned(8))) \
+	const param_t _name = { \
 		.node = &_node_##_name, \
 		.id = _id, \
 		.type = _type, \
@@ -202,8 +202,8 @@ typedef struct param_s {
 	; /* Catch const param defines */ \
 	PARAM_TIMESTAMP_DECL(_name) \
 	__attribute__((section("param"))) \
-	__attribute__((used, no_reorder)) \
-	param_t _name = { \
+	__attribute__((used, no_reorder, aligned(8))) \
+	const param_t _name = { \
 		.node = _nodeaddr, \
 		.id = _id, \
 		.type = _type, \
@@ -239,8 +239,8 @@ typedef struct param_s {
 
 /* Native getter functions, will return native types */
 #define PARAM_GET(type, name) \
-	type param_get_##name(param_t * param); \
-	type param_get_##name##_array(param_t * param, unsigned int i);
+	type param_get_##name(const param_t * param); \
+	type param_get_##name##_array(const param_t * param, unsigned int i);
 PARAM_GET(uint8_t, uint8)
 PARAM_GET(uint16_t, uint16)
 PARAM_GET(uint32_t, uint32)
@@ -255,10 +255,10 @@ PARAM_GET(double, double)
 
 /* Native setter functions, these take a native type as argument */
 #define PARAM_SET(type, name) \
-	void param_set_##name(param_t * param, type value); \
-	void param_set_##name##_nocallback(param_t * param, type value); \
-	void param_set_##name##_array(param_t * param, unsigned int i, type value); \
-	void param_set_##name##_array_nocallback(param_t * param, unsigned int i, type value);
+	void param_set_##name(const param_t * param, type value); \
+	void param_set_##name##_nocallback(const param_t * param, type value); \
+	void param_set_##name##_array(const param_t * param, unsigned int i, type value); \
+	void param_set_##name##_array_nocallback(const param_t * param, unsigned int i, type value);
 PARAM_SET(uint8_t, uint8)
 PARAM_SET(uint16_t, uint16)
 PARAM_SET(uint32_t, uint32)
@@ -272,24 +272,24 @@ PARAM_SET(double, double)
 #undef PARAM_SET
 
 /* Non-native types needs to go through a function which includes a void pointer and the length */
-void param_set_data(param_t * param, const void * inbuf, int len);
-void param_set_data_nocallback(param_t * param, const void * inbuf, int len);
-void param_get_data(param_t * param, void * outbuf, int len);
-void param_set_string(param_t * param, const char * inbuf, int len);
+void param_set_data(const param_t * param, const void * inbuf, int len);
+void param_set_data_nocallback(const param_t * param, const void * inbuf, int len);
+void param_get_data(const param_t * param, void * outbuf, int len);
+void param_set_string(const param_t * param, const char * inbuf, int len);
 #define param_get_string param_get_data
 
 /* Generic setter function:
  * This function can be used to set data of any type
  */
-void param_set(param_t * param, unsigned int offset, void * value);
-void param_get(param_t * param, unsigned int offset, void * value);
+void param_set(const param_t * param, unsigned int offset, void * value);
+void param_get(const param_t * param, unsigned int offset, void * value);
 
 /* Returns the size of a native type */
 int param_typesize(param_type_e type);
-int param_size(param_t * param);
+int param_size(const param_t * param);
 
 /* Copies from one parameter to another */
-void param_copy(param_t * dest, param_t * src);
+void param_copy(const param_t * dest, const param_t * src);
 
 /* External hooks to get atomic writes */
 extern __attribute__((weak)) void param_enter_critical(void);

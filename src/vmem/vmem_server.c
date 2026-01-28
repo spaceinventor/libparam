@@ -291,7 +291,7 @@ void vmem_server_handler(csp_conn_t * conn)
 
 static void rparam_list_handler(csp_conn_t * conn)
 {
-	param_t * param;
+	const param_t * param;
 	param_list_iterator i = {};
 	while ((param = param_list_iterate(&i)) != NULL) {
 		if (param->mask & PM_HIDDEN) {

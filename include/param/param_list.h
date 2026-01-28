@@ -17,10 +17,10 @@ extern "C" {
 
 typedef struct param_list_iterator_s {
 	int phase;							// Hybrid iterator has multiple phases (0 == Static, 1 == Dynamic List)
-	param_t * element;
+	const param_t * element;
 } param_list_iterator;
 
-param_t * param_list_iterate(param_list_iterator * iterator);
+const param_t * param_list_iterate(param_list_iterator * iterator);
 
 int param_list_add(param_t * item);
 
@@ -40,13 +40,13 @@ int param_list_remove(int node, uint8_t verbose);
  * @param verbose Whether to print the removed parameter.
  * @return int 1 if the parameter was found and removed.
  */
-void param_list_remove_specific(param_t * param, uint8_t verbose, int destroy);
-param_t * param_list_find_id(int node, int id);
-param_t * param_list_find_name(int node, const char * name);
+void param_list_remove_specific(const param_t * param, uint8_t verbose, int destroy);
+const param_t * param_list_find_id(int node, int id);
+const param_t * param_list_find_name(int node, const char * name);
 void param_list_print(uint32_t mask, int node, const char * globstr, int verbosity);
 uint32_t param_maskstr_to_mask(const char * str);
 
-param_t * param_list_from_line(const char * line);
+const param_t * param_list_from_line(const char * line);
 
 /**
  * @brief 
@@ -64,8 +64,8 @@ param_t * param_list_from_line(const char * line);
  */
 param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, int array_size, char * name, char * unit, char * help, int storage_type);
 
-void param_list_destroy(param_t * param);
-void param_print(param_t * param, int offset, int nodes[], int nodes_count, int verbose, uint32_t ref_timestamp);
+void param_list_destroy(const param_t * param);
+void param_print(const param_t * param, int offset, int nodes[], int nodes_count, int verbose, uint32_t ref_timestamp);
 
 unsigned int param_list_packed_size(int list_version);
 int param_list_unpack(int node, void * data, int length, int list_version, int include_remotes);
