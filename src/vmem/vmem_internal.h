@@ -37,7 +37,7 @@ vmem_t *vmem_from_iter(vmem_iter_t * iter);
  * @param size Number of bytes to transfer
  * @return void* always NULL, no error detection possible at this time
  */
-void * vmem_write_direct(vmem_t * vmem, uint64_t to, const void * from, uint32_t size);
+void * vmem_write_direct(const vmem_t * vmem, uint64_t to, const void * from, uint32_t size);
 
 /**
  * @brief Read chunk of data from VMEM to physical memory
@@ -47,4 +47,4 @@ void * vmem_write_direct(vmem_t * vmem, uint64_t to, const void * from, uint32_t
  * @param size Number of bytes to transfer
  * @return void* always NULL, no error detection possible at this time
  */
-void * vmem_read_direct(vmem_t * vmem, void * to, uint64_t from, uint32_t size);
+void * vmem_read_direct(const vmem_t * vmem, void * to, uint64_t from, uint32_t size);

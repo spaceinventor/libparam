@@ -117,7 +117,7 @@ int param_list_add(param_t * item) {
 			param_rw->type = item->type;
 			param_rw->array_size = item->array_size;
 			param_rw->array_step = item->array_step;
-			param_rw->vmem->type = item->vmem->type;
+			//param_rw->vmem->type = item->vmem->type; // TODO do not support overwriting vmem type
 
 			if(param->name && item->name){
 				strcpy(param->name, item->name);

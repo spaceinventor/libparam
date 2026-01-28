@@ -113,9 +113,9 @@ typedef struct vmem_block_region_s {
 		.options = options_in, \
 	}; \
 	__attribute__((section("vmem"))) \
-	__attribute__((__aligned__(__alignof__(vmem_t)))) \
+	__attribute__((__aligned__(8))) \
 	__attribute__((used)) \
-	vmem_t vmem_##name_in = { \
+	const vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_BLOCK, \
 		.read = vmem_block_read, \
 		.write = vmem_block_write, \

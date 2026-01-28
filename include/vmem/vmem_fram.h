@@ -19,9 +19,9 @@ typedef struct {
 		.fram_addr = fram_addr_in, \
 	}; \
 	__attribute__((section("vmem"))) \
-	__attribute__((__aligned__(__alignof__(vmem_t)))) \
+	__attribute__((__aligned__(8))) \
 	__attribute__((used)) \
-	vmem_t vmem_##name_in = { \
+	const vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_FRAM, \
 		.name = strname, \
 		.size = size_in, \
@@ -32,8 +32,8 @@ typedef struct {
 		.ack_with_pull = 1, \
 	};
 
-void vmem_fram_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len);
-void vmem_fram_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len);
+void vmem_fram_read(const vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len);
+void vmem_fram_write(const vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len);
 
 
 #endif /* SRC_PARAM_VMEM_FRAM_H_ */

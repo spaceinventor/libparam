@@ -22,7 +22,7 @@ void * vmem_memcpy(void * to, const void * from, uint32_t size) {
 	return vmem_cpy((uint64_t)(uintptr_t)to, (uint64_t)(uintptr_t)from, (uint64_t)size);
 }
 
-void * vmem_write_direct(vmem_t * vmem, uint64_t to, const void * from, uint32_t size) {
+void * vmem_write_direct(const vmem_t * vmem, uint64_t to, const void * from, uint32_t size) {
 
 	/* Write to VMEM */
 	if ((to >= vmem->vaddr) && (to + (uint64_t)size <= vmem->vaddr + vmem->size)) {
@@ -36,7 +36,7 @@ void * vmem_write_direct(vmem_t * vmem, uint64_t to, const void * from, uint32_t
 	return NULL;
 }
 
-void * vmem_read_direct(vmem_t * vmem, void * to, uint64_t from, uint32_t size) {
+void * vmem_read_direct(const vmem_t * vmem, void * to, uint64_t from, uint32_t size) {
 
 	/* Read */
 	if ((from >= vmem->vaddr) && (from + (uint64_t)size <= vmem->vaddr + vmem->size)) {

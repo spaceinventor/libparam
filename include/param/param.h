@@ -105,7 +105,7 @@ typedef struct param_s {
 	/* Storage */
 	void * addr; /* Physical address */
 	uint64_t vaddr; /* Virtual address in case of VMEM */
-	struct vmem_s * vmem;
+	const struct vmem_s * vmem;
 	int array_size;
 	int array_step;
 
