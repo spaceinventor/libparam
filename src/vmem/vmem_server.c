@@ -23,6 +23,9 @@
 #include <param/param_server.h>
 #include "vmem_internal.h"
 
+/* Statically allocate a listener socket */
+static csp_socket_t vmem_server_socket = {0};
+
 #ifdef PARAM_LIST_DYNAMIC
 
 SLIST_HEAD(vmem_handler_obj_list_s, vmem_handler_obj_s);
@@ -333,9 +336,6 @@ static void rparam_list_handler(csp_conn_t * conn)
 }
 
 void vmem_server_loop(void * param) {
-
-	/* Statically allocate a listener socket */
-	static csp_socket_t vmem_server_socket = {0};
 
 	/* Bind all ports to socket */
 	csp_bind(&vmem_server_socket, VMEM_PORT_SERVER);
