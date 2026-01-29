@@ -98,7 +98,13 @@ int param_queue_apply(param_queue_t *queue, int host, int verbose) {
 			}
 
 #ifdef PARAM_HAVE_TIMESTAMP
+			/* Only remote paramters use timestamps */
 			if (*param->node != 0) {
+				/* If no timestamp was provided, use client received timestamp */
+				if (timestamp.tv_sec == 0) {
+					timestamp = queue->client_timestamp;
+					csp_clock_get_time(&timestamp);
+				} 
 				*param->timestamp = timestamp;
 			}
 #endif
