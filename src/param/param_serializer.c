@@ -68,6 +68,7 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 		int node = *param->node;
 		int array_flag = (offset >= 0) ? 1 : 0;
 		int node_flag = (queue->last_node != node) ? 1 : 0;
+#ifdef PARAM_HAVE_TIMESTAMP
 		int timestamp_flag = (queue->last_timestamp.tv_sec != param->timestamp->tv_sec) ? 1 : 0;
 		int extendedtimestamp_flag = 0;
 #ifdef EXTENDED_TIMESTAMP
@@ -75,6 +76,10 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 		extendedtimestamp_flag = (timestamp_flag && param->timestamp->tv_sec > 1577836800) ||
 								 queue->last_timestamp.tv_nsec != param->timestamp->tv_nsec;
 		timestamp_flag |= extendedtimestamp_flag;
+#endif /* EXTENDED_TIMESTAMP */
+#else
+		int timestamp_flag = 0;
+		int extendedtimestamp_flag = 0;
 #endif
 		int extendedid_flag = (param->id > 0x3ff) ? 1 : 0;
 
@@ -98,6 +103,7 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 			mpack_write_bytes(writer, (char*) &_node, 2);
 		}
 
+#ifdef PARAM_HAVE_TIMESTAMP
 		if (timestamp_flag) {
 			queue->last_timestamp = *param->timestamp;
 			uint32_t _timestamp = htobe32(param->timestamp->tv_sec);
@@ -108,6 +114,7 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 				mpack_write_bytes(writer, (char*) &_timestamp, 4);
 			}
 		}
+#endif
 
 		if (extendedid_flag) {
 			char _extendedid = (param->id&0xfc00) >> 8;

@@ -21,11 +21,13 @@
 
 #include <libparam.h>
 #include <param/param_server.h>
+#include "vmem_internal.h"
+
+#ifdef PARAM_LIST_DYNAMIC
 
 SLIST_HEAD(vmem_handler_obj_list_s, vmem_handler_obj_s);
 typedef struct vmem_handler_obj_list_s vmem_handler_obj_list_t;
 
-static int unlocked = 0;
 static vmem_handler_obj_list_t g_vmem_handler_list = SLIST_HEAD_INITIALIZER();
 
 static vmem_handler_obj_t *vmem_server_find_handler(uint8_t type) {
@@ -67,6 +69,8 @@ int vmem_server_bind_type(uint8_t type, vmem_handler_t *func, vmem_handler_obj_t
 
 	return 0;
 }
+
+#endif
 
 void vmem_server_handler(csp_conn_t * conn)
 {
@@ -181,7 +185,9 @@ void vmem_server_handler(csp_conn_t * conn)
 			int i = 0;
 			packet->length = 0;
 			vmem_t *vmem;
-			for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter), i++) {
+
+			vmem_iter_t start = {0};
+			for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter), i++) {
 				vmem = vmem_from_iter(iter);
 				list[i].vaddr = htobe32((uint32_t)(vmem->vaddr & 0x00000000FFFFFFFFULL));
 				list[i].size = htobe32((uint32_t)(vmem->size & 0x00000000FFFFFFFFULL));
@@ -200,7 +206,8 @@ void vmem_server_handler(csp_conn_t * conn)
 			int i = 0;
 			packet->length = 0;
 			vmem_t *vmem;
-			for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter), i++) {
+			vmem_iter_t start = {0};
+			for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter), i++) {
 				vmem = vmem_from_iter(iter);
 				list[i].vaddr = htobe64(vmem->vaddr);
 				list[i].size = htobe32((uint32_t)(vmem->size & 0x00000000FFFFFFFFULL));
@@ -224,7 +231,8 @@ void vmem_server_handler(csp_conn_t * conn)
 			list = (vmem_list3_t *)&packet->data[packet->length];
 
 			vmem_t *vmem;
-			for (vmem_iter_t *iter = vmem_next(NULL); iter != NULL; iter = vmem_next(iter)) {
+			vmem_iter_t start = {0};
+			for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 				vmem = vmem_from_iter(iter);
 				if ((packet->length + sizeof(vmem_list3_t)) > VMEM_SERVER_MTU) {
 					/* We need to advance to the next packet, but first send the existing one */
@@ -256,65 +264,10 @@ void vmem_server_handler(csp_conn_t * conn)
 			csp_send(conn, packet);
 		}
 
-	} else if ((request->type == VMEM_SERVER_RESTORE) || (request->type == VMEM_SERVER_BACKUP)) {
-
-		vmem_t * vmem = vmem_index_to_ptr(request->vmem.vmem_id);
-		int result;
-		if (request->type == VMEM_SERVER_BACKUP) {
-			if (unlocked == 1 && vmem->backup != NULL) {
-				result = vmem->backup(vmem);
-			} else {
-				result = -4;
-			}
-		} else {
-			if (vmem->restore != NULL) {
-				result = vmem->restore(vmem);
-			} else {
-				result = -3;
-			}
-		}
-
-		packet->data[0] = (int8_t) result;
-		packet->length = 1;
-
-		csp_send(conn, packet);
-
-	} else if (request->type == VMEM_SERVER_UNLOCK) {
-
-		/* Step 1: Check initial unlock code */
-		if (be32toh(request->unlock.code) != 0x28140360) {
-			csp_buffer_free(packet);
-			return;
-		}
-
-		/* Step 2: Generate verification sequence */
-		unsigned int seed = csp_get_ms();
-		uint32_t verification_sequence = (uint32_t) rand_r(&seed);
-		request->unlock.code = htobe32(verification_sequence);
-
-		csp_send(conn, packet);
-
-		/* Step 3: Wait for verification return (you have 30 seconds only) */
-		if ((packet = csp_read(conn, 30000)) == NULL) {
-			return;
-		}
-
-		/* Update request pointer */
-		request = (void *) packet->data;
-
-		/* Step 4: Validate verification sequence */
-		if (be32toh(request->unlock.code) == verification_sequence) {
-			unlocked = 1;
-			request->unlock.code = htobe32(0);
-		} else {
-			unlocked = 0;
-			request->unlock.code = htobe32(0xFFFFFFFF);
-		}
-
-		csp_send(conn, packet);
-
 	} else {
 
+
+#ifdef PARAM_LIST_DYNAMIC
 		/* Check the list of handlers, if we have one which will handle it */
 		vmem_handler_obj_t *obj = vmem_server_find_handler(request->type);
 		if (obj) {		
@@ -326,6 +279,9 @@ void vmem_server_handler(csp_conn_t * conn)
 			/* Free packet if not valid VMEM service request */
 			csp_buffer_free(packet);
 		}
+#else
+		csp_buffer_free(packet);
+#endif
 
 	}
 

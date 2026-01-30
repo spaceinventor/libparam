@@ -6,6 +6,7 @@ conf = configuration_data()
 conf.set('PARAM_HAVE_SYS_QUEUE', get_option('list_dynamic') or get_option('list_pool') > 0)
 conf.set('PARAM_LIST_DYNAMIC', get_option('list_dynamic'))
 conf.set('PARAM_LIST_POOL', get_option('list_pool'))
+conf.set('PARAM_HAVE_TIMESTAMP', get_option('have_timestamp'))
 conf.set('PARAM_NUM_PUBLISHQUEUES', get_option('num_publishqueues'))
 
 # From now on, VMEM API is 64bits, breaking earlier ABI. 
@@ -38,7 +39,7 @@ if get_option('have_fopen') == true
 	endif
 endif
 
-libparam_h = configure_file(output: 'libparam.h', configuration: conf)
+libparam_h = configure_file(output: 'libparam.h', configuration: conf, install_dir: 'include', install_tag: 'devel')
 
 csp_dep = dependency('csp', fallback : ['csp', 'csp_dep'])
 
@@ -97,12 +98,25 @@ if get_option('collector') == true
 endif
 
 param_inc = include_directories('.', 'include')
-deps = [clib_dep, bsd_dep, csp_dep]
+if get_option('default_library') == 'static'
+	deps = [clib_dep, bsd_dep, csp_dep.partial_dependency(includes:true)]
+else
+	deps = [clib_dep, bsd_dep, csp_dep]
+endif
 param_lib = library('param',
 	sources: [param_src, libparam_h],
 	include_directories : param_inc,
-	dependencies : [clib_dep, bsd_dep, csp_dep],
-	install : false
+	dependencies : deps,
+	install : true,
+	soversion: meson.project_version()
+)
+install_subdir('include', install_dir : '.', install_tag: 'devel')
+
+pkg = import('pkgconfig')
+pkg.generate(
+	param_lib,
+	requires: ['csp'],
+	subdirs : ['.'],
 )
 
 param_dep = declare_dependency(include_directories : param_inc, link_with : param_lib, dependencies: [clib_dep, bsd_dep, csp_dep])
@@ -114,6 +128,6 @@ if get_option('default_library') == 'static'
 	)
 endif
 
-if not meson.is_subproject()
+if get_option('test') == true
     subdir('tests')
 endif

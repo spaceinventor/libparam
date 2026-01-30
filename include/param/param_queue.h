@@ -35,57 +35,18 @@ typedef struct param_queue_s {
 	csp_timestamp_t client_timestamp;
 } param_queue_t;
 
-/**
- * @brief Control the amount of prints that the param_queue_* functions will output
- */
-extern uint32_t param_queue_dbg_level;
-
 void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int used, param_queue_type_e type, int version);
 
 int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value);
-
-/* Default context for `param_queue_apply()` */
-typedef struct param_queue_apply_context_s {
-	/* In argument */
-	const int verbose;
-	const int debug_print_level;
-
-	/* Out arguments */
-	int num_unknown_params;
-	int num_known_params;
-} param_queue_apply_context_t;
-
-/* Default callback for param decoding errors (in `param_queue_apply()`).
-	Can be called by a custom callback, if they also want a print. */
-void param_queue_apply_callback(uint16_t node, uint16_t id, uint8_t debug_level, param_t * param, void * context);
-
-/**
- * To be called by `param_queue_apply_w_callback()`, after the parameter value has been applied, or failed to do so.
- * 
- * @param node[in]				Node of the parameter
- * @param id[in]				id of the parameter
- * @param debug_level[in]		When a parameter fails decoding, how bad is it?
- * @param param[in]				Pointer to the parameter is if is found the global parameter list, otherwise NULL. Remember to check!
- */
-typedef void (*param_decode_callback_f)(uint16_t node, uint16_t id, uint8_t debug_level, param_t * param, void * context);
-/**
- * @brief Same as `param_queue_apply()`, but with a (user-provided) contextualized callback whenever a parameter decoding error is encountered.
- * 
- * @param queue[in]				Pointer to queue
- * @param host[in]              If host is set and the node is 0, it will be set to host
- * @param err_callback[in]		Callback function to call whenever a decoding error is encountered.
- * @param err_context[in] 		User-supplied context for the callback function.
- * @return int 					0 OK, -1 ERROR
- */
-int param_queue_apply_w_callback(param_queue_t *queue, int host, param_decode_callback_f callback, void * context);
 
 /**
  * @brief 						Applies the content of a queue to memory.
  * @param queue[in]				Pointer to queue
  * @param host[in]              If host is set and the node is 0, it will be set to host
+ * @param verbose[in]           2 prints if packet parse fails, 3 prints each missing param
  * @return 						0 OK, -1 ERROR
  */
-int param_queue_apply(param_queue_t *queue, int host);
+int param_queue_apply(param_queue_t *queue, int host, int verbose);
 
 void param_queue_print(param_queue_t *queue);
 void param_queue_print_local(param_queue_t *queue);

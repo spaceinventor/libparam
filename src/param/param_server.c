@@ -204,7 +204,7 @@ static void param_serve_push(csp_packet_t * packet, int send_ack, int version) {
 
 	param_queue_t queue;
 	param_queue_init(&queue, &packet->data[2], packet->length - 2, packet->length - 2, PARAM_QUEUE_TYPE_SET, version);
-	int result = param_queue_apply(&queue, packet->id.src);
+	int result = param_queue_apply(&queue, packet->id.src, 0);
 
 	if ((result != 0) || (send_ack == 0)) {
 		if (result != 0) {

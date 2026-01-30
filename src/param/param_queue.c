@@ -29,14 +29,6 @@
 		param_deserialize_id(&reader, &id, &node, &timestamp, &offset, queue); \
 		param_t * param = param_list_find_id(node, id); \
 
-/* Allows controlling the debug leve from build system */
-#ifndef PARAM_QUEUE_DBG_LEVEL
-#define PARAM_QUEUE_DBG_LEVEL 3
-#endif
-
-/* Reduce value if stdout is being flooded */
-uint32_t param_queue_dbg_level = PARAM_QUEUE_DBG_LEVEL;
-
 void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int used, param_queue_type_e type, int version) {
 	queue->buffer = buffer;
 	queue->buffer_size = buffer_size;
@@ -57,7 +49,6 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	}
 
 	if ((queue->type == PARAM_QUEUE_TYPE_GET) && (value != NULL)) {
-		printf("Cannot mix GET/SET commands\n");
 		return -1;
 	}
 
@@ -76,7 +67,7 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	return 0;
 }
 
-int param_queue_apply_w_callback(param_queue_t *queue, int host, param_decode_callback_f callback, void * context) {
+int param_queue_apply(param_queue_t *queue, int host, int verbose) {
 	int return_code = 0;
 	int atomic_write = 0;
 
@@ -97,7 +88,7 @@ int param_queue_apply_w_callback(param_queue_t *queue, int host, param_decode_ca
 			node = host;
 
 		/* Search on the specified node in the request or response */
-		param_t * const param = param_list_find_id(node, id);
+		param_t * param = param_list_find_id(node, id);
 
 		if (param) {
 			if ((param->mask & PM_ATOMIC_WRITE) && (atomic_write == 0)) {
@@ -106,22 +97,27 @@ int param_queue_apply_w_callback(param_queue_t *queue, int host, param_decode_ca
 					param_enter_critical();
 			}
 
+#ifdef PARAM_HAVE_TIMESTAMP
+			/* Only remote paramters use timestamps */
 			if (*param->node != 0) {
+				/* If no timestamp was provided, use client received timestamp */
+				if (timestamp.tv_sec == 0) {
+					timestamp = queue->client_timestamp;
+					csp_clock_get_time(&timestamp);
+				} 
 				*param->timestamp = timestamp;
 			}
+#endif
 
 			param_deserialize_from_mpack_to_param(NULL, queue, param, offset, &reader);
-			if (callback) {
-				callback(node, id, -1, param, context);
-			}
 		} else {
 			// We couldn't find all parameters. Skip this one.
 			return_code = -1;
 
 			mpack_tag_t tag = mpack_read_tag(&reader);
 			if (mpack_reader_error(&reader) != mpack_ok) {
-				if (callback) {
-					callback(node, id, 2, NULL, context);
+				if (verbose >= 2) {
+					printf("Param decoding failed for ID %u:%u, skipping packet\n", node, id);
 				}
 				break;
 			}
@@ -163,8 +159,8 @@ int param_queue_apply_w_callback(param_queue_t *queue, int host, param_decode_ca
     			break;
 			}
 
-			if (callback) {
-				callback(node, id, 3, NULL, context);
+			if (verbose >= 3) {
+				printf("Param ID %u:%u not found locally, skipping value\n", node, id);
 			}
 		}
 	}
@@ -175,40 +171,6 @@ int param_queue_apply_w_callback(param_queue_t *queue, int host, param_decode_ca
 	}
 
 	return return_code;
-}
-
-/* Default callback for param decoding errors (in `param_queue_apply()`).
-	Can be called by a custom callback, if they also want a print. */
-void param_queue_apply_callback(uint16_t node, uint16_t id, uint8_t debug_level, param_t * param, void * context) {
-
-	param_queue_apply_context_t * const queue_apply_context = (param_queue_apply_context_t*)context;
-
-	if (param) {
-		queue_apply_context->num_known_params++;
-		if (queue_apply_context->verbose) {
-			/* Print the local RAM copy of the remote parameter */
-			param_print(param, -1, NULL, 0, queue_apply_context->verbose, 0);
-		}
-		return;
-	}
-	queue_apply_context->num_unknown_params++;
-
-	if (debug_level > queue_apply_context->debug_print_level) {
-		return;
-	}
-
-	if (debug_level == 2) {
-		printf("Param decoding failed for ID %u:%u, skipping packet\n", node, id);
-	} else /* if (debug_level == 3) */ {
-		printf("Param decoding failed for ID %u:%u, skipping parameter\n", node, id);
-	}
-}
-
-int param_queue_apply(param_queue_t *queue, int host) {
-	param_queue_apply_context_t queue_apply_context = {
-		.debug_print_level = param_queue_dbg_level,
-	};
-	return param_queue_apply_w_callback(queue, host, param_queue_apply_callback, &queue_apply_context);
 }
 
 void param_queue_print(param_queue_t *queue) {

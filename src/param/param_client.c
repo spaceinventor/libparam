@@ -25,17 +25,36 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 	param_queue_t queue;
 	param_queue_init(&queue, &response->data[2], response->length - 2, response->length - 2, PARAM_QUEUE_TYPE_SET, version);
 
-	param_queue_apply_context_t queue_apply_context = {
-		.verbose = verbose,
-		.debug_print_level = param_queue_dbg_level,
-	};
-
 	/* Write data to local memory */
-	param_queue_apply_w_callback(&queue, response->id.src, param_queue_apply_callback, &queue_apply_context);
+	param_queue_apply(&queue, response->id.src, verbose);
 
-	/* Should we always print error here, no matter `verbose`? */
-	if(verbose && !queue_apply_context.num_unknown_params && !queue_apply_context.num_known_params) {
+	if (!verbose) {
+		csp_buffer_free(response);
+		return;
+	}
+	/* Loop over paramid's in pull response */
+	mpack_reader_t reader;
+	mpack_reader_init_data(&reader, queue.buffer, queue.used);
+	if(reader.data == reader.end) {
 		printf("No parameters returned in response\n");
+		csp_buffer_free(response);
+		return;
+	}
+	while(reader.data < reader.end) {
+		int id, node, offset = -1;
+		csp_timestamp_t timestamp = { .tv_sec = 0, .tv_nsec = 0 };
+		param_deserialize_id(&reader, &id, &node, &timestamp, &offset, &queue);
+		if (node == 0)
+			node = response->id.src;
+		param_t * param = param_list_find_id(node, id);
+
+		/* We need to discard the data field, to get to next paramid */
+		mpack_discard		(&reader);
+
+		/* Print the local RAM copy of the remote parameter */
+		if (param) {
+			param_print(param, -1, NULL, 0, verbose, 0);
+		}
 	}
 
 	csp_buffer_free(response);
@@ -220,7 +239,7 @@ int param_push_queue(param_queue_t *queue, int prio, int verbose, int host, int 
 		// param_queue_print(queue);
 	}
 	if(!ack_with_pull){
-		param_queue_apply(queue, host);
+		param_queue_apply(queue, host, verbose);
 	}
 
 	return 0;
@@ -261,7 +280,11 @@ int param_push_single(param_t *param, int offset, int prio, void *value, int ver
 	}
 
 	/* If it was a remote parameter, set the value after the ack but not if ack with push which sets param timestamp */
+#ifdef PARAM_HAVE_TIMESTAMP
 	if (*param->node != 0 && value != NULL && param->timestamp->tv_sec == 0)
+#else
+	if (*param->node != 0 && value != NULL)
+#endif
 	{
 		if (offset < 0) {
 			for (int i = 0; i < param->array_size; i++)

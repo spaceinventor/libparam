@@ -37,8 +37,6 @@ typedef struct vmem_s {
 	int type;
 	void (*read)(struct vmem_s * vmem, uint64_t addr, void * dataout, uint32_t len);
 	void (*write)(struct vmem_s * vmem, uint64_t addr, const void * datain, uint32_t len);
-	int (*backup)(struct vmem_s * vmem);
-	int (*restore)(struct vmem_s * vmem);
 	int (*flush)(struct vmem_s * vmem);
 	/* This anonymous union is needed to be able to handle 64-bit and 32-bit
 	 * systems interchangeably. Since the VMEM backend always expects 64-bit
@@ -66,14 +64,6 @@ typedef struct vmem_s {
 	int ack_with_pull; // allow ack with pull request
 	void * driver;
 } vmem_t __attribute__((aligned(__alignof__(struct vmem_s))));
-
-/**
- * @brief Opaque data type to iterate over available VMEM objects
- * @sa
- */
-struct vmem_iter_s;
-typedef struct vmem_iter_s vmem_iter_t;
-
 
 /**
  * @brief VMEM Memory copy function - 32-bit version ONLY
@@ -158,21 +148,6 @@ int vmem_flush(vmem_t *vmem);
  * @param stop pointer to the lasst element
  */
 void vmem_add(vmem_t * start, vmem_t * stop);
-
-/**
- * @brief Get the next VMEM list element from the given iterator
- * @param iter valid iterator or if NULL, will return a valid iterator from the first VMEM element
- * @return pointer to the next vmem_iter_t object, NULL if end of list is reached
- */
-vmem_iter_t *vmem_next(vmem_iter_t * iter);
-
-/**
- * @brief Get a pointer to the VMEM object of the given iterator
- * @param iter pointer to a valid iterator
- * @return pointer to valid vmem_t if iterator is valid, NULL otherwise
- * @sa vmem_next() to see how to obtain an iterator for the first VMEM object
- */
-vmem_t *vmem_from_iter(vmem_iter_t * iter);
 
 /**
  * @brief linker-generated symbol for the first VMEM element in the linker "vmem" section
