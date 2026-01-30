@@ -149,16 +149,16 @@ typedef struct param_s {
 #define PARAM_TIMESTAMP_INIT(_name)
 #endif
 
+static const uint16_t node_self = 0;
 
 #define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	PARAM_TIMESTAMP_DECL(_name) \
-	uint16_t _node_##_name = 0; \
 	__attribute__((section("param"))) \
 	__attribute__((used, no_reorder, aligned(8))) \
 	const param_t _name = { \
 		.vmem = NULL, \
-		.node = &_node_##_name, \
+		.node = (uint16_t *) &node_self, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
@@ -176,11 +176,10 @@ typedef struct param_s {
 #define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
 	; /* Catch const param defines */ \
 	PARAM_TIMESTAMP_DECL(_name) \
-	uint16_t _node_##_name = 0; \
 	__attribute__((section("param"))) \
 	__attribute__((used, no_reorder, aligned(8))) \
 	const param_t _name = { \
-		.node = &_node_##_name, \
+		.node = (uint16_t *) &node_self, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
