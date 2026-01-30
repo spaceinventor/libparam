@@ -108,9 +108,9 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 		}
 
 		if (extendedtimestamp_flag) {
+			queue->last_timestamp.tv_nsec = param->timestamp->tv_nsec;
 			uint32_t _timestamp_ns = htobe32(param->timestamp->tv_nsec);
 			mpack_write_bytes(writer, (char*) &_timestamp_ns, 4);
-			queue->last_timestamp.tv_nsec = _timestamp_ns;
 		}
 #endif
 
