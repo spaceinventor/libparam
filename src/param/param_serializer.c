@@ -71,11 +71,10 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 		int timestamp_flag = (queue->last_timestamp.tv_sec != param->timestamp->tv_sec) ? 1 : 0;
 		int extendedtimestamp_flag = 0;
 #ifdef EXTENDED_TIMESTAMP
-		if ((timestamp_flag || queue->last_timestamp.tv_nsec != param->timestamp->tv_nsec)) {
-			extendedtimestamp_flag = param->timestamp->tv_sec > 1577836800 &&
-									 (param->timestamp->tv_nsec < 1000000000ULL);
-			timestamp_flag |= extendedtimestamp_flag;
-		}
+		/* If timestamp is after 1577836800: Jan 1st 2020 then this is a UTC timestamp */
+		extendedtimestamp_flag = (timestamp_flag && param->timestamp->tv_sec > 1577836800) ||
+								 queue->last_timestamp.tv_nsec != param->timestamp->tv_nsec;
+		timestamp_flag |= extendedtimestamp_flag;
 #endif
 		int extendedid_flag = (param->id > 0x3ff) ? 1 : 0;
 
@@ -182,7 +181,7 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, csp_timest
 					_timestamp_ns = be32toh(_timestamp_ns);
 					queue->last_timestamp.tv_nsec = _timestamp_ns;
 				} else {
-					queue->last_timestamp.tv_nsec = 0;
+					queue->last_timestamp.tv_nsec = PARAM_TIMESTAMP_TV_NSEC;
 				}
 			}
 		} else if (extendedtimestamp_flag) {
