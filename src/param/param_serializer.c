@@ -72,10 +72,7 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 		int timestamp_flag = (queue->last_timestamp.tv_sec != param->timestamp->tv_sec) ? 1 : 0;
 		int extendedtimestamp_flag = 0;
 #ifdef EXTENDED_TIMESTAMP
-		/* If timestamp is after 1577836800: Jan 1st 2020 then this is a UTC timestamp */
-		extendedtimestamp_flag = (timestamp_flag && param->timestamp->tv_sec > 1577836800) ||
-								 queue->last_timestamp.tv_nsec != param->timestamp->tv_nsec;
-		timestamp_flag |= extendedtimestamp_flag;
+		extendedtimestamp_flag = (queue->last_timestamp.tv_nsec != param->timestamp->tv_nsec) ? 1 : 0;
 #endif /* EXTENDED_TIMESTAMP */
 #else
 		int timestamp_flag = 0;
@@ -83,7 +80,7 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 #endif
 		int extendedid_flag = (param->id > 0x3ff) ? 1 : 0;
 
-		uint16_t header = array_flag << PARAM_HEADER_ARRAY_POS 
+		uint16_t header = array_flag << PARAM_HEADER_ARRAY_POS
 						| node_flag << PARAM_HEADER_NODE_POS
 						| timestamp_flag << PARAM_HEADER_TIMESTAMP_POS
 						| extendedtimestamp_flag << PARAM_HEADER_EXTENDEDTIMESTAMP_POS
@@ -108,11 +105,12 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 			queue->last_timestamp = *param->timestamp;
 			uint32_t _timestamp = htobe32(param->timestamp->tv_sec);
 			mpack_write_bytes(writer, (char*) &_timestamp, 4);
+		}
 
-			if (extendedtimestamp_flag) {
-				_timestamp = htobe32(param->timestamp->tv_nsec);
-				mpack_write_bytes(writer, (char*) &_timestamp, 4);
-			}
+		if (extendedtimestamp_flag) {
+			uint32_t _timestamp_ns = htobe32(param->timestamp->tv_nsec);
+			mpack_write_bytes(writer, (char*) &_timestamp_ns, 4);
+			queue->last_timestamp.tv_nsec = _timestamp_ns;
 		}
 #endif
 
@@ -182,19 +180,14 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, csp_timest
 				queue->last_timestamp = queue->client_timestamp;
 			} else {
 				queue->last_timestamp.tv_sec = _timestamp;
-				if (extendedtimestamp_flag) {
-					uint32_t _timestamp_ns;
-					mpack_read_bytes(reader, (char*) &_timestamp_ns, 4);
-					_timestamp_ns = be32toh(_timestamp_ns);
-					queue->last_timestamp.tv_nsec = _timestamp_ns;
-				} else {
-					queue->last_timestamp.tv_nsec = PARAM_TIMESTAMP_TV_NSEC;
-				}
 			}
-		} else if (extendedtimestamp_flag) {
-			/* Invalid header combination, discard header field */
+		}
+
+		if (extendedtimestamp_flag) {
 			uint32_t _timestamp_ns;
 			mpack_read_bytes(reader, (char*) &_timestamp_ns, 4);
+			_timestamp_ns = be32toh(_timestamp_ns);
+			queue->last_timestamp.tv_nsec = _timestamp_ns;
 		}
 		*timestamp = queue->last_timestamp;
 
