@@ -10,7 +10,6 @@
 
 #include <stdint.h>
 #include <csp/csp_types.h>
-#include <vmem/vmem.h>
 
 #include <libparam.h>
 
@@ -155,7 +154,7 @@ static const uint16_t node_self = 0;
 	; /* Catch const param defines */ \
 	PARAM_TIMESTAMP_DECL(_name) \
 	__attribute__((section("param"))) \
-	__attribute__((used, no_reorder, aligned(8))) \
+	__attribute__((used, aligned(8))) \
 	const param_t _name = { \
 		.vmem = NULL, \
 		.node = (uint16_t *) &node_self, \
@@ -177,7 +176,7 @@ static const uint16_t node_self = 0;
 	; /* Catch const param defines */ \
 	PARAM_TIMESTAMP_DECL(_name) \
 	__attribute__((section("param"))) \
-	__attribute__((used, no_reorder, aligned(8))) \
+	__attribute__((used, aligned(8))) \
 	const param_t _name = { \
 		.node = (uint16_t *) &node_self, \
 		.id = _id, \
@@ -201,7 +200,7 @@ static const uint16_t node_self = 0;
 	; /* Catch const param defines */ \
 	PARAM_TIMESTAMP_DECL(_name) \
 	__attribute__((section("param"))) \
-	__attribute__((used, no_reorder, aligned(8))) \
+	__attribute__((used, aligned(8))) \
 	const param_t _name = { \
 		.node = _nodeaddr, \
 		.id = _id, \
