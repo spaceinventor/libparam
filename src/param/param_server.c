@@ -26,7 +26,6 @@ struct param_serve_context {
 	csp_packet_t * request;
 	csp_packet_t * response;
 	param_queue_t q_response;
-	csp_conn_t * publish_conn;
 };
 
 static int __allocate(struct param_serve_context *ctx) {
@@ -39,9 +38,6 @@ static int __allocate(struct param_serve_context *ctx) {
 
 static void __send(struct param_serve_context *ctx, int end) {
 
-	ctx->response->data[1] = (end) ? PARAM_FLAG_END : 0;
-	ctx->response->length = ctx->q_response.used + 2;
-
 	if (ctx->q_response.version == 1) {
 		ctx->response->data[0] = PARAM_PULL_RESPONSE;
 	} else {
@@ -49,21 +45,6 @@ static void __send(struct param_serve_context *ctx, int end) {
 	}
 	ctx->response->data[1] = (end) ? PARAM_FLAG_END : 0;
 	ctx->response->length = ctx->q_response.used + 2;
-
-	if (ctx->publish_conn != NULL) {
-		ctx->response->data[1] |= PARAM_FLAG_NOACK;
-
-		ctx->response->id.flags = CSP_O_CRC32;
-		ctx->response->id.src = 0;
-	
-		if (ctx->publish_conn == NULL) {
-			printf("param transaction failure\n");
-			return;
-		}
-	
-		csp_send(ctx->publish_conn, ctx->response);
-		return;
-	}
 
 	csp_sendto_reply(ctx->request, ctx->response, CSP_O_SAME);
 }
@@ -93,7 +74,6 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 	ctx.q_response.version = version;
 	/* If packet->data[1] == 1 ack with pull response */
 	int ack_with_pull = request->data[1] == 1 ? 1 : 0;
-	ctx.publish_conn = NULL;
 
 	if (__allocate(&ctx) < 0) {
 		csp_buffer_free(request);
