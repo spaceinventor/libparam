@@ -148,11 +148,11 @@ int param_list_remove(int node, uint8_t verbose) {
 	int count = 0;
 
 	param_list_iterator i = {};
-	param_t * iter_param = param_list_iterate(&i);
+	const param_t * iter_param = param_list_iterate(&i);
 
 	while (iter_param) {
 
-		param_t * param = iter_param;  // Free the current parameter after we have used it to iterate.
+		const param_t * param = iter_param;  // Free the current parameter after we have used it to iterate.
 		iter_param = param_list_iterate(&i);
 
 		if (i.phase == 0)  // Protection against removing static parameters
@@ -175,7 +175,8 @@ int param_list_remove(int node, uint8_t verbose) {
 
 	return count;
 }
-void param_list_remove_specific(param_t * param, uint8_t verbose, int destroy) {
+
+void param_list_remove_specific(const param_t * param, uint8_t verbose, int destroy) {
 
     if (param_is_static(param)) {
         return;  /* Nothing we can do :( */
@@ -445,9 +446,9 @@ static param_heap_t * param_list_alloc(int type, int array_size) {
 	return param_heap;
 }
 
-static void param_list_destroy_impl(param_t * param) {
+static void param_list_destroy_impl(const param_t * param) {
 	free(param->addr);
-	free(param);
+	free((void *) param);
 }
 #endif
 
@@ -579,7 +580,7 @@ int param_list_download(int node, int timeout, int list_version, int include_rem
 	return count;
 }
 
-void param_list_destroy(param_t * param) {
+void param_list_destroy(const param_t * param) {
 	param_list_destroy_impl(param);
 }
 
@@ -619,15 +620,15 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	param->array_size = array_size;
 	param->array_step = param_typesize(type);
 
-	param->vmem->ack_with_pull = false;
-	param->vmem->driver = NULL;
-	param->vmem->name = "REMOTE";
-	param->vmem->read = NULL;
-	param->vmem->size = array_size*param_typesize(type);
-	param->vmem->type = storage_type;
-	param->vmem->vaddr = (uint64_t)(uintptr_t)param_heap->buffer;
-	param->vmem->big_endian = false;
-	param->vmem->write = NULL;
+	param_heap->vmem.ack_with_pull = false;
+	param_heap->vmem.driver = NULL;
+	param_heap->vmem.name = "REMOTE";
+	param_heap->vmem.read = NULL;
+	param_heap->vmem.size = array_size*param_typesize(type);
+	param_heap->vmem.type = storage_type;
+	param_heap->vmem.vaddr = (uint64_t)(uintptr_t)param_heap->buffer;
+	param_heap->vmem.big_endian = false;
+	param_heap->vmem.write = NULL;
 
 	strlcpy(param->name, name, 36);
 	if (unit) {
