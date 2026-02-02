@@ -165,7 +165,7 @@ int param_pull_queue(param_queue_t *queue, uint8_t prio, int verbose, int host, 
 }
 
 
-int param_pull_single(param_t *param, int offset, int prio, int verbose, int host, int timeout, int version) {
+int param_pull_single(const param_t *param, int offset, int prio, int verbose, int host, int timeout, int version) {
 
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
@@ -245,7 +245,7 @@ int param_push_queue(param_queue_t *queue, int prio, int verbose, int host, int 
 	return 0;
 }
 
-int param_push_single(param_t *param, int offset, int prio, void *value, int verbose, int host, int timeout, int version, bool ack_with_pull) {
+int param_push_single(const param_t *param, int offset, int prio, void *value, int verbose, int host, int timeout, int version, bool ack_with_pull) {
 
 	csp_packet_t * packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
