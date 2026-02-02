@@ -30,6 +30,7 @@
 
 #define ALIGN_UP(x, a)   (((x) + ((a) - 1)) & ~((a) - 1))
 #define PARAM_STORAGE_SIZE ALIGN_UP(sizeof(param_t), 8)
+_Static_assert(__alignof__(param_t) == 8, "param_t alignment must be exactly 8 bytes");
 
 #ifdef PARAM_HAVE_SYS_QUEUE
 static SLIST_HEAD(param_list_head_s, param_s) param_list_head = {};

@@ -89,37 +89,36 @@ typedef enum {
 /**
  * Parameter description structure
  * Note: this is not packed in order to maximise run-time efficiency
+ *       But the order of the elements is chosen to minimize padding.
+ *       So we start by largest types first, down to smallest types.
  */
 typedef struct param_s {
+	
+	uint64_t vaddr; /* Virtual address in case of VMEM */
 
-	/* Parameter declaration */
-	uint16_t id;
 	uint16_t * node;
-	param_type_e type;
-	uint32_t mask;
 	char *name;
 	char *unit;
 	char *docstr;
-
-	/* Storage */
 	void * addr; /* Physical address */
-	uint64_t vaddr; /* Virtual address in case of VMEM */
 	const struct vmem_s * vmem;
-	int array_size;
-	int array_step;
-
-	/* Local info */
 	void (*callback)(const struct param_s * param, int offset);
-#ifdef PARAM_HAVE_TIMESTAMP
+
+	#ifdef PARAM_HAVE_TIMESTAMP
 	csp_timestamp_t * timestamp;
-#endif
-
-#ifdef PARAM_HAVE_SYS_QUEUE
+	#endif
+	
+	#ifdef PARAM_HAVE_SYS_QUEUE
 	/* single linked list:
-	 * The weird definition format comes from sys/queue.h SLINST_ENTRY() macro */
+	* The weird definition format comes from sys/queue.h SLINST_ENTRY() macro */
 	struct { struct param_s *sle_next; } next;
-#endif
+	#endif
 
+	uint32_t mask;
+	uint16_t id;
+	uint16_t array_step;    // Deliberate use of 16-bit to balance speed and size
+	uint16_t array_size;    // Deliberate use of 16-bit to balance speed and size
+	uint16_t type;          // Deliberate use of 16-bit to balance speed and size
 
 } param_t;
 
