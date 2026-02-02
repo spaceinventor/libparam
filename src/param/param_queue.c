@@ -43,6 +43,10 @@ void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int u
 
 int param_queue_add(param_queue_t *queue, const param_t *param, int offset, void *value) {
 
+	if (param == NULL) {
+		return -1;
+	}
+
 	/* Ensure we always send nodeid on the first element of the queue */
 	if (queue->used == 0) {
 		queue->last_node = UINT16_MAX;
