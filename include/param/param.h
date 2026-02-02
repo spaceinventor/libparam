@@ -86,6 +86,12 @@ typedef enum {
 #define PM_CSP               (5 << 16) //! Known as 5 in elfparse and genparamtable
 #define PM_KEYCONF               (6 << 16) //! Known as 6 in elfparse and genparamtable
 
+/**
+ * Value to indicate an invalid nsec.
+ *
+ * This define should be moved to CSP if CSP will have support for invalid nsec
+ */
+#define CSP_TIMESTAMP_INVALID_NSEC	-1
 
 /**
  * Parameter description structure
@@ -124,12 +130,6 @@ typedef struct param_s {
 
 } param_t;
 
-#ifdef EXTENDED_TIMESTAMP
-#define PARAM_TIMESTAMP_TV_NSEC        -1
-#else
-#define PARAM_TIMESTAMP_TV_NSEC        0
-#endif
-
 /**
  * DEFINITION HELPERS:
  *
@@ -146,7 +146,7 @@ typedef struct param_s {
 
 #ifdef PARAM_HAVE_TIMESTAMP
 #define PARAM_TIMESTAMP_DECL(_name) \
-    csp_timestamp_t _timestamp_##_name = { .tv_sec = 0, .tv_nsec = PARAM_TIMESTAMP_TV_NSEC };
+    csp_timestamp_t _timestamp_##_name = { .tv_sec = 0, .tv_nsec = CSP_TIMESTAMP_INVALID_NSEC };
 
 #define PARAM_TIMESTAMP_INIT(_name) \
     .timestamp = &_timestamp_##_name,
