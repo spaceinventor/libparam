@@ -163,6 +163,9 @@ int vmem_ptr_to_index(vmem_t * vmem) {
 	return -1;
 }
 
+extern const vmem_t __start_vmem __attribute__((weak));
+extern const vmem_t __stop_vmem __attribute__((weak));
+
 #ifdef PARAM_LIST_DYNAMIC
 static vmem_iter_t g_start = {
 #else

@@ -149,15 +149,6 @@ int vmem_flush(vmem_t *vmem);
  */
 void vmem_add(vmem_t * start, vmem_t * stop);
 
-/**
- * @brief linker-generated symbol for the first VMEM element in the linker "vmem" section
- */
-extern const vmem_t __start_vmem __attribute__((weak));
-/**
- * @brief linker-generated symbol for the last VMEM element in the linker "vmem" section
- */
-extern const vmem_t __stop_vmem __attribute__((weak));
-
 #ifdef __cplusplus
 }
 #endif
