@@ -67,14 +67,20 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	return 0;
 }
 
-int param_queue_apply(param_queue_t *queue, int host, int verbose) {
+int param_queue_apply_timestamp(param_queue_t *queue, int host, int verbose, const csp_timestamp_t *timestamp) {
+
 	int return_code = 0;
 	int atomic_write = 0;
+	csp_timestamp_t time;
 
-	csp_timestamp_t time_now;
-	csp_clock_get_time(&time_now);
-	queue->last_timestamp = time_now;
-	queue->client_timestamp = time_now;
+	if (timestamp == NULL) {
+		csp_clock_get_time(&time);
+	} else {
+		time = *timestamp;
+	}
+
+	queue->last_timestamp = time;
+	queue->client_timestamp = time;
 
 	mpack_reader_t reader;
 	mpack_reader_init_data(&reader, queue->buffer, queue->used);
@@ -171,6 +177,11 @@ int param_queue_apply(param_queue_t *queue, int host, int verbose) {
 	}
 
 	return return_code;
+}
+
+int param_queue_apply(param_queue_t *queue, int host, int verbose) {
+
+	return param_queue_apply_timestamp(queue, host, verbose, NULL);
 }
 
 void param_queue_print(param_queue_t *queue) {

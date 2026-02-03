@@ -26,7 +26,7 @@ static void param_transaction_callback_pull(csp_packet_t *response, int verbose,
 	param_queue_init(&queue, &response->data[2], response->length - 2, response->length - 2, PARAM_QUEUE_TYPE_SET, version);
 
 	/* Write data to local memory */
-	param_queue_apply(&queue, response->id.src, verbose);
+	param_queue_apply_timestamp(&queue, response->id.src, verbose, context);
 
 	if (!verbose) {
 		csp_buffer_free(response);
@@ -120,7 +120,7 @@ int param_transaction(csp_packet_t *packet, int host, int timeout, param_transac
 	return result;
 }
 
-int param_pull_all(int prio, int verbose, int host, uint32_t include_mask, uint32_t exclude_mask, int timeout, int version) {
+int param_pull_all_timestamp(int prio, int verbose, int host, uint32_t include_mask, uint32_t exclude_mask, int timeout, int version, csp_timestamp_t *timestamp) {
 
 	csp_packet_t *packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
@@ -135,8 +135,12 @@ int param_pull_all(int prio, int verbose, int host, uint32_t include_mask, uint3
 	packet->data32[2] = htobe32(exclude_mask);
 	packet->length = 12;
 	packet->id.pri = prio;
-	return param_transaction(packet, host, timeout, param_transaction_callback_pull, verbose, version, NULL);
+	return param_transaction(packet, host, timeout, param_transaction_callback_pull, verbose, version, timestamp);
+}
 
+int param_pull_all(int prio, int verbose, int host, uint32_t include_mask, uint32_t exclude_mask, int timeout, int version) {
+
+	return param_pull_all_timestamp(prio, verbose, host, include_mask, exclude_mask, timeout, version, NULL);
 }
 
 int param_pull_queue(param_queue_t *queue, uint8_t prio, int verbose, int host, int timeout) {
