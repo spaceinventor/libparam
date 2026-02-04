@@ -59,10 +59,10 @@ int param_pull_all(int prio, int verbose, int host, uint32_t include_mask, uint3
  * @param exclude_mask  parameter mask
  * @param timeout       in ms
  * @param version       1 or 2
- * @param timestamp     if not NULL set param queue initial timestamp to this timestamp
+ * @param q_timestamp   if not NULL set param queue initial timestamp to this timestamp
  * @return              0 = OK, -1 on network error
  */
-int param_pull_all_timestamp(int prio, int verbose, int host, uint32_t include_mask, uint32_t exclude_mask, int timeout, int version, csp_timestamp_t *timestamp);
+int param_pull_all_timestamp(int prio, int verbose, int host, uint32_t include_mask, uint32_t exclude_mask, int timeout, int version, csp_timestamp_t *q_timestamp);
 
 /**
  * PUSH single:

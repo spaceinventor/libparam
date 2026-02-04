@@ -67,16 +67,16 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	return 0;
 }
 
-int param_queue_apply_timestamp(param_queue_t *queue, int host, int verbose, const csp_timestamp_t *timestamp) {
+int param_queue_apply_timestamp(param_queue_t *queue, int host, int verbose, const csp_timestamp_t *q_timestamp) {
 
 	int return_code = 0;
 	int atomic_write = 0;
 	csp_timestamp_t time;
 
-	if (timestamp == NULL) {
+	if (q_timestamp == NULL) {
 		csp_clock_get_time(&time);
 	} else {
-		time = *timestamp;
+		time = *q_timestamp;
 	}
 
 	queue->last_timestamp = time;
@@ -104,13 +104,12 @@ int param_queue_apply_timestamp(param_queue_t *queue, int host, int verbose, con
 			}
 
 #ifdef PARAM_HAVE_TIMESTAMP
-			/* Only remote paramters use timestamps */
+			/* Only remote parameters use timestamps */
 			if (*param->node != 0) {
 				/* If no timestamp was provided, use client received timestamp */
 				if (timestamp.tv_sec == 0) {
 					timestamp = queue->client_timestamp;
-					csp_clock_get_time(&timestamp);
-				} 
+				}
 				*param->timestamp = timestamp;
 			}
 #endif
