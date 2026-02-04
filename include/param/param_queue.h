@@ -56,7 +56,7 @@ int param_queue_apply(param_queue_t *queue, int host, int verbose);
  * @param q_timestamp[in]       if not NULL set param queue initial timestamp to this timestamp
  * @return 						0 OK, -1 ERROR
  */
-int param_queue_apply_timestamp(param_queue_t *queue, int host, int verbose, const csp_timestamp_t *timestamp);
+int param_queue_apply_timestamp(param_queue_t *queue, int host, int verbose, const csp_timestamp_t *q_timestamp);
 
 void param_queue_print(param_queue_t *queue);
 void param_queue_print_local(param_queue_t *queue);
