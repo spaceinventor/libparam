@@ -23,54 +23,10 @@
 #include <param/param_server.h>
 #include "vmem_internal.h"
 
-#ifdef PARAM_LIST_DYNAMIC
 
-SLIST_HEAD(vmem_handler_obj_list_s, vmem_handler_obj_s);
-typedef struct vmem_handler_obj_list_s vmem_handler_obj_list_t;
-
-static vmem_handler_obj_list_t g_vmem_handler_list = SLIST_HEAD_INITIALIZER();
-
-static vmem_handler_obj_t *vmem_server_find_handler(uint8_t type) {
-
-	vmem_handler_obj_t *iter;
-	iter = SLIST_FIRST(&g_vmem_handler_list);
-	while (iter) {
-		if (iter->type == type) {
-			return iter;
-		}
-		iter = SLIST_NEXT(iter, list);
-	}
-	return NULL;
+__attribute__((weak)) void vmem_user_server_handler(uint8_t type, void *conn, void *packet) {
+    printf("VMEM ERROR: vmem_user_server_handler not implemented: type %d\n", type);
 }
-
-int vmem_server_bind_type(uint8_t type, vmem_handler_t *func, vmem_handler_obj_t *obj, void *context) {
-
-	if (type < VMEM_SERVER_USER_TYPES) {
-		printf("warn: vmem_server_bind_type: type must have bit-7 set to indicate user type\n");
-		return -1;
-	}
-
-	/* Check if the type is already bound */
-	vmem_handler_obj_t *iter;
-	iter = SLIST_FIRST(&g_vmem_handler_list);
-	while (iter) {
-		if (iter->type == type) {
-			printf("warn: vmem_server_bind_type: type (%"PRIu8") already bound\n", type);
-			return -1;
-		}
-		iter = SLIST_NEXT(iter, list);
-	}
-
-	/* Insert the handler object into the list of handler objects */
-	obj->type = type;
-	obj->handler = func;
-	obj->context = context;
-	SLIST_INSERT_HEAD(&g_vmem_handler_list, obj, list);
-
-	return 0;
-}
-
-#endif
 
 void vmem_server_handler(csp_conn_t * conn)
 {
@@ -263,28 +219,10 @@ void vmem_server_handler(csp_conn_t * conn)
 			packet->data[0] |= 0b10000000; /* Last packet */
 			csp_send(conn, packet);
 		}
-
 	} else {
-
-
-#ifdef PARAM_LIST_DYNAMIC
-		/* Check the list of handlers, if we have one which will handle it */
-		vmem_handler_obj_t *obj = vmem_server_find_handler(request->type);
-		if (obj) {		
-			/* Call the handler */
-			(void)(*obj->handler)(conn, packet, obj->context);
-		} else {
-			/* If no handler was found, free the packet */
-			printf("warn: vmem_server_handler: unknown type %"PRIu8"\n", request->type);
-			/* Free packet if not valid VMEM service request */
-			csp_buffer_free(packet);
-		}
-#else
+		vmem_server_user_handler(request->type, conn, packet);
 		csp_buffer_free(packet);
-#endif
-
 	}
-
 }
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
