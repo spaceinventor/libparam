@@ -149,10 +149,13 @@ typedef struct param_s {
 
 static const uint16_t node_self = 0;
 
+#define STR1(x) #x
+#define STR(x)  STR1(x)
+
 #define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	PARAM_TIMESTAMP_DECL(_name) \
-	__attribute__((section("param"))) \
+	__attribute__((section("param." STR(_name)))) \
 	__attribute__((used, aligned(8))) \
 	const param_t _name = { \
 		.vmem = NULL, \
@@ -174,7 +177,7 @@ static const uint16_t node_self = 0;
 #define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
 	; /* Catch const param defines */ \
 	PARAM_TIMESTAMP_DECL(_name) \
-	__attribute__((section("param"))) \
+	__attribute__((section("param." STR(_name)))) \
 	__attribute__((used, aligned(8))) \
 	const param_t _name = { \
 		.node = (uint16_t *) &node_self, \
@@ -198,7 +201,7 @@ static const uint16_t node_self = 0;
 #define PARAM_DEFINE_REMOTE(_id, _name, _nodeaddr, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	; /* Catch const param defines */ \
 	PARAM_TIMESTAMP_DECL(_name) \
-	__attribute__((section("param"))) \
+	__attribute__((section("param." STR(_name)))) \
 	__attribute__((used, aligned(8))) \
 	const param_t _name = { \
 		.node = _nodeaddr, \
