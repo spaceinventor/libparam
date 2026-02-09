@@ -25,7 +25,7 @@ if get_option('have_float') == false
 endif
 
 if get_option('serialize_extended_timestamp') == true
-	conf.set('EXTENDED_TIMESTAMP', 0)
+	conf.set('EXTENDED_TIMESTAMP', 1)
 endif
 
 if get_option('have_fopen') == true
