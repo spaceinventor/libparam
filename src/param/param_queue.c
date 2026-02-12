@@ -37,8 +37,6 @@ void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int u
 	queue->version = version;
 	queue->last_timestamp.tv_sec = 0;
 	queue->last_timestamp.tv_nsec = CSP_TIMESTAMP_INVALID_NSEC;
-	queue->client_timestamp.tv_sec = 0;
-	queue->client_timestamp.tv_nsec = CSP_TIMESTAMP_INVALID_NSEC;
 }
 
 int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value) {
@@ -74,7 +72,6 @@ int param_queue_apply(param_queue_t *queue, int host, int verbose) {
 	csp_timestamp_t time_now;
 	csp_clock_get_time(&time_now);
 	queue->last_timestamp = time_now;
-	queue->client_timestamp = time_now;
 
 	mpack_reader_t reader;
 	mpack_reader_init_data(&reader, queue->buffer, queue->used);
@@ -102,9 +99,8 @@ int param_queue_apply(param_queue_t *queue, int host, int verbose) {
 			if (*param->node != 0) {
 				/* If no timestamp was provided, use client received timestamp */
 				if (timestamp.tv_sec == 0) {
-					timestamp = queue->client_timestamp;
-					csp_clock_get_time(&timestamp);
-				} 
+					timestamp = time_now;
+				}
 				*param->timestamp = timestamp;
 			}
 #endif

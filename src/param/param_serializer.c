@@ -176,9 +176,7 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, csp_timest
 			uint32_t _timestamp;
 			mpack_read_bytes(reader, (char*) &_timestamp, 4);
 			_timestamp = be32toh(_timestamp);
-			if (_timestamp == 0) {
-				queue->last_timestamp = queue->client_timestamp;
-			} else {
+			if (_timestamp != 0) {
 				queue->last_timestamp.tv_sec = _timestamp;
 			}
 		}
