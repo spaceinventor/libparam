@@ -24,10 +24,6 @@ if get_option('have_float') == false
 	conf.set('MPACK_FLOAT', 0)
 endif
 
-if get_option('serialize_extended_timestamp') == true
-	conf.set('EXTENDED_TIMESTAMP', 1)
-endif
-
 if get_option('have_fopen') == true
 	if get_option('list_dynamic') == true
 		conf.set('MPACK_STDIO', 1)

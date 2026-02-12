@@ -125,10 +125,15 @@ int param_pull_all(int prio, int verbose, int host, uint32_t include_mask, uint3
 	csp_packet_t *packet = csp_buffer_get(PARAM_SERVER_MTU);
 	if (packet == NULL)
 		return -2;
-	if (version == 2) {
-		packet->data[0] = PARAM_PULL_ALL_REQUEST_V2;
-	} else {
+	if (version == PARAM_VERSION_1) {
 		packet->data[0] = PARAM_PULL_ALL_REQUEST;
+	} else if (version == PARAM_VERSION_2) {
+		packet->data[0] = PARAM_PULL_ALL_REQUEST_V2;
+	} else if (version == PARAM_VERSION_3) {
+		packet->data[0] = PARAM_PULL_ALL_REQUEST_V3;
+	} else {
+		csp_buffer_free(packet);
+		return -1;
 	}
 	packet->data[1] = 0;
 	packet->data32[1] = htobe32(include_mask);
@@ -148,10 +153,15 @@ int param_pull_queue(param_queue_t *queue, uint8_t prio, int verbose, int host, 
 	if (packet == NULL)
 		return -2;
 
-	if (queue->version == 2) {
-		packet->data[0] = PARAM_PULL_REQUEST_V2;
-	} else {
+	if (queue->version == PARAM_VERSION_1) {
 		packet->data[0] = PARAM_PULL_REQUEST;
+	} else if (queue->version == PARAM_VERSION_2) {
+		packet->data[0] = PARAM_PULL_REQUEST_V2;
+	} else if (queue->version == PARAM_VERSION_3) {
+		packet->data[0] = PARAM_PULL_REQUEST_V3;
+	} else {
+		csp_buffer_free(packet);
+		return -1;
 	}
 
 	packet->data[1] = 0;
@@ -171,10 +181,15 @@ int param_pull_single(param_t *param, int offset, int prio, int verbose, int hos
 	if (packet == NULL)
 		return -1;
 
-	if (version == 2) {
-		packet->data[0] = PARAM_PULL_REQUEST_V2;
-	} else {
+	if (version == PARAM_VERSION_1) {
 		packet->data[0] = PARAM_PULL_REQUEST;
+	} else if (version == PARAM_VERSION_2) {
+		packet->data[0] = PARAM_PULL_REQUEST_V2;
+	} else if (version == PARAM_VERSION_3) {
+		packet->data[0] = PARAM_PULL_REQUEST_V3;
+	} else {
+		csp_buffer_free(packet);
+		return -1;
 	}
 	packet->data[1] = 0;
 
@@ -197,10 +212,15 @@ int param_push_queue(param_queue_t *queue, int prio, int verbose, int host, int 
 	if (packet == NULL)
 		return -2;
 
-	if (queue->version == 2) {
-		packet->data[0] = PARAM_PUSH_REQUEST_V2;
-	} else {
+	if (queue->version == PARAM_VERSION_1) {
 		packet->data[0] = PARAM_PUSH_REQUEST;
+	} else if (queue->version == PARAM_VERSION_2) {
+		packet->data[0] = PARAM_PUSH_REQUEST_V2;
+	} else if (queue->version == PARAM_VERSION_3) {
+		packet->data[0] = PARAM_PUSH_REQUEST_V3;
+	} else {
+		csp_buffer_free(packet);
+		return -1;
 	}
 
 	packet->data[1] = 0;
@@ -261,10 +281,15 @@ int param_push_single(param_t *param, int offset, int prio, void *value, int ver
 		packet->data[1] = PARAM_FLAG_NOACK;
 	}
 
-	if(version == 2) {
-		packet->data[0] = PARAM_PUSH_REQUEST_V2;
-	} else {
+	if (version == PARAM_VERSION_1) {
 		packet->data[0] = PARAM_PUSH_REQUEST;
+	} else if (version == PARAM_VERSION_2) {
+		packet->data[0] = PARAM_PUSH_REQUEST_V2;
+	} else if (version == PARAM_VERSION_3) {
+		packet->data[0] = PARAM_PUSH_REQUEST_V3;
+	} else {
+		csp_buffer_free(packet);
+		return -1;
 	}
 
 	param_queue_t queue;

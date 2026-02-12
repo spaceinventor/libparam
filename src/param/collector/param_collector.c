@@ -11,6 +11,7 @@
 
 #include <param/param_collector.h>
 #include <param/param_client.h>
+#include <param/param_server.h>
 #include <param/param_list.h>
 
 #include "param_collector_config.h"
@@ -36,7 +37,7 @@ void param_collector_loop(void * param) {
 
 			param_collector_config[i].last_time = csp_get_ms();
 
-			param_pull_all(CSP_PRIO_NORM, param_get_uint8(&col_verbose), param_collector_config[i].node, param_collector_config[i].mask, 0, 1000, 2);
+			param_pull_all(CSP_PRIO_NORM, param_get_uint8(&col_verbose), param_collector_config[i].node, param_collector_config[i].mask, 0, 1000, PARAM_VERSION_2);
 		}
 
 	}

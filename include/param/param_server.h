@@ -14,6 +14,10 @@
 #define PARAM_PORT_SERVER 10
 #define PARAM_PORT_LIST	12
 
+#define PARAM_VERSION_1 1
+#define PARAM_VERSION_2 2
+#define PARAM_VERSION_3 3
+
 /**
  * First byte on all packets is the packet type
  */
@@ -56,6 +60,12 @@ typedef enum {
 	PARAM_COMMAND_EXEC_RESPONSE = 31,
 	PARAM_SCHEDULE_COMMAND_REQUEST = 32,
 	PARAM_PUSH_REQUEST_V2_HWID = 33,
+
+	/* V3 */
+	PARAM_PULL_REQUEST_V3  = 34,
+	PARAM_PULL_RESPONSE_V3 = 35,
+	PARAM_PUSH_REQUEST_V3  = 36,
+	PARAM_PULL_ALL_REQUEST_V3 = 37,
 
 } param_packet_type_e;
 

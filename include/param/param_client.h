@@ -32,7 +32,7 @@
  * @param verbose       printout when received
  * @param host          remote csp node
  * @param timeout       in ms
- * @param version       1 or 2
+ * @param version       1, 2, or 3
  * @return              0 = ok, -1 on network error
  */
 int param_pull_single(param_t *param, int offset, int prio, int verbose, int host, int timeout, int version);
@@ -45,7 +45,7 @@ int param_pull_single(param_t *param, int offset, int prio, int verbose, int hos
  * @param include_mask  parameter mask
  * @param exclude_mask  parameter mask
  * @param timeout       in ms
- * @param version       1 or 2
+ * @param version       1, 2, or 3
  * @return              0 = OK, -1 on network error
  */
 int param_pull_all(int prio, int verbose, int host, uint32_t include_mask, uint32_t exclude_mask, int timeout, int version);
@@ -61,7 +61,7 @@ int param_pull_all(int prio, int verbose, int host, uint32_t include_mask, uint3
  * @param verbose       printout when received
  * @param host          remote csp node
  * @param timeout       in ms
- * @param version       1 or 2
+ * @param version       1, 2, or 3
  * @param ack_with_pull ack with param queue
  * @return              0 = OK, -1 on network error
  */

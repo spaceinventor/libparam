@@ -42,10 +42,15 @@ static void __send(struct param_serve_context *ctx, int end) {
 	ctx->response->data[1] = (end) ? PARAM_FLAG_END : 0;
 	ctx->response->length = ctx->q_response.used + 2;
 
-	if (ctx->q_response.version == 1) {
+	if (ctx->q_response.version == PARAM_VERSION_1) {
 		ctx->response->data[0] = PARAM_PULL_RESPONSE;
-	} else {
+	} else if (ctx->q_response.version == PARAM_VERSION_2) {
 		ctx->response->data[0] = PARAM_PULL_RESPONSE_V2;
+	} else if (ctx->q_response.version == PARAM_VERSION_3) {
+		ctx->response->data[0] = PARAM_PULL_RESPONSE_V3;
+	} else {
+		printf("Error: unknown param version %d\n", ctx->q_response.version);
+		return;
 	}
 	ctx->response->data[1] = (end) ? PARAM_FLAG_END : 0;
 	ctx->response->length = ctx->q_response.used + 2;
@@ -168,7 +173,7 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 			}
 			uint32_t include_mask = be32toh(ctx.request->data32[1]);
 			uint32_t exclude_mask = 0x00000000;
-			if (version >= 2) {
+			if (version >= PARAM_VERSION_2) {
 			    exclude_mask = be32toh(ctx.request->data32[2]);
 			}
 
@@ -231,31 +236,43 @@ static void param_serve_push(csp_packet_t * packet, int send_ack, int version) {
 void param_serve(csp_packet_t * packet) {
 	switch(packet->data[0]) {
 		case PARAM_PULL_REQUEST:
-			param_serve_pull_request(packet, 0, 1);
+			param_serve_pull_request(packet, 0, PARAM_VERSION_1);
 			break;
 		case PARAM_PULL_REQUEST_V2:
-		    param_serve_pull_request(packet, 0, 2);
+		    param_serve_pull_request(packet, 0, PARAM_VERSION_2);
+		    break;
+		case PARAM_PULL_REQUEST_V3:
+		    param_serve_pull_request(packet, 0, PARAM_VERSION_3);
 		    break;
 
 		case PARAM_PULL_ALL_REQUEST:
-			param_serve_pull_request(packet, 1, 1);
+			param_serve_pull_request(packet, 1, PARAM_VERSION_1);
 			break;
 		case PARAM_PULL_ALL_REQUEST_V2:
-			param_serve_pull_request(packet, 1, 2);
+			param_serve_pull_request(packet, 1, PARAM_VERSION_2);
+			break;
+		case PARAM_PULL_ALL_REQUEST_V3:
+			param_serve_pull_request(packet, 1, PARAM_VERSION_3);
 			break;
 
 		case PARAM_PULL_RESPONSE:
-			param_serve_push(packet, 0, 1);
+			param_serve_push(packet, 0, PARAM_VERSION_1);
 			break;
 		case PARAM_PULL_RESPONSE_V2:
-			param_serve_push(packet, 0, 2);
+			param_serve_push(packet, 0, PARAM_VERSION_2);
+			break;
+		case PARAM_PULL_RESPONSE_V3:
+			param_serve_push(packet, 0, PARAM_VERSION_3);
 			break;
 
 		case PARAM_PUSH_REQUEST:
-			param_serve_push(packet, 1, 1);
+			param_serve_push(packet, 1, PARAM_VERSION_1);
 			break;
 		case PARAM_PUSH_REQUEST_V2:
-			param_serve_push(packet, 1, 2);
+			param_serve_push(packet, 1, PARAM_VERSION_2);
+			break;
+		case PARAM_PUSH_REQUEST_V3:
+			param_serve_push(packet, 1, PARAM_VERSION_3);
 			break;
 		case PARAM_PUSH_REQUEST_V2_HWID: {
 
@@ -272,7 +289,7 @@ void param_serve(csp_packet_t * packet) {
 				break;
 			}
 
-			param_serve_push(packet, 1, 2);
+			param_serve_push(packet, 1, PARAM_VERSION_2);
 
 			break;
 		}
@@ -427,7 +444,7 @@ void param_publish_init(param_shall_publish_t shall_publish) {
 			continue;
 		}
 		param_publish_ctx[q].publish_conn = csp_connect(param_publish_priority[q], param_publish_destination[q], PARAM_PORT_SERVER, 0, CSP_O_CRC32);
-		param_publish_ctx[q].q_response.version = 2;
+		param_publish_ctx[q].q_response.version = PARAM_VERSION_2;
 	}
 
 	last_periodic = csp_get_ms();

@@ -53,7 +53,7 @@ static inline uint16_t param_parse_short_id_paramid(uint16_t short_id) {
 
 void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, param_queue_t *queue) {
 
-	if (queue->version == 1) {
+	if (queue->version == PARAM_VERSION_1) {
 
 		if (offset >= 0) {
 			mpack_write_u16(writer, param_get_short_id(param, 1, 0));
@@ -63,17 +63,15 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 			mpack_write_u16(writer, param_get_short_id(param, 0, 0));
 		}
 
-	} else {
+	} else if (queue->version == PARAM_VERSION_2 || queue->version == PARAM_VERSION_3) {
 
 		int node = *param->node;
 		int array_flag = (offset >= 0) ? 1 : 0;
 		int node_flag = (queue->last_node != node) ? 1 : 0;
 #ifdef PARAM_HAVE_TIMESTAMP
 		int timestamp_flag = (queue->last_timestamp.tv_sec != param->timestamp->tv_sec) ? 1 : 0;
-		int extendedtimestamp_flag = 0;
-#ifdef EXTENDED_TIMESTAMP
-		extendedtimestamp_flag = (queue->last_timestamp.tv_nsec != param->timestamp->tv_nsec) ? 1 : 0;
-#endif /* EXTENDED_TIMESTAMP */
+		int extendedtimestamp_flag = queue->version == PARAM_VERSION_3 &&
+									 (queue->last_timestamp.tv_nsec != param->timestamp->tv_nsec) ? 1 : 0;
 #else
 		int timestamp_flag = 0;
 		int extendedtimestamp_flag = 0;
@@ -119,13 +117,14 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 			mpack_write_bytes(writer, &_extendedid, 1);
 		}
 
+	} else {
+		printf("%s - ERROR: unknown param version %d\n", __func__, queue->version);
 	}
-
 }
 
 void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, csp_timestamp_t *timestamp, int *offset, param_queue_t *queue) {
 
-	if (queue->version == 1) {
+	if (queue->version == PARAM_VERSION_1) {
 
 		uint16_t short_id = mpack_expect_u16(reader);
 
@@ -141,7 +140,7 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, csp_timest
 		*id = param_parse_short_id_paramid(short_id);
 		*node = param_parse_short_id_node(short_id);
 
-	} else {
+	} else if (queue->version == PARAM_VERSION_2 || queue->version == PARAM_VERSION_3) {
 
 		uint16_t header = mpack_expect_u16(reader);
 		if (mpack_reader_error(reader) != mpack_ok)
@@ -201,8 +200,9 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, csp_timest
 			printf("ERROR: Unknown param header bits: 0x%x\n", header);
 		}
 
+	} else {
+		printf("%s - ERROR: unknown param version %d\n", __func__, queue->version);
 	}
-
 }
 
 int param_serialize_to_mpack(param_t * param, int offset, mpack_writer_t * writer, void * value, param_queue_t * queue) {
