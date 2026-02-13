@@ -109,7 +109,7 @@ int param_str_to_value(param_type_e type, char *in, void *out) {
 
 #define PARAM_SCANFU(casename, strtype, cast, name) \
 	case casename: { \
-	    for (int i = 0; i < strlen(in); i++) if (!isdigit(in[i])) return -1; \
+	    for (unsigned int i = 0; i < strlen(in); i++) if (!isdigit(in[i])) return -1; \
 		cast obj; \
 		sscanf(in, strtype, &obj); \
 		*(cast *) out = (cast) obj; \
@@ -118,7 +118,7 @@ int param_str_to_value(param_type_e type, char *in, void *out) {
 
 #define PARAM_SCANFD(casename, strtype, cast, name) \
 	case casename: { \
-	    for (int i = 0; i < strlen(in); i++) if (!isdigit(in[i]) && in[i] != '-' && in[i] != '+') return -1; \
+	    for (unsigned int i = 0; i < strlen(in); i++) if (!isdigit(in[i]) && in[i] != '-' && in[i] != '+') return -1; \
 		cast obj; \
 		sscanf(in, strtype, &obj); \
 		*(cast *) out = (cast) obj; \
@@ -128,7 +128,7 @@ int param_str_to_value(param_type_e type, char *in, void *out) {
 #define PARAM_SCANFX(casename, strtype, cast, name) \
 	case casename: { \
 	    if (in[0] != '0' || in[1] != 'x' || strlen(in) < 3) return -1; \
-	    for (int i = 2; i < strlen(in); i++) if (!isxdigit(in[i])) return -1; \
+	    for (unsigned int i = 2; i < strlen(in); i++) if (!isxdigit(in[i])) return -1; \
 		cast obj; \
 		sscanf(in, strtype, &obj); \
 		*(cast *) out = (cast) obj; \
@@ -138,7 +138,7 @@ int param_str_to_value(param_type_e type, char *in, void *out) {
 #define PARAM_SCANFF(casename, strtype, cast, name) \
 	case casename: { \
 		int numdots = 0; \
-		for (int i = 0; i < strlen(in); i++) { \
+		for (unsigned int i = 0; i < strlen(in); i++) { \
 			if (in[i] == ',') in[i] = '.'; \
 			if (in[i] == '.') numdots++; \
 	    	if (!isdigit(in[i]) && in[i] != '-' && in[i] != '+' && in[i] != '.' && in[i] != 'e' && in[i] != 'E') return -1; \
@@ -172,12 +172,12 @@ int param_str_to_value(param_type_e type, char *in, void *out) {
 		return strlen(in);
 
 	case PARAM_TYPE_DATA: {
-		int len = strlen(in) / 2;
+		unsigned int len = strlen(in) / 2;
 
 		if (2*len != strlen(in))
 			return -1;
 
-		for (int i = 0; i < len; i++) {
+		for (unsigned int i = 0; i < len; i++) {
 			int nibble1 = nibble(in[i*2]);
 			int nibble2 = nibble(in[i*2+1]);
 			if (nibble1 < 0 || nibble2 < 0) return -1;
@@ -246,7 +246,7 @@ static void param_print_value(FILE * file, const param_t * param, int offset) {
 		offset = 0;
 	}
 
-	char value_str[1024] = {};
+	char value_str[1024] = {0};
 
 	if (count > 1) {
 		strcat(value_str, "[");
@@ -329,7 +329,7 @@ void param_print_file(FILE* file, const param_t * param, int offset, int nodes[]
 
 	if (verbose >= 2) {
 		/* Type */
-		char type_str[11] = {};
+		char type_str[11] = {0};
 		param_type_str(param->type, type_str, 10);
 		fprintf(file, " %s", type_str);
 
@@ -488,7 +488,7 @@ uint32_t param_umaskstr_to_mask(const char * str) {
 
 	uint32_t mask = 0;
 
-	for (int i = 0; i < strlen(str); i++) {
+	for (unsigned int i = 0; i < strlen(str); i++) {
 
 		if (str[i] == '0') {
 			/* strtol returns 0 for invalid characters, therefore handled independent */

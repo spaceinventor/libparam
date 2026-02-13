@@ -140,7 +140,7 @@ int param_queue_apply(param_queue_t *queue, int host, int verbose) {
 	    		}
     			break;
     		case mpack_type_array:
-    			for (int i = 0; i < tag.v.n; i++) {
+    			for (unsigned int i = 0; i < tag.v.n; i++) {
 					mpack_read_tag(&reader);
 					if (mpack_reader_error(&reader) != mpack_ok) {
 						valid = false;

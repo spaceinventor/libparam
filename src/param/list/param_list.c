@@ -34,7 +34,7 @@
 _Static_assert(__alignof__(param_t) == 8, "param_t alignment must be exactly 8 bytes");
 
 #ifdef PARAM_HAVE_SYS_QUEUE
-static SLIST_HEAD(param_list_head_s, param_s) param_list_head = {};
+static SLIST_HEAD(param_list_head_s, param_s) param_list_head = {0};
 #endif
 
 uint8_t param_is_static(const param_t * param) {
@@ -148,7 +148,7 @@ int param_list_remove(int node, uint8_t verbose) {
 
 	int count = 0;
 
-	param_list_iterator i = {};
+	param_list_iterator i = {0};
 	const param_t * iter_param = param_list_iterate(&i);
 
 	while (iter_param) {
@@ -200,7 +200,7 @@ const param_t * param_list_find_id(int node, int id) {
 
 	const param_t * found = NULL;
 	const param_t * param;
-	param_list_iterator i = {};
+	param_list_iterator i = {0};
 
 	while ((param = param_list_iterate(&i)) != NULL) {
 
@@ -225,7 +225,7 @@ const param_t * param_list_find_name(int node, const char * name) {
 
 	const param_t * found = NULL;
 	const param_t * param;
-	param_list_iterator i = {};
+	param_list_iterator i = {0};
 	while ((param = param_list_iterate(&i)) != NULL) {
 
 		if (*param->node != node)
@@ -244,7 +244,7 @@ const param_t * param_list_find_name(int node, const char * name) {
 
 void param_list_print(uint32_t mask, int node, const char * globstr, int verbosity) {
 	const param_t * param;
-	param_list_iterator i = {};
+	param_list_iterator i = {0};
 	while ((param = param_list_iterate(&i)) != NULL) {
 		if ((node >= 0) && (*param->node != node)) {
 			continue;
@@ -275,8 +275,8 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 	const param_t * param;
 	int num_params = 0;
 
-	void* param_packed = buf;
-	param_list_iterator i = {};
+	char * param_packed = (char *) buf;
+	param_list_iterator i = {0};
 	while ((param = param_list_iterate(&i)) != NULL) {
 		if (prio_only && (param->mask & PM_PRIO_MASK) == 0)
 			continue;
@@ -290,7 +290,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 
 		} else if (list_version == 2) {
 
-			param_transfer2_t * rparam = param_packed;
+			param_transfer2_t * rparam = (param_transfer2_t *) param_packed;
 			int node = *param->node;
 			rparam->id = htobe16(param->id);
 			rparam->node = htobe16(node);
@@ -305,7 +305,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 
 		} else {
 
-			param_transfer3_t * rparam = param_packed;
+			param_transfer3_t * rparam = (param_transfer3_t *) param_packed;
 			int node = *param->node;
 			rparam->id = htobe16(param->id);
 			rparam->node = htobe16(node);
@@ -337,7 +337,7 @@ int param_list_pack(void* buf, int buf_size, int prio_only, int remote_only, int
 		param_packed += param_list_packed_size(list_version);
 		num_params++;
 
-		if (param_packed + param_list_packed_size(list_version) > buf + buf_size) {
+		if (param_packed + param_list_packed_size(list_version) > (char *) buf + buf_size) {
 			printf("Buffer size too small to hold parameters");
 			break;
 		}
@@ -759,7 +759,7 @@ void param_list_save_wildcard(const char * const filename, int node, int skip_no
     }
 
     const param_t * param;
-    param_list_iterator i = {};
+    param_list_iterator i = {0};
     const param_t* param_sorted[1024];
     int param_cnt = 0;
 

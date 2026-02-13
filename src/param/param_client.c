@@ -21,6 +21,7 @@
 #include <param/param_serializer.h>
 
 static void param_transaction_callback_pull(csp_packet_t *response, int verbose, int version, void * context) {
+	(void)context;
 
 	param_queue_t queue;
 	param_queue_init(&queue, &response->data[2], response->length - 2, response->length - 2, PARAM_QUEUE_TYPE_SET, version);

@@ -44,7 +44,7 @@ void vmem_file_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t
 		/* Flush back to file */
 		int res = fseek(driver->stream, addr, SEEK_SET);
 		(void)res;
-		int written = fwrite(driver->physaddr + addr, len, 1, driver->stream);
+		int written = fwrite((char *) driver->physaddr + addr, len, 1, driver->stream);
 		fflush(driver->stream);
 		(void) written;
 	}

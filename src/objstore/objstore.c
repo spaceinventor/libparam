@@ -22,8 +22,6 @@ static uint8_t _make_checksum(vmem_t * vmem, int offset, int length) {
 }
 
 static int _valid_checksum(vmem_t * vmem, int offset, uint16_t length, uint8_t checksum) {
-    if (length < 0)
-        return 0;
     
     uint8_t temp_checksum = _make_checksum(vmem, offset, length);
 
@@ -84,7 +82,7 @@ int objstore_alloc(vmem_t * vmem, int length, int verbose) {
     uint8_t sync_status = 0;
     int counter = 0;
 
-    for (int i = 0; i < vmem->size; i++) {
+    for (unsigned int i = 0; i < vmem->size; i++) {
         uint8_t data;
         vmem->read(vmem, i, &data, sizeof(data));
 
@@ -135,7 +133,7 @@ int objstore_alloc(vmem_t * vmem, int length, int verbose) {
 int objstore_scan(vmem_t * vmem, objstore_scan_callback_f callback, int verbose, void * ctx) {
     uint8_t sync_status = 0;
     
-    for (int i = 0; i < vmem->size; i++) {
+    for (unsigned int i = 0; i < vmem->size; i++) {
         uint8_t data;
         vmem->read(vmem, i, &data, sizeof(data));
 
@@ -186,7 +184,7 @@ int objstore_rm_obj(vmem_t * vmem, int offset, int verbose) {
     // clear checksum
     vmem->write(vmem, offset+length+OBJ_HEADER_LENGTH, (void *) &clear_block, sizeof(clear_block));
     // clear data field
-    for (int i = length; i > 0; i--) {
+    for (unsigned int i = length; i > 0; i--) {
         vmem->write(vmem, offset+i+OBJ_HEADER_LENGTH-1, (void *) &clear_block, sizeof(clear_block));
     }
     // clear header

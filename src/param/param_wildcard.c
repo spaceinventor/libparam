@@ -56,7 +56,8 @@ int strmatch(const char *str, const char *pattern, int n, int m)  // Source: htt
 }
 
 int has_wildcard(const char * str, int len) {
-    for (int i = 0; i < strlen(str); i++)
+    (void)len;
+    for (unsigned int i = 0; i < strlen(str); i++)
 		if (str[i] == '*' || str[i] == '?')
 			return 1;
     return 0;

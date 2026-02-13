@@ -1,4 +1,4 @@
-project('param', 'c', subproject_dir:'lib')
+project('param', 'c', subproject_dir:'lib', default_options: ['warning_level=3', 'werror=true'])
 
 add_project_arguments(['-Wall'], language: 'c')
 

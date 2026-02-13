@@ -141,7 +141,7 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 
 		/* Loop the full parameter list */
 		const param_t * param;
-		param_list_iterator i = {};
+		param_list_iterator i = {0};
 		while ((param = param_list_iterate(&i)) != NULL) {
 			if (param->mask & PM_HIDDEN) {
 				continue;
@@ -246,7 +246,7 @@ void param_serve(csp_packet_t * packet) {
 
 			//printf("hwid %d\n", hwid);
 			__attribute__((weak)) int serial_get(void);
-			if ((serial_get != NULL && hwid != serial_get()) && (hwid != 1234)) {
+			if ((serial_get != NULL && hwid != (uint32_t) serial_get()) && (hwid != 1234)) {
 				printf("hwid did not match\n");
 				csp_buffer_free(packet);
 				break;

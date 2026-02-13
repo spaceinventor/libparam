@@ -381,6 +381,8 @@ int param_serialize_to_mpack(const param_t * param, int offset, mpack_writer_t *
 }
 
 void param_deserialize_from_mpack_to_param(void * context, void * queue, const param_t * param, int offset, mpack_reader_t * reader) {
+	(void) context;
+	(void) queue;
 
 	if (offset < 0)
 		offset = 0;
