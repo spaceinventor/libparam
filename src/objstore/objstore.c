@@ -105,13 +105,13 @@ int objstore_alloc(vmem_t * vmem, int length, int verbose) {
 
                     
                     // read length to skip ahead
-                    int length = objstore_read_obj_length(vmem, i);
-                    if (length < 0) {
+                    int readlength = objstore_read_obj_length(vmem, i);
+                    if (readlength < 0) {
                         i += OBJ_HEADER_LENGTH;
                         break;
                     }
                     //printf("objstore_alloc skipping object of length: %u\n", length);
-                    i += length + OBJ_HEADER_LENGTH;
+                    i += readlength + OBJ_HEADER_LENGTH;
                 }
             }
         } else {
@@ -177,7 +177,7 @@ int objstore_rm_obj(vmem_t * vmem, int offset, int verbose) {
         return -1;
     }
 
-    const uint16_t length;
+    const uint16_t length = 0;
     vmem->read(vmem, offset+5, (void *) &length, sizeof(length));
 
     const uint8_t clear_block = 0xFF;
@@ -211,7 +211,7 @@ int objstore_read_obj(vmem_t * vmem, int offset, void * data_buf, int verbose) {
     }
 
     /* Data buffer must be correct size, e.g. by using objstore_read_obj_length */
-    const uint16_t length;
+    const uint16_t length = 0;
     vmem->read(vmem, offset+5, (void *) &length, sizeof(length));
 
     vmem->read(vmem, offset+OBJ_HEADER_LENGTH, data_buf, length);

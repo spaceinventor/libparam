@@ -1,6 +1,5 @@
 project('param', 'c', subproject_dir:'lib', default_options: ['warning_level=3', 'werror=true'])
-
-add_project_arguments(['-Wall'], language: 'c')
+add_project_arguments(['-Wstrict-prototypes', '-Wmissing-prototypes', '-Wmissing-declarations', '-Wcast-align', '-Wpointer-arith', '-Wshadow'], language: 'c')
 
 conf = configuration_data()
 conf.set('PARAM_HAVE_SYS_QUEUE', get_option('list_dynamic') or get_option('list_pool') > 0)

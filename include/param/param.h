@@ -153,7 +153,6 @@ static const uint16_t node_self = 0;
 #define STR(x)  STR1(x)
 
 #define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr) \
-	; /* Catch const param defines */ \
 	PARAM_TIMESTAMP_DECL(_name) \
 	__attribute__((section("param." STR(_name)))) \
 	__attribute__((used, aligned(8))) \
@@ -175,7 +174,6 @@ static const uint16_t node_self = 0;
 	}
 
 #define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
-	; /* Catch const param defines */ \
 	PARAM_TIMESTAMP_DECL(_name) \
 	__attribute__((section("param." STR(_name)))) \
 	__attribute__((used, aligned(8))) \
@@ -199,7 +197,6 @@ static const uint16_t node_self = 0;
 #define PARAM_REMOTE_NODE_IGNORE 16382
 
 #define PARAM_DEFINE_REMOTE(_id, _name, _nodeaddr, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
-	; /* Catch const param defines */ \
 	PARAM_TIMESTAMP_DECL(_name) \
 	__attribute__((section("param." STR(_name)))) \
 	__attribute__((used, aligned(8))) \
@@ -219,7 +216,6 @@ static const uint16_t node_self = 0;
 	};
 
 #define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
-	; /* Catch const param defines */ \
 	PARAM_TIMESTAMP_DECL(_name) \
 	uint16_t _node_##_name = _node; \
 	param_t _name = { \

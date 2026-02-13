@@ -37,7 +37,7 @@ _Static_assert(__alignof__(param_t) == 8, "param_t alignment must be exactly 8 b
 static SLIST_HEAD(param_list_head_s, param_s) param_list_head = {0};
 #endif
 
-uint8_t param_is_static(const param_t * param) {
+static uint8_t param_is_static(const param_t * param) {
 
 	__attribute__((weak)) extern const param_t __start_param;
 	__attribute__((weak)) extern const param_t __stop_param;
@@ -392,12 +392,14 @@ static param_heap_t * param_list_alloc(int type, int array_size) {
 	return param;
 }
 
-void param_list_clear() {
+#if 0
+void param_list_clear(void) {
 
 	SLIST_INIT(&param_list_head);
 	param_heap_used = 0;
 	param_buffer_used = 0;
 }
+#endif
 
 /* WARNING: This function resets complete list */
 static void param_list_destroy_impl(param_t * param) {
@@ -410,13 +412,15 @@ static void param_list_destroy_impl(param_t * param) {
 
 #ifdef PARAM_LIST_DYNAMIC
 
-void param_list_clear() {
+#if 0
+void param_list_clear(void) {
 	while (!SLIST_EMPTY(&param_list_head)) {
 		struct param_s *param = SLIST_FIRST(&param_list_head);
 		SLIST_REMOVE_HEAD(&param_list_head, next);
 		param_list_destroy(param);
 	}
 }
+#endif
 
 typedef struct param_heap_s {
 	param_t param;
@@ -759,11 +763,11 @@ void param_list_save_wildcard(const char * const filename, int node, int skip_no
     }
 
     const param_t * param;
-    param_list_iterator i = {0};
+    param_list_iterator iter = {0};
     const param_t* param_sorted[1024];
     int param_cnt = 0;
 
-    while ((param = param_list_iterate(&i)) != NULL) {
+    while ((param = param_list_iterate(&iter)) != NULL) {
 
 		if (name_wildcard && (strmatch(param->name, name_wildcard, strlen(param->name), strlen(name_wildcard)) == 0)) {
 			continue;

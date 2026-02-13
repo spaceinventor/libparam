@@ -118,7 +118,7 @@ void vmem_server_handler(csp_conn_t * conn)
 
 			while((count < length) && csp_conn_is_active(conn)) {
 				/* Prepare packet */
-				csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
+				packet = csp_buffer_get(VMEM_SERVER_MTU);
 				if (packet == NULL) {
 					break;
 				}

@@ -87,8 +87,8 @@ void param_value_str(const param_t *param, unsigned int i, char * out, int len)
 		char data[param->array_size];
 		param_get_data(param, data, param->array_size);
 		int written;
-		for (int i = 0; i < param->array_size && len >= 2; i++) {
-			written = snprintf(out, len, "%02X", (unsigned char) data[i]);
+		for (int j = 0; j < param->array_size && len >= 2; j++) {
+			written = snprintf(out, len, "%02X", (unsigned char) data[j]);
 			len -= written;
 			out += written;
 		}
@@ -291,8 +291,8 @@ static void param_print_value(FILE * file, const param_t * param, int offset) {
 
 }
 
-void param_print_file(FILE* file, const param_t * param, int offset, int nodes[], int nodes_count, int verbose, uint32_t ref_timestamp)
-{
+static void param_print_file(FILE* file, const param_t * param, int offset, int nodes[], int nodes_count, int verbose, uint32_t ref_timestamp) {
+
 	if (param == NULL)
 		return;
 

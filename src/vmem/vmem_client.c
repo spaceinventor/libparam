@@ -12,10 +12,10 @@
 
 #include <vmem/vmem_client.h>
 
-static int abort = 0;
+static int client_abort = 0;
 
 void vmem_client_abort(void) {
-	abort = 1;
+	client_abort = 1;
 }
 
 int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp) {
@@ -27,7 +27,7 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 int vmem_download_progress(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp, vmem_progress_cb cb)
 {
 	uint32_t time_begin = csp_get_ms();
-	abort = 0;
+	client_abort = 0;
 
 	/* Establish RDP connection */
 	uint32_t opts = CSP_O_CRC32;
@@ -70,7 +70,7 @@ int vmem_download_progress(int node, int timeout, uint64_t address, uint32_t len
 		if (packet == NULL)
 			break;
 
-		if (abort) {
+		if (client_abort) {
 			csp_buffer_free(packet);
 			break;
 		}
@@ -128,7 +128,7 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 
 int vmem_upload_progress(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version, vmem_progress_cb cb) {
 
-	abort = 0;
+	client_abort = 0;
 
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP | CSP_O_CRC32);
@@ -159,7 +159,7 @@ int vmem_upload_progress(int node, int timeout, uint64_t address, char * datain,
 	uint32_t count = 0;
 	while((count < length) && csp_conn_is_active(conn)) {
 
-		if (abort) {
+		if (client_abort) {
 			csp_buffer_free(packet);
 			break;
 		}
@@ -168,7 +168,7 @@ int vmem_upload_progress(int node, int timeout, uint64_t address, char * datain,
 		}
 
 		/* Prepare packet */
-		csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
+		packet = csp_buffer_get(VMEM_SERVER_MTU);
 		packet->length = VMEM_MIN(VMEM_SERVER_MTU, length - count);
 
 		/* Copy data */
