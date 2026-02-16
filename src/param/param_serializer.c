@@ -25,14 +25,10 @@
 #define PARAM_HEADER_TIMESTAMP_POS 13
 #define PARAM_HEADER_EXTENDEDID_POS 12
 #define PARAM_HEADER_EXTENDEDTIMESTAMP_POS 11
+/* Bit 10 is currently unused, but reserved for future use to avoid breaking compatibility
+ * its only allowed to be used to indicate a MessagePack type */
+#define PARAM_HEADER_UNUSED_POS 10
 #define PARAM_HEADER_ID_MASK 0x3ff
-
-static const uint16_t known_header_mask = (1 << PARAM_HEADER_ARRAY_POS)
-										| (1 << PARAM_HEADER_NODE_POS)
-										| (1 << PARAM_HEADER_TIMESTAMP_POS)
-										| (1 << PARAM_HEADER_EXTENDEDID_POS)
-										| (1 << PARAM_HEADER_EXTENDEDTIMESTAMP_POS)
-										|       PARAM_HEADER_ID_MASK;
 
 static inline uint16_t param_get_short_id(param_t * param, unsigned int isarray, unsigned int reserved) {
 	uint16_t node = *param->node;
@@ -153,6 +149,7 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, csp_timest
 		int timestamp_flag = (header >> PARAM_HEADER_TIMESTAMP_POS) & 1;
 		int extendedtimestamp_flag = (header >> PARAM_HEADER_EXTENDEDTIMESTAMP_POS) & 1;
 		int extendedid_flag = (header >> PARAM_HEADER_EXTENDEDID_POS) & 1;
+		int unused_flag = (header >> PARAM_HEADER_UNUSED_POS) & 1;
 		*id = header & PARAM_HEADER_ID_MASK;
 
 		if (array_flag) {
@@ -197,10 +194,9 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, csp_timest
 			*id |= ((uint16_t)_extendedid << 8)&0xFFFF;
 		}
 
-		if ((header & ~known_header_mask) != 0) {
-			printf("ERROR: Unknown param header bits: 0x%x\n", header);
+		if (unused_flag) {
+			mpack_discard(reader);
 		}
-
 	}
 
 }
