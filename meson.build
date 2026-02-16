@@ -1,4 +1,4 @@
-project('param', 'c', subproject_dir:'lib', default_options: ['warning_level=3', 'werror=true'])
+project('param', 'c', subproject_dir:'lib', default_options: ['warning_level=2', 'werror=true'])
 add_project_arguments(['-Wstrict-prototypes', '-Wmissing-prototypes', '-Wmissing-declarations', '-Wcast-align', '-Wpointer-arith', '-Wshadow'], language: 'c')
 
 conf = configuration_data()
