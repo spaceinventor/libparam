@@ -303,6 +303,7 @@ static void param_print_file(FILE* file, const param_t * param, int offset, int 
 		fprintf(file, "%s", param_mask_color(param));
 	}
 #else
+	(void) ref_timestamp;
 	fprintf(file, "%s", param_mask_color(param));
 #endif
 
