@@ -41,6 +41,31 @@ typedef enum {
 	PARAM_TYPE_INVALID,
 } param_type_e;
 
+#define PARAM_CTYPE_PARAM_TYPE_UINT8   uint8_t
+#define PARAM_CTYPE_PARAM_TYPE_UINT16  uint16_t
+#define PARAM_CTYPE_PARAM_TYPE_UINT32  uint32_t
+#define PARAM_CTYPE_PARAM_TYPE_UINT64  uint64_t
+#define PARAM_CTYPE_PARAM_TYPE_INT8    int8_t
+#define PARAM_CTYPE_PARAM_TYPE_INT16   int16_t
+#define PARAM_CTYPE_PARAM_TYPE_INT32   int32_t
+#define PARAM_CTYPE_PARAM_TYPE_INT64   int64_t
+#define PARAM_CTYPE_PARAM_TYPE_XINT8   int8_t
+#define PARAM_CTYPE_PARAM_TYPE_XINT16  int16_t
+#define PARAM_CTYPE_PARAM_TYPE_XINT32  int32_t
+#define PARAM_CTYPE_PARAM_TYPE_XINT64  int64_t
+#define PARAM_CTYPE_PARAM_TYPE_FLOAT   float
+#define PARAM_CTYPE_PARAM_TYPE_DOUBLE  double
+#define PARAM_CTYPE_PARAM_TYPE_STRING  char
+#define PARAM_CTYPE_PARAM_TYPE_DATA  char
+
+
+/* “Selector” macro */
+#define PARAM_CTYPE(_ptype_token) PARAM_CTYPE_##_ptype_token
+
+/* Deriver sizeof/alignof fra token */
+#define PARAM_SIZEOF(_ptype_token)  (sizeof(PARAM_CTYPE(_ptype_token)))
+#define PARAM_ALIGNOF(_ptype_token) (_Alignof(PARAM_CTYPE(_ptype_token)))
+
 /**
  * Global parameter mask
  */
@@ -153,6 +178,9 @@ static const uint16_t node_self = 0;
 #define STR(x)  STR1(x)
 
 #define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr) \
+	_Static_assert(((_array_count) <= 1) ? ((_array_step) <= 0) : ((_array_step) >= PARAM_SIZEOF(_type)), "param: array_step invalid for array_count"); \
+	_Static_assert(((_array_count) <= 1) ? 1 : (((_array_step) % PARAM_ALIGNOF(_type)) == 0U),"param: array_step not aligned to type"); \
+	_Static_assert(((uintptr_t)(_physaddr) % PARAM_ALIGNOF(_type)) == 0U,"param: physaddr not aligned to type"); \
 	PARAM_TIMESTAMP_DECL(_name) \
 	__attribute__((section("param." STR(_name)))) \
 	__attribute__((used, aligned(8))) \
@@ -174,6 +202,8 @@ static const uint16_t node_self = 0;
 	}
 
 #define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
+	_Static_assert(((_array_count) <= 1) ? ((_array_step) <= 0) : ((_array_step) >= PARAM_SIZEOF(_type)), "param: array_step invalid for array_count"); \
+	_Static_assert(((_array_count) <= 1) ? 1 : (((_array_step) % PARAM_ALIGNOF(_type)) == 0U),"param: array_step not aligned to type"); \
 	PARAM_TIMESTAMP_DECL(_name) \
 	__attribute__((section("param." STR(_name)))) \
 	__attribute__((used, aligned(8))) \
@@ -197,6 +227,9 @@ static const uint16_t node_self = 0;
 #define PARAM_REMOTE_NODE_IGNORE 16382
 
 #define PARAM_DEFINE_REMOTE(_id, _name, _nodeaddr, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
+	_Static_assert(((_array_count) <= 1) ? ((_array_step) <= 0) : ((_array_step) >= PARAM_SIZEOF(_type)), "param: array_step invalid for array_count"); \
+	_Static_assert(((_array_count) <= 1) ? 1 : (((_array_step) % PARAM_ALIGNOF(_type)) == 0U),"param: array_step not aligned to type"); \
+	_Static_assert(((uintptr_t)(_physaddr) % PARAM_ALIGNOF(_type)) == 0U,"param: physaddr not aligned to type"); \
 	PARAM_TIMESTAMP_DECL(_name) \
 	__attribute__((section("param." STR(_name)))) \
 	__attribute__((used, aligned(8))) \
@@ -216,6 +249,9 @@ static const uint16_t node_self = 0;
 	};
 
 #define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
+	_Static_assert(((_array_count) <= 1) ? ((_array_step) <= 0) : ((_array_step) >= PARAM_SIZEOF(_type)), "param: array_step invalid for array_count"); \
+	_Static_assert(((_array_count) <= 1) ? 1 : (((_array_step) % PARAM_ALIGNOF(_type)) == 0U),"param: array_step not aligned to type"); \
+	_Static_assert(((uintptr_t)(_physaddr) % PARAM_ALIGNOF(_type)) == 0U,"param: physaddr not aligned to type"); \
 	PARAM_TIMESTAMP_DECL(_name) \
 	uint16_t _node_##_name = _node; \
 	param_t _name = { \
