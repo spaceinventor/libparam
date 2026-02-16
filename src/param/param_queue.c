@@ -126,7 +126,7 @@ int param_queue_apply(param_queue_t *queue, int host, int verbose) {
 			switch (tag.type) {
     		case mpack_type_str:
     		case mpack_type_bin:
-    			if (reader.end - reader.data >= tag.v.l) {
+    			if ((unsigned int) (reader.end - reader.data) >= tag.v.l) {
 	    			mpack_skip_bytes(&reader, tag.v.l);
 	    		} else {
     				valid = false;
