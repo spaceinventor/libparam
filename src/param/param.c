@@ -21,7 +21,9 @@
 			} \
 			return data; \
 		} else { \
-			return *(_type *)((uint8_t *) param->addr + i * param->array_step); \
+			/* Increment pointer in bytes, we have static check on array step being aligned */ \
+			uintptr_t aligned_address = (uintptr_t)param->addr + (uintptr_t) i * (uintptr_t)param->array_step; \
+			return *(_type *)aligned_address; \
 		} \
 	} \
 	_type param_get_##_name(const param_t * param) { \
@@ -90,7 +92,8 @@ void param_get_data(const param_t * param, void * outbuf, int len)
 #endif
 
 #define PARAM_SET(_type, name_in, _swapfct) \
-	static void __param_set_##name_in(const param_t * param, _type value, bool do_callback, unsigned int i) { \
+	void __param_set_##name_in(const param_t * param, _type value, bool do_callback, unsigned int i); \
+	void __param_set_##name_in(const param_t * param, _type value, bool do_callback, unsigned int i) { \
 		if (i >= (unsigned int) param->array_size) { \
 			return; \
 		} \
@@ -99,8 +102,11 @@ void param_get_data(const param_t * param, void * outbuf, int len)
 				value = _swapfct(value); \
 			vmem_write_direct(param->vmem, param->vmem->vaddr + param->vaddr + i * param->array_step, &value, sizeof(_type)); \
 		} else { \
+			/* Increment pointer in bytes, we have static check on array step being aligned */ \
+			uintptr_t aligned_write_address = (uintptr_t)param->addr + (uintptr_t) i * (uintptr_t)param->array_step; \
 			/* Aligned access directly to RAM */ \
-			*(_type*)((uint8_t *) param->addr + i * param->array_step) = value; \
+			_type * typecasted_write_address = (_type *)aligned_write_address; \
+			*typecasted_write_address = value; \
 		} \
 		/* Callback */ \
 		if ((do_callback == true) && (param->callback)) { \
