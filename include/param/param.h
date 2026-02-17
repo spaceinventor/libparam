@@ -177,6 +177,29 @@ static const uint16_t node_self = 0;
 #define STR1(x) #x
 #define STR(x)  STR1(x)
 
+/*
+ * Compile-time type check for param backing storage.
+ *
+ * This macro verifies that the C type of the object pointed to by `ptr`
+ * matches the PARAM_TYPE_* token specified by `_ptype_token`.
+ *
+ * It uses the GCC/Clang builtin `__builtin_types_compatible_p(T1, T2)`,
+ * which evaluates to 1 at compile time if the two types are compatible
+ * (i.e. the same underlying type), and 0 otherwise.
+ *
+ * The result is stored in a uniquely named enum constant to force the
+ * expression to be an integer constant expression, allowing it to be
+ * used in a `_Static_assert`.
+ *
+ * If the types do not match, compilation fails with a clear error message,
+ * preventing mismatches such as declaring PARAM_TYPE_UINT16 for a uint8_t
+ * variable, or passing the address of an array instead of an element.
+ *
+ * Notes:
+ *  - This check is evaluated entirely at compile time.
+ *  - No code or data is generated.
+ *  - Requires GCC or Clang (GNU extensions enabled).
+ */
 #define PARAM_TYPECHECK(_name, _ptype_token, ptr)                           \
     enum {                                                                  \
         param_typecheck__##_name = __builtin_types_compatible_p(            \
