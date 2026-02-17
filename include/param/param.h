@@ -177,10 +177,21 @@ static const uint16_t node_self = 0;
 #define STR1(x) #x
 #define STR(x)  STR1(x)
 
+#define PARAM_TYPECHECK(_name, _ptype_token, ptr)                           \
+    enum {                                                                  \
+        param_typecheck__##_name = __builtin_types_compatible_p(            \
+            __typeof__(*(ptr)), PARAM_CTYPE(_ptype_token)                   \
+        )                                                                   \
+    };                                                                      \
+    _Static_assert(param_typecheck__##_name,                                \
+                   "param: param_type does not match pointer element type")
+
+
+
 #define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr) \
 	_Static_assert(((_array_count) <= 1) ? ((_array_step) <= 0) : ((_array_step) >= PARAM_SIZEOF(_type)), "param: array_step invalid for array_count"); \
 	_Static_assert(((_array_count) <= 1) ? 1 : (((_array_step) % PARAM_ALIGNOF(_type)) == 0U),"param: array_step not aligned to type"); \
-	_Static_assert((sizeof(*(_physaddr)) == PARAM_SIZEOF(_type)), "param: param_type does not match type of variable passed"); \
+	PARAM_TYPECHECK(_name, _type, _physaddr); \
 	PARAM_TIMESTAMP_DECL(_name) \
 	__attribute__((section("param." STR(_name)))) \
 	__attribute__((used, aligned(8))) \
@@ -229,7 +240,7 @@ static const uint16_t node_self = 0;
 #define PARAM_DEFINE_REMOTE(_id, _name, _nodeaddr, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	_Static_assert(((_array_count) <= 1) ? ((_array_step) <= 0) : ((_array_step) >= PARAM_SIZEOF(_type)), "param: array_step invalid for array_count"); \
 	_Static_assert(((_array_count) <= 1) ? 1 : (((_array_step) % PARAM_ALIGNOF(_type)) == 0U),"param: array_step not aligned to type"); \
-	_Static_assert((sizeof(*(_physaddr)) == PARAM_SIZEOF(_type)), "param: param_type does not match type of variable passed"); \
+	PARAM_TYPECHECK(_name, _type, _physaddr); \
 	PARAM_TIMESTAMP_DECL(_name) \
 	__attribute__((section("param." STR(_name)))) \
 	__attribute__((used, aligned(8))) \
@@ -251,7 +262,7 @@ static const uint16_t node_self = 0;
 #define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
 	_Static_assert(((_array_count) <= 1) ? ((_array_step) <= 0) : ((_array_step) >= PARAM_SIZEOF(_type)), "param: array_step invalid for array_count"); \
 	_Static_assert(((_array_count) <= 1) ? 1 : (((_array_step) % PARAM_ALIGNOF(_type)) == 0U),"param: array_step not aligned to type"); \
-	_Static_assert((sizeof(*(_physaddr)) == PARAM_SIZEOF(_type)), "param: param_type does not match type of variable passed"); \
+	PARAM_TYPECHECK(_name, _type, _physaddr); \
 	PARAM_TIMESTAMP_DECL(_name) \
 	uint16_t _node_##_name = _node; \
 	param_t _name = { \
