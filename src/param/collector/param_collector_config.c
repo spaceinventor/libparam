@@ -18,7 +18,7 @@
 
 struct param_collector_config_s param_collector_config[16] = {0};
 
-void param_col_confstr_callback(struct param_s * param, int offset) {
+void param_col_confstr_callback(const struct param_s * param, int offset) {
 	param_collector_init();
 }
 
