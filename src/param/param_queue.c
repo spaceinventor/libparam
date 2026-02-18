@@ -36,7 +36,7 @@ void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int u
 	queue->used = used;
 	queue->version = version;
 	queue->last_timestamp.tv_sec = 0;
-	queue->last_timestamp.tv_nsec = CSP_TIMESTAMP_INVALID_NSEC;
+	queue->last_timestamp.tv_nsec = 0;
 }
 
 int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value) {
