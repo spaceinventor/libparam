@@ -6,6 +6,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <csp/csp.h>
 #include <sys/types.h>
@@ -22,6 +23,9 @@
 #include <libparam.h>
 #include <param/param_server.h>
 #include "vmem_internal.h"
+
+/* Statically allocate a listener socket */
+static csp_socket_t vmem_server_socket = {0};
 
 #ifdef PARAM_LIST_DYNAMIC
 
@@ -115,7 +119,7 @@ void vmem_server_handler(csp_conn_t * conn)
 
 			while((count < length) && csp_conn_is_active(conn)) {
 				/* Prepare packet */
-				csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
+				packet = csp_buffer_get(VMEM_SERVER_MTU);
 				if (packet == NULL) {
 					break;
 				}
@@ -227,7 +231,7 @@ void vmem_server_handler(csp_conn_t * conn)
 
 			/* The first byte of each packet contains the flag signalling the first and last packet */
 			packet->length = 1;
-			packet->data[0] = 0b01000000; /* First packet */
+			packet->data[0] = 0x40; /* First packet */
 			list = (vmem_list3_t *)&packet->data[packet->length];
 
 			vmem_t *vmem;
@@ -243,7 +247,7 @@ void vmem_server_handler(csp_conn_t * conn)
 						break;
 					}
 					packet->length = 1;
-					packet->data[0] = 0b00000000;
+					packet->data[0] = 0;
 					list = (vmem_list3_t *)&packet->data[packet->length];
 				}
 
@@ -260,7 +264,7 @@ void vmem_server_handler(csp_conn_t * conn)
 				list++;
 			}
 
-			packet->data[0] |= 0b10000000; /* Last packet */
+			packet->data[0] |= 0x80; /* Last packet */
 			csp_send(conn, packet);
 		}
 
@@ -291,8 +295,8 @@ void vmem_server_handler(csp_conn_t * conn)
 
 static void rparam_list_handler(csp_conn_t * conn)
 {
-	param_t * param;
-	param_list_iterator i = {};
+	const param_t * param;
+	param_list_iterator i = {0};
 	while ((param = param_list_iterate(&i)) != NULL) {
 		if (param->mask & PM_HIDDEN) {
 			continue;
@@ -333,9 +337,7 @@ static void rparam_list_handler(csp_conn_t * conn)
 }
 
 void vmem_server_loop(void * param) {
-
-	/* Statically allocate a listener socket */
-	static csp_socket_t vmem_server_socket = {0};
+	(void)param;
 
 	/* Bind all ports to socket */
 	csp_bind(&vmem_server_socket, VMEM_PORT_SERVER);

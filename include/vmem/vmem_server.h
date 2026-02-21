@@ -44,7 +44,6 @@ typedef struct {
 		vmem_request_hdr_t hdr;
 	};
 	union {
-		uint8_t body[0];
 		struct {
 			uint32_t address;
 			uint32_t length;

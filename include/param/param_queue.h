@@ -36,7 +36,7 @@ typedef struct param_queue_s {
 
 void param_queue_init(param_queue_t * queue, void * buffer, int buffer_size, int used, param_queue_type_e type, int version);
 
-int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value);
+int param_queue_add(param_queue_t *queue, const param_t *param, int offset, void *value);
 
 /**
  * @brief 						Applies the content of a queue to memory.

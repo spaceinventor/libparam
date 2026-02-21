@@ -1,13 +1,11 @@
-project('param', 'c', subproject_dir:'lib')
-
-add_project_arguments(['-Wall'], language: 'c')
+project('param', 'c', subproject_dir:'lib', default_options: ['warning_level=2', 'werror=true'])
+add_project_arguments(['-Wstrict-prototypes', '-Wmissing-prototypes', '-Wmissing-declarations', '-Wcast-align', '-Wpointer-arith', '-Wshadow'], language: 'c')
 
 conf = configuration_data()
 conf.set('PARAM_HAVE_SYS_QUEUE', get_option('list_dynamic') or get_option('list_pool') > 0)
 conf.set('PARAM_LIST_DYNAMIC', get_option('list_dynamic'))
 conf.set('PARAM_LIST_POOL', get_option('list_pool'))
 conf.set('PARAM_HAVE_TIMESTAMP', get_option('have_timestamp'))
-conf.set('PARAM_NUM_PUBLISHQUEUES', get_option('num_publishqueues'))
 
 # From now on, VMEM API is 64bits, breaking earlier ABI. 
 # New user code can use the fact that this macro is defined (its value is not relevant, just the fact that it is defined)

@@ -40,9 +40,9 @@ typedef struct {
 		.physaddr = vmem_##name_in##_heap, \
 	}; \
 	__attribute__((section("vmem"))) \
-	__attribute__((__aligned__(__alignof__(vmem_t)))) \
+	__attribute__((__aligned__(8))) \
 	__attribute__((used)) \
-	vmem_t vmem_##name_in = { \
+	const vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_RAM, \
 		.read = NULL, \
 		.write = NULL, \
@@ -67,9 +67,9 @@ typedef struct {
         .physaddr = mem_addr, \
     }; \
     __attribute__((section("vmem"))) \
-	__attribute__((__aligned__(__alignof__(vmem_t)))) \
+	__attribute__((__aligned__(8))) \
     __attribute__((used)) \
-    vmem_t vmem_##name_in = { \
+    const vmem_t vmem_##name_in = { \
         .type = VMEM_TYPE_RAM, \
         .read = NULL, \
         .write = NULL, \

@@ -20,9 +20,9 @@ void vmem_mmap_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t
 		.filename = filename_in, \
 	}; \
 	__attribute__((section("vmem"))) \
-	__attribute__((__aligned__(__alignof__(vmem_t)))) \
+	__attribute__((__aligned__(8))) \
 	__attribute__((used)) \
-	vmem_t vmem_mmap_##name_in = { \
+	const vmem_t vmem_mmap_##name_in = { \
 		.type = VMEM_TYPE_FILE, \
 		.name = strname, \
 		.size = size_in, \

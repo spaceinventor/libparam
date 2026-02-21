@@ -28,9 +28,9 @@ typedef struct {
 		.cache_status = 0, \
 	}; \
 	__attribute__((section("vmem"))) \
-	__attribute__((__aligned__(__alignof__(vmem_t)))) \
+	__attribute__((__aligned__(8))) \
 	__attribute__((used)) \
-	vmem_t vmem_##name_in = { \
+	const vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_FRAM_CACHE, \
 		.name = strname, \
 		.size = size_in, \
@@ -41,5 +41,5 @@ typedef struct {
 		.ack_with_pull = 1, \
 	};
 
-void vmem_fram_cache_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len);
-void vmem_fram_cache_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len);
+void vmem_fram_cache_read(const vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len);
+void vmem_fram_cache_write(const vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len);

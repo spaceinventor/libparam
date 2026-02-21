@@ -35,9 +35,9 @@ enum vmem_types{
 
 typedef struct vmem_s {
 	int type;
-	void (*read)(struct vmem_s * vmem, uint64_t addr, void * dataout, uint32_t len);
-	void (*write)(struct vmem_s * vmem, uint64_t addr, const void * datain, uint32_t len);
-	int (*flush)(struct vmem_s * vmem);
+	void (*read)(const struct vmem_s * vmem, uint64_t addr, void * dataout, uint32_t len);
+	void (*write)(const struct vmem_s * vmem, uint64_t addr, const void * datain, uint32_t len);
+	int (*flush)(const struct vmem_s * vmem);
 	/* This anonymous union is needed to be able to handle 64-bit and 32-bit
 	 * systems interchangeably. Since the VMEM backend always expects 64-bit
 	 * vaddr, and we are not able to initialize the 64-bit vaddr field with
@@ -148,15 +148,6 @@ int vmem_flush(vmem_t *vmem);
  * @param stop pointer to the lasst element
  */
 void vmem_add(vmem_t * start, vmem_t * stop);
-
-/**
- * @brief linker-generated symbol for the first VMEM element in the linker "vmem" section
- */
-extern vmem_t __start_vmem __attribute__((weak));
-/**
- * @brief linker-generated symbol for the last VMEM element in the linker "vmem" section
- */
-extern vmem_t __stop_vmem __attribute__((weak));
 
 #ifdef __cplusplus
 }

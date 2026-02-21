@@ -9,7 +9,7 @@
 
 
 #define PARAM_GET(_type, _name, _swapfct) \
-	_type param_get_##_name##_array(param_t * param, unsigned int i) { \
+	_type param_get_##_name##_array(const param_t * param, unsigned int i) { \
 		if (i >= (unsigned int) param->array_size) { \
 			return 0; \
 		} \
@@ -21,10 +21,12 @@
 			} \
 			return data; \
 		} else { \
-			return *(_type *)(param->addr + i * param->array_step); \
+			/* Increment pointer in bytes, we have static check on array step being aligned */ \
+			uintptr_t aligned_address = (uintptr_t)param->addr + (uintptr_t) i * (uintptr_t)param->array_step; \
+			return *(_type *)aligned_address; \
 		} \
 	} \
-	_type param_get_##_name(param_t * param) { \
+	_type param_get_##_name(const param_t * param) { \
 		return param_get_##_name##_array(param, 0); \
 	}
 
@@ -41,7 +43,7 @@ PARAM_GET(double, double, )
 
 #undef PARAM_GET
 
-void param_get(param_t * param, unsigned int offset, void * value) {
+void param_get(const param_t * param, unsigned int offset, void * value) {
 	switch(param->type) {
 
 #define PARAM_GET(casename, name, type) \
@@ -76,7 +78,7 @@ void param_get(param_t * param, unsigned int offset, void * value) {
     
 }
 
-void param_get_data(param_t * param, void * outbuf, int len)
+void param_get_data(const param_t * param, void * outbuf, int len)
 {
 	if (param->vmem && param->vmem->read) {
 		param->vmem->read(param->vmem, param->vaddr, outbuf, len);
@@ -90,7 +92,8 @@ void param_get_data(param_t * param, void * outbuf, int len)
 #endif
 
 #define PARAM_SET(_type, name_in, _swapfct) \
-	void __param_set_##name_in(param_t * param, _type value, bool do_callback, unsigned int i) { \
+	void __param_set_##name_in(const param_t * param, _type value, bool do_callback, unsigned int i); \
+	void __param_set_##name_in(const param_t * param, _type value, bool do_callback, unsigned int i) { \
 		if (i >= (unsigned int) param->array_size) { \
 			return; \
 		} \
@@ -99,27 +102,30 @@ void param_get_data(param_t * param, void * outbuf, int len)
 				value = _swapfct(value); \
 			vmem_write_direct(param->vmem, param->vmem->vaddr + param->vaddr + i * param->array_step, &value, sizeof(_type)); \
 		} else { \
+			/* Increment pointer in bytes, we have static check on array step being aligned */ \
+			uintptr_t aligned_write_address = (uintptr_t)param->addr + (uintptr_t) i * (uintptr_t)param->array_step; \
 			/* Aligned access directly to RAM */ \
-			*(_type*)(param->addr + i * param->array_step) = value; \
+			_type * typecasted_write_address = (_type *)aligned_write_address; \
+			*typecasted_write_address = value; \
 		} \
 		/* Callback */ \
 		if ((do_callback == true) && (param->callback)) { \
 			param->callback(param, i); \
 		} \
 	} \
-	inline void param_set_##name_in(param_t * param, _type value) \
+	inline void param_set_##name_in(const param_t * param, _type value) \
 	{ \
 		__param_set_##name_in(param, value, true, 0); \
 	} \
-	inline void param_set_##name_in##_nocallback(param_t * param, _type value) \
+	inline void param_set_##name_in##_nocallback(const param_t * param, _type value) \
 	{ \
 		__param_set_##name_in(param, value, false, 0); \
 	} \
-	inline void param_set_##name_in##_array(param_t * param, unsigned int i, _type value) \
+	inline void param_set_##name_in##_array(const param_t * param, unsigned int i, _type value) \
 	{ \
 		__param_set_##name_in(param, value, true, i); \
 	} \
-	inline void param_set_##name_in##_array_nocallback(param_t * param, unsigned int i, _type value) \
+	inline void param_set_##name_in##_array_nocallback(const param_t * param, unsigned int i, _type value) \
 	{ \
 		__param_set_##name_in(param, value, false, i); \
 	}
@@ -137,7 +143,7 @@ PARAM_SET(double, double, )
 
 #undef PARAM_SET
 
-void param_set(param_t * param, unsigned int offset, void * value) {
+void param_set(const param_t * param, unsigned int offset, void * value) {
 	switch(param->type) {
 
 #define PARAM_SET(casename, name, type) \
@@ -170,13 +176,13 @@ void param_set(param_t * param, unsigned int offset, void * value) {
 	}
 }
 
-void param_set_string(param_t * param, const char * inbuf, int len) {
+void param_set_string(const param_t * param, const char * inbuf, int len) {
 	param_set_data_nocallback(param, inbuf, len);
 	/* Termination */
 	if (param->vmem && param->vmem->write) {
 		param->vmem->write(param->vmem, param->vaddr + len, "", 1);
 	} else {
-		memcpy(param->addr + len , "", 1);
+		memcpy((uint8_t *) param->addr + len , "", 1);
 	}
 	/* Callback */
 	if (param->callback) {
@@ -184,7 +190,7 @@ void param_set_string(param_t * param, const char * inbuf, int len) {
 	}
 }
 
-void param_set_data_nocallback(param_t * param, const void * inbuf, int len) {
+void param_set_data_nocallback(const param_t * param, const void * inbuf, int len) {
 	if (param->vmem && param->vmem->write) {
 		param->vmem->write(param->vmem, param->vaddr, inbuf, len);
 	} else {
@@ -192,7 +198,7 @@ void param_set_data_nocallback(param_t * param, const void * inbuf, int len) {
 	}
 }
 
-void param_set_data(param_t * param, const void * inbuf, int len) {
+void param_set_data(const param_t * param, const void * inbuf, int len) {
 	param_set_data_nocallback(param, inbuf, len);
 	/* Callback */
 	if (param->callback) {
@@ -223,7 +229,7 @@ int param_typesize(param_type_e type) {
 	return -1;
 }
 
-int param_size(param_t * param) {
+int param_size(const param_t * param) {
 	switch(param->type) {
 	case PARAM_TYPE_STRING:
 	case PARAM_TYPE_DATA:
@@ -233,7 +239,7 @@ int param_size(param_t * param) {
 	}
 }
 
-void param_copy(param_t * dest, param_t * src) {
+void param_copy(const param_t * dest, const param_t * src) {
 
 	/* Type check */
 	if (dest->type != src->type) {

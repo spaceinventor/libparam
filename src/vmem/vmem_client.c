@@ -6,16 +6,17 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <csp/arch/csp_time.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #include <vmem/vmem_client.h>
 
-static int abort = 0;
+static int client_abort = 0;
 
 void vmem_client_abort(void) {
-	abort = 1;
+	client_abort = 1;
 }
 
 int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp) {
@@ -27,7 +28,7 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 int vmem_download_progress(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp, vmem_progress_cb cb)
 {
 	uint32_t time_begin = csp_get_ms();
-	abort = 0;
+	client_abort = 0;
 
 	/* Establish RDP connection */
 	uint32_t opts = CSP_O_CRC32;
@@ -70,7 +71,7 @@ int vmem_download_progress(int node, int timeout, uint64_t address, uint32_t len
 		if (packet == NULL)
 			break;
 
-		if (abort) {
+		if (client_abort) {
 			csp_buffer_free(packet);
 			break;
 		}
@@ -108,6 +109,7 @@ int vmem_download_progress(int node, int timeout, uint64_t address, uint32_t len
 }
 
 void vmem_progress(uint32_t total, uint32_t sofar) {
+	(void) total;
 
 	if ((sofar / VMEM_SERVER_MTU) % 32 == 0) {
 		printf("  ");
@@ -127,7 +129,7 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 
 int vmem_upload_progress(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version, vmem_progress_cb cb) {
 
-	abort = 0;
+	client_abort = 0;
 
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_HIGH, node, VMEM_PORT_SERVER, timeout, CSP_O_RDP | CSP_O_CRC32);
@@ -158,7 +160,7 @@ int vmem_upload_progress(int node, int timeout, uint64_t address, char * datain,
 	uint32_t count = 0;
 	while((count < length) && csp_conn_is_active(conn)) {
 
-		if (abort) {
+		if (client_abort) {
 			csp_buffer_free(packet);
 			break;
 		}
@@ -167,7 +169,7 @@ int vmem_upload_progress(int node, int timeout, uint64_t address, char * datain,
 		}
 
 		/* Prepare packet */
-		csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
+		packet = csp_buffer_get(VMEM_SERVER_MTU);
 		packet->length = VMEM_MIN(VMEM_SERVER_MTU, length - count);
 
 		/* Copy data */
@@ -216,7 +218,7 @@ static csp_packet_t * vmem_client_list_get(int node, int timeout, int version) {
 		resp->length = 0;
 		/* Keep receiving until we got everything or we got a timeout */
 		while ((packet = csp_read(conn, timeout)) != NULL) {
-			if (packet->data[0] & 0b01000000) {
+			if (packet->data[0] & 0x40) {
 				/* First packet */
 				resp->length = 0;
 			}
@@ -225,7 +227,7 @@ static csp_packet_t * vmem_client_list_get(int node, int timeout, int version) {
 			memcpy(&resp->data[resp->length], &packet->data[1], (packet->length - 1));
 			resp->length += (packet->length - 1);
 
-			if (packet->data[0] & 0b10000000) {
+			if (packet->data[0] & 0x80) {
 				/* Last packet, break the loop */
 				csp_buffer_free(packet);
 				break;
@@ -282,7 +284,7 @@ int vmem_client_find(int node, int timeout, void * dataout, int version, char * 
 		return -1;
 
 	if (version == 3) {
-		vmem_list3_t ret = {};
+		vmem_list3_t ret = {0};
 		for (vmem_list3_t * vmem = (void *)packet->data; (intptr_t)vmem < (intptr_t)packet->data + packet->length; vmem++) {
 			if (strncmp(vmem->name, name, namelen) == 0) {
 				ret.vmem_id = vmem->vmem_id;
@@ -294,7 +296,7 @@ int vmem_client_find(int node, int timeout, void * dataout, int version, char * 
 		}
 		memcpy(dataout, &ret, sizeof(vmem_list3_t));
 	} else if (version == 2) {
-		vmem_list2_t ret = {};
+		vmem_list2_t ret = {0};
 		for (vmem_list2_t * vmem = (void *)packet->data; (intptr_t)vmem < (intptr_t)packet->data + packet->length; vmem++) {
 			if (strncmp(vmem->name, name, namelen) == 0) {
 				ret.vmem_id = vmem->vmem_id;
@@ -306,7 +308,7 @@ int vmem_client_find(int node, int timeout, void * dataout, int version, char * 
 		}
 		memcpy(dataout, &ret, sizeof(vmem_list2_t));
 	} else {
-		vmem_list_t ret = {};
+		vmem_list_t ret = {0};
 		for (vmem_list_t * vmem = (void *)packet->data; (intptr_t)vmem < (intptr_t)packet->data + packet->length; vmem++) {
 			if (strncmp(vmem->name, name, namelen) == 0) {
 				ret.vmem_id = vmem->vmem_id;

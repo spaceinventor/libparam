@@ -19,9 +19,9 @@ struct param_collector_config_s {
 
 extern struct param_collector_config_s param_collector_config[];
 
-extern param_t col_run;
-extern param_t col_verbose;
-extern param_t col_cnfstr;
+extern const param_t col_run;
+extern const param_t col_verbose;
+extern const param_t col_cnfstr;
 
 void param_collector_init(void);
 

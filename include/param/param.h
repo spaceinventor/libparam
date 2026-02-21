@@ -10,7 +10,6 @@
 
 #include <stdint.h>
 #include <csp/csp_types.h>
-#include <vmem/vmem.h>
 
 #include <libparam.h>
 
@@ -41,6 +40,31 @@ typedef enum {
 	PARAM_TYPE_DATA,
 	PARAM_TYPE_INVALID,
 } param_type_e;
+
+#define PARAM_CTYPE_PARAM_TYPE_UINT8   uint8_t
+#define PARAM_CTYPE_PARAM_TYPE_UINT16  uint16_t
+#define PARAM_CTYPE_PARAM_TYPE_UINT32  uint32_t
+#define PARAM_CTYPE_PARAM_TYPE_UINT64  uint64_t
+#define PARAM_CTYPE_PARAM_TYPE_INT8    int8_t
+#define PARAM_CTYPE_PARAM_TYPE_INT16   int16_t
+#define PARAM_CTYPE_PARAM_TYPE_INT32   int32_t
+#define PARAM_CTYPE_PARAM_TYPE_INT64   int64_t
+#define PARAM_CTYPE_PARAM_TYPE_XINT8   uint8_t
+#define PARAM_CTYPE_PARAM_TYPE_XINT16  uint16_t
+#define PARAM_CTYPE_PARAM_TYPE_XINT32  uint32_t
+#define PARAM_CTYPE_PARAM_TYPE_XINT64  uint64_t
+#define PARAM_CTYPE_PARAM_TYPE_FLOAT   float
+#define PARAM_CTYPE_PARAM_TYPE_DOUBLE  double
+#define PARAM_CTYPE_PARAM_TYPE_STRING  char
+#define PARAM_CTYPE_PARAM_TYPE_DATA  char
+
+
+/* “Selector” macro */
+#define PARAM_CTYPE(_ptype_token) PARAM_CTYPE_##_ptype_token
+
+/* Deriver sizeof/alignof fra token */
+#define PARAM_SIZEOF(_ptype_token)  (sizeof(PARAM_CTYPE(_ptype_token)))
+#define PARAM_ALIGNOF(_ptype_token) (_Alignof(PARAM_CTYPE(_ptype_token)))
 
 /**
  * Global parameter mask
@@ -90,37 +114,36 @@ typedef enum {
 /**
  * Parameter description structure
  * Note: this is not packed in order to maximise run-time efficiency
+ *       But the order of the elements is chosen to minimize padding.
+ *       So we start by largest types first, down to smallest types.
  */
 typedef struct param_s {
+	
+	uint64_t vaddr; /* Virtual address in case of VMEM */
 
-	/* Parameter declaration */
-	uint16_t id;
 	uint16_t * node;
-	param_type_e type;
-	uint32_t mask;
 	char *name;
 	char *unit;
 	char *docstr;
-
-	/* Storage */
 	void * addr; /* Physical address */
-	uint64_t vaddr; /* Virtual address in case of VMEM */
-	struct vmem_s * vmem;
-	int array_size;
-	int array_step;
+	const struct vmem_s * vmem;
+	void (*callback)(const struct param_s * param, int offset);
 
-	/* Local info */
-	void (*callback)(struct param_s * param, int offset);
-#ifdef PARAM_HAVE_TIMESTAMP
+	#ifdef PARAM_HAVE_TIMESTAMP
 	csp_timestamp_t * timestamp;
-#endif
-
-#ifdef PARAM_HAVE_SYS_QUEUE
+	#endif
+	
+	#ifdef PARAM_HAVE_SYS_QUEUE
 	/* single linked list:
-	 * The weird definition format comes from sys/queue.h SLINST_ENTRY() macro */
+	* The weird definition format comes from sys/queue.h SLINST_ENTRY() macro */
 	struct { struct param_s *sle_next; } next;
-#endif
+	#endif
 
+	uint32_t mask;
+	uint16_t id;
+	uint16_t array_step;    // Deliberate use of 16-bit to balance speed and size
+	uint16_t array_size;    // Deliberate use of 16-bit to balance speed and size
+	uint16_t type;          // Deliberate use of 16-bit to balance speed and size
 
 } param_t;
 
@@ -149,16 +172,55 @@ typedef struct param_s {
 #define PARAM_TIMESTAMP_INIT(_name)
 #endif
 
+static const uint16_t node_self = 0;
+
+#define STR1(x) #x
+#define STR(x)  STR1(x)
+
+/*
+ * Compile-time type check for param backing storage.
+ *
+ * This macro verifies that the C type of the object pointed to by `ptr`
+ * matches the PARAM_TYPE_* token specified by `_ptype_token`.
+ *
+ * It uses the GCC/Clang builtin `__builtin_types_compatible_p(T1, T2)`,
+ * which evaluates to 1 at compile time if the two types are compatible
+ * (i.e. the same underlying type), and 0 otherwise.
+ *
+ * The result is stored in a uniquely named enum constant to force the
+ * expression to be an integer constant expression, allowing it to be
+ * used in a `_Static_assert`.
+ *
+ * If the types do not match, compilation fails with a clear error message,
+ * preventing mismatches such as declaring PARAM_TYPE_UINT16 for a uint8_t
+ * variable, or passing the address of an array instead of an element.
+ *
+ * Notes:
+ *  - This check is evaluated entirely at compile time.
+ *  - No code or data is generated.
+ *  - Requires GCC or Clang (GNU extensions enabled).
+ */
+#define PARAM_TYPECHECK(_name, _ptype_token, ptr)                           \
+    enum {                                                                  \
+        param_typecheck__##_name = __builtin_types_compatible_p(            \
+            __typeof__(*(ptr)), PARAM_CTYPE(_ptype_token)                   \
+        )                                                                   \
+    };                                                                      \
+    _Static_assert(param_typecheck__##_name,                                \
+                   "param: param_type does not match pointer element type")
+
+
 
 #define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr) \
-	; /* Catch const param defines */ \
+	_Static_assert(((_array_count) <= 1) ? ((_array_step) <= 0) : ((_array_step) >= PARAM_SIZEOF(_type)), "param: array_step invalid for array_count"); \
+	_Static_assert(((_array_count) <= 1) ? 1 : (((_array_step) % PARAM_ALIGNOF(_type)) == 0U),"param: array_step not aligned to type"); \
+	PARAM_TYPECHECK(_name, _type, _physaddr); \
 	PARAM_TIMESTAMP_DECL(_name) \
-	uint16_t _node_##_name = 0; \
-	__attribute__((section("param"))) \
-	__attribute__((used, no_reorder)) \
-	param_t _name = { \
+	__attribute__((section("param." STR(_name)))) \
+	__attribute__((used, aligned(8))) \
+	const param_t _name = { \
 		.vmem = NULL, \
-		.node = &_node_##_name, \
+		.node = (uint16_t *) &node_self, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
@@ -174,13 +236,13 @@ typedef struct param_s {
 	}
 
 #define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
-	; /* Catch const param defines */ \
+	_Static_assert(((_array_count) <= 1) ? ((_array_step) <= 0) : ((_array_step) >= PARAM_SIZEOF(_type)), "param: array_step invalid for array_count"); \
+	_Static_assert(((_array_count) <= 1) ? 1 : (((_array_step) % PARAM_ALIGNOF(_type)) == 0U),"param: array_step not aligned to type"); \
 	PARAM_TIMESTAMP_DECL(_name) \
-	uint16_t _node_##_name = 0; \
-	__attribute__((section("param"))) \
-	__attribute__((used, no_reorder)) \
-	param_t _name = { \
-		.node = &_node_##_name, \
+	__attribute__((section("param." STR(_name)))) \
+	__attribute__((used, aligned(8))) \
+	const param_t _name = { \
+		.node = (uint16_t *) &node_self, \
 		.id = _id, \
 		.type = _type, \
 		.name = #_name, \
@@ -199,11 +261,13 @@ typedef struct param_s {
 #define PARAM_REMOTE_NODE_IGNORE 16382
 
 #define PARAM_DEFINE_REMOTE(_id, _name, _nodeaddr, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
-	; /* Catch const param defines */ \
+	_Static_assert(((_array_count) <= 1) ? ((_array_step) <= 0) : ((_array_step) >= PARAM_SIZEOF(_type)), "param: array_step invalid for array_count"); \
+	_Static_assert(((_array_count) <= 1) ? 1 : (((_array_step) % PARAM_ALIGNOF(_type)) == 0U),"param: array_step not aligned to type"); \
+	PARAM_TYPECHECK(_name, _type, _physaddr); \
 	PARAM_TIMESTAMP_DECL(_name) \
-	__attribute__((section("param"))) \
-	__attribute__((used, no_reorder)) \
-	param_t _name = { \
+	__attribute__((section("param." STR(_name)))) \
+	__attribute__((used, aligned(8))) \
+	const param_t _name = { \
 		.node = _nodeaddr, \
 		.id = _id, \
 		.type = _type, \
@@ -219,7 +283,9 @@ typedef struct param_s {
 	};
 
 #define PARAM_DEFINE_REMOTE_DYNAMIC(_id, _name, _node, _type, _array_count, _array_step, _flags, _physaddr, _docstr) \
-	; /* Catch const param defines */ \
+	_Static_assert(((_array_count) <= 1) ? ((_array_step) <= 0) : ((_array_step) >= PARAM_SIZEOF(_type)), "param: array_step invalid for array_count"); \
+	_Static_assert(((_array_count) <= 1) ? 1 : (((_array_step) % PARAM_ALIGNOF(_type)) == 0U),"param: array_step not aligned to type"); \
+	PARAM_TYPECHECK(_name, _type, _physaddr); \
 	PARAM_TIMESTAMP_DECL(_name) \
 	uint16_t _node_##_name = _node; \
 	param_t _name = { \
@@ -239,8 +305,8 @@ typedef struct param_s {
 
 /* Native getter functions, will return native types */
 #define PARAM_GET(type, name) \
-	type param_get_##name(param_t * param); \
-	type param_get_##name##_array(param_t * param, unsigned int i);
+	type param_get_##name(const param_t * param); \
+	type param_get_##name##_array(const param_t * param, unsigned int i);
 PARAM_GET(uint8_t, uint8)
 PARAM_GET(uint16_t, uint16)
 PARAM_GET(uint32_t, uint32)
@@ -255,10 +321,10 @@ PARAM_GET(double, double)
 
 /* Native setter functions, these take a native type as argument */
 #define PARAM_SET(type, name) \
-	void param_set_##name(param_t * param, type value); \
-	void param_set_##name##_nocallback(param_t * param, type value); \
-	void param_set_##name##_array(param_t * param, unsigned int i, type value); \
-	void param_set_##name##_array_nocallback(param_t * param, unsigned int i, type value);
+	void param_set_##name(const param_t * param, type value); \
+	void param_set_##name##_nocallback(const param_t * param, type value); \
+	void param_set_##name##_array(const param_t * param, unsigned int i, type value); \
+	void param_set_##name##_array_nocallback(const param_t * param, unsigned int i, type value);
 PARAM_SET(uint8_t, uint8)
 PARAM_SET(uint16_t, uint16)
 PARAM_SET(uint32_t, uint32)
@@ -272,24 +338,24 @@ PARAM_SET(double, double)
 #undef PARAM_SET
 
 /* Non-native types needs to go through a function which includes a void pointer and the length */
-void param_set_data(param_t * param, const void * inbuf, int len);
-void param_set_data_nocallback(param_t * param, const void * inbuf, int len);
-void param_get_data(param_t * param, void * outbuf, int len);
-void param_set_string(param_t * param, const char * inbuf, int len);
+void param_set_data(const param_t * param, const void * inbuf, int len);
+void param_set_data_nocallback(const param_t * param, const void * inbuf, int len);
+void param_get_data(const param_t * param, void * outbuf, int len);
+void param_set_string(const param_t * param, const char * inbuf, int len);
 #define param_get_string param_get_data
 
 /* Generic setter function:
  * This function can be used to set data of any type
  */
-void param_set(param_t * param, unsigned int offset, void * value);
-void param_get(param_t * param, unsigned int offset, void * value);
+void param_set(const param_t * param, unsigned int offset, void * value);
+void param_get(const param_t * param, unsigned int offset, void * value);
 
 /* Returns the size of a native type */
 int param_typesize(param_type_e type);
-int param_size(param_t * param);
+int param_size(const param_t * param);
 
 /* Copies from one parameter to another */
-void param_copy(param_t * dest, param_t * src);
+void param_copy(const param_t * dest, const param_t * src);
 
 /* External hooks to get atomic writes */
 extern __attribute__((weak)) void param_enter_critical(void);
