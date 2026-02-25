@@ -32,9 +32,9 @@ typedef struct {
 	FILE * stream;
 } vmem_file_driver_t;
 
-void vmem_file_init(vmem_t * vmem);
-void vmem_file_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len);
-void vmem_file_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len);
+void vmem_file_init(const vmem_t * vmem);
+void vmem_file_read(const vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len);
+void vmem_file_write(const vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len);
 
 #define VMEM_DEFINE_FILE(name_in, strname, filename_in, size_in) \
 	uint8_t vmem_##name_in##_buf[size_in] = {}; \
