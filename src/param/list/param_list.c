@@ -402,8 +402,8 @@ void param_list_clear(void) {
 #endif
 
 /* WARNING: This function resets complete list */
-static void param_list_destroy_impl(param_t * param) {
-
+static void param_list_destroy_impl(const param_t * param) {
+	(void) param; /* Unused */
 	param_heap_used = 0;
 	param_buffer_used = 0;
 }
@@ -430,7 +430,9 @@ typedef struct param_heap_s {
 		uint8_t *buffer;
 	};
 	uint16_t node;
+#if PARAM_HAVE_TIMESTAMP
 	csp_timestamp_t timestamp;
+#endif
 	char name[36];
 	char unit[10];
 	char help[150];
@@ -598,42 +600,44 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	if (array_size < 1)
 		array_size = 1;
 
-	param_heap_t * param_heap = param_list_alloc(type, array_size);
-	if (param_heap == NULL) {
+	param_heap_t * param_new_heap = param_list_alloc(type, array_size);
+	if (param_new_heap == NULL) {
 		return NULL;
 	}
 
-	param_t * param = &param_heap->param;
+	param_t * param = &param_new_heap->param;
 	if (param == NULL) {
 		return NULL;
 	}
 
-	param_heap->node = node;
+	param_new_heap->node = node;
 
-	param->vmem = &param_heap->vmem;
+	param->vmem = &param_new_heap->vmem;
 	param->callback = NULL;
-	param->name = param_heap->name;
-	param->addr = param_heap->buffer;
-	param->timestamp = &param_heap->timestamp;
-	param->unit = param_heap->unit;
-	param->docstr = param_heap->help;
+	param->name = param_new_heap->name;
+	param->addr = param_new_heap->buffer;
+#if PARAM_HAVE_TIMESTAMP
+	param->timestamp = &param_new_heap->timestamp;
+#endif
+	param->unit = param_new_heap->unit;
+	param->docstr = param_new_heap->help;
 
 	param->id = id;
-	param->node = &param_heap->node;
+	param->node = &param_new_heap->node;
 	param->type = type;
 	param->mask = mask;
 	param->array_size = array_size;
 	param->array_step = param_typesize(type);
 
-	param_heap->vmem.ack_with_pull = false;
-	param_heap->vmem.driver = NULL;
-	param_heap->vmem.name = "REMOTE";
-	param_heap->vmem.read = NULL;
-	param_heap->vmem.size = array_size*param_typesize(type);
-	param_heap->vmem.type = storage_type;
-	param_heap->vmem.vaddr = (uint64_t)(uintptr_t)param_heap->buffer;
-	param_heap->vmem.big_endian = false;
-	param_heap->vmem.write = NULL;
+	param_new_heap->vmem.ack_with_pull = false;
+	param_new_heap->vmem.driver = NULL;
+	param_new_heap->vmem.name = "REMOTE";
+	param_new_heap->vmem.read = NULL;
+	param_new_heap->vmem.size = array_size*param_typesize(type);
+	param_new_heap->vmem.type = storage_type;
+	param_new_heap->vmem.vaddr = (uint64_t)(uintptr_t)param_new_heap->buffer;
+	param_new_heap->vmem.big_endian = false;
+	param_new_heap->vmem.write = NULL;
 
 	strlcpy(param->name, name, 36);
 	if (unit) {
