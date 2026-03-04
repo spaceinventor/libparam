@@ -430,7 +430,7 @@ typedef struct param_heap_s {
 		uint8_t *buffer;
 	};
 	uint16_t node;
-#if PARAM_HAVE_TIMESTAMP
+#ifdef PARAM_HAVE_TIMESTAMP
 	csp_timestamp_t timestamp;
 #endif
 	char name[36];
@@ -616,7 +616,7 @@ param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, in
 	param->callback = NULL;
 	param->name = param_new_heap->name;
 	param->addr = param_new_heap->buffer;
-#if PARAM_HAVE_TIMESTAMP
+#ifdef PARAM_HAVE_TIMESTAMP
 	param->timestamp = &param_new_heap->timestamp;
 #endif
 	param->unit = param_new_heap->unit;
