@@ -33,7 +33,7 @@ A custom variable array can be accessed as a parameter by applying the following
 .. code-block:: c
 
     uint8_t _state[2];
-    void state_cb(param_t * param, int index);
+    void state_cb(const param_t * param, int index);
     PARAM_DEFINE_STATIC_RAM(PARAMID_STATE, state, PARAM_TYPE_UINT8, \
         sizeof(_state)/sizeof(_state[0]), sizeof(_state[0]), PM_TELEM, state_cb, NULL, \
         &_state[0], "0 = idle, 1 = waiting, 2 = running");
