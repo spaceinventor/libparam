@@ -412,7 +412,6 @@ static void param_list_destroy_impl(const param_t * param) {
 
 #ifdef PARAM_LIST_DYNAMIC
 
-#if 0
 void param_list_clear(void) {
 	while (!SLIST_EMPTY(&param_list_head)) {
 		struct param_s *param = SLIST_FIRST(&param_list_head);
@@ -420,7 +419,6 @@ void param_list_clear(void) {
 		param_list_destroy(param);
 	}
 }
-#endif
 
 typedef struct param_heap_s {
 	param_t param;

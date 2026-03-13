@@ -64,6 +64,7 @@ const param_t * param_list_from_line(const char * line);
  */
 param_t * param_list_create_remote(int id, int node, int type, uint32_t mask, int array_size, char * name, char * unit, char * help, int storage_type);
 
+void param_list_clear(void);
 void param_list_destroy(const param_t * param);
 void param_print(const param_t * param, int offset, int nodes[], int nodes_count, int verbose, uint32_t ref_timestamp);
 
