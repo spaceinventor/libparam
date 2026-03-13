@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include <malloc.h>
-#include <inttypes.h>
+#include <string.h>
 #include <param/param.h>
 #include <csp/csp.h>
 #include <csp/arch/csp_time.h>
