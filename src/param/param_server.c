@@ -73,8 +73,9 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 	struct param_serve_context ctx;
 	ctx.request = request;
 	ctx.q_response.version = version;
-	/* If packet->data[1] == 1 ack with pull response */
-	int ack_with_pull = request->data[1] == 1 ? 1 : 0;
+	/* ack_with_pull == ack with pull response */
+	const int ack_with_pull = (request->data[1] & 0b01) != 0;
+	const int include_remotes = (request->data[1] & 0b10) != 0;
 
 	if (__allocate(&ctx) < 0) {
 		csp_buffer_free(request);
@@ -145,6 +146,9 @@ static void param_serve_pull_request(csp_packet_t * request, int all, int versio
 		param_list_iterator i = {0};
 		while ((param = param_list_iterate(&i)) != NULL) {
 			if (param->mask & PM_HIDDEN) {
+				continue;
+			}
+			if (!include_remotes && *param->node != 0) {
 				continue;
 			}
 			uint32_t include_mask = be32toh(ctx.request->data32[1]);
