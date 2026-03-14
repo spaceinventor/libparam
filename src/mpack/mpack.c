@@ -51,34 +51,12 @@ MPACK_SILENCE_WARNINGS_BEGIN
 
 #if MPACK_DEBUG
 
-#if MPACK_STDIO
-void mpack_assert_fail_format(const char* format, ...) {
-    char buffer[512];
-    va_list args;
-    va_start(args, format);
-    vsnprintf(buffer, sizeof(buffer), format, args);
-    va_end(args);
-    buffer[sizeof(buffer) - 1] = 0;
-    mpack_assert_fail_wrapper(buffer);
-}
-
-void mpack_break_hit_format(const char* format, ...) {
-    char buffer[512];
-    va_list args;
-    va_start(args, format);
-    vsnprintf(buffer, sizeof(buffer), format, args);
-    va_end(args);
-    buffer[sizeof(buffer) - 1] = 0;
-    mpack_break_hit(buffer);
-}
-#endif
-
 #if !MPACK_CUSTOM_ASSERT
 void mpack_assert_fail(const char* message) {
     MPACK_UNUSED(message);
 
     #if MPACK_STDIO
-    fprintf(stderr, "%s\n", message);
+    printf("%s\n", message);
     #endif
 }
 #endif
@@ -1254,7 +1232,7 @@ void mpack_writer_init_growable(mpack_writer_t* writer, char** target_data, size
 }
 #endif
 
-#if MPACK_STDIO
+#if MPACK_MALLOC
 static void mpack_file_writer_flush(mpack_writer_t* writer, const char* buffer, size_t count) {
     FILE* file = (FILE*)writer->context;
     size_t written = fwrite((const void*)buffer, 1, count, file);
@@ -2860,7 +2838,7 @@ void mpack_reader_set_skip(mpack_reader_t* reader, mpack_reader_skip_t skip) {
     reader->skip = skip;
 }
 
-#if MPACK_STDIO
+#if MPACK_MALLOC
 static size_t mpack_file_reader_fill(mpack_reader_t* reader, char* buffer, size_t count) {
     if (feof((FILE *)reader->context)) {
        mpack_reader_flag_error(reader, mpack_error_eof);

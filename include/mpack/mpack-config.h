@@ -97,7 +97,7 @@
  * reading/writing C files and makes debugging easier.
  */
 #ifndef MPACK_STDIO
-#define MPACK_STDIO 0
+#define MPACK_STDIO 1
 #endif
 
 /**
@@ -120,9 +120,7 @@
  *
  * The default is malloc() if @ref MPACK_STDLIB is enabled.
  */
-#ifdef PARAM_LIST_DYNAMIC
-#define MPACK_MALLOC malloc
-#endif
+#undef MPACK_MALLOC
 
 /**
  * @def MPACK_FREE
@@ -134,9 +132,8 @@
  * The default is free() if @ref MPACK_MALLOC has not been customized and
  * @ref MPACK_STDLIB is enabled.
  */
-#ifdef PARAM_LIST_DYNAMIC
-#define MPACK_FREE free
-#endif
+#undef MPACK_FREE
+
 
 /**
  * @def MPACK_REALLOC

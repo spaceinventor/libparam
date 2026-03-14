@@ -469,7 +469,7 @@
 #endif
 
 // Use defaults in stdlib if we have them. Without it we don't use malloc.
-#if defined(MPACK_STDLIB)
+#if 0
     #if MPACK_STDLIB && !defined(MPACK_MALLOC)
         #define MPACK_MALLOC malloc
         #define MPACK_REALLOC realloc
@@ -1681,7 +1681,7 @@ MPACK_EXTERN_C_BEGIN
 
 #if MPACK_DEBUG
     MPACK_NORETURN(void mpack_assert_fail_wrapper(const char* message));
-    #if MPACK_STDIO
+    #if 0
         MPACK_NORETURN(void mpack_assert_fail_format(const char* format, ...));
         #define mpack_assert_fail_at(line, file, exprstr, format, ...) \
                 MPACK_EXPAND(mpack_assert_fail_format("mpack assertion failed at " file ":" #line "\n%s\n" format, exprstr, __VA_ARGS__))
@@ -1712,7 +1712,7 @@ MPACK_EXTERN_C_BEGIN
                 (void)0))
 
     void mpack_break_hit(const char* message);
-    #if MPACK_STDIO
+    #if 0
         void mpack_break_hit_format(const char* format, ...);
         #define mpack_break_hit_at(line, file, ...) \
                 MPACK_EXPAND(mpack_break_hit_format("mpack breakpoint hit at " file ":" #line "\n" __VA_ARGS__))
@@ -1813,9 +1813,9 @@ MPACK_EXTERN_C_BEGIN
 
 /* Make sure our configuration makes sense */
 #ifndef MPACK_MALLOC
-    #if MPACK_STDIO
-        #error "MPACK_STDIO requires preprocessor definitions for MPACK_MALLOC and MPACK_FREE."
-    #endif
+    //#if MPACK_STDIO
+    //    #error "MPACK_STDIO requires preprocessor definitions for MPACK_MALLOC and MPACK_FREE."
+    //#endif
     #if MPACK_READ_TRACKING
         #error "MPACK_READ_TRACKING requires preprocessor definitions for MPACK_MALLOC and MPACK_FREE."
     #endif
