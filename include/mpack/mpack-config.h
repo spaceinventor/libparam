@@ -79,16 +79,10 @@
 /**
  * @def MPACK_STDLIB
  *
- * Enables the use of C stdlib. This allows the library to use malloc
+ * Enables the use of C stdlib. This allows the library 
  * for debugging and in allocation helpers.
  */
-#ifndef MPACK_STDLIB
-#ifdef PARAM_LIST_DYNAMIC
 #define MPACK_STDLIB 1
-#else
-#define MPACK_STDLIB 0
-#endif
-#endif
 
 /**
  * @def MPACK_STDIO
@@ -96,9 +90,7 @@
  * Enables the use of C stdio. This adds helpers for easily
  * reading/writing C files and makes debugging easier.
  */
-#ifndef MPACK_STDIO
 #define MPACK_STDIO 1
-#endif
 
 /**
  * @}
