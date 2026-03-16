@@ -103,6 +103,8 @@ void param_list_store_vmem_load(vmem_t * vmem);
 void list_add_output(uint32_t mask, FILE * out);
 void list_add_output_user_flags(uint32_t mask, FILE * out);
 
+uint8_t param_is_static(const param_t * param);
+
 #ifdef __cplusplus
 }
 #endif

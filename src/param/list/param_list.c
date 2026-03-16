@@ -37,7 +37,7 @@ _Static_assert(__alignof__(param_t) == 8, "param_t alignment must be exactly 8 b
 static SLIST_HEAD(param_list_head_s, param_s) param_list_head = {0};
 #endif
 
-static uint8_t param_is_static(const param_t * param) {
+uint8_t param_is_static(const param_t * param) {
 
 	__attribute__((weak)) extern const param_t __start_param;
 	__attribute__((weak)) extern const param_t __stop_param;
