@@ -1279,6 +1279,7 @@ void mpack_writer_init_stdfile(mpack_writer_t* writer, FILE* file, bool close_wh
             mpack_file_writer_teardown);
 }
 
+#if MPACK_MALLOC
 void mpack_writer_init_filename(mpack_writer_t* writer, const char* filename) {
     mpack_assert(filename != NULL, "filename is NULL");
 
@@ -1290,6 +1291,7 @@ void mpack_writer_init_filename(mpack_writer_t* writer, const char* filename) {
 
     mpack_writer_init_stdfile(writer, file, true);
 }
+#endif  // MPACK_MALLOC
 #endif
 
 void mpack_writer_flag_error(mpack_writer_t* writer, mpack_error_t error) {
@@ -2913,6 +2915,7 @@ void mpack_reader_init_stdfile(mpack_reader_t* reader, FILE* file, bool close_wh
             mpack_file_reader_teardown);
 }
 
+#if MPACK_MALLOC
 void mpack_reader_init_filename(mpack_reader_t* reader, const char* filename) {
     mpack_assert(filename != NULL, "filename is NULL");
 
@@ -2924,6 +2927,7 @@ void mpack_reader_init_filename(mpack_reader_t* reader, const char* filename) {
 
     mpack_reader_init_stdfile(reader, file, true);
 }
+#endif  // MPACK_MALLOC
 #endif
 
 mpack_error_t mpack_reader_destroy(mpack_reader_t* reader) {
@@ -4010,6 +4014,7 @@ void mpack_print_data_to_file(const char* data, size_t len, FILE* file) {
     mpack_print_flush(&print);
 }
 
+#if MPACK_MALLOC
 void mpack_print_stdfile_to_callback(FILE* file, mpack_print_callback_t callback, void* context) {
     char buffer[1024];
     mpack_print_t print;
@@ -4024,6 +4029,7 @@ void mpack_print_stdfile_to_callback(FILE* file, mpack_print_callback_t callback
     mpack_print_and_destroy(&reader, &print, 0);
     mpack_print_flush(&print);
 }
+#endif  // MPACK_MALLOC
 #endif
 
 #endif

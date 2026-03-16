@@ -3288,6 +3288,7 @@ void mpack_writer_init_error(mpack_writer_t* writer, mpack_error_t error);
  */
 void mpack_writer_init_filename(mpack_writer_t* writer, const char* filename);
 
+#if MPACK_MALLOC
 /**
  * Deprecated.
  *
@@ -3296,6 +3297,7 @@ void mpack_writer_init_filename(mpack_writer_t* writer, const char* filename);
 MPACK_INLINE void mpack_writer_init_file(mpack_writer_t* writer, const char* filename) {
     mpack_writer_init_filename(writer, filename);
 }
+#endif  // MPACK_MALLOC
 
 /**
  * Initializes an MPack writer that writes to a libc FILE. This can be used to
@@ -4518,6 +4520,7 @@ void mpack_reader_init_data(mpack_reader_t* reader, const char* data, size_t cou
  */
 void mpack_reader_init_filename(mpack_reader_t* reader, const char* filename);
 
+#if MPACK_MALLOC
 /**
  * Deprecated.
  *
@@ -4526,6 +4529,7 @@ void mpack_reader_init_filename(mpack_reader_t* reader, const char* filename);
 MPACK_INLINE void mpack_reader_init_file(mpack_reader_t* reader, const char* filename) {
     mpack_reader_init_filename(reader, filename);
 }
+#endif
 
 /**
  * Initializes an MPack reader that reads from a libc FILE. This can be used to
