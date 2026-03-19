@@ -241,7 +241,7 @@ static int32_t cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *ca
     return 0;
 }
 
-void vmem_block_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len) {
+void vmem_block_read(const vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len) {
 
     vmem_block_region_t *reg = (vmem_block_region_t *)vmem->driver;
     uint64_t physaddr = reg->physaddr + addr;
@@ -273,7 +273,7 @@ void vmem_block_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len)
 
 }
 
-void vmem_block_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len) {
+void vmem_block_write(const vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len) {
 
     vmem_block_region_t *reg = (vmem_block_region_t *)vmem->driver;
     uint64_t physaddr = reg->physaddr + addr;
@@ -316,7 +316,7 @@ void vmem_block_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_
 
 }
 
-int vmem_block_flush(vmem_t * vmem) {
+int vmem_block_flush(const vmem_t * vmem) {
 
     int res = 1;
     //printf("vmem_block_flush(%p)\n", vmem);

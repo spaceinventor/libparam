@@ -126,9 +126,9 @@ typedef struct vmem_block_region_s {
 		.driver = (void *)&vmem_##name_in##_region, \
 	};
 
-extern void vmem_block_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len);
-extern void vmem_block_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len);
-extern int vmem_block_flush(vmem_t * vmem);
+extern void vmem_block_read(const vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len);
+extern void vmem_block_write(const vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len);
+extern int vmem_block_flush(const vmem_t * vmem);
 extern void vmem_block_init(void);
 
 #ifdef __cplusplus
