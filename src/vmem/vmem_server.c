@@ -89,13 +89,13 @@ void vmem_server_handler(csp_conn_t * conn)
 
 		uint64_t length;
 		uint64_t address;
-		uint32_t mtu = VMEM_SERVER_MTU;
+		uint16_t mtu = VMEM_SERVER_MTU;
 		
 		if (request->version == 3) {
 			address = be64toh(request->data3.address);
 			length = be64toh(request->data3.length);
-			if (packet->length > offsetof(vmem_request_t, data3.packet_length)) {
-				mtu = request->data3.packet_length;
+			if (packet->length > offsetof(vmem_request_t, data3.mtu)) {
+				mtu = be16toh(request->data3.mtu);
 			}
 		} else if (request->version == 2) {
 			address = be64toh(request->data2.address);
