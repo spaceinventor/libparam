@@ -89,10 +89,14 @@ void vmem_server_handler(csp_conn_t * conn)
 
 		uint64_t length;
 		uint64_t address;
+		uint32_t mtu = VMEM_SERVER_MTU;
 		
 		if (request->version == 3) {
 			address = be64toh(request->data3.address);
 			length = be64toh(request->data3.length);
+			if (packet->length > offsetof(vmem_request_t, data3.packet_length)) {
+				mtu = request->data3.packet_length;
+			}
 		} else if (request->version == 2) {
 			address = be64toh(request->data2.address);
 			length = be32toh(request->data2.length);
@@ -114,11 +118,11 @@ void vmem_server_handler(csp_conn_t * conn)
 
 			while((count < length) && csp_conn_is_active(conn)) {
 				/* Prepare packet */
-				csp_packet_t * packet = csp_buffer_get(VMEM_SERVER_MTU);
+				csp_packet_t * packet = csp_buffer_get(mtu);
 				if (packet == NULL) {
 					break;
 				}
-				packet->length = VMEM_MIN(VMEM_SERVER_MTU, length - count);
+				packet->length = VMEM_MIN(mtu, length - count);
 
 				/* Get data */
 				vmem_read(packet->data, address + count, packet->length);
@@ -131,7 +135,7 @@ void vmem_server_handler(csp_conn_t * conn)
 		} else if (type == VMEM_SERVER_CALCULATE_CRC32) {
 
 			/* Do the CRC32 calculation on the address area (vmem) using the request packet as the buffer */
-			uint32_t crc = vmem_calc_crc32(address, length, &packet->data[0], VMEM_SERVER_MTU);
+			uint32_t crc = vmem_calc_crc32(address, length, &packet->data[0], mtu);
 
 			/* Convert to network byte order */
 			crc = htobe32(crc);
