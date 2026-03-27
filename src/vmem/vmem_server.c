@@ -90,6 +90,7 @@ void vmem_server_handler(csp_conn_t * conn)
 		uint64_t length;
 		uint64_t address;
 		uint16_t mtu = VMEM_SERVER_MTU;
+		const uint16_t mtu_max = CSP_BUFFER_SIZE - sizeof(csp_crc32_t) - 5; /* 5 bytes for RDP header */
 		
 		if (request->version == 3) {
 			address = be64toh(request->data3.address);
@@ -106,6 +107,10 @@ void vmem_server_handler(csp_conn_t * conn)
 		} else {
 			address = be32toh(request->data.address);
 			length = be32toh(request->data.length);
+		}
+
+		if (mtu > mtu_max) {
+			mtu = mtu_max;
 		}
 
 		//printf("Download from:");
