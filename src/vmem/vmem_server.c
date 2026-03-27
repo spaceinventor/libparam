@@ -96,6 +96,9 @@ void vmem_server_handler(csp_conn_t * conn)
 			length = be64toh(request->data3.length);
 			if (packet->length > offsetof(vmem_request_t, data3.mtu)) {
 				mtu = be16toh(request->data3.mtu);
+				if (mtu == 0 || mtu > CSP_BUFFER_SIZE) {
+					mtu = CSP_BUFFER_SIZE;
+				}
 			}
 		} else if (request->version == 2) {
 			address = be64toh(request->data2.address);
