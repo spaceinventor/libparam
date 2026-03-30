@@ -56,6 +56,7 @@ typedef struct {
 		struct {
 			uint64_t address;
 			uint64_t length;
+			uint16_t mtu;
 		} data3;
 		struct {
 			uint8_t vmem_id;

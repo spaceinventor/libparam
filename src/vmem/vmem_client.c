@@ -46,7 +46,11 @@ int vmem_download_progress(int node, int timeout, uint64_t address, uint32_t len
 	vmem_request_t * request = (void *) packet->data;
 	request->version = version;
 	request->type = VMEM_SERVER_DOWNLOAD;
-	if (version == 2) {
+	if (version == 3) {
+		request->data3.address = htobe64(address);
+		request->data3.length = htobe64(length);
+		request->data3.mtu = htobe16(VMEM_SERVER_MTU);
+	} else if (version == 2) {
 		request->data2.address = htobe64(address);
 		request->data2.length = htobe32(length);
 	} else {
