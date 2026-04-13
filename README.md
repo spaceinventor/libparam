@@ -1,1 +1,0 @@
-![build.yml status](https://github.com/spaceinventor/libparam/actions/workflows/ci.yml/badge.svg)

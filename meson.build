@@ -66,7 +66,6 @@ param_src = files([
 	'src/vmem/vmem.c',
 	'src/vmem/vmem_block.c',
 
-	'src/objstore/objstore.c',
 ])
 
 if get_option('have_fopen') == true
@@ -120,8 +119,4 @@ if get_option('default_library') == 'static'
 		link_with : param_lib,
 		link_whole: [param_lib]
 	)
-endif
-
-if get_option('test') == true
-    subdir('tests')
 endif
