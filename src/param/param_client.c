@@ -11,6 +11,8 @@
 #include <malloc.h>
 #include <inttypes.h>
 #include <param/param.h>
+#include <string.h>
+#include <endian.h>
 #include <csp/csp.h>
 #include <csp/arch/csp_time.h>
 #include <csp/csp_hooks.h>

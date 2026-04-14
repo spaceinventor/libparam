@@ -7,6 +7,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <endian.h>
+#include <string.h>
 #include <csp/csp.h>
 #include <sys/types.h>
 #include <csp/arch/csp_time.h>

@@ -1,4 +1,5 @@
 #include <string.h>
+#include <endian.h>
 #include <param/param.h>
 #include <libparam.h>
 

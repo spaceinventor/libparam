@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <endian.h>
 #include "libparam.h"
 #ifdef PARAM_LIST_DYNAMIC
 #include <malloc.h>

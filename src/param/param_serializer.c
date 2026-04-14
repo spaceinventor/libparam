@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <endian.h>
 
 #include <param/param.h>
 #include <param/param_server.h>
