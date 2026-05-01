@@ -19,15 +19,14 @@
 
 #if __64BIT__
 #define VMEM_FILE_VADDR_INITIALIZER(name_in) \
-		.vaddr = (uint64_t)vmem_##name_in##_buf
+		.vaddr = (uint64_t)&vmem_##name_in##_driver
 #else
 #define VMEM_FILE_VADDR_INITIALIZER(name_in) \
-		.vaddr32 = (uint32_t)vmem_##name_in##_buf, \
+		.vaddr32 = (uint32_t)&vmem_##name_in##_driver, \
 		.vaddr_pad = 0
 #endif
 
 typedef struct {
-	void * physaddr;
 	char * filename;
 	FILE * stream;
 } vmem_file_driver_t;
@@ -37,9 +36,7 @@ void vmem_file_read(const vmem_t * vmem, uint64_t addr, void * dataout, uint32_t
 void vmem_file_write(const vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len);
 
 #define VMEM_DEFINE_FILE(name_in, strname, filename_in, size_in) \
-	uint8_t vmem_##name_in##_buf[size_in] = {}; \
 	static vmem_file_driver_t vmem_##name_in##_driver = { \
-		.physaddr = vmem_##name_in##_buf, \
 		.filename = filename_in, \
 	}; \
 	__attribute__((section("vmem"))) \
@@ -57,9 +54,7 @@ void vmem_file_write(const vmem_t * vmem, uint64_t addr, const void * datain, ui
 	};
 
 #define VMEM_DEFINE_FILE_VADDR(name_in, strname, filename_in, size_in, fixed_vaddr) \
-	uint8_t vmem_##name_in##_buf[size_in] = {}; \
 	static vmem_file_driver_t vmem_##name_in##_driver = { \
-		.physaddr = vmem_##name_in##_buf, \
 		.filename = filename_in, \
 	}; \
 	__attribute__((section("vmem"))) \

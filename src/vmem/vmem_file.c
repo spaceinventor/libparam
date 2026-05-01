@@ -21,10 +21,7 @@ void vmem_file_init(const vmem_t * vmem) {
 		if (fd != -1) {
 			driver->stream = fdopen(fd, "r+");
 		}
-		if(driver->stream) {
-			int read = fread(driver->physaddr, 1, vmem->size, driver->stream);
-			(void) read;
-		} else {
+		if(!driver->stream) {
 			printf("\nWARNING: vmem[%s]: permission/path issues for associated filename: \"%s\"\n", vmem->name, driver->filename);
 		}
 	}
@@ -33,18 +30,22 @@ void vmem_file_init(const vmem_t * vmem) {
 void vmem_file_read(const vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len) {
 	vmem_file_driver_t *driver = (vmem_file_driver_t *) vmem->driver;
 	vmem_file_init(vmem);
-	memcpy(dataout, (void*)((intptr_t)driver->physaddr + addr), len);
+	if(driver->stream ) {
+	    int res = fseek(driver->stream, addr, SEEK_SET);
+		(void)res;
+	    res = fread(dataout, len, 1, driver->stream);
+		(void)res;
+	}
 }
 
 void vmem_file_write(const vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len) {
 	vmem_file_driver_t *driver = (vmem_file_driver_t *) vmem->driver;
-	memcpy((void *)((intptr_t)driver->physaddr + addr), datain, len);
 	vmem_file_init(vmem);
 	if(driver->stream ) {
 		/* Flush back to file */
 		int res = fseek(driver->stream, addr, SEEK_SET);
 		(void)res;
-		int written = fwrite((char *) driver->physaddr + addr, len, 1, driver->stream);
+		int written = fwrite(datain, len, 1, driver->stream);
 		fflush(driver->stream);
 		(void) written;
 	}
