@@ -32,9 +32,16 @@ typedef struct {
 	FILE * stream;
 } vmem_file_driver_t;
 
+typedef struct {
+	const char * filename;
+	FILE * stream;
+} vmem_file_vaddr_driver_t;
+
 void vmem_file_init(const vmem_t * vmem);
 void vmem_file_read(const vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len);
 void vmem_file_write(const vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len);
+void vmem_file_vaddr_read(const vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len);
+void vmem_file_vaddr_write(const vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len);
 
 #define VMEM_DEFINE_FILE(name_in, strname, filename_in, size_in) \
 	uint8_t vmem_##name_in##_buf[size_in] = {}; \
@@ -57,20 +64,18 @@ void vmem_file_write(const vmem_t * vmem, uint64_t addr, const void * datain, ui
 	};
 
 #define VMEM_DEFINE_FILE_VADDR(name_in, strname, filename_in, size_in, fixed_vaddr) \
-	uint8_t vmem_##name_in##_buf[size_in] = {}; \
-	static vmem_file_driver_t vmem_##name_in##_driver = { \
-		.physaddr = vmem_##name_in##_buf, \
+	static vmem_file_vaddr_driver_t vmem_##name_in##_driver = { \
 		.filename = filename_in, \
 	}; \
 	__attribute__((section("vmem"))) \
- 	__attribute__((aligned(8))) \
+ 	__attribute__((aligned(__alignof__(vmem_t)))) \
  	__attribute__((used)) \
 	const vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_FILE, \
 		.name = strname, \
 		.size = size_in, \
-		.read = vmem_file_read, \
-		.write = vmem_file_write, \
+		.read = vmem_file_vaddr_read, \
+		.write = vmem_file_vaddr_write, \
 		.driver = &vmem_##name_in##_driver, \
 		.vaddr = (uint64_t)fixed_vaddr, \
 		.ack_with_pull = 1, \
