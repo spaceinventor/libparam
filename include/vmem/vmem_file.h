@@ -19,10 +19,10 @@
 
 #if __64BIT__
 #define VMEM_FILE_VADDR_INITIALIZER(name_in) \
-		.vaddr = (uint64_t)&vmem_##name_in##_buf
+		.vaddr = (uint64_t)vmem_##name_in##_buf
 #else
 #define VMEM_FILE_VADDR_INITIALIZER(name_in) \
-		.vaddr32 = (uint32_t)&vmem_##name_in##_buf, \
+		.vaddr32 = (uint32_t)vmem_##name_in##_buf, \
 		.vaddr_pad = 0
 #endif
 
@@ -50,7 +50,7 @@ void vmem_file_vaddr_write(const vmem_t * vmem, uint64_t addr, const void * data
 		.filename = filename_in, \
 	}; \
 	__attribute__((section("vmem"))) \
- 	__attribute__((aligned(__alignof__(vmem_t)))) \
+ 	__attribute__((aligned(8))) \
  	__attribute__((used)) \
 	const vmem_t vmem_##name_in = { \
 		.type = VMEM_TYPE_FILE, \
