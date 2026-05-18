@@ -77,8 +77,9 @@ void vmem_file_vaddr_write(const vmem_t * vmem, uint64_t addr, const void * data
 		.read = vmem_file_vaddr_read, \
 		.write = vmem_file_vaddr_write, \
 		.driver = &vmem_##name_in##_driver, \
-		.vaddr = (uint64_t)fixed_vaddr, \
-		.ack_with_pull = 1, \
+		/* We ensure bit 59 is set so that no malloc'ed value will collide with these vaddr */ \
+		.vaddr = (1<<59) | (uint64_t)fixed_vaddr, \
+    .ack_with_pull = 1, \
 	};
 
 #endif /* LIB_PARAM_INCLUDE_VMEM_VMEM_FILE_H_ */
