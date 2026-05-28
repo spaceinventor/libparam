@@ -43,7 +43,7 @@ static bool address_in_cache(const vmem_block_driver_t *drv, vmem_block_cache_t 
 
 static void cache_flush(const vmem_block_driver_t *drv, vmem_block_cache_t *cache) {
 
-    if(drv->device->state == VMEM_BLOCK_STATE_UNKNOWN) {
+    if(*(drv->device->state) == VMEM_BLOCK_STATE_UNKNOWN) {
         int32_t res = _vmem_block_init(drv->device);
         if (res < 0) {
             return;
@@ -76,7 +76,7 @@ static int32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *c
         return 0;
     }
 
-    if(drv->device->state == VMEM_BLOCK_STATE_UNKNOWN) {
+    if(*(drv->device->state) == VMEM_BLOCK_STATE_UNKNOWN) {
         int32_t res = _vmem_block_init(drv->device);
         if (res < 0) {
             return 0;
@@ -179,7 +179,7 @@ static int32_t cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *ca
         return 0;
     }
 
-    if(drv->device->state == VMEM_BLOCK_STATE_UNKNOWN) {
+    if(*(drv->device->state) == VMEM_BLOCK_STATE_UNKNOWN) {
         int32_t res = _vmem_block_init(drv->device);
         if (res < 0) {
             return 0;
