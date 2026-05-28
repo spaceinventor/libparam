@@ -79,6 +79,7 @@ static int32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *c
     if(*(drv->device->state) == VMEM_BLOCK_STATE_UNKNOWN) {
         int32_t res = _vmem_block_init(drv->device);
         if (res < 0) {
+            (*length) = 0;
             return 0;
         }
     }
@@ -182,6 +183,7 @@ static int32_t cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *ca
     if(*(drv->device->state) == VMEM_BLOCK_STATE_UNKNOWN) {
         int32_t res = _vmem_block_init(drv->device);
         if (res < 0) {
+            (*length) = 0;
             return 0;
         }
     }
