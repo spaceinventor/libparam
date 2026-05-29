@@ -129,7 +129,7 @@ typedef struct vmem_block_region_s {
 extern void vmem_block_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len);
 extern void vmem_block_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len);
 extern int vmem_block_flush(vmem_t * vmem);
-extern void vmem_block_init(void);
+void vmem_block_init(void) __attribute__((error("vmem_block_init() has been removed. Block devices now use lazy initialization.")));
 
 #ifdef __cplusplus
 }

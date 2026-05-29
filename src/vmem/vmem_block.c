@@ -24,6 +24,7 @@ static int32_t cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *ca
 static int32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address, uintptr_t data, uint32_t *length);
 static void cache_flush(const vmem_block_driver_t *drv, vmem_block_cache_t *cache);
 static bool address_in_cache(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address);
+static int32_t _vmem_block_init(const vmem_block_device_t *dev);
 
 static bool address_in_cache(const vmem_block_driver_t *drv, vmem_block_cache_t *cache, uint64_t address) {
 
@@ -41,6 +42,13 @@ static bool address_in_cache(const vmem_block_driver_t *drv, vmem_block_cache_t 
 }
 
 static void cache_flush(const vmem_block_driver_t *drv, vmem_block_cache_t *cache) {
+
+    if(*(drv->device->state) == VMEM_BLOCK_STATE_UNKNOWN) {
+        int32_t res = _vmem_block_init(drv->device);
+        if (res < 0) {
+            return;
+        }
+    }
 
     if (cache->is_modified && cache->is_valid) {
         int32_t res;
@@ -67,6 +75,15 @@ static int32_t cache_write(const vmem_block_driver_t *drv, vmem_block_cache_t *c
     if (data == (uintptr_t)NULL || (*length) == 0) {
         return 0;
     }
+
+    if(*(drv->device->state) == VMEM_BLOCK_STATE_UNKNOWN) {
+        int32_t res = _vmem_block_init(drv->device);
+        if (res < 0) {
+            (*length) = 0;
+            return 0;
+        }
+    }
+
     if (!cache) {
         int32_t res;
         uint32_t len = 0;
@@ -161,6 +178,14 @@ static int32_t cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *ca
     //printf("::cache_read(%p,0x%"PRIX64",0x%"PRIXPTR",%"PRIu32")\n", drv, address, data, *length);
     if (data == (uintptr_t)NULL || (*length) == 0) {
         return 0;
+    }
+
+    if(*(drv->device->state) == VMEM_BLOCK_STATE_UNKNOWN) {
+        int32_t res = _vmem_block_init(drv->device);
+        if (res < 0) {
+            (*length) = 0;
+            return 0;
+        }
     }
 
     if (!cache) {
@@ -333,22 +358,19 @@ int vmem_block_flush(vmem_t * vmem) {
     return res;
 }
 
-void vmem_block_init(void) {
+static int32_t _vmem_block_init(const vmem_block_device_t * dev) {
 
-    /* Calling these methods requires that the FreeRTOS scheduler is started, since it uses usleep() */
-    if ((&__start_vmem_bdevice) && (&__stop_vmem_bdevice)) {
-        for(vmem_block_device_t *dev = (vmem_block_device_t *)&__start_vmem_bdevice; dev < (vmem_block_device_t *)&__stop_vmem_bdevice; dev++) {
-            /* Print some specifics for the particular block device */
-            printf("Initializing VMEM block device: '%s'\n", dev->name);
-            printf("   block size      : %"PRIu32" bytes\n", dev->bsize);
-            printf("   number of blocks: %"PRIu32"\n", dev->total_nblocks);
-            printf("   total size      : %"PRIu64" bytes\n", ((uint64_t)dev->bsize * (uint64_t)dev->total_nblocks));
-            /* Then initialize it */
-            if (dev->init) {
-                (*dev->init)(dev);
-            }
-        }
+    /* Print some specifics for the particular block device */
+    int32_t res = -1;
+    printf("Initializing VMEM block device: '%s'\n", dev->name);
+    printf("   block size      : %" PRIu32 " bytes\n", dev->bsize);
+    printf("   number of blocks: %" PRIu32 "\n", dev->total_nblocks);
+    printf("   total size      : %" PRIu64 " bytes\n", ((uint64_t)dev->bsize * (uint64_t)dev->total_nblocks));
+
+    /* Then initialize it */
+    if (dev->init) {
+        res = (*dev->init)(dev);
     }
 
+    return res;
 }
-
