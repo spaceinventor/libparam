@@ -374,17 +374,3 @@ static int32_t _vmem_block_init(const vmem_block_device_t * dev) {
 
     return res;
 }
-
-void vmem_block_init(void) {
-
-    /* Calling these methods requires that the FreeRTOS scheduler is started, since it uses usleep() */
-    if ((&__start_vmem_bdevice) && (&__stop_vmem_bdevice)) {
-        for(vmem_block_device_t *dev = (vmem_block_device_t *)&__start_vmem_bdevice; dev < (vmem_block_device_t *)&__stop_vmem_bdevice; dev++) {
-            int32_t res = _vmem_block_init(dev);
-            if (res < 0) {
-                printf("Error, could not initialize block device '%s'\n", dev->name);
-            }
-        }
-    }
-}
-
