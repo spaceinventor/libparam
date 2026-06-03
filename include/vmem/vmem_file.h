@@ -78,7 +78,7 @@ void vmem_file_vaddr_write(const vmem_t * vmem, uint64_t addr, const void * data
 		.write = vmem_file_vaddr_write, \
 		.driver = &vmem_##name_in##_driver, \
 		/* We ensure bit 59 is set so that no malloc'ed value will collide with these vaddr */ \
-		.vaddr = (1<<59) | (uint64_t)fixed_vaddr, \
+		.vaddr = (1LL<<59) | (uint64_t)fixed_vaddr, \
     .ack_with_pull = 1, \
 	};
 
