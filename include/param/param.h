@@ -120,7 +120,7 @@ typedef union param_bound_u {
 #define PM_PRIO3               (3 << 12) //! q: Priority of parameter for logging and retrieval (two bits)
 #define PM_PRIO_MASK           (3 << 12) //! q: Priority of parameter for logging and retrieval (two bits)
 
-#define PM_RANGE               (1 << 14) //! unused
+#define PM_UNUSED               (1 << 14) //! unused
 #define PM_HIDDEN              (1 << 15) //! H: Hidden parameter 
 
 /* Reserved flags:
