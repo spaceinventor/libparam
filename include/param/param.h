@@ -148,7 +148,7 @@ typedef struct param_s {
 	
 	uint64_t vaddr; /* Virtual address in case of VMEM */
 
-	param_bound_t min;   /* active only when PM_RANGE set */
+	param_bound_t min;
 	param_bound_t max;
 
 	uint16_t * node;
@@ -256,7 +256,7 @@ static const uint16_t node_self = 0;
 		.name = #_name, \
 		.array_size = _array_count < 1 ? 1 : _array_count, \
 		.array_step = _array_step, \
-		.mask = (_flags) | PM_RANGE, \
+		.mask = _flags, \
 		.unit = _unit, \
 		.callback = _callback, \
 		PARAM_TIMESTAMP_INIT(_name) \
