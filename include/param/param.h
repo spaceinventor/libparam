@@ -58,6 +58,32 @@ typedef enum {
 #define PARAM_CTYPE_PARAM_TYPE_STRING  char
 #define PARAM_CTYPE_PARAM_TYPE_DATA  char
 
+/* Boundary union for parameter values. This is used to store the min/max values of a parameter in a type-agnostic way. */
+typedef union param_bound_u {
+    int64_t  i;
+    uint64_t u;
+    float    f;
+    double   d;
+} param_bound_t;
+
+#define PARAM_BMEMBER_PARAM_TYPE_UINT8   u
+#define PARAM_BMEMBER_PARAM_TYPE_UINT16  u
+#define PARAM_BMEMBER_PARAM_TYPE_UINT32  u
+#define PARAM_BMEMBER_PARAM_TYPE_UINT64  u
+#define PARAM_BMEMBER_PARAM_TYPE_INT8    i
+#define PARAM_BMEMBER_PARAM_TYPE_INT16   i
+#define PARAM_BMEMBER_PARAM_TYPE_INT32   i
+#define PARAM_BMEMBER_PARAM_TYPE_INT64   i
+#define PARAM_BMEMBER_PARAM_TYPE_XINT8   u
+#define PARAM_BMEMBER_PARAM_TYPE_XINT16  u
+#define PARAM_BMEMBER_PARAM_TYPE_XINT32  u
+#define PARAM_BMEMBER_PARAM_TYPE_XINT64  u
+#define PARAM_BMEMBER_PARAM_TYPE_FLOAT   f
+#define PARAM_BMEMBER_PARAM_TYPE_DOUBLE  d
+#define PARAM_BMEMBER_PARAM_TYPE_STRING  i  /* unused */
+#define PARAM_BMEMBER_PARAM_TYPE_DATA    i  /* unused */
+#define PARAM_BMEMBER(_ptype_token) PARAM_BMEMBER_##_ptype_token
+
 
 /* “Selector” macro */
 #define PARAM_CTYPE(_ptype_token) PARAM_CTYPE_##_ptype_token
@@ -94,6 +120,7 @@ typedef enum {
 #define PM_PRIO3               (3 << 12) //! q: Priority of parameter for logging and retrieval (two bits)
 #define PM_PRIO_MASK           (3 << 12) //! q: Priority of parameter for logging and retrieval (two bits)
 
+#define PM_RANGE               (1 << 14) //! unused
 #define PM_HIDDEN              (1 << 15) //! H: Hidden parameter 
 
 /* Reserved flags:
@@ -120,6 +147,9 @@ typedef enum {
 typedef struct param_s {
 	
 	uint64_t vaddr; /* Virtual address in case of VMEM */
+
+	param_bound_t min;   /* active only when PM_RANGE set */
+	param_bound_t max;
 
 	uint16_t * node;
 	char *name;
@@ -211,7 +241,7 @@ static const uint16_t node_self = 0;
 
 
 
-#define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr) \
+#define PARAM_DEFINE_STATIC_RAM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _physaddr, _docstr, _min, _max) \
 	_Static_assert(((_array_count) <= 1) ? 1 : ((_array_step) >= PARAM_SIZEOF(_type)), "param: array_step invalid for array_count"); \
 	_Static_assert(((_array_count) <= 1) ? 1 : (((_array_step) % PARAM_ALIGNOF(_type)) == 0U),"param: array_step not aligned to type"); \
 	PARAM_TYPECHECK(_name, _type, _physaddr); \
@@ -226,7 +256,7 @@ static const uint16_t node_self = 0;
 		.name = #_name, \
 		.array_size = _array_count < 1 ? 1 : _array_count, \
 		.array_step = _array_step, \
-		.mask = _flags, \
+		.mask = (_flags) | PM_RANGE, \
 		.unit = _unit, \
 		.callback = _callback, \
 		PARAM_TIMESTAMP_INIT(_name) \

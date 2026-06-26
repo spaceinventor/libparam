@@ -97,6 +97,12 @@ void param_get_data(const param_t * param, void * outbuf, int len)
 		if (i >= (unsigned int) param->array_size) { \
 			return; \
 		} \
+		{ \
+			__typeof__(param->min._bmem) _v = (__typeof__(param->min._bmem)) value; \
+			if ((_v < param->min._bmem) || (_v > param->max._bmem)) { \
+				return; /* out of range: leave stored value unchanged */ \
+			} \
+		} \
 		if (param->vmem) { \
 			if (param->vmem->big_endian == 1) \
 				value = _swapfct(value); \
@@ -130,16 +136,16 @@ void param_get_data(const param_t * param, void * outbuf, int len)
 		__param_set_##name_in(param, value, false, i); \
 	}
 
-PARAM_SET(uint8_t, uint8, )
-PARAM_SET(uint16_t, uint16, htobe16)
-PARAM_SET(uint32_t, uint32, htobe32)
-PARAM_SET(uint64_t, uint64, htobe64)
-PARAM_SET(int8_t, int8, )
-PARAM_SET(int16_t, int16, htobe16)
-PARAM_SET(int32_t, int32, htobe32)
-PARAM_SET(int64_t, int64, htobe64)
-PARAM_SET(float, float, )
-PARAM_SET(double, double, )
+PARAM_SET(uint8_t,  uint8,  ,        u)
+PARAM_SET(uint16_t, uint16, htobe16, u)
+PARAM_SET(uint32_t, uint32, htobe32, u)
+PARAM_SET(uint64_t, uint64, htobe64, u)
+PARAM_SET(int8_t,   int8,   ,        i)
+PARAM_SET(int16_t,  int16,  htobe16, i)
+PARAM_SET(int32_t,  int32,  htobe32, i)
+PARAM_SET(int64_t,  int64,  htobe64, i)
+PARAM_SET(float,    float,  ,        f)
+PARAM_SET(double,   double, ,        d)
 
 #undef PARAM_SET
 
