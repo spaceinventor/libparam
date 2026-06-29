@@ -98,8 +98,9 @@ void param_get_data(const param_t * param, void * outbuf, int len)
 			return; \
 		} \
 		{ \
-			__typeof__(param->min._bmem) _v = (__typeof__(param->min._bmem)) value; \
-			if ((_v < param->min._bmem) || (_v > param->max._bmem)) { \
+			_type _min = (_type) param->min._bmem; \
+			_type _max = (_type) param->max._bmem; \
+			if ((value < _min) || (value > _max)) { \
 				return; /* out of range: leave stored value unchanged */ \
 			} \
 		} \
