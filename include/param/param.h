@@ -158,6 +158,7 @@ typedef struct param_s {
 	void * addr; /* Physical address */
 	const struct vmem_s * vmem;
 	void (*callback)(const struct param_s * param, int offset);
+	void (*pre_set)(const struct param_s * param, int offset, void * value);
 
 	#ifdef PARAM_HAVE_TIMESTAMP
 	csp_timestamp_t * timestamp;
@@ -263,6 +264,8 @@ static const uint16_t node_self = 0;
 		.addr = (void *)(_physaddr), \
 		.vaddr = 0, \
 		.docstr = _docstr, \
+		.min = { .PARAM_BMEMBER(_type) = (_min) }, \
+		.max = { .PARAM_BMEMBER(_type) = (_max) }, \
 	}
 
 #define PARAM_DEFINE_STATIC_VMEM(_id, _name, _type, _array_count, _array_step, _flags, _callback, _unit, _vmem_name, _vmem_addr, _docstr) \
