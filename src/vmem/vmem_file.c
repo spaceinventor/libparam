@@ -51,7 +51,7 @@ void vmem_file_write(const vmem_t * vmem, uint64_t addr, const void * datain, ui
 }
 
 static void vmem_file_vaddr_init(const vmem_t * vmem) {
-	vmem_file_driver_t *driver = (vmem_file_driver_t *) vmem->driver;
+	vmem_file_vaddr_driver_t *driver = (vmem_file_vaddr_driver_t *) vmem->driver;
 	if(driver->stream == NULL) {
 		/* Open file for reading/writing, creating it if it doesn't exist */
 		int fd = open(driver->filename, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR);
@@ -65,7 +65,7 @@ static void vmem_file_vaddr_init(const vmem_t * vmem) {
 }
 
 void vmem_file_vaddr_read(const vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len) {
-	vmem_file_driver_t *driver = (vmem_file_driver_t *) vmem->driver;
+	vmem_file_vaddr_driver_t *driver = (vmem_file_vaddr_driver_t *) vmem->driver;
 	vmem_file_vaddr_init(vmem);
 	if(driver->stream ) {
 	    int res = fseek(driver->stream, addr, SEEK_SET);
@@ -76,7 +76,7 @@ void vmem_file_vaddr_read(const vmem_t * vmem, uint64_t addr, void * dataout, ui
 }
 
 void vmem_file_vaddr_write(const vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len) {
-	vmem_file_driver_t *driver = (vmem_file_driver_t *) vmem->driver;
+	vmem_file_vaddr_driver_t *driver = (vmem_file_vaddr_driver_t *) vmem->driver;
 	vmem_file_vaddr_init(vmem);
 	if(driver->stream ) {
 		/* Flush back to file */
