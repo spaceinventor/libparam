@@ -13,5 +13,5 @@ int main (int argc, char *argv[]) {
     vmem_write(vmem_plt_405.vaddr, test_vector, sizeof(test_vector));
     vmem_read(buf, vmem_plt_405.vaddr, sizeof(test_vector));
     assert(0 == memcmp(buf, test_vector, sizeof(test_vector)));
-    return 1;
+    return 0;
 }
