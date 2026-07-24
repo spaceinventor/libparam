@@ -21,12 +21,14 @@ int main (int argc, char *argv[]) {
 
     /* Add a remote parameter with node = 0 */
     param_t *remote = param_list_create_remote(128, 0, PARAM_TYPE_UINT16, PM_DEBUG, 0, "remote", NULL, NULL, -1);
+    assert(p);
     param_list_add(remote);
     p = param_list_find_id(0, 128);
     assert(p);
 
     /* Add a remote parameter with node != 0 */
     remote = param_list_create_remote(128, 400, PARAM_TYPE_UINT16, PM_DEBUG, 0, "remote", NULL, NULL, -1);
+    assert(remote);
     param_list_add(remote);
     p = param_list_find_id(400, 128);
     assert(p);
@@ -34,7 +36,7 @@ int main (int argc, char *argv[]) {
     /* Clear the list */
     param_list_clear();
 
-    /* Can you we still find our own added remote parameter with node = 0 ? */
+    /* Can we still find our own added remote parameter with node = 0 ? */
     p = param_list_find_id(0, 128);
     assert(p);
 
@@ -44,6 +46,7 @@ int main (int argc, char *argv[]) {
 
     /* Explicitly remove our own remote parameter with node = 0 ? */
     p = param_list_find_id(0, 128);
+    assert(p);
     param_list_remove_specific(p, 0, 1);
     p = param_list_find_id(0, 128);
     assert(NULL == p);
