@@ -22,17 +22,6 @@ if get_option('have_float') == false
 	conf.set('MPACK_FLOAT', 0)
 endif
 
-if get_option('have_fopen') == true
-	if get_option('list_dynamic') == true
-		conf.set('MPACK_STDIO', 1)
-	else
-		warning('*********')
-		warning('Enabling \'have_fopen\' without also enabling \'list_dynamic\' causes mpack related build failures, setting MPACK_STDIO=0')
-		warning('*********')
-		conf.set('MPACK_STDIO', 0)
-	endif
-endif
-
 libparam_h = configure_file(output: 'libparam.h', configuration: conf, install_dir: 'include', install_tag: 'devel')
 
 csp_dep = dependency('csp', fallback : ['csp', 'csp_dep'])
@@ -119,4 +108,8 @@ if get_option('default_library') == 'static'
 		link_with : param_lib,
 		link_whole: [param_lib]
 	)
+endif
+
+if get_option('test')
+	subdir('tests')
 endif
