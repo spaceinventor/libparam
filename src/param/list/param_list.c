@@ -413,10 +413,12 @@ static void param_list_destroy_impl(const param_t * param) {
 #ifdef PARAM_LIST_DYNAMIC
 
 void param_list_clear(void) {
-	while (!SLIST_EMPTY(&param_list_head)) {
-		struct param_s *param = SLIST_FIRST(&param_list_head);
-		SLIST_REMOVE_HEAD(&param_list_head, next);
-		param_list_destroy(param);
+	struct param_s *iter = 0;
+	SLIST_FOREACH(iter, &param_list_head, next) {
+		if(*iter->node != 0) {
+			SLIST_REMOVE(&param_list_head, iter, param_s, next);
+			param_list_destroy(iter);
+		}
 	}
 }
 
