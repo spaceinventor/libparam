@@ -413,13 +413,16 @@ static void param_list_destroy_impl(const param_t * param) {
 #ifdef PARAM_LIST_DYNAMIC
 
 void param_list_clear(void) {
-	struct param_s *iter = 0;
-	SLIST_FOREACH(iter, &param_list_head, next) {
-		if(*iter->node != 0) {
-			SLIST_REMOVE(&param_list_head, iter, param_s, next);
-			struct param_s to_be_destroyed = *iter;
-			param_list_destroy(&to_be_destroyed);
+	param_list_iterator i = {0};
+	const param_t * iter_param = param_list_iterate(&i);
+
+	while (iter_param) {
+		const param_t * param = iter_param;
+		if (i.phase != 0 && (i.element && *(i.element->node) != 0)) {
+			SLIST_REMOVE(&param_list_head, param, param_s, next);
+			param_list_destroy(param);
 		}
+		iter_param = param_list_iterate(&i);
 	}
 }
 
