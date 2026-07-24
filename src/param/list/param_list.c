@@ -417,7 +417,8 @@ void param_list_clear(void) {
 	SLIST_FOREACH(iter, &param_list_head, next) {
 		if(*iter->node != 0) {
 			SLIST_REMOVE(&param_list_head, iter, param_s, next);
-			param_list_destroy(iter);
+			struct param_s to_be_destroyed = *iter;
+			param_list_destroy(&to_be_destroyed);
 		}
 	}
 }
