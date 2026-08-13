@@ -291,7 +291,7 @@ static void param_print_value(FILE * file, const param_t * param, int offset) {
 
 }
 
-static void param_print_file(FILE* file, const param_t * param, int offset, int nodes[], int nodes_count, int verbose, uint32_t ref_timestamp) {
+void param_print_file(FILE* file, const param_t * param, int offset, int nodes[], int nodes_count, int verbose, uint32_t ref_timestamp) {
 
 	if (param == NULL)
 		return;
