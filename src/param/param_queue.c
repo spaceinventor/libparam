@@ -67,6 +67,7 @@ int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *valu
 	if (queue->type == PARAM_QUEUE_TYPE_SET) {
 		param_serialize_to_mpack(param, offset, &writer, value, queue);
 	} else {
+		queue->last_timestamp = *param->timestamp; /* Avoid including timestamp information for client parameter */
 		param_serialize_id(&writer, param, offset, queue);
 	}
 	if (mpack_writer_error(&writer) != mpack_ok) {
