@@ -32,7 +32,6 @@ typedef struct param_queue_s {
 	/* State used by serializer */
 	uint16_t last_node;
 	csp_timestamp_t last_timestamp;
-	csp_timestamp_t client_timestamp;
 } param_queue_t;
 
 /**

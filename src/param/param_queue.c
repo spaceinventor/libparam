@@ -45,8 +45,6 @@ void param_queue_init(param_queue_t *queue, void *buffer, int buffer_size, int u
 	queue->version = version;
 	queue->last_timestamp.tv_sec = 0;
 	queue->last_timestamp.tv_nsec = 0;
-	queue->client_timestamp.tv_sec = 0;
-	queue->client_timestamp.tv_nsec = 0;
 }
 
 int param_queue_add(param_queue_t *queue, param_t *param, int offset, void *value) {
@@ -84,7 +82,6 @@ int param_queue_apply_w_callback(param_queue_t *queue, int host, param_decode_ca
 	csp_timestamp_t time_now;
 	csp_clock_get_time(&time_now);
 	queue->last_timestamp = time_now;
-	queue->client_timestamp = time_now;
 
 	mpack_reader_t reader;
 	mpack_reader_init_data(&reader, queue->buffer, queue->used);

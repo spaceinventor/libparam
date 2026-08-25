@@ -161,28 +161,18 @@ void param_deserialize_id(mpack_reader_t *reader, int *id, int *node, csp_timest
 			*node = queue->last_node;
 		}
 
-
 		if (timestamp_flag) {
 			uint32_t _timestamp;
 			mpack_read_bytes(reader, (char*) &_timestamp, 4);
 			_timestamp = be32toh(_timestamp);
-			if (_timestamp == 0) {
-				queue->last_timestamp = queue->client_timestamp;
-			} else {
-				queue->last_timestamp.tv_sec = _timestamp;
-				if (extendedtimestamp_flag) {
-					uint32_t _timestamp_ns;
-					mpack_read_bytes(reader, (char*) &_timestamp_ns, 4);
-					_timestamp_ns = be32toh(_timestamp_ns);
-					queue->last_timestamp.tv_nsec = _timestamp_ns;
-				} else {
-					queue->last_timestamp.tv_nsec = 0;
-				}
-			}
-		} else if (extendedtimestamp_flag) {
-			/* Invalid header combination, discard header field */
+			queue->last_timestamp.tv_sec = _timestamp;
+		}
+
+		if (extendedtimestamp_flag) {
 			uint32_t _timestamp_ns;
 			mpack_read_bytes(reader, (char*) &_timestamp_ns, 4);
+			_timestamp_ns = be32toh(_timestamp_ns);
+			queue->last_timestamp.tv_nsec = _timestamp_ns;
 		}
 		*timestamp = queue->last_timestamp;
 
