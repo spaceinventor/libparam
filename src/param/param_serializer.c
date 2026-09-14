@@ -69,7 +69,7 @@ void param_serialize_id(mpack_writer_t *writer, param_t *param, int offset, para
 		int array_flag = (offset >= 0) ? 1 : 0;
 		int node_flag = (queue->last_node != node) ? 1 : 0;
 		int timestamp_flag = (queue->last_timestamp.tv_sec != param->timestamp->tv_sec) ? 1 : 0;
-		int extendedtimestamp_flag = (queue->last_timestamp.tv_nsec != param->timestamp->tv_nsec) ? 1 : 0;
+		int extendedtimestamp_flag = (param->timestamp->tv_nsec != 0 && queue->last_timestamp.tv_nsec != param->timestamp->tv_nsec) ? 1 : 0;
 		int extendedid_flag = (param->id > 0x3ff) ? 1 : 0;
 
 		uint16_t header = array_flag << PARAM_HEADER_ARRAY_POS 
