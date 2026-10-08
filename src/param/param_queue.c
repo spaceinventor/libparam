@@ -84,6 +84,14 @@ int param_queue_apply(param_queue_t *queue, int host, int verbose) {
 		csp_timestamp_t timestamp = { .tv_sec = 0, .tv_nsec = 0 };
 		param_deserialize_id(&reader, &id, &node, &timestamp, &offset, queue);
 
+		if (mpack_reader_error(&reader) != mpack_ok) {
+			return_code = -1;
+			if (verbose >= 2) {
+				printf("Param decoding failed for ID %u:%u, skipping packet\n", node, id);
+			}
+			break;
+		}
+
 		/* For handling of responess on client side, replace localhost with host node */
 		if (node == 0)
 			node = host;
@@ -114,49 +122,13 @@ int param_queue_apply(param_queue_t *queue, int host, int verbose) {
 			// We couldn't find all parameters. Skip this one.
 			return_code = -1;
 
-			mpack_tag_t tag = mpack_read_tag(&reader);
+			mpack_discard(&reader);
+
 			if (mpack_reader_error(&reader) != mpack_ok) {
 				if (verbose >= 2) {
 					printf("Param decoding failed for ID %u:%u, skipping packet\n", node, id);
 				}
 				break;
-			}
-
-			// TODO: Skip content
-			bool valid = true;
-
-			switch (tag.type) {
-    		case mpack_type_str:
-    		case mpack_type_bin:
-    			if ((unsigned int) (reader.end - reader.data) >= tag.v.l) {
-	    			mpack_skip_bytes(&reader, tag.v.l);
-	    		} else {
-    				valid = false;
-	    			break;
-	    		}
-
-	    		if (tag.type == mpack_type_str) {
-	    			mpack_done_str(&reader);
-	    		} else if (tag.type == mpack_type_bin) {
-	    			mpack_done_bin(&reader);
-	    		}
-    			break;
-    		case mpack_type_array:
-    			for (unsigned int i = 0; i < tag.v.n; i++) {
-					mpack_read_tag(&reader);
-					if (mpack_reader_error(&reader) != mpack_ok) {
-						valid = false;
-						break;
-					}
-    			}
-    			if (valid) {
-	    			mpack_done_array(&reader);
-    			}
-    			break;
-    		case mpack_type_map:
-    			break;
-    		default:
-    			break;
 			}
 
 			if (verbose >= 3) {
