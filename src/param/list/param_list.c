@@ -261,7 +261,7 @@ void param_list_print(uint32_t mask, int node, const char * globstr, int verbosi
 		if ((node >= 0) && (*param->node != node)) {
 			continue;
 		}
-		if ((param->mask & mask) == 0) {
+		if ((param->mask & mask) == 0 && mask != 0xFFFFFFFF) {
 			continue;
 		}
 		if ((globstr != NULL) && strmatch(param->name, globstr, strlen(param->name), strlen(globstr)) == 0) {
