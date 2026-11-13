@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #include <vmem/vmem_client.h>
+#include "csp/csp_types.h"
 
 static int abort = 0;
 
@@ -171,8 +172,7 @@ static int upload_w_opts(vmem_instance_upload_t *instance, uint64_t address, cha
 	}
 
 	/* Establish RDP connection */
-	uint8_t priority = instance->type == VMEM_SERVER_UPLOAD_W_ACK ? CSP_PRIO_LOW : CSP_PRIO_HIGH;
-	csp_conn_t * conn = csp_connect(priority, instance->node, VMEM_PORT_SERVER, instance->timeout, CSP_O_RDP | CSP_O_CRC32);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_NORM, instance->node, VMEM_PORT_SERVER, instance->timeout, CSP_O_RDP | CSP_O_CRC32);
 	if (conn == NULL) {
 		return CSP_ERR_TIMEDOUT;
 	}
