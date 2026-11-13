@@ -3,14 +3,44 @@
 #include <stdint.h>
 #include <vmem/vmem_server.h>
 
-typedef void (*vmem_progress_cb)(uint32_t total, uint32_t sofar);
+typedef void (*vmem_progress_cb)(uint32_t total, uint32_t sofar, uint16_t mtu);
+
+typedef struct {
+    int node;
+    int timeout;
+    int version;
+    uint16_t mtu;
+    vmem_request_type type;
+} vmem_instance_upload_t;
+
+typedef struct {
+    int node;
+    int timeout;
+    int version;
+    uint16_t mtu;
+    int use_rdp;
+} vmem_instance_download_t;
+
+/**
+ * @brief Initialize instance data
+ * @param instance the instance that will be initialized
+ * @param node CSP address of recipient
+ * @param timeout CSP timeout to use
+ * @param version VMEM version
+ * @param mtu the MTU to use for the transfer
+ * @param type either VMEM_SERVER_UPLOAD or VMEM_SERVER_UPLOAD_W_ACK for upload
+ * @param use_rdp use RDP for download
+ */
+void vmem_instance_upload_init(vmem_instance_upload_t *instance, int node, int timeout, int version, uint16_t mtu, vmem_request_type type);
+void vmem_instance_download_init(vmem_instance_download_t *instance, int node, int timeout, int version, uint16_t mtu, int use_rdp);
 
 /**
  * @brief progress callback example
  * @param total total bytes to upload
  * @param sofar bytes uploaded so far
+ * @param mtu the MTU in use for the transfer
  */
-void vmem_progress(uint32_t total, uint32_t sofar);
+void vmem_progress(uint32_t total, uint32_t sofar, uint16_t mtu);
 
 /**
  * @brief Download content of given VMEM address of given node to given memory
@@ -30,12 +60,21 @@ int vmem_download_progress(int node, int timeout, uint64_t address, uint32_t len
  * @param node CSP address of recipient (a VMEM server must be running on this node)
  * @param timeout CSP timeout to use
  * @param address source VMEM address
- * @param datain pointer to data buffer to store downloaded data
+ * @param dataout pointer to data buffer to store downloaded data
  * @param length how many bytes should be downloaded
  * @param version VMEM version
  * @return < 0 in case of failure (CSP_ERR_TIMEDOUT, CSP_ERR_NOBUFS), uploaded amount of bytes otherwise (may be less then the length parameter if transfer was interrupted)
  */
 int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp);
+
+/**
+ * @brief Download content of given VMEM address to given memory
+ * @param instance instance data that should be initialized with vmem_instance_download_init
+ * @param address source VMEM address
+ * @param dataout pointer to data buffer to store downloaded data
+ * @param length how many bytes should be downloaded
+*/
+int vmem_download_w_opts(vmem_instance_download_t *instance, uint64_t address, uint32_t length, char * dataout);
 
 /**
  * @brief Upload content of given memory to given VMEM address of given node
@@ -61,6 +100,15 @@ int vmem_upload_progress(int node, int timeout, uint64_t address, char * datain,
  * @return < 0 in case of failure (CSP_ERR_TIMEDOUT, CSP_ERR_NOBUFS), uploaded amount of bytes otherwise (may be less then the length parameter if transfer was interrupted)
  */
 int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version);
+
+/**
+ * @brief Upload content of given VMEM address to given memory
+ * @param instance instance data that should be initialized with vmem_instance_upload_init
+ * @param address source VMEM address
+ * @param datain pointer to data to upload
+ * @param length how many bytes should be uploaded
+*/
+int vmem_upload_w_opts(vmem_instance_upload_t *instance, uint64_t address, char * datain, uint32_t length);
 
 void vmem_client_list(int node, int timeout, int version);
 int vmem_client_find(int node, int timeout, void * dataout, int version, char * name, int namelen);
