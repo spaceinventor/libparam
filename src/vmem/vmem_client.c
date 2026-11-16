@@ -37,43 +37,43 @@ void vmem_progress_cb(uint32_t total, uint32_t sofar, uint16_t mtu) {
 	}
 }
 
-static void adjust_mtu(vmem_client_instance_t *instance) {
+static void adjust_mtu(vmem_client_config_t *config) {
 	const uint16_t mtu_max = CSP_BUFFER_SIZE - sizeof(csp_crc32_t);
 	const uint16_t mtu_max_rdp = mtu_max - 5; /* 5 bytes for RDP header */
 
-	if (instance->mtu == 0) {
-		instance->mtu = VMEM_SERVER_MTU;
-	} else if (!instance->no_rdp && instance->mtu > mtu_max_rdp) {
-		instance->mtu = mtu_max_rdp;
-	} else if (instance->no_rdp && instance->mtu > mtu_max) {
-		instance->mtu = mtu_max;
+	if (config->mtu == 0) {
+		config->mtu = VMEM_SERVER_MTU;
+	} else if (!config->no_rdp && config->mtu > mtu_max_rdp) {
+		config->mtu = mtu_max_rdp;
+	} else if (config->no_rdp && config->mtu > mtu_max) {
+		config->mtu = mtu_max;
 	}
 }
 
-static void adjust_timeout(vmem_client_instance_t *instance) {
-	if (instance->timeout == 0) {
-		if (instance->no_rdp) {
-			instance->timeout = 1000;
+static void adjust_timeout(vmem_client_config_t *config) {
+	if (config->timeout == 0) {
+		if (config->no_rdp) {
+			config->timeout = 1000;
 		} else {
-			instance->timeout = 10000; // RDP timeout
+			config->timeout = 10000; // RDP timeout
 		}
 	}
 }
 
-static int download_w_opts(vmem_client_instance_t *instance, uint64_t address, uint32_t length, char * dataout, int version) {
+static int client_download(vmem_client_config_t *config, uint64_t address, uint32_t length, char * dataout, int version) {
 
 	uint32_t time_begin = csp_get_ms();
 	abort = 0;
 
-	adjust_mtu(instance);
-	adjust_timeout(instance);
+	adjust_mtu(config);
+	adjust_timeout(config);
 
 	/* Establish RDP connection */
 	uint32_t opts = CSP_O_CRC32;
-	if (!instance->no_rdp) {
+	if (!config->no_rdp) {
 		opts |= CSP_O_RDP;
 	}
-	csp_conn_t * conn = csp_connect(CSP_PRIO_NORM, instance->node, VMEM_PORT_SERVER, instance->timeout, opts);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_NORM, config->node, VMEM_PORT_SERVER, config->timeout, opts);
 	if (conn == NULL)
 		return CSP_ERR_TIMEDOUT;
 
@@ -87,7 +87,7 @@ static int download_w_opts(vmem_client_instance_t *instance, uint64_t address, u
 	if (version == 3) {
 		request->data3.address = htobe64(address);
 		request->data3.length = htobe64(length);
-		request->data3.mtu = htobe16(instance->mtu);
+		request->data3.mtu = htobe16(config->mtu);
 	} else if (version == 2) {
 		request->data2.address = htobe64(address);
 		request->data2.length = htobe32(length);
@@ -109,7 +109,7 @@ static int download_w_opts(vmem_client_instance_t *instance, uint64_t address, u
 			break;
 
 		/* Blocking read */
-		packet = csp_read(conn, instance->timeout);
+		packet = csp_read(conn, config->timeout);
 		if (packet == NULL)
 			break;
 
@@ -125,8 +125,8 @@ static int download_w_opts(vmem_client_instance_t *instance, uint64_t address, u
 			csp_buffer_free(packet);
 			break;
 		}
-		if(instance->cb) {
-			instance->cb(length, count, instance->mtu);
+		if(config->cb) {
+			config->cb(length, count, config->mtu);
 		}
 
 		/* Put data */
@@ -150,24 +150,26 @@ static int download_w_opts(vmem_client_instance_t *instance, uint64_t address, u
 
 int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp) {
 
-	vmem_client_instance_t instance = { .node = node, .timeout = timeout, .mtu = VMEM_SERVER_MTU, .cb = vmem_progress_cb, .no_rdp = !use_rdp};
-	return download_w_opts(&instance, address, length, dataout, version);
+	vmem_client_config_t config = { .node = node, .timeout = timeout, .mtu = VMEM_SERVER_MTU, .cb = vmem_progress_cb, .no_rdp = !use_rdp};
+	return client_download(&config, address, length, dataout, version);
 }
 
-int vmem_client_download_w_opts(vmem_client_instance_t *instance, uint64_t address, uint32_t length, char * dataout) {
+int vmem_client_download(vmem_client_config_t *config, uint64_t address, uint32_t length, char * dataout) {
 
-	return download_w_opts(instance, address, length, dataout, 3);
+	return client_download(config, address, length, dataout, 3);
 }
 
-static int upload_w_opts(vmem_client_instance_t *instance, uint64_t address, char * datain, uint32_t length, int version,vmem_request_type type) {
+static int client_upload(vmem_client_config_t *config, uint64_t address, char * datain, uint32_t length, int version) {
 
+	/* If MTU is set to more than VMEM_SERVER_MTU the server should support VMEM_SERVER_UPLOAD_W_ACK */
+	int type = config->mtu > VMEM_SERVER_MTU ? VMEM_SERVER_UPLOAD_W_ACK : VMEM_SERVER_UPLOAD;
 	abort = 0;
 
-	adjust_timeout(instance);
-	adjust_mtu(instance);
+	adjust_timeout(config);
+	adjust_mtu(config);
 
 	/* Establish RDP connection */
-	csp_conn_t * conn = csp_connect(CSP_PRIO_NORM, instance->node, VMEM_PORT_SERVER, instance->timeout, CSP_O_RDP | CSP_O_CRC32);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_NORM, config->node, VMEM_PORT_SERVER, config->timeout, CSP_O_RDP | CSP_O_CRC32);
 	if (conn == NULL) {
 		return CSP_ERR_TIMEDOUT;
 	}
@@ -199,13 +201,13 @@ static int upload_w_opts(vmem_client_instance_t *instance, uint64_t address, cha
 			csp_buffer_free(packet);
 			break;
 		}
-		if(instance->cb) {
-			instance->cb(length, count, instance->mtu);
+		if(config->cb) {
+			config->cb(length, count, config->mtu);
 		}
 
 		/* Prepare packet */
-		csp_packet_t * packet = csp_buffer_get(instance->mtu);
-		packet->length = VMEM_MIN(instance->mtu, length - count);
+		csp_packet_t * packet = csp_buffer_get(config->mtu);
+		packet->length = VMEM_MIN(config->mtu, length - count);
 
 		/* Copy data */
 		memcpy(packet->data, (void *) ((intptr_t) datain + count), packet->length);
@@ -217,12 +219,12 @@ static int upload_w_opts(vmem_client_instance_t *instance, uint64_t address, cha
 
 	}
 
-	if (type == VMEM_SERVER_UPLOAD_W_ACK) {
+	if (request->type == VMEM_SERVER_UPLOAD_W_ACK) {
 		int result = CSP_ERR_TIMEDOUT;
 
 		/* Read the upload response */
 		if (csp_conn_is_active(conn)) {
-			packet = csp_read(conn, instance->timeout);
+			packet = csp_read(conn, config->timeout);
 			if (packet && packet->length == sizeof(vmem_upload_response_t)) {
 				vmem_upload_response_t *rsp = (vmem_upload_response_t *)packet->data;
 				result = rsp->result == 0 ? rsp->count :  0;
@@ -241,13 +243,13 @@ static int upload_w_opts(vmem_client_instance_t *instance, uint64_t address, cha
 
 int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version) {
 
-	vmem_client_instance_t instance = { . node = node, .timeout = timeout, .mtu = VMEM_SERVER_MTU, .cb = vmem_progress_cb};
-	return upload_w_opts(&instance, address, datain, length, version, VMEM_SERVER_UPLOAD);
+	vmem_client_config_t config = { . node = node, .timeout = timeout, .mtu = VMEM_SERVER_MTU, .cb = vmem_progress_cb, .no_rdp = false};
+	return client_upload(&config, address, datain, length, version);
 }
 
-int vmem_client_upload_w_opts(vmem_client_instance_t *instance, uint64_t address, char * datain, uint32_t length) {
+int vmem_client_upload(vmem_client_config_t *config, uint64_t address, char * datain, uint32_t length) {
 
-	return upload_w_opts(instance, address, datain, length, 2, VMEM_SERVER_UPLOAD_W_ACK);
+	return client_upload(config, address, datain, length, 2);
 }
 
 static csp_packet_t * vmem_client_list_get(int node, int timeout, int version) {

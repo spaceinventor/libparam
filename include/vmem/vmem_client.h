@@ -11,7 +11,7 @@ typedef struct {
     uint16_t mtu;           // MTU to use for the transfer. If 0, VMEM_SERVER_MTU will be used as MTU
     vmem_progress_cb_t cb;  // Optional function that will be called regularly to report progress
     bool no_rdp;            // 0=do use RDP, 1=do not use RDP
-} vmem_client_instance_t;
+} vmem_client_config_t;
 
 /**
  * @brief progress callback example
@@ -35,12 +35,12 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 
 /**
  * @brief Download content of given VMEM address to given memory
- * @param instance instance data
+ * @param config config data
  * @param address source VMEM address
  * @param dataout pointer to data buffer to store downloaded data
  * @param length how many bytes should be downloaded
 */
-int vmem_client_download_w_opts(vmem_client_instance_t *instance, uint64_t address, uint32_t length, char * dataout);
+int vmem_client_download(vmem_client_config_t *config, uint64_t address, uint32_t length, char * dataout);
 
 /**
  * @brief Upload content of given memory to given VMEM address of given node
@@ -56,12 +56,12 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
 
 /**
  * @brief Upload content of given VMEM address to given memory
- * @param instance instance data
+ * @param config config data
  * @param address source VMEM address
  * @param datain pointer to data to upload
  * @param length how many bytes should be uploaded
 */
-int vmem_client_upload_w_opts(vmem_client_instance_t *instance, uint64_t address, char * datain, uint32_t length);
+int vmem_client_upload(vmem_client_config_t *config, uint64_t address, char * datain, uint32_t length);
 
 void vmem_client_list(int node, int timeout, int version);
 int vmem_client_find(int node, int timeout, void * dataout, int version, char * name, int namelen);
