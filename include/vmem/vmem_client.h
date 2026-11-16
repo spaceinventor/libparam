@@ -3,14 +3,23 @@
 #include <stdint.h>
 #include <vmem/vmem_server.h>
 
-typedef void (*vmem_progress_cb)(uint32_t total, uint32_t sofar, uint16_t mtu);
+typedef void (*vmem_progress_cb_t)(uint32_t total, uint32_t sofar, uint16_t mtu);
 
 typedef struct {
     int node;               // CSP address of recipient
     int timeout;            // CSP timeout to use
     uint16_t mtu;           // MTU to use for the transfer. If 0, VMEM_SERVER_MTU will be used as MTU
-    vmem_progress_cb cb;    // Optional function that will be called regularly to report progress
+    vmem_progress_cb_t cb;  // Optional function that will be called regularly to report progress
+    bool no_rdp;            // 0=do use RDP, 1=do not use RDP
 } vmem_client_instance_t;
+
+/**
+ * @brief progress callback example
+ * @param total total bytes to upload
+ * @param sofar bytes uploaded so far
+ * @param mtu MTU been used
+ */
+void vmem_progress_cb(uint32_t total, uint32_t sofar, uint16_t mtu);
 
 /**
  * @brief Download content of given VMEM address of given node to given memory
@@ -31,7 +40,7 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
  * @param dataout pointer to data buffer to store downloaded data
  * @param length how many bytes should be downloaded
 */
-int vmem_download_w_opts(vmem_client_instance_t *instance, uint64_t address, uint32_t length, char * dataout);
+int vmem_client_download_w_opts(vmem_client_instance_t *instance, uint64_t address, uint32_t length, char * dataout);
 
 /**
  * @brief Upload content of given memory to given VMEM address of given node
@@ -52,7 +61,7 @@ int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t
  * @param datain pointer to data to upload
  * @param length how many bytes should be uploaded
 */
-int vmem_upload_w_opts(vmem_client_instance_t *instance, uint64_t address, char * datain, uint32_t length);
+int vmem_client_upload_w_opts(vmem_client_instance_t *instance, uint64_t address, char * datain, uint32_t length);
 
 void vmem_client_list(int node, int timeout, int version);
 int vmem_client_find(int node, int timeout, void * dataout, int version, char * name, int namelen);
