@@ -243,7 +243,7 @@ static int client_upload(vmem_client_config_t *config, uint64_t address, char * 
 
 int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version) {
 
-	vmem_client_config_t config = { . node = node, .timeout = timeout, .mtu = VMEM_SERVER_MTU, .cb = vmem_progress_cb, .no_rdp = false};
+	vmem_client_config_t config = { .node = node, .timeout = timeout, .mtu = VMEM_SERVER_MTU, .cb = vmem_progress_cb, .no_rdp = false};
 	return client_upload(&config, address, datain, length, version);
 }
 
