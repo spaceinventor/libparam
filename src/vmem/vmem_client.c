@@ -31,6 +31,10 @@ void vmem_progress_cb(uint32_t total, uint32_t sofar, uint16_t mtu) {
 	if ((sofar / mtu + 1) % 32 == 0) {
 		printf(" - %.0f K\n", (sofar / 1024.0));
 	}
+
+	if (total == sofar) {
+		printf(" - %.0f K\n", (sofar / 1024.0));
+	}
 }
 
 static void adjust_mtu(vmem_client_instance_t *instance) {
@@ -133,8 +137,6 @@ static int download_w_opts(vmem_client_instance_t *instance, uint64_t address, u
 
 		csp_buffer_free(packet);
 	}
-
-	printf(" - %.0f K\n", (count / 1024.0));
 
 	csp_close(conn);
 
