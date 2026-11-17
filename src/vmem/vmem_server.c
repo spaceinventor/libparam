@@ -133,7 +133,9 @@ void vmem_server_handler(csp_conn_t * conn)
 				packet->length = VMEM_MIN(mtu, length - count);
 
 				/* Get data */
-				vmem_read(packet->data, address + count, packet->length);
+				if (vmem_read(packet->data, address + count, packet->length) < 0) {
+					break;
+				}
 
 				/* Increment */
 				count += packet->length;
@@ -174,27 +176,34 @@ void vmem_server_handler(csp_conn_t * conn)
 		csp_buffer_free(packet);
 
 		uint32_t count = 0;
+		int32_t result = 0;
 		while (count < length && (packet = csp_read(conn, VMEM_SERVER_TIMEOUT)) != NULL) {
 
 			//csp_hex_dump("Upload", packet->data, packet->length);
 
 			/* Put data */
-			vmem_write(address + count, packet->data, packet->length);
+			result = vmem_write(address + count, packet->data, packet->length);
+			if (result < 0) {
+				break;
+			}
 
 			/* Increment */
 			count += packet->length;
 
 			csp_buffer_free(packet);
 		}
-		// Now flush the VMEM cache associated with the address, if any
-		vmem_t *vmem = vmem_vaddr_to_vmem(address);
-		(void)vmem_flush(vmem);
+
+		if (result == 0) {
+			// Now flush the VMEM cache associated with the address, if any
+			vmem_t *vmem = vmem_vaddr_to_vmem(address);
+			result = vmem_flush(vmem);
+		}
 
 		if (type == VMEM_SERVER_UPLOAD_W_ACK) {
 			packet = csp_buffer_get(0);
 			if (packet) {
 				vmem_upload_response_t *rsp = (vmem_upload_response_t *)packet->data;
-				rsp->result = 0;
+				rsp->result = result;
 				rsp->count = count;
 
 				packet->length = sizeof(vmem_upload_response_t);

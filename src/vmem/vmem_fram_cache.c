@@ -18,7 +18,7 @@ void fram_write_data(uint32_t addr, const void *data, uint32_t len);
 void fram_read_data(uint32_t addr, void *data, uint32_t len);
 
 
-void vmem_fram_cache_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len) {
+int vmem_fram_cache_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len) {
 
 	vmem_fram_cache_driver_t * driver = vmem->driver;
 
@@ -32,9 +32,10 @@ void vmem_fram_cache_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t
 	//printf("Cached read %s addr %lu len %d\n", vmem->name, addr, len);
 	memcpy(dataout, driver->cache + addr, len);
 
+	return 0;
 }
 
-void vmem_fram_cache_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len) {
+int vmem_fram_cache_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len) {
 
 	vmem_fram_cache_driver_t * driver = vmem->driver;
 
@@ -43,5 +44,6 @@ void vmem_fram_cache_write(vmem_t * vmem, uint64_t addr, const void * datain, ui
 	memcpy(driver->cache + addr, datain, len);
 	fram_write_data(driver->fram_addr + addr, datain, len);
 
+	return 0;
 }
 
