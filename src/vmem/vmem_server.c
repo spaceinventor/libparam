@@ -159,19 +159,22 @@ void vmem_server_handler(csp_conn_t * conn)
 	/**
 	 * UPLOAD
 	 */
-	} else if (request->type == VMEM_SERVER_UPLOAD) {
+	} else if (type == VMEM_SERVER_UPLOAD || type == VMEM_SERVER_UPLOAD_W_ACK) {
 
 		uint64_t address;
-		
+		uint32_t length;
+
 		if (request->version == 2) {
 			address = be64toh(request->data2.address);
+			length = be32toh(request->data2.length);
 		} else {
 			address = be32toh(request->data.address);
+			length = be32toh(request->data.length);
 		}
 		csp_buffer_free(packet);
 
 		uint32_t count = 0;
-		while((packet = csp_read(conn, VMEM_SERVER_TIMEOUT)) != NULL) {
+		while (count < length && (packet = csp_read(conn, VMEM_SERVER_TIMEOUT)) != NULL) {
 
 			//csp_hex_dump("Upload", packet->data, packet->length);
 
@@ -187,6 +190,17 @@ void vmem_server_handler(csp_conn_t * conn)
 		vmem_t *vmem = vmem_vaddr_to_vmem(address);
 		(void)vmem_flush(vmem);
 
+		if (type == VMEM_SERVER_UPLOAD_W_ACK) {
+			packet = csp_buffer_get(0);
+			if (packet) {
+				vmem_upload_response_t *rsp = (vmem_upload_response_t *)packet->data;
+				rsp->result = 0;
+				rsp->count = count;
+
+				packet->length = sizeof(vmem_upload_response_t);
+				csp_send(conn, packet);
+			}
+		}
 	} else if (request->type == VMEM_SERVER_LIST) {
 
 		if (request->version == 1) {

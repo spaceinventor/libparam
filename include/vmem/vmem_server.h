@@ -26,6 +26,7 @@ typedef enum {
 	VMEM_SERVER_BACKUP,
 	VMEM_SERVER_UNLOCK,
 	VMEM_SERVER_CALCULATE_CRC32,
+	VMEM_SERVER_UPLOAD_W_ACK,
 
 	VMEM_SERVER_USER_TYPES = 0x80,
 } vmem_request_type;
@@ -90,6 +91,11 @@ typedef struct {
 	uint8_t type;
 	char name[16+1];
 } __attribute__((packed)) vmem_list3_t;
+
+typedef struct {
+    int32_t result;
+    uint32_t count;
+} __attribute__((packed)) vmem_upload_response_t;
 
 typedef int vmem_handler_t(csp_conn_t *conn, csp_packet_t *packet, void *context);
 typedef struct vmem_handler_obj_s {
