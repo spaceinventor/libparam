@@ -162,14 +162,21 @@ void vmem_server_handler(csp_conn_t * conn)
 	} else if (type == VMEM_SERVER_UPLOAD || type == VMEM_SERVER_UPLOAD_W_ACK) {
 
 		uint64_t address;
-		uint32_t length;
+		uint64_t length;
 
-		if (request->version == 2) {
+		if (request->version == 3) {
+			address = be64toh(request->data3.address);
+			length = be64toh(request->data3.length);
+		} else if (request->version == 2) {
 			address = be64toh(request->data2.address);
 			length = be32toh(request->data2.length);
-		} else {
+		} else if (request->version == 1) {
 			address = be32toh(request->data.address);
 			length = be32toh(request->data.length);
+		} else {
+			/* Unknown version, bail out */
+			address = 0;
+			length = 0;
 		}
 		csp_buffer_free(packet);
 
