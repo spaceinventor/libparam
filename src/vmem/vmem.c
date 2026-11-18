@@ -48,7 +48,7 @@ void * vmem_read_direct(vmem_t * vmem, void * to, uint64_t from, uint32_t size) 
 
 int vmem_write(uint64_t to, const void * from, uint32_t size) {
 	vmem_t *vmem;
-	int result = -1;
+	int result = VMEM_ERR_VMEMNOTFOUND;
 	vmem_iter_t start = {0};
 	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
@@ -69,7 +69,7 @@ int vmem_write(uint64_t to, const void * from, uint32_t size) {
 
 int vmem_read(void * to, uint64_t from, uint32_t size) {
 	vmem_t *vmem;
-	int result = -1;
+	int result = VMEM_ERR_VMEMNOTFOUND;
 	vmem_iter_t start = {0};
 	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
@@ -135,10 +135,14 @@ vmem_t * vmem_vaddr_to_vmem(uint64_t vaddr) {
 
 int vmem_flush(vmem_t *vmem) {
 
-	int res = 0;
-	if (vmem && vmem->flush) {
-		/* Call the flush method, which will empty any caches into the storage */
-		res = vmem->flush(vmem);
+	int res = VMEM_ERR_VMEMNOTFOUND;
+	if (vmem) {
+		if (vmem->flush) {
+			/* Call the flush method, which will empty any caches into the storage */
+			res = vmem->flush(vmem);
+		} else {
+			res = 0;
+		}
 	}
 	return res;
 }

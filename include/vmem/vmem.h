@@ -19,6 +19,8 @@ extern "C" {
 #include <endian.h>
 #include <param/param.h>
 
+#define VMEM_ERR_VMEMNOTFOUND -1
+
 enum vmem_types{
 	VMEM_TYPE_RAM = 1,
 	VMEM_TYPE_FRAM = 2,
@@ -85,7 +87,7 @@ void * vmem_memcpy(void * to, const void * from, uint32_t size);
  * @param to valid VMEM virtual address the data will be written to
  * @param from pointer to source data
  * @param size size in bytes to write
- * @return 0 for success
+ * @return 0 for success, negative number in case of error
  */
 int vmem_write(uint64_t to, const void * from, uint32_t size);
 
@@ -94,7 +96,7 @@ int vmem_write(uint64_t to, const void * from, uint32_t size);
  * @param to pointer to valid memory of at least size bytes
  * @param from valid VMEM virtual address the data will be read from
  * @param size size in bytes to read
- * @return 0 for success
+ * @return 0 for success, negative number in case of error
  */
 int vmem_read(void * to, uint64_t from, uint32_t size);
 
