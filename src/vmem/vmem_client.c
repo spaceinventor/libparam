@@ -84,16 +84,15 @@ static int client_download(vmem_client_config_t *config, uint64_t address, uint3
 	vmem_request_t * request = (void *) packet->data;
 	request->version = version;
 	request->type = VMEM_SERVER_DOWNLOAD;
-	if (version == 3) {
-		request->data3.address = htobe64(address);
-		request->data3.length = htobe64(length);
-		request->data3.mtu = htobe16(config->mtu);
-	} else if (version == 2) {
+	if (version == 2) {
 		request->data2.address = htobe64(address);
 		request->data2.length = htobe32(length);
-	} else {
+		request->data2.mtu = config->mtu;
+	} else if (version == 1) {
 		request->data.address = htobe32((uint32_t)(address & 0x00000000FFFFFFFFULL));
 		request->data.length = htobe32(length);
+	} else {
+		return CSP_ERR_NOTSUP;
 	}
 	packet->length = sizeof(vmem_request_t);
 

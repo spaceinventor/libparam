@@ -87,37 +87,30 @@ void vmem_server_handler(csp_conn_t * conn)
 	 */
 	if (type == VMEM_SERVER_DOWNLOAD || type == VMEM_SERVER_CALCULATE_CRC32) {
 
-		uint64_t length;
+		uint32_t length;
 		uint64_t address;
 		uint16_t mtu = VMEM_SERVER_MTU;
-		const uint16_t mtu_max = CSP_BUFFER_SIZE - sizeof(csp_crc32_t) - 5; /* 5 bytes for RDP header */
-		
-		if (request->version == 3) {
-			address = be64toh(request->data3.address);
-			length = be64toh(request->data3.length);
-			if (packet->length > offsetof(vmem_request_t, data3.mtu)) {
-				mtu = be16toh(request->data3.mtu);
-				if (mtu == 0 || mtu > CSP_BUFFER_SIZE) {
-					mtu = CSP_BUFFER_SIZE;
-				}
-			}
-		} else if (request->version == 2) {
+		const uint16_t MTU_MAX = CSP_BUFFER_SIZE - sizeof(csp_crc32_t) - 5; /* 5 bytes for RDP header */
+
+		if (request->version == 2) {
 			address = be64toh(request->data2.address);
 			length = be32toh(request->data2.length);
-		} else {
+			if (packet->length == sizeof(vmem_request_t)) { /* For backwards compatibility, check if packet contains mtu */
+				mtu = be16toh(request->data2.mtu);
+			}
+		} else if (request->version == 1) {
 			address = be32toh(request->data.address);
 			length = be32toh(request->data.length);
+		} else {
+			address = 0;
+			length = 0;
 		}
 
-		if (mtu > mtu_max) {
-			mtu = mtu_max;
+		if (mtu == 0 || mtu > MTU_MAX) {
+			mtu = VMEM_SERVER_MTU;
 		}
 
-		//printf("Download from:");
-		//printf("  Addr %"PRIx64"\n", address);
-		//printf("  Length %"PRIu32"\n", length);
-
-		uint64_t count = 0;
+		uint32_t count = 0;
 		if (type == VMEM_SERVER_DOWNLOAD) {
 			/* We have to free the requesting packet, since we are going to
 			 * allocate a bunch of them for the reply.
@@ -163,13 +156,18 @@ void vmem_server_handler(csp_conn_t * conn)
 
 		uint64_t address;
 		uint32_t length;
+		int32_t result = 0;
 
 		if (request->version == 2) {
 			address = be64toh(request->data2.address);
 			length = be32toh(request->data2.length);
-		} else {
+		} else if (request->version == 1) {
 			address = be32toh(request->data.address);
 			length = be32toh(request->data.length);
+		} else {
+			address = 0;
+			length = 0;
+			result = -1;
 		}
 		csp_buffer_free(packet);
 
@@ -194,7 +192,7 @@ void vmem_server_handler(csp_conn_t * conn)
 			packet = csp_buffer_get(0);
 			if (packet) {
 				vmem_upload_response_t *rsp = (vmem_upload_response_t *)packet->data;
-				rsp->result = 0;
+				rsp->result = result;
 				rsp->count = count;
 
 				packet->length = sizeof(vmem_upload_response_t);
