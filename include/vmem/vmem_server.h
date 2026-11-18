@@ -41,7 +41,7 @@ typedef struct {
 		struct {
 			uint8_t version;
 			uint8_t type;
-		};
+		} __attribute__((packed));
 		vmem_request_hdr_t hdr;
 	};
 	union {
@@ -49,22 +49,18 @@ typedef struct {
 		struct {
 			uint32_t address;
 			uint32_t length;
-		} data;
+		} __attribute__((packed)) data;
 		struct {
 			uint64_t address;
 			uint32_t length;
-		} data2;
-		struct {
-			uint64_t address;
-			uint64_t length;
 			uint16_t mtu;
-		} data3;
+		} __attribute__((packed)) data2;
 		struct {
 			uint8_t vmem_id;
-		} vmem;
+		} __attribute__((packed)) vmem;
 		struct {
 			uint32_t code;
-		} unlock;
+		} __attribute__((packed)) unlock;
 	};
 } __attribute__((packed)) vmem_request_t;
 
