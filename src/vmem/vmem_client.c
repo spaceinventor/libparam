@@ -43,20 +43,8 @@ static void adjust_mtu(vmem_client_config_t *config) {
 
 	if (config->mtu == 0) {
 		config->mtu = VMEM_SERVER_MTU;
-	} else if (!config->no_rdp && config->mtu > mtu_max_rdp) {
+	} else if (config->mtu > mtu_max_rdp) {
 		config->mtu = mtu_max_rdp;
-	} else if (config->no_rdp && config->mtu > mtu_max) {
-		config->mtu = mtu_max;
-	}
-}
-
-static void adjust_timeout(vmem_client_config_t *config) {
-	if (config->timeout == 0) {
-		if (config->no_rdp) {
-			config->timeout = 1000;
-		} else {
-			config->timeout = 10000; // RDP timeout
-		}
 	}
 }
 
@@ -66,14 +54,9 @@ static int client_download(vmem_client_config_t *config, uint64_t address, uint3
 	abort = 0;
 
 	adjust_mtu(config);
-	adjust_timeout(config);
 
 	/* Establish RDP connection */
-	uint32_t opts = CSP_O_CRC32;
-	if (!config->no_rdp) {
-		opts |= CSP_O_RDP;
-	}
-	csp_conn_t * conn = csp_connect(CSP_PRIO_NORM, config->node, VMEM_PORT_SERVER, config->timeout, opts);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_NORM, config->node, VMEM_PORT_SERVER, 0, CSP_O_CRC32 | CSP_O_RDP);
 	if (conn == NULL)
 		return CSP_ERR_TIMEDOUT;
 
@@ -108,7 +91,7 @@ static int client_download(vmem_client_config_t *config, uint64_t address, uint3
 			break;
 
 		/* Blocking read */
-		packet = csp_read(conn, config->timeout);
+		packet = csp_read(conn, 1);
 		if (packet == NULL)
 			break;
 
@@ -148,8 +131,8 @@ static int client_download(vmem_client_config_t *config, uint64_t address, uint3
 }
 
 int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp) {
-
-	vmem_client_config_t config = { .node = node, .timeout = timeout, .mtu = VMEM_SERVER_MTU, .cb = vmem_progress_cb, .no_rdp = !use_rdp};
+	(void)use_rdp;
+	vmem_client_config_t config = { .node = node, .mtu = VMEM_SERVER_MTU, .cb = vmem_progress_cb};
 	return client_download(&config, address, length, dataout, version);
 }
 
@@ -164,11 +147,10 @@ static int client_upload(vmem_client_config_t *config, uint64_t address, char * 
 	int type = config->mtu > VMEM_SERVER_MTU ? VMEM_SERVER_UPLOAD_W_ACK : VMEM_SERVER_UPLOAD;
 	abort = 0;
 
-	adjust_timeout(config);
 	adjust_mtu(config);
 
 	/* Establish RDP connection */
-	csp_conn_t * conn = csp_connect(CSP_PRIO_NORM, config->node, VMEM_PORT_SERVER, config->timeout, CSP_O_RDP | CSP_O_CRC32);
+	csp_conn_t * conn = csp_connect(CSP_PRIO_NORM, config->node, VMEM_PORT_SERVER, 0, CSP_O_RDP | CSP_O_CRC32);
 	if (conn == NULL) {
 		return CSP_ERR_TIMEDOUT;
 	}
@@ -223,7 +205,7 @@ static int client_upload(vmem_client_config_t *config, uint64_t address, char * 
 
 		/* Read the upload response */
 		if (csp_conn_is_active(conn)) {
-			packet = csp_read(conn, config->timeout);
+			packet = csp_read(conn, 1);
 			if (packet && packet->length == sizeof(vmem_upload_response_t)) {
 				vmem_upload_response_t *rsp = (vmem_upload_response_t *)packet->data;
 				result = rsp->result == 0 ? rsp->count :  0;
@@ -242,7 +224,7 @@ static int client_upload(vmem_client_config_t *config, uint64_t address, char * 
 
 int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version) {
 
-	vmem_client_config_t config = { .node = node, .timeout = timeout, .mtu = VMEM_SERVER_MTU, .cb = vmem_progress_cb, .no_rdp = false};
+	vmem_client_config_t config = { .node = node, .mtu = VMEM_SERVER_MTU, .cb = vmem_progress_cb};
 	return client_upload(&config, address, datain, length, version);
 }
 
