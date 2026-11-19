@@ -174,7 +174,6 @@ void vmem_server_handler(csp_conn_t * conn)
 		csp_buffer_free(packet);
 
 		uint32_t count = 0;
-		int32_t result = 0;
 		while (count < length && (packet = csp_read(conn, VMEM_SERVER_TIMEOUT)) != NULL) {
 
 			//csp_hex_dump("Upload", packet->data, packet->length);
