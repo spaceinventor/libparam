@@ -9,6 +9,7 @@ typedef struct {
     int node;               // CSP address of recipient
     uint16_t mtu;           // MTU to use for the transfer. If 0, VMEM_SERVER_MTU will be used as MTU
     vmem_progress_cb_t cb;  // Optional function that will be called regularly to report progress
+    int version;            // Defaults to 2 (64 bit address, 32 bit length)
 } vmem_client_config_t;
 
 /**

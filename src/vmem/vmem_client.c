@@ -47,12 +47,22 @@ static void adjust_mtu(vmem_client_config_t *config) {
 	}
 }
 
-static int client_download(vmem_client_config_t *config, uint64_t address, uint32_t length, char * dataout, int version) {
+static void adjust_version(vmem_client_config_t *config, uint64_t address) {
+
+	if (config->version > 0) {
+		return;
+	}
+
+	config->version = address > __UINT32_MAX__ || config->mtu != VMEM_SERVER_MTU ? 2: 1;
+}
+
+static int client_download(vmem_client_config_t *config, uint64_t address, uint32_t length, char * dataout) {
 
 	uint32_t time_begin = csp_get_ms();
 	abort = 0;
 
 	adjust_mtu(config);
+	adjust_version(config, address);
 
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_NORM, config->node, VMEM_PORT_SERVER, 0, CSP_O_CRC32 | CSP_O_RDP);
@@ -64,13 +74,13 @@ static int client_download(vmem_client_config_t *config, uint64_t address, uint3
 		return CSP_ERR_NOBUFS;
 
 	vmem_request_t * request = (void *) packet->data;
-	request->version = version;
+	request->version = config->version;
 	request->type = VMEM_SERVER_DOWNLOAD;
-	if (version == 2) {
+	if (request->version == 2 || request->version == 4) {
 		request->data2.address = htobe64(address);
 		request->data2.length = htobe32(length);
 		request->data2.mtu = config->mtu;
-	} else if (version == 1) {
+	} else if (request->version == 1) {
 		request->data.address = htobe32((uint32_t)(address & 0x00000000FFFFFFFFULL));
 		request->data.length = htobe32(length);
 	} else {
@@ -131,22 +141,21 @@ static int client_download(vmem_client_config_t *config, uint64_t address, uint3
 
 int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char * dataout, int version, int use_rdp) {
 	(void)use_rdp;
-	vmem_client_config_t config = { .node = node, .mtu = VMEM_SERVER_MTU, .cb = vmem_progress_cb};
-	return client_download(&config, address, length, dataout, version);
+	vmem_client_config_t config = { .node = node, .mtu = VMEM_SERVER_MTU, .cb = vmem_progress_cb, .version = version};
+	return client_download(&config, address, length, dataout);
 }
 
 int vmem_client_download(vmem_client_config_t *config, uint64_t address, uint32_t length, char * dataout) {
 
-	return client_download(config, address, length, dataout, 2);
+	return client_download(config, address, length, dataout);
 }
 
-static int client_upload(vmem_client_config_t *config, uint64_t address, char * datain, uint32_t length, int version) {
+static int client_upload(vmem_client_config_t *config, uint64_t address, char * datain, uint32_t length) {
 
-	/* If MTU is set to more than VMEM_SERVER_MTU the server should support VMEM_SERVER_UPLOAD_W_ACK */
-	int type = config->mtu > VMEM_SERVER_MTU ? VMEM_SERVER_UPLOAD_W_ACK : VMEM_SERVER_UPLOAD;
 	abort = 0;
 
 	adjust_mtu(config);
+	adjust_version(config, address);
 
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_NORM, config->node, VMEM_PORT_SERVER, 0, CSP_O_RDP | CSP_O_CRC32);
@@ -159,15 +168,17 @@ static int client_upload(vmem_client_config_t *config, uint64_t address, char * 
 		return CSP_ERR_NOBUFS;
 
 	vmem_request_t * request = (void *) packet->data;
-	request->version = version;
-	request->type = type;
+	request->version = config->version;
+	request->type = VMEM_SERVER_UPLOAD;
 
-	if (version == 2) {
+	if (request->version == 2 || request->version == 4) {
 		request->data2.address = htobe64(address);
 		request->data2.length = htobe32(length);
-	} else {
+	} else if (request->version == 1) {
 		request->data.address = htobe32((uint32_t)(address & 0x00000000FFFFFFFFULL));
 		request->data.length = htobe32(length);
+	} else {
+		return CSP_ERR_NOTSUP;
 	}
 	packet->length = sizeof(vmem_request_t);
 
@@ -199,7 +210,7 @@ static int client_upload(vmem_client_config_t *config, uint64_t address, char * 
 
 	}
 
-	if (request->type == VMEM_SERVER_UPLOAD_W_ACK) {
+	if (request->version == 4) {
 		int result = CSP_ERR_TIMEDOUT;
 
 		/* Read the upload response */
@@ -223,13 +234,13 @@ static int client_upload(vmem_client_config_t *config, uint64_t address, char * 
 
 int vmem_upload(int node, int timeout, uint64_t address, char * datain, uint32_t length, int version) {
 
-	vmem_client_config_t config = { .node = node, .mtu = VMEM_SERVER_MTU, .cb = vmem_progress_cb};
-	return client_upload(&config, address, datain, length, version);
+	vmem_client_config_t config = { .node = node, .mtu = VMEM_SERVER_MTU, .cb = vmem_progress_cb, .version = version };
+	return client_upload(&config, address, datain, length);
 }
 
 int vmem_client_upload(vmem_client_config_t *config, uint64_t address, char * datain, uint32_t length) {
 
-	return client_upload(config, address, datain, length, 2);
+	return client_upload(config, address, datain, length);
 }
 
 static csp_packet_t * vmem_client_list_get(int node, int timeout, int version) {

@@ -154,13 +154,13 @@ void vmem_server_handler(csp_conn_t * conn)
 	/**
 	 * UPLOAD
 	 */
-	} else if (type == VMEM_SERVER_UPLOAD || type == VMEM_SERVER_UPLOAD_W_ACK) {
+	} else if (type == VMEM_SERVER_UPLOAD) {
 
 		uint64_t address;
 		uint32_t length;
 		int32_t result = 0;
 
-		if (request->version == 2) {
+		if (request->version == 2 || request->version == 4) {
 			address = be64toh(request->data2.address);
 			length = be32toh(request->data2.length);
 		} else if (request->version == 1) {
@@ -196,7 +196,7 @@ void vmem_server_handler(csp_conn_t * conn)
 			result = vmem_flush(vmem);
 		}
 
-		if (type == VMEM_SERVER_UPLOAD_W_ACK) {
+		if (request->version == 4) {
 			packet = csp_buffer_get(0);
 			if (packet) {
 				vmem_upload_response_t *rsp = (vmem_upload_response_t *)packet->data;
