@@ -155,7 +155,7 @@ int vmem_download(int node, int timeout, uint64_t address, uint32_t length, char
 
 int vmem_client_download(vmem_client_config_t *config, uint64_t address, uint32_t length, char * dataout) {
 
-	return client_download(config, address, length, dataout, 3);
+	return client_download(config, address, length, dataout, 2);
 }
 
 static int client_upload(vmem_client_config_t *config, uint64_t address, char * datain, uint32_t length, int version) {
