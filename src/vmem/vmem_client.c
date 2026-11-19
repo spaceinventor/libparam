@@ -47,13 +47,19 @@ static void adjust_mtu(vmem_client_config_t *config) {
 	}
 }
 
-static void adjust_version(vmem_client_config_t *config, uint64_t address) {
+static int adjust_version(vmem_client_config_t *config, uint64_t address) {
 
 	if (config->version > 0) {
-		return;
+		return CSP_ERR_NONE;
 	}
 
-	config->version = address > __UINT32_MAX__ || config->mtu != VMEM_SERVER_MTU ? 2: 1;
+	if (config->version == 1 && address > __UINT32_MAX__) {
+		return CSP_ERR_INVAL;
+	}
+
+	config->version = address > __UINT32_MAX__ || config->mtu != VMEM_SERVER_MTU ? 2 : 1;
+
+	return CSP_ERR_NONE;
 }
 
 static int client_download(vmem_client_config_t *config, uint64_t address, uint32_t length, char * dataout) {
@@ -62,7 +68,9 @@ static int client_download(vmem_client_config_t *config, uint64_t address, uint3
 	abort = 0;
 
 	adjust_mtu(config);
-	adjust_version(config, address);
+	if (adjust_version(config, address) < 0) {
+		return CSP_ERR_INVAL;
+	}
 
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_NORM, config->node, VMEM_PORT_SERVER, 0, CSP_O_CRC32 | CSP_O_RDP);
@@ -155,7 +163,9 @@ static int client_upload(vmem_client_config_t *config, uint64_t address, char * 
 	abort = 0;
 
 	adjust_mtu(config);
-	adjust_version(config, address);
+	if (adjust_version(config, address) < 0) {
+		return CSP_ERR_INVAL;
+	}
 
 	/* Establish RDP connection */
 	csp_conn_t * conn = csp_connect(CSP_PRIO_NORM, config->node, VMEM_PORT_SERVER, 0, CSP_O_RDP | CSP_O_CRC32);
