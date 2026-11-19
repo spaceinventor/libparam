@@ -46,42 +46,46 @@ void * vmem_read_direct(vmem_t * vmem, void * to, uint64_t from, uint32_t size) 
 	return NULL;
 }
 
-void * vmem_write(uint64_t to, const void * from, uint32_t size) {
+int vmem_write(uint64_t to, const void * from, uint32_t size) {
 	vmem_t *vmem;
+	int result = VMEM_ERR_VMEMNOTFOUND;
 	vmem_iter_t start = {0};
 	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
 		/* Write to VMEM */
 		if ((to >= vmem->vaddr) && (to + (uint64_t)size <= vmem->vaddr + vmem->size)) {
 			if (vmem->write) {
-				vmem->write(vmem, to - vmem->vaddr, (void*)(uintptr_t)from, size);
+				result = vmem->write(vmem, to - vmem->vaddr, (void*)(uintptr_t)from, size);
 			} else {
 				memcpy((void *)(uintptr_t)to, (void *)(uintptr_t)from, size);
+				result = 0;
 			}
 			break;
 		}
 	}
 
-	return NULL;
+	return result;
 }
 
-void * vmem_read(void * to, uint64_t from, uint32_t size) {
+int vmem_read(void * to, uint64_t from, uint32_t size) {
 	vmem_t *vmem;
+	int result = VMEM_ERR_VMEMNOTFOUND;
 	vmem_iter_t start = {0};
 	for (vmem_iter_t *iter = vmem_next(&start); iter != NULL; iter = vmem_next(iter)) {
 		vmem = vmem_from_iter(iter);
 		/* Read */
 		if ((from >= vmem->vaddr) && (from + (uint64_t)size <= vmem->vaddr + vmem->size)) {
 			if (vmem->read) {
-				vmem->read(vmem, from - vmem->vaddr, (void*)(uintptr_t)to, size);
+				result = vmem->read(vmem, from - vmem->vaddr, (void*)(uintptr_t)to, size);
 			} else {
 				memcpy((void *)(uintptr_t)to, (void *)(uintptr_t)from, size);
+				result = 0;
 			}
 			break;
 		}
 	}
 
-	return NULL;
+	return result;
 }
 
 void * vmem_cpy(uint64_t to, uint64_t from, uint32_t size) {
@@ -131,10 +135,14 @@ vmem_t * vmem_vaddr_to_vmem(uint64_t vaddr) {
 
 int vmem_flush(vmem_t *vmem) {
 
-	int res = 1;
-	if (vmem && vmem->flush) {
-		/* Call the flush method, which will empty any caches into the storage */
-		res = vmem->flush(vmem);
+	int res = VMEM_ERR_VMEMNOTFOUND;
+	if (vmem) {
+		if (vmem->flush) {
+			/* Call the flush method, which will empty any caches into the storage */
+			res = vmem->flush(vmem);
+		} else {
+			res = 0;
+		}
 	}
 	return res;
 }

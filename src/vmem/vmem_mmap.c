@@ -39,14 +39,15 @@ static void ensure_init(vmem_mmap_driver_t *drv, uint64_t *size)
 	}
 }
 
-void vmem_mmap_read(vmem_t *vmem, uint64_t addr, void *dataout, uint32_t len)
+int vmem_mmap_read(vmem_t *vmem, uint64_t addr, void *dataout, uint32_t len)
 {
 	vmem_mmap_driver_t *drv = (vmem_mmap_driver_t *)vmem->driver;
 	ensure_init(drv, &vmem->size);
 	memcpy(dataout, ((vmem_mmap_driver_t *)vmem->driver)->physaddr + addr, len);
+	return 0;
 }
 
-void vmem_mmap_write(vmem_t *vmem, uint64_t addr, const void *datain, uint32_t len)
+int vmem_mmap_write(vmem_t *vmem, uint64_t addr, const void *datain, uint32_t len)
 {
 	vmem_mmap_driver_t *drv = (vmem_mmap_driver_t *)vmem->driver;
 	ensure_init(drv, &vmem->size);
@@ -60,4 +61,5 @@ void vmem_mmap_write(vmem_t *vmem, uint64_t addr, const void *datain, uint32_t l
 		ensure_init(drv, &vmem->size);
 	}
 	memcpy(drv->physaddr + addr, datain, len);
+	return 0;
 }

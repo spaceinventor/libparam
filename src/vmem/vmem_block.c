@@ -266,7 +266,7 @@ static int32_t cache_read(const vmem_block_driver_t *drv, vmem_block_cache_t *ca
     return 0;
 }
 
-void vmem_block_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len) {
+int vmem_block_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len) {
 
     vmem_block_region_t *reg = (vmem_block_region_t *)vmem->driver;
     uint64_t physaddr = reg->physaddr + addr;
@@ -296,9 +296,10 @@ void vmem_block_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len)
         destaddr += nbytes;
     }
 
+    return 0;
 }
 
-void vmem_block_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len) {
+int vmem_block_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len) {
 
     vmem_block_region_t *reg = (vmem_block_region_t *)vmem->driver;
     uint64_t physaddr = reg->physaddr + addr;
@@ -339,11 +340,11 @@ void vmem_block_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_
         reg->cache->is_valid = false;
     }
 
+    return 0;
 }
 
 int vmem_block_flush(vmem_t * vmem) {
 
-    int res = 1;
     //printf("vmem_block_flush(%p)\n", vmem);
 
     if (vmem->type == VMEM_TYPE_BLOCK) {
@@ -352,10 +353,9 @@ int vmem_block_flush(vmem_t * vmem) {
             /* If the region has a cache object attached, flush it */
             cache_flush(region->driver, region->cache);
         }
-        res = 0;
     }
 
-    return res;
+    return 0;
 }
 
 static int32_t _vmem_block_init(const vmem_block_device_t * dev) {

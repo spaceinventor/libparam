@@ -30,13 +30,14 @@ void vmem_file_init(vmem_t * vmem) {
 	}
 }
 
-void vmem_file_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len) {
+int vmem_file_read(vmem_t * vmem, uint64_t addr, void * dataout, uint32_t len) {
 	vmem_file_driver_t *driver = (vmem_file_driver_t *) vmem->driver;
 	vmem_file_init(vmem);
 	memcpy(dataout, (void*)((intptr_t)driver->physaddr + addr), len);
+	return 0;
 }
 
-void vmem_file_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len) {
+int vmem_file_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t len) {
 	vmem_file_driver_t *driver = (vmem_file_driver_t *) vmem->driver;
 	memcpy((void *)((intptr_t)driver->physaddr + addr), datain, len);
 	vmem_file_init(vmem);
@@ -48,4 +49,6 @@ void vmem_file_write(vmem_t * vmem, uint64_t addr, const void * datain, uint32_t
 		fflush(driver->stream);
 		(void) written;
 	}
+
+	return 0;
 }

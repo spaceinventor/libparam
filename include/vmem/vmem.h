@@ -19,6 +19,8 @@ extern "C" {
 #include <endian.h>
 #include <param/param.h>
 
+#define VMEM_ERR_VMEMNOTFOUND -1
+
 enum vmem_types{
 	VMEM_TYPE_RAM = 1,
 	VMEM_TYPE_FRAM = 2,
@@ -35,8 +37,8 @@ enum vmem_types{
 
 typedef struct vmem_s {
 	int type;
-	void (*read)(struct vmem_s * vmem, uint64_t addr, void * dataout, uint32_t len);
-	void (*write)(struct vmem_s * vmem, uint64_t addr, const void * datain, uint32_t len);
+	int (*read)(struct vmem_s * vmem, uint64_t addr, void * dataout, uint32_t len);
+	int (*write)(struct vmem_s * vmem, uint64_t addr, const void * datain, uint32_t len);
 	int (*backup)(struct vmem_s * vmem);
 	int (*restore)(struct vmem_s * vmem);
 	int (*flush)(struct vmem_s * vmem);
@@ -85,18 +87,18 @@ void * vmem_memcpy(void * to, const void * from, uint32_t size);
  * @param to valid VMEM virtual address the data will be written to
  * @param from pointer to source data
  * @param size size in bytes to write
- * @return NULL, in all cases, no error detection possible at this time
+ * @return 0 for success, negative number in case of error
  */
-void * vmem_write(uint64_t to, const void * from, uint32_t size);
+int vmem_write(uint64_t to, const void * from, uint32_t size);
 
 /**
  * @brief Read data from a VMEM area to CPU accessible memory area
  * @param to pointer to valid memory of at least size bytes
  * @param from valid VMEM virtual address the data will be read from
  * @param size size in bytes to read
- * @return NULL, in all cases, no error detection possible at this time
+ * @return 0 for success, negative number in case of error
  */
-void * vmem_read(void * to, uint64_t from, uint32_t size);
+int vmem_read(void * to, uint64_t from, uint32_t size);
 
 /**
  * @brief Copy data between a VMEM area and CPU accessible memory area
