@@ -7,10 +7,8 @@ typedef void (*vmem_progress_cb_t)(uint32_t total, uint32_t sofar, uint16_t mtu)
 
 typedef struct {
     int node;               // CSP address of recipient
-    int timeout;            // CSP timeout to use
     uint16_t mtu;           // MTU to use for the transfer. If 0, VMEM_SERVER_MTU will be used as MTU
     vmem_progress_cb_t cb;  // Optional function that will be called regularly to report progress
-    bool no_rdp;            // 0=do use RDP, 1=do not use RDP
 } vmem_client_config_t;
 
 /**
