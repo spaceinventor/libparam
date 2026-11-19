@@ -38,8 +38,7 @@ void vmem_progress_cb(uint32_t total, uint32_t sofar, uint16_t mtu) {
 }
 
 static void adjust_mtu(vmem_client_config_t *config) {
-	const uint16_t mtu_max = CSP_BUFFER_SIZE - sizeof(csp_crc32_t);
-	const uint16_t mtu_max_rdp = mtu_max - 5; /* 5 bytes for RDP header */
+	const uint16_t mtu_max_rdp = CSP_BUFFER_SIZE - sizeof(csp_crc32_t) - 5; /* 5 bytes for RDP header */
 
 	if (config->mtu == 0) {
 		config->mtu = VMEM_SERVER_MTU;
