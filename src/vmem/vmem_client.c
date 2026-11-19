@@ -91,7 +91,7 @@ static int client_download(vmem_client_config_t *config, uint64_t address, uint3
 			break;
 
 		/* Blocking read */
-		packet = csp_read(conn, 1);
+		packet = csp_read(conn, 1); /* Set timeout 1 always to be overridden by RDP default setting */
 		if (packet == NULL)
 			break;
 
