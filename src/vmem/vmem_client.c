@@ -49,14 +49,15 @@ static void adjust_mtu(vmem_client_config_t *config) {
 
 static int adjust_version(vmem_client_config_t *config, uint64_t address) {
 
-	if (config->version > 0) {
-		return CSP_ERR_NONE;
-	}
-
 	if (config->version == 1 && address > __UINT32_MAX__) {
 		return CSP_ERR_INVAL;
 	}
 
+	if (config->version > 0) {
+		return CSP_ERR_NONE;
+	}
+
+	/* User allow auto-selection of VMEM version */
 	config->version = address > __UINT32_MAX__ || config->mtu != VMEM_SERVER_MTU ? 2 : 1;
 
 	return CSP_ERR_NONE;
